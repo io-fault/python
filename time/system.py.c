@@ -551,8 +551,6 @@ METHODS() = {
 	{NULL}
 };
 
-MODULE(NULL, -1);
-
 #ifdef __MACH__
 static void
 INIT_PORT(void)
@@ -561,7 +559,7 @@ INIT_PORT(void)
 }
 #endif
 
-INIT()
+INIT("")
 {
 	PyObject *mod;
 

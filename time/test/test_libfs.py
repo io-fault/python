@@ -1,3 +1,5 @@
+import os
+import tempfile
 from .. import libfs
 
 def test_stats(test):
@@ -9,6 +11,27 @@ def test_stats(test):
 		test.fail_if_not_instance(x.st_atime, libfs.lib.Timestamp)
 		test.fail_if_not_instance(x.st_mtime, libfs.lib.Timestamp)
 		test.fail_if_not_instance(x.st_ctime, libfs.lib.Timestamp)
+
+def test_modification_time(test):
+	'Somewhat of a file system test'
+	with tempfile.TemporaryDirectory() as d:
+		file = os.path.join(d, 'myfile')
+		test/os.path.exists(file) == False
+		with open(file, 'w') as f:
+			f.write('some data\n')
+		test/os.path.exists(file) == True
+		mtime1 = libfs.stat(file).st_mtime
+
+		import time
+		s = int(time.time())
+		while int(time.time()) == s:
+			time.sleep(0.05)
+
+		with open(file, 'a') as f:
+			f.write('some more data\n')
+		mtime2 = libfs.stat(file).st_mtime
+
+		test/mtime2 > mtime1
 
 if __name__ == '__main__':
 	from dev import libtest; libtest.execmodule()
