@@ -4,22 +4,6 @@ Usage
 
 This chapter describes how to use `internet`.
 
-DNS
-===
-
-The Internet's DNS protocol is used to locate servers and provide metadata about
-a given name. `internet` provides some fundamental tools for working with DNS
-structures.
-
-Constructing DNS Messages
--------------------------
-
-Serializing DNS Messages
-------------------------
-
-Parsing DNS Messages
---------------------
-
 HTTP
 ====
 
