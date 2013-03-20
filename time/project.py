@@ -14,6 +14,8 @@ meaculpa = 'fault.io'
 #: Contact point for the Responsible Party
 contact = 'mailto:critical@fault.io'
 
+fork = 'melody'
+
 #: Version tuple: (major, minor, patch)
 version_info = (0, 7, 0)
 
