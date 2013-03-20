@@ -304,10 +304,14 @@ def format_rfc1123(pitt, subsec, dow, _fmt = models['rfc1123'].format,
 	)
 
 def format_iso8601(pitt, subsec, dow,
-	_fmt = models['iso8601'].format, _log = math.log10
+	_fmt = models['iso8601'].format, log = math.log10, str = str
 ):
-	subsec = str(subsec[0]).rjust(int(_log(subsec[1])), "0")
-	return _fmt(*(pitt + (subsec,)))
+	sub = str(subsec[0])
+	# justify according to precision
+	sub = sub.rjust(int(log(subsec[1])), "0")
+	# strip trailing zeros for conciseness repr
+	sub = sub.rstrip("0")
+	return _fmt(*(pitt + (sub or "0",)))
 
 formatters = {
 	'rfc1123' : format_rfc1123,
