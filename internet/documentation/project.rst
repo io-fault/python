@@ -15,9 +15,6 @@ Structure
 
 `internet` primarily consists of the following modules:
 
- :py:mod:`internet.libdns`
-  Provides an assembler and disassembler for the HTTP protocol.
-
  :py:mod:`internet.libmedia`
   Provides supporting functionality for the HTTP protocol such
   a MIME-Type data structure, a MIME Media Range type used
@@ -26,8 +23,11 @@ Structure
  :py:mod:`internet.libhttp`
   Provides an assembler and disassembler for the HTTP protocol.
 
- :py:mod:`internet.data.http` / :py:mod:`internet.data.dns`
-  Data modules supporting the library modules.
+ :py:mod:`internet.data.http`
+  Data module supporting the HTTP modules.
+
+ :py:mod:`internet.data.dns`
+  Data module supporting the DNS modules. (not implemented)
 
 Requirements
 ============
