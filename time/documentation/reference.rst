@@ -7,13 +7,6 @@ provided by rhythm. It refrains from discussing how the parts might be used
 in a wider scope; the :doc:`usage` document should be read for such
 information.
 
-:mod:`rhythm`
-=============
-
-.. automodule:: rhythm
-    :show-inheritance:
-    :members:
-
 :mod:`rhythm.lib`
 =================
 
@@ -42,13 +35,6 @@ information.
     :show-inheritance:
     :members:
 
-:mod:`rhythm.abstract`
-======================
-
-.. automodule:: rhythm.abstract
-    :show-inheritance:
-    :members:
-
 :mod:`rhythm.libunit`
 =====================
 
@@ -67,5 +53,19 @@ information.
 =======================
 
 .. automodule:: rhythm.libformat
+    :show-inheritance:
+    :members:
+
+:mod:`rhythm`
+=============
+
+.. automodule:: rhythm
+    :show-inheritance:
+    :members:
+
+:mod:`rhythm.abstract`
+======================
+
+.. automodule:: rhythm.abstract
     :show-inheritance:
     :members:
