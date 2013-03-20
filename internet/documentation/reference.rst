@@ -28,13 +28,6 @@ information.
     :show-inheritance:
     :members:
 
-:mod:`internet.libdns`
-======================
-
-.. automodule:: internet.libdns
-    :show-inheritance:
-    :members:
-
 :mod:`internet.libhttp`
 =======================
 
