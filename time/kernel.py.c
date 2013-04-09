@@ -1,7 +1,5 @@
 /*
- * rhythm.system
- *
- * Interface to the system clock using mostly POSIX interfaces.
+ * Interface to the kernel's clock using mostly POSIX interfaces.
  *
  * gettimeofday/settimeofday, adjtime, and monotonic timer access.
  *
@@ -51,7 +49,6 @@
 #define EPOCH_YEAR 2000
 #endif
 
-/* XXX: how to handle closure on fork? */
 /* eff uuuu apple */
 MACH(static clock_serv_t appleshit);
 
@@ -474,6 +471,8 @@ s_disturb(PyObject *self)
 	/*
 	 * Increment the trips while holding the GIL.
 	 * Trips are only decremented when the GIL is held.
+	 *
+	 * XXX: This should really be a conditional call to pthread_kill.
 	 */
 	if (next_trips > 0)
 		s->trips = next_trips;
@@ -561,12 +560,12 @@ INIT_PORT(void)
 
 INIT("")
 {
-	PyObject *mod;
+	PyObj mod;
 
 	MACH(INIT_PORT());
 	MACH(pthread_atfork(NULL, NULL, INIT_PORT));
 
-	mod = CREATE_MODULE();
+	CREATE_MODULE(&mod);
 
 	if (PyType_Ready(&ChronometerType) != 0)
 		goto fail;

@@ -4,7 +4,7 @@ System clock management and query interface.
 import contextlib
 import functools
 from . import abstract
-from . import system as clockwork
+from . import kernel as clockwork
 
 class Clock(object):
 	"""

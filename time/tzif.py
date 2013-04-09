@@ -79,7 +79,7 @@ def parse_version_1(data):
 
 	end = leappairs_struct_v1.size * header.tzh_leapcnt
 	leaps = tuple([
-		leappairs_struct_v1.unpack(y[x:x+leappairs.size])
+		leappairs_struct_v1.unpack(y[x:x+leappairs_struct_v1.size])
 		for x in range(0, end, leappairs_struct_v1.size)
 	])
 	y = y[end:]
