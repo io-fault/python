@@ -5,7 +5,7 @@ import itertools
 import collections
 import heapq
 
-from . import system
+from . import kernel
 
 class Harmony(object):
 	"""
@@ -26,7 +26,7 @@ class Harmony(object):
 	unit = 'nanosecond'
 
 	def __init__(self,
-		Chronometer = system.Chronometer,
+		Chronometer = kernel.Chronometer,
 		Identifiers = itertools.count,
 		DefaultDict = collections.defaultdict,
 		Sequence = collections.deque

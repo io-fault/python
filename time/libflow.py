@@ -6,7 +6,7 @@ The classes and function herein are requisites for time based rate limiting.
 import collections
 import weakref
 # Use the Chronometer directly for performance reasons.
-from . import system
+from . import kernel
 # But some surface functionality can return Measures for typed units
 from . import lib
 
@@ -80,7 +80,7 @@ class Radar(object):
 		return (total_units, Measure(total_time))
 
 	def __init__(self,
-		Chronometer = system.Chronometer,
+		Chronometer = kernel.Chronometer,
 		Dictionary = weakref.WeakKeyDictionary,
 		Queue = collections.deque
 	):

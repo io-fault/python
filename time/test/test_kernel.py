@@ -1,8 +1,5 @@
-"""
-rhythm.test.test_system
-"""
 import os
-from .. import system
+from .. import kernel
 
 def test_fork_monotonic(test):
 	c = system.Chronometer()
