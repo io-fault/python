@@ -2,7 +2,7 @@ import os
 from .. import kernel
 
 def test_fork_monotonic(test):
-	c = system.Chronometer()
+	c = kernel.Chronometer()
 	first = next(c)
 	first = next(c)
 	pid = os.fork()
