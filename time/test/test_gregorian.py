@@ -6,20 +6,20 @@ from .. import gregorian
 
 def test_year_is_leap(test):
 	# hand picked years
-	test.fail_if_not_equal(True, gregorian.year_is_leap(2000))
-	test.fail_if_not_equal(False, gregorian.year_is_leap(1999))
-	test.fail_if_not_equal(False, gregorian.year_is_leap(1998))
-	test.fail_if_not_equal(False, gregorian.year_is_leap(1997))
-	test.fail_if_not_equal(True, gregorian.year_is_leap(1996))
-	test.fail_if_not_equal(True, gregorian.year_is_leap(1600))
-	test.fail_if_not_equal(True, gregorian.year_is_leap(1604))
-	test.fail_if_not_equal(True, gregorian.year_is_leap(1200))
-	test.fail_if_not_equal(False, gregorian.year_is_leap(1900))
-	test.fail_if_not_equal(False, gregorian.year_is_leap(1800))
-	test.fail_if_not_equal(False, gregorian.year_is_leap(1700))
-	test.fail_if_not_equal(True, gregorian.year_is_leap(1704))
+	test/True == gregorian.year_is_leap(2000)
+	test/False == gregorian.year_is_leap(1999)
+	test/False == gregorian.year_is_leap(1998)
+	test/False == gregorian.year_is_leap(1997)
+	test/True == gregorian.year_is_leap(1996)
+	test/True == gregorian.year_is_leap(1600)
+	test/True == gregorian.year_is_leap(1604)
+	test/True == gregorian.year_is_leap(1200)
+	test/False == gregorian.year_is_leap(1900)
+	test/False == gregorian.year_is_leap(1800)
+	test/False == gregorian.year_is_leap(1700)
+	test/True == gregorian.year_is_leap(1704)
 	for x, i in zip(itertools.cycle((True, False, False, False)), range(1600, 1700)):
-		test.fail_if_not_equal(x, gregorian.year_is_leap(i))
+		test/x == gregorian.year_is_leap(i)
 
 mfd_io_samples = [
 	(0, 0), # first day of jan
@@ -44,7 +44,7 @@ mfd_io_samples = [
 def test_month_from_days(test):
 	for x in mfd_io_samples:
 		days, md = x
-		test.fail_if_not_equal(md, gregorian.month_from_days(days))
+		test/md == gregorian.month_from_days(days)
 
 def test_mfd_alignment(test):
 	for x in mfd_io_samples:
@@ -53,9 +53,9 @@ def test_mfd_alignment(test):
 		# valid
 		m = gregorian.month_from_days(days)
 		d = gregorian.days_from_month(md)
-		test.fail_if_less_than(days, d)
+		test/days >= d
 		firstof = gregorian.month_from_days(d)
-		test.fail_if_not_equal(m, firstof)
+		test/m == firstof
 
 def test_scan_months(test):
 	"""
@@ -65,7 +65,7 @@ def test_scan_months(test):
 	while month > 0:
 		days = gregorian.days_from_month(month)
 		next = gregorian.month_from_days(days - 1)
-		test.fail_if_not_equal(next, month - 1)
+		test/next == month - 1
 		month = next
 
 ##
@@ -79,7 +79,7 @@ dfm_io_samples = [
 def test_days_from_month(test):
 	for x in dfm_io_samples:
 		month, days = x
-		test.fail_if_not_equal(days, gregorian.days_from_month(month))
+		test/days == gregorian.days_from_month(month)
 
 date_io_samples = [
 	# whole cycle checks
@@ -99,12 +99,9 @@ date_io_samples = [
 def test_date_from_days(test):
 	for x in date_io_samples:
 		date, days = x
-		test.fail_if_not_equal(date, gregorian.date_from_days(days))
+		test/date == gregorian.date_from_days(days)
 
 def test_days_from_date(test):
 	for x in date_io_samples:
 		date, days = x
-		test.fail_if_not_equal(days, gregorian.days_from_date(date))
-
-if __name__ == '__main__':
-	from dev import libtest; libtest.execmodule()
+		test/days == gregorian.days_from_date(date)

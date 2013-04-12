@@ -1,6 +1,3 @@
-"""
-rhythm.test.test_libflow
-"""
 from .. import lib
 from .. import libflow
 from .mock import Chronometer
@@ -92,26 +89,26 @@ def test_Radar_implicit_forget(test):
 	"""
 	R = libflow.Radar(Chronometer = Chronometer)
 	a = SomeObject()
-	test.fail_if_not_equal(R.forget(a), None)
+	test/R.forget(a) == None
 	R.track(a, 0)
 	del a
 	import gc
 	gc.collect()
-	test.fail_if_not_equal(len(R), 0)
+	test/len(R) == 0
 
 def test_Radar_explicit_forget(test):
 	R = libflow.Radar(Chronometer = Chronometer)
 	a = SomeObject()
-	test.fail_if_not_equal(R.forget(a), None)
+	test/R.forget(a) == None
 	R.track(a, 0)
-	test.fail_if_equal(R.forget(a), None)
+	test/R.forget(a) != None
 
 def test_Radar(test):
 	"""
 	Test most features of the Radar class.
 	"""
 	R = libflow.Radar(Chronometer = Chronometer)
-	test.fail_if_not_equal(len(R), 0)
+	test/len(R) == 0
 	a = SomeObject()
 
 	update = Chronometer.set
@@ -226,6 +223,3 @@ def test_Radar_zero(test):
 	update(0)
 	R.track(a, 0)
 	test/R.rate(a, 100) == (0, lib.Measure(0))
-
-if __name__ == '__main__':
-	from dev import libtest; libtest.execmodule()

@@ -83,14 +83,13 @@ def test_samples(test):
 	for title, (pit_tuple, pit_formats) in samples:
 		for format, val in pit_formats:
 			parser = libformat.parser(format)
-			test_pit = tuple(parser(val)); test.fail_if_not_equal(test_pit, pit_tuple)
+			test_pit = tuple(parser(val))
+			test/test_pit == pit_tuple
 
 def test_errors(test):
 	for format, errors in exceptional_samples:
 		parser = libformat.parser(format)
 		for error, samples in errors:
 			for x in samples:
-				test.fail_if_not_raised(error, parser, x)
-
-if __name__ == '__main__':
-	from dev import libtest; libtest.execmodule()
+				with test/error as exc:
+					parser(x)

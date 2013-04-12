@@ -40,6 +40,3 @@ def test_Spec_throttle(test):
 	test/spec.throttle(31231231232312313) == 0
 	test/spec.throttle(2**64) == 0
 	test/spec.throttle(-123) == 0
-
-if __name__ == '__main__':
-	from dev import libtest; libtest.execmodule()

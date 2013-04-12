@@ -6,11 +6,12 @@ def test_stats(test):
 	stat = libfs.stat(__file__)
 	with open(__file__) as f:
 		fstat = libfs.fstat(f.fileno())
-	test.fail_if_not_equal(fstat, stat) # potentially a bogus failure
+
+	test/fstat == stat # potentially a bogus failure
 	for x in fstat, stat:
-		test.fail_if_not_instance(x.st_atime, libfs.lib.Timestamp)
-		test.fail_if_not_instance(x.st_mtime, libfs.lib.Timestamp)
-		test.fail_if_not_instance(x.st_ctime, libfs.lib.Timestamp)
+		test/x.st_atime / libfs.lib.Timestamp
+		test/x.st_mtime / libfs.lib.Timestamp
+		test/x.st_ctime / libfs.lib.Timestamp
 
 def test_modification_time(test):
 	'Somewhat of a file system test'
@@ -32,6 +33,3 @@ def test_modification_time(test):
 		mtime2 = libfs.stat(file).st_mtime
 
 		test/mtime2 > mtime1
-
-if __name__ == '__main__':
-	from dev import libtest; libtest.execmodule()
