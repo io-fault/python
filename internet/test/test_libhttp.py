@@ -2,10 +2,10 @@ from .. import libhttp
 
 # Sanity
 def test_module_protocol(test):
-	test/'Disassembler' >> dir(libhttp)
-	test/'disassembly' >> dir(libhttp)
-	test/'Assembler' >> dir(libhttp)
-	test/'assembly' >> dir(libhttp)
+	'Disassembler' in test/dir(libhttp)
+	'disassembly' in test/dir(libhttp)
+	'Assembler' in test/dir(libhttp)
+	'assembly' in test/dir(libhttp)
 
 def test_dis_complete_request(test):
 	data = b"""GET / HTTP/1.0\r
@@ -497,6 +497,3 @@ def test_assemble_ooo(test):
 	g = libhttp.assembly()
 	r = g.send([(libhttp.Event.content, b'foo')])
 	test/r == b'foo'
-
-if __name__ == '__main__':
-	from dev import libtest; libtest.execmodule()

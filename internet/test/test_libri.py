@@ -466,18 +466,18 @@ def test_expectations(test):
 		parsed_construct = libri.construct(parsed)
 		parsed_serialize = libri.serialize(parsed)
 
-		test.fail_if_not_equal(text_parsed, parsed)
-		test.fail_if_not_equal(parsed_serialize, text)
-		test.fail_if_not_equal(parsed_construct, split)
-		test.fail_if_not_equal(split_unsplit, text)
-		test.fail_if_not_equal(split_structure, parsed)
-		test.fail_if_not_equal(text_split, split)
+		test/text_parsed == parsed
+		test/parsed_serialize == text
+		test/parsed_construct == split
+		test/split_unsplit == text
+		test/split_structure == parsed
+		test/text_split == split
 
 def test_split_unsplit_netloc(test):
 	for x in sample_unsplit_netlocs:
 		sn = libri.split_netloc(x)
 		usn = libri.unsplit_netloc(sn)
-		test.fail_if_not_equal(usn, x)
+		test/usn == x
 
 def test_unsplit_split_netloc(test):
 	for xx in sample_split_netlocs:
@@ -485,25 +485,22 @@ def test_unsplit_split_netloc(test):
 			x = tuple(x)
 			un = libri.unsplit_netloc(x)
 			sn = tuple(libri.split_netloc(un))
-			test.fail_if_not_equal(sn, x)
+			test/sn == x
 
 def test_split_unsplit_path(test):
 	for x in sample_unsplit_paths:
 		s = libri.split_path(x)
 		us = libri.unsplit_path(s)
-		test.fail_if_not_equal(us, x)
+		test/us == x
 
 def testUnsplitSplitPath(test):
 	for x in sample_paths:
 		us = libri.unsplit_path(x)
 		s = libri.split_path(us)
-		test.fail_if_not_equal(s, x)
+		test/s == x
 
 def test_combinations(test, S = libri.serialize, P = libri.parse):
 	for x in samples():
 		s = S(x); p = P(s)
 		if p != x:
 			test.fail("%r -> %r != %r" %(x, s, p))
-
-if __name__ == '__main__':
-	from dev import libtest; libtest.execmodule()
