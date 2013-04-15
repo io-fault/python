@@ -14,8 +14,10 @@ meaculpa = 'fault.io'
 #: Contact point for the Responsible Party
 contact = 'mailto:critical@fault.io'
 
+fork = 'darpa'
+
 #: Version tuple: (major, minor, patch)
-version_info = ('silence',)
+version_info = (0, 1, 0)
 
 #: The version string.
 version = '.'.join(map(str, version_info))
