@@ -449,7 +449,6 @@ def test_Months_elapse(test):
 
 def test_month_spectrum(test):
 	test.explicit()
-
 	start = lib.Timestamp.of(year=1600, month=0, day=0)
 	end = lib.Timestamp.of(year=2000, month=0, day=0)
 

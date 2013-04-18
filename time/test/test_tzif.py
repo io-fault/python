@@ -3,7 +3,7 @@ import os.path
 from .. import tzif
 
 def test_loadall(test, _join = os.path.join, bytes = bytes, bool = bool, int = int):
-	return
+	test.explicit()
 	# load all the TZif files in the tzdir(/usr/share/zoneinfo).
 	for dirpath, dirname, filenames in os.walk(tzif.tzdir):
 		for x in filenames:
