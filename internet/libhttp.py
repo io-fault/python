@@ -80,6 +80,9 @@ Event.chunk = Event(Event.codes['CHUNK'])
 Event.trailers = Event(Event.codes['TRAILERS'])
 Event.violation = Event(Event.codes['VIOLATION'])
 
+#: End of Headers
+EOH = (Event.headers, ())
+
 ###
 # Field extraction and transfer length handling.
 ##
@@ -296,7 +299,7 @@ def Disassembler(
 			events.append((headers_ev, headers))
 		# terminator
 		headers = ()
-		events.append((headers_ev, headers))
+		events.append(EOH)
 
 		# trim trailing CRLF
 		del req[:2]
