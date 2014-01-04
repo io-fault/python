@@ -484,7 +484,7 @@ s_disturb(PyObject *self)
 static PyMethodDef
 sleeper_methods[] = {
 	{"disturb", (PyCFunction) s_disturb, METH_NOARGS,
-		PyDoc_STR("disturb the sleeper causing it to fall out of the sleep cycle")},
+		PyDoc_STR("disturb the sleeper causing it to fall out of slumber")},
 	{NULL},
 };
 

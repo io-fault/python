@@ -5,8 +5,6 @@ import itertools
 import collections
 import heapq
 
-from . import kernel
-
 class Harmony(object):
 	"""
 	All purpose event scheduler.
@@ -25,8 +23,10 @@ class Harmony(object):
 	"""
 	unit = 'nanosecond'
 
+	from .kernel import Chronometer
+
 	def __init__(self,
-		Chronometer = kernel.Chronometer,
+		Chronometer = Chronometer,
 		Identifiers = itertools.count,
 		DefaultDict = collections.defaultdict,
 		Sequence = collections.deque
@@ -67,7 +67,7 @@ class Harmony(object):
 		:returns: A sequence of event identifiers that can be used for cancellation.
 		:rtype: [:py:class:`int`]
 
-		Scheduls the given events.
+		Schedules the given events for execution.
 		"""
 		snapshot = self.meter.snapshot()
 		events = []
