@@ -65,10 +65,14 @@ def context(context):
 
 	l = list(name_to_exponent.items())
 	l.sort(key=operator.itemgetter(1))
+
 	context.define(l[0][0], 'second', l[0][1], fractions.Fraction(10,1))
+
 	for i in range(1, len(l)):
+		# define the unit with the prior definition
 		defined = l[i]
 		definition = l[i-1]
+
 		context.define(
 			defined[0], definition[0],
 			defined[1] - definition[1],

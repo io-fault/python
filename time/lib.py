@@ -51,11 +51,16 @@ The units in bold are the units with designated Python types. All other units
 are expressed in terms of those units unless the time context is explicitly
 extended.
 """
+import sys
 import operator
 import functools
+from . import abstract
 from . import libunit # Context & Standard Definitions.
 from . import libclock
 from . import libzone
+
+#: Range class.
+Segment = libunit.Segment
 
 Context, MeasureTypes, PointTypes = libunit.standard_context(__name__)
 
@@ -90,11 +95,34 @@ Week = PointTypes[2]
 #: Point In Time with Gregorian Month precision. :py:class:`rhythm.abstract.Point`
 GregorianMonth = PointTypes[3]
 
-import sys
-clock = libclock.Clock(Measure.unit, sys.modules[__name__])
+#: Infinite measure unit.
+Eternals = Context.measures['eternal'][None]
+#: Infinite unit points.
+Indefinite = Context.points['eternal'][None]
 
-#: Shortcut to :py:obj:`rhythm.lib.clock.snapshot`
+genesis = Indefinite(-1)
+present = Indefinite(0)
+never = Indefinite(1)
+
+#: Segment representing all time. All points in time exist in this segment.
+eternity = Segment((genesis, never))
+
+#: Segment representing the future.
+future = Segment((present, never))
+
+#: Segment representing the past.
+past = Segment((genesis, present))
+
+#: abstract.Clock interface to the kernel's clock, demotic and monotonic.
+kclock = libclock.kclock
+
+#: abstract.Clock interface to the :py:obj:`kclock`
+#: that provides Measure and Timestamp instances.
+clock = libclock.IClock(kclock, Measure, Timestamp)
+
+#: Shortcut to :py:obj:`rhythm.lib.clock.demotic`
 now = clock.demotic
+
 del sys
 
 def unix(unix_timestamp, Timestamp = Timestamp.of):
@@ -171,7 +199,7 @@ open = PartialAttributes(construct_open)
 # This may end up getting moved, so don't expose it.
 del PartialAttributes, construct_update, construct_select, construct_open
 
-def range(start, stop, step = None, Range = libunit.Range):
+def range(start, stop, step = None, Segment = Segment):
 	"""
 	Construct an iterator producing Points between the given `start` and `stop`.
 
@@ -185,7 +213,7 @@ def range(start, stop, step = None, Range = libunit.Range):
 		begin = pit.update('day', 1, 'week')
 		this_business_week = rhythm.lib.range(week_start, week_end, lib.Days(1))
 	"""
-	return Range((start, stop)).points(step)
+	return Segment((start, stop)).points(step)
 
 def field_delta(field, start, stop):
 	"""

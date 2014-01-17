@@ -1,5 +1,12 @@
 import sys
 
-def probe(context):
-	if sys.platform.lower() == 'linux':
-		context._dynamic_link(('rt',))
+platform = sys.platform.lower()
+
+timelibs = {
+	'linux': 'rt',
+}
+
+def initialize(context):
+	with context as xact:
+		if platform in timelibs:
+			xact.dynamic_link(timelibs[platform])

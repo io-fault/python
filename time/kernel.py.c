@@ -14,7 +14,6 @@
 #define US_IN_SEC 1000000
 
 #ifdef __MACH__
-/* efff uuuu appple */
 #include <mach/clock.h>
 #include <mach/mach.h>
 #include <pthread.h>
@@ -49,8 +48,9 @@
 #define EPOCH_YEAR 2000
 #endif
 
-/* eff uuuu apple */
-MACH(static clock_serv_t appleshit);
+MACH(static clock_serv_t applestuff);
+
+typedef struct Chronometer *Chronometer;
 
 /*
  * Use a Y2K+1 epoch. (+1 for weekstart alignment)
@@ -62,8 +62,8 @@ const time_t unix_epoch_delta = (((((EPOCH_YEAR-1970) * 365) + 7) * seconds_in_d
 /*
  * wallclock snapshot as an int with microsecond precision.
  */
-static PyObject *
-snapshot_us(PyObject *self)
+static PyObj
+snapshot_us(PyObj self)
 {
 	struct timeval tv = {0,0};
 	unsigned long long ull;
@@ -86,13 +86,13 @@ snapshot_us(PyObject *self)
 /*
  * wallclock snapshot as an int with nanosecond precision.
  */
-static PyObject *
-snapshot_ns(PyObject *self)
+static PyObj
+snapshot_ns(PyObj self)
 {
 	unsigned long long ull;
 	struct timespec ts;
 
-#ifdef __MACH__ /* GO APPLE! */
+#ifdef __MACH__
 	/*
 	 * @2012
 	 * The mach interfaces to CALENDAR_CLOCK (clock_get_time)
@@ -123,8 +123,8 @@ snapshot_ns(PyObject *self)
 	return(PyLong_FromUnsignedLongLong(ull));
 }
 
-static PyObject *
-sleep_us(PyObject *self, PyObject *usec)
+static PyObj
+sleep_us(PyObj self, PyObj usec)
 {
 	int r;
 	unsigned long long ull;
@@ -142,8 +142,8 @@ sleep_us(PyObject *self, PyObject *usec)
 	Py_RETURN_NONE;
 }
 
-static PyObject *
-sleep_ns(PyObject *self, PyObject *nsec)
+static PyObj
+sleep_ns(PyObj self, PyObj nsec)
 {
 	int r;
 	unsigned long long ull;
@@ -185,14 +185,13 @@ struct Chronometer {
 };
 
 static unsigned long long
-cm_fetch(struct Chronometer *cm)
+chronometer_fetch(Chronometer cm)
 {
 	unsigned long long r;
 
 #ifdef __MACH__
-	/* grrr *shakes fist* */
 	mach_timespec_t ts;
-	clock_get_time(appleshit, &ts);
+	clock_get_time(applestuff, &ts);
 #else
 	struct timespec ts;
 	clock_gettime(LOCAL_MONOTONIC_CLOCK_ID, &ts);
@@ -204,28 +203,28 @@ cm_fetch(struct Chronometer *cm)
 	return(r);
 }
 
-static PyObject *
-cm_iter(PyObject *self)
+static PyObj
+chronometer_iter(PyObj self)
 {
 	Py_INCREF(self);
 	return(self);
 }
 
-static PyObject *
-cm_snapshot(PyObject *self)
+static PyObj
+chronometer_snapshot(PyObj self)
 {
-	struct Chronometer *cm = (struct Chronometer *) self;
-	return(PyLong_FromUnsignedLongLong(cm_fetch(cm) - cm->previous));
+	Chronometer cm = (Chronometer) self;
+	return(PyLong_FromUnsignedLongLong(chronometer_fetch(cm) - cm->previous));
 }
 
-static PyObject *
-cm_next(PyObject *self)
+static PyObj
+chronometer_next(PyObj self)
 {
-	struct Chronometer *cm = (struct Chronometer *) self;
+	Chronometer cm = (Chronometer) self;
 	unsigned long long l;
 	unsigned long long nsec;
 
-	l = cm_fetch(cm);
+	l = chronometer_fetch(cm);
 	if (cm->count == 0)
 		nsec = 0;
 	else
@@ -236,43 +235,43 @@ cm_next(PyObject *self)
 	return(PyLong_FromUnsignedLongLong(nsec));
 }
 
-static PyObject *
-cm_new(PyTypeObject *subtype, PyObject *args, PyObject *kw)
+static PyObj
+chronometer_new(PyTypeObject *subtype, PyObj args, PyObj kw)
 {
-	struct Chronometer *cm;
-	PyObject *rob;
+	Chronometer cm;
+	PyObj rob;
 
 	rob = PyAllocate(subtype);
 	if (rob == NULL)
 		return(NULL);
 
-	cm = (struct Chronometer *) rob;
+	cm = (Chronometer) rob;
 	cm->count = 0;
 
-	cm->previous = cm_fetch(cm);
+	cm->previous = chronometer_fetch(cm);
 
 	return(rob);
 }
 
 static PyMemberDef
-cm_members[] = {
+chronometer_members[] = {
 	{"count", T_ULONGLONG, offsetof(struct Chronometer, count), 0,
 		PyDoc_STR("total number of queries issued to the meter")},
 	{NULL,},
 };
 
 static PyMethodDef
-cm_methods[] = {
-	{"snapshot", (PyCFunction) cm_snapshot, METH_NOARGS,
+chronometer_methods[] = {
+	{"snapshot", (PyCFunction) chronometer_snapshot, METH_NOARGS,
 		PyDoc_STR("get a snapshot of meter in nanoseconds")},
 	{NULL},
 };
 
-const char cm_doc[] =
+const char chronometer_doc[] =
 "Chronometers are objects track the amount of elapsed time in the requested precision.\n"
 ;
 
-PyTypeObject
+static PyTypeObject
 ChronometerType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
 	QPATH("Chronometer"),			/* tp_name */
@@ -295,15 +294,15 @@ ChronometerType = {
 	NULL,									/* tp_as_buffer */
 	Py_TPFLAGS_BASETYPE|
 	Py_TPFLAGS_DEFAULT,				/* tp_flags */
-	cm_doc,								/* tp_doc */
+	chronometer_doc,					/* tp_doc */
 	NULL,									/* tp_traverse */
 	NULL,									/* tp_clear */
 	NULL,									/* tp_richcompare */
 	0,										/* tp_weaklistoffset */
-	cm_iter,								/* tp_iter */
-	cm_next,								/* tp_iternext */
-	cm_methods,							/* tp_methods */
-	cm_members,							/* tp_members */
+	chronometer_iter,					/* tp_iter */
+	chronometer_next,					/* tp_iternext */
+	chronometer_methods,				/* tp_methods */
+	chronometer_members,				/* tp_members */
 	NULL,									/* tp_getset */
 	NULL,									/* tp_base */
 	NULL,									/* tp_dict */
@@ -312,7 +311,7 @@ ChronometerType = {
 	0,										/* tp_dictoffset */
 	NULL,									/* tp_init */
 	NULL,									/* tp_alloc */
-	cm_new,								/* tp_new */
+	chronometer_new,					/* tp_new */
 };
 
 /*
@@ -325,15 +324,15 @@ struct Sleeper {
 	unsigned int frequency, trips;
 };
 
-PyObject *
-sleeper_iter(PyObject *self)
+PyObj
+sleeper_iter(PyObj self)
 {
 	Py_INCREF(self);
 	return(self);
 }
 
-static PyObject *
-sleeper_next(PyObject *self)
+static PyObj
+sleeper_next(PyObj self)
 {
 	struct Sleeper *s = (struct Sleeper *) self;
 	struct timespec request, actual = {0,};
@@ -436,11 +435,11 @@ sleeper_next(PyObject *self)
 	return(PyLong_FromUnsignedLongLong(total + elapsed));
 }
 
-static PyObject *
-sleeper_new(PyTypeObject *subtype, PyObject *args, PyObject *kw)
+static PyObj
+sleeper_new(PyTypeObject *subtype, PyObj args, PyObj kw)
 {
 	struct Sleeper *s;
-	PyObject *rob;
+	PyObj rob;
 
 	rob = PyAllocate(subtype);
 	if (rob == NULL)
@@ -462,8 +461,8 @@ sleeper_members[] = {
 	{NULL,},
 };
 
-static PyObject *
-s_disturb(PyObject *self)
+static PyObj
+s_disturb(PyObj self)
 {
 	struct Sleeper *s = (struct Sleeper *) self;
 	unsigned int next_trips = s->trips + 1;
@@ -552,30 +551,32 @@ METHODS() = {
 
 #ifdef __MACH__
 static void
-INIT_PORT(void)
+INIT_MACH_PORT(void)
 {
-	host_get_clock_service(mach_host_self(), LOCAL_MONOTONIC_CLOCK_ID, &(appleshit));
+	host_get_clock_service(mach_host_self(), LOCAL_MONOTONIC_CLOCK_ID, &(applestuff));
 }
 #endif
 
-INIT("")
+INIT("clock mechanics using common userland interfaces")
 {
 	PyObj mod;
 
-	MACH(INIT_PORT());
-	MACH(pthread_atfork(NULL, NULL, INIT_PORT));
+	MACH(INIT_MACH_PORT());
+	/* fork cases need to reinit the port */
+	MACH(pthread_atfork(NULL, NULL, INIT_MACH_PORT));
 
 	CREATE_MODULE(&mod);
 
 	if (PyType_Ready(&ChronometerType) != 0)
 		goto fail;
-	PyModule_AddObject(mod, "Chronometer", (PyObject *) (&ChronometerType));
+	PyModule_AddObject(mod, "Chronometer", (PyObj) (&ChronometerType));
 
 	if (PyType_Ready(&SleeperType) != 0)
 		goto fail;
-	PyModule_AddObject(mod, "Sleeper", (PyObject *) (&SleeperType));
+	PyModule_AddObject(mod, "Sleeper", (PyObj) (&SleeperType));
 
 	return(mod);
+
 fail:
 	DROP_MODULE(mod);
 	return(NULL);

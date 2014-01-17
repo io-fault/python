@@ -16,7 +16,7 @@ from . import abstract
 
 class Unit(int):
 	"""
-	The base class for Measures and Points subclasses across all Time Contexts.
+	The base class for *finite* Measures and Points subclasses across all Time Contexts.
 	"""
 	__slots__ = ()
 
@@ -238,14 +238,42 @@ class Point(Unit):
 
 	def measure(self, pit):
 		return self.Measure(pit - self)
+
+	def precedes(self, pit, inversed = False):
+		if pit.unit != self.unit:
+			try:
+				lpit = self.construct((pit,), {})
+			except Exception: # XXX: need a more specific error here
+				if not inversed:
+					c = self.context.convert(self.unit, pit.unit, self)
+					local = pit.__class__(c)
+					return pit.proceeds(local, inversed = True) or pit == local
+				raise
+		else:
+			lpit = pit
+		return self < lpit
+
+	def proceeds(self, pit, inversed = False):
+		if pit.unit != self.unit:
+			try:
+				lpit = self.construct((pit,), {})
+			except Exception: # XXX: need a more specific error here
+				if not inversed:
+					c = self.context.convert(self.unit, pit.unit, self)
+					local = pit.__class__(c)
+					return pit.precedes(local, inversed = True) or pit == local
+				raise
+		else:
+			lpit = pit
+		return self > lpit
 abstract.Measure.register(Point)
 
-class Range(tuple):
+class Segment(tuple):
 	"""
-	A range between two points, inclusive on the start, but non-inclusive on the end.
+	A line segment on the time continuum. Two points, inclusive on the start, but
+	non-inclusive on the end.
 
-	If the start is greater than the end, the direction is implied to be
-	negative.
+	If the start is greater than the end, the direction is implied to be negative.
 	"""
 	__slots__ = ()
 
@@ -257,16 +285,8 @@ class Range(tuple):
 	def direction(self):
 		return self.start.measure(self.stop) // abs(self.magnitude)
 
-	def __contains__(self, pit):
-		# XXX: doesn't consider direction
-		point = pit.measure(self.start)
-		if point < 0:
-			return False
-		mag = self.stop.measure(self.start)
-		return point < mag
-
-	def __iter__(self):
-		return self.points()
+	def __contains__(self, point):
+		return not (point.precedes(self.start) or point.proceeds(self.stop))
 
 	@property
 	def start(self):
@@ -275,6 +295,12 @@ class Range(tuple):
 	@property
 	def stop(self):
 		return self[1]
+
+	def precedes(self, pit):
+		return self.stop.precedes(pit)
+
+	def proceeds(self, pit):
+		return self.start.proceeds(pit)
 
 	def points(self, step = None):
 		"""
@@ -306,8 +332,11 @@ class Context(object):
 
 	.. warning:: **The APIs here are subject to change.**
 	"""
-	def __init__(self):
+	def __init__(self, Unit = Unit, Measure = Measure, Point = Point):
 		# opaque transformations
+		self.Unit = Unit
+		self.Measure = Measure
+		self.Point = Point
 		self.datums = {}
 		self.terms = {} # grouping of like-terms
 		self.bridges = {} # conversions between unlike-terms {(from, to): convert.__call__}
@@ -323,7 +352,7 @@ class Context(object):
 		"""
 		Declare a fundamental unit for use in a context.
 
-		All defined, :py:meth:`rhythm.libunit.Context.define`, units are defined
+		All defined, :py:meth:`.Context.define`, units are defined
 		in terms of a declared unit.
 		"""
 		if not id.isidentifier():
@@ -405,24 +434,30 @@ class Context(object):
 				bdu = self.bridges[(from_term, to_term)](bu)
 				return bdu * self.compose(to_term, to_unit)
 
-	def new_measure_class(self, id, qname = None, default = False):
-		Measure = self.measure_factory(id, qname)
-		# ABC registration
-		abstract.Time.register(Measure)
-		# Associate with related unit.
-		self.measures[Measure.liketerm][Measure.unit] = Measure
-		if default:
-			self.measures[Measure.liketerm][None] = Measure
-		return Measure
-
-	def new_point_class(self, Measure, qname = None, default = False):
-		Point = self.point_factory(Measure, qname)
+	def register_point_class(self, Point, default = False):
 		# ABC registration
 		abstract.Point.register(Point)
 		# Associate with related unit.
 		self.points[Point.liketerm][Point.unit] = Point
 		if default:
 			self.points[Point.liketerm][None] = Point
+
+	def register_measure_class(self, Measure, default = False):
+		# ABC registration
+		abstract.Time.register(Measure)
+		# Associate with related unit.
+		self.measures[Measure.liketerm][Measure.unit] = Measure
+		if default:
+			self.measures[Measure.liketerm][None] = Measure
+
+	def new_measure_class(self, id, qname = None, default = False):
+		Measure = self.measure_factory(id, qname)
+		self.register_measure_class(Measure, default = default)
+		return Measure
+
+	def new_point_class(self, Measure, qname = None, default = False):
+		Point = self.point_factory(Measure, qname)
+		self.register_point_class(Measure, default = default)
 		return Point
 
 	def datum_for_point(self, to_unit):
@@ -488,6 +523,7 @@ def standard_context(qname):
 	"""
 	Construct the standard time context from the modules in rhythm.
 	"""
+	from . import eternal
 	from . import earth
 	from . import metric
 	from . import week
@@ -500,12 +536,14 @@ def standard_context(qname):
 	# Most practical time units are actually related to a day.
 	# Here, we declare the datum for day based PiTs
 	context.declare('day', 5 * ((((365*4) + 1) * 100) - 3) + 1)
+
 	# Likewise, Month PiTs are relative to Y2K
 	context.declare('month', 2000*12)
 	# NOTE: The month offset and day offset are *not* equal.
 	#       Day offsets are relative to the beginning of the first week
 	#       in Y2K in order to aid week updates.
 
+	eternal.context(context, qname)
 	earth.context(context)
 	gregorian.context(context)
 	week.context(context)

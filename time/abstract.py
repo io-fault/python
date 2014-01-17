@@ -305,16 +305,6 @@ class Clock(metaclass=abc.ABCMeta):
 		"""
 
 	@abc.abstractmethod
-	def sleeper(self):
-		"""
-		Create an object that sleeps for a designated period, but can be disturbed with
-		precision at a designated frequency.
-
-		The returned object is an iterable that will sleep when iterated returning the
-		amount of time that was spent sleeping.
-		"""
-
-	@abc.abstractmethod
 	def meter(self):
 		"""
 		Returns an iterator to the total measure of time that has elapsed since
@@ -366,7 +356,7 @@ class Clock(metaclass=abc.ABCMeta):
 		"""
 
 	@abc.abstractmethod
-	def adjust(self, *args, **kw):
+	def adjust(self, units):
 		"""
-		Adjust the demotic clock according to the given measure.
+		Adjust the demotic clock according to the given number of units.
 		"""

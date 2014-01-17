@@ -164,7 +164,7 @@ def context(context):
 	# Defines
 	context.define('year', 'month', 1, fractions.Fraction(months_in_year,1))
 	context.define('century', 'year', 1, fractions.Fraction(years_in_century,1))
-	context.define('gcycle', 'year', 1, fractions.Fraction(400,1))
+	context.define('gregorian', 'year', 1, fractions.Fraction(400,1))
 	context.define('decade', 'year', 1, fractions.Fraction(years_in_decade,1))
 	context.define('millennium', 'century', 1,
 		fractions.Fraction(centuries_in_millennium,1))
