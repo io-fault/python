@@ -22,3 +22,7 @@ def test_loadall(test, _join = os.path.join, bytes = bytes, bool = bool, int = i
 					test/tz.tz_isdst / bool
 					test/tz.tz_isstd / bool
 					test/tz.tz_isgmt / bool
+
+if __name__ == '__main__':
+	import sys; from ...dev import libtest
+	libtest.execute(sys.modules[__name__])

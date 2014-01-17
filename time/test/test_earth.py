@@ -45,3 +45,7 @@ def test_from_units_fraction(test):
 		T(1,2),
 		T(1,1),
 	])
+
+if __name__ == '__main__':
+	import sys; from ...dev import libtest
+	libtest.execute(sys.modules[__name__])

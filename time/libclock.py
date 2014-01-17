@@ -42,8 +42,6 @@ class KClock(object):
 
 	def meter(self, delay = 0):
 		meter = self.delta()
-		del args
-		del kw
 		# yield zero and init the chronometer's previous value
 		yield next(meter)
 		# from here, we just grab snapshots and let the device do the math
@@ -103,7 +101,13 @@ class IClock(object):
 		return self.Point(self.clockwork.demotic())
 
 	def sleep(self, x):
-		return self.Measure(self.clockwork.sleep(x.select('nanosecond')))
+		if isinstance(x, abstract.Measure):
+			y = self.Measure.of(x)
+			z = y.select('nanosecond')
+		else:
+			z = x
+
+		return self.Measure(self.clockwork.sleep(z))
 
 	def delta(self, map = map):
 		return map(self.Measure, self.clockwork.delta())

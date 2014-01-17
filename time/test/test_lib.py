@@ -358,31 +358,6 @@ def test_clock_features(test):
 	clock.sleep(lib.Measure.of(subsecond=0.2))
 	test/next(periods)[0] == 2 # fragile
 
-def test_clock_sleeper(test):
-	clock = lib.clock
-	s = clock.sleeper()
-	s.frequency = 100
-	s.remainder = 100
-	x = next(s)
-	test/x / lib.Measure
-	test/x >= lib.Measure(100)
-
-	s.remainder = 400
-	s.disturb()
-	x = next(s)
-	test/x / lib.Measure
-	test/x == lib.Measure(0)
-
-	# show retention of all disturbs
-	s.remainder = 50
-	s.disturb()
-	s.disturb()
-	s.disturb()
-	test/next(s) == lib.Measure(0)
-	test/next(s) == lib.Measure(0)
-	test/next(s) == lib.Measure(0)
-	test/next(s) >= lib.Measure(50)
-
 def test_range(test):
 	test/[lib.Timestamp.of(year=2000,month=0,day=0)] == list(lib.range(
 			lib.Timestamp.of(year=2000,month=0,day=0),
@@ -546,3 +521,7 @@ def test_zone_slice(test):
 		(lib.Timestamp.of(iso='2007-11-04T09:00:00.000000000'), libzone.Offset((-28800, 'PST', 'std')))
 	]
 	test/list(lib.zone('MST').slice(start, stop)) == []
+
+if __name__ == '__main__':
+	import sys; from ...dev import libtest
+	libtest.execute(sys.modules[__name__])

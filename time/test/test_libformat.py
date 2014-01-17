@@ -93,3 +93,7 @@ def test_errors(test):
 			for x in samples:
 				with test/error as exc:
 					parser(x)
+
+if __name__ == '__main__':
+	import sys; from ...dev import libtest
+	libtest.execute(sys.modules[__name__])

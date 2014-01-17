@@ -105,3 +105,7 @@ def test_days_from_date(test):
 	for x in date_io_samples:
 		date, days = x
 		test/days == gregorian.days_from_date(date)
+
+if __name__ == '__main__':
+	import sys; from ...dev import libtest
+	libtest.execute(sys.modules[__name__])

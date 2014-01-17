@@ -33,3 +33,7 @@ def test_modification_time(test):
 		mtime2 = libfs.stat(file).st_mtime
 
 		test/mtime2 > mtime1
+
+if __name__ == '__main__':
+	import sys; from ...dev import libtest
+	libtest.execute(sys.modules[__name__])

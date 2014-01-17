@@ -111,3 +111,7 @@ def test_harmony_cancel(test):
 
 	update(lib.Measure.of(millisecond=900))
 	test/[] == H.get()
+
+if __name__ == '__main__':
+	import sys; from ...dev import libtest
+	libtest.execute(sys.modules[__name__])
