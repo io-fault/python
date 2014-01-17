@@ -239,29 +239,29 @@ class Point(Unit):
 	def measure(self, pit):
 		return self.Measure(pit - self)
 
-	def precedes(self, pit, inversed = False):
+	def precedes(self, pit):
 		if pit.unit != self.unit:
 			try:
 				lpit = self.construct((pit,), {})
-			except Exception: # XXX: need a more specific error here
-				if not inversed:
+			except abstract.Inconceivable as ice:
+				if ice.inverse:
 					c = self.context.convert(self.unit, pit.unit, self)
 					local = pit.__class__(c)
-					return pit.proceeds(local, inversed = True) or pit == local
+					return pit.proceeds(local) or pit == local
 				raise
 		else:
 			lpit = pit
 		return self < lpit
 
-	def proceeds(self, pit, inversed = False):
+	def proceeds(self, pit):
 		if pit.unit != self.unit:
 			try:
 				lpit = self.construct((pit,), {})
-			except Exception: # XXX: need a more specific error here
-				if not inversed:
+			except abstract.Inconceivable as ice:
+				if ice.inverse:
 					c = self.context.convert(self.unit, pit.unit, self)
 					local = pit.__class__(c)
-					return pit.precedes(local, inversed = True) or pit == local
+					return pit.precedes(local) or pit == local
 				raise
 		else:
 			lpit = pit
@@ -410,7 +410,7 @@ class Context(object):
 		else:
 			return r
 
-	def convert(self, from_unit, to_unit, value):
+	def convert(self, from_unit, to_unit, value, ICE = abstract.Inconceivable):
 		"""
 		Convert the `value` into `to_unit` from the `from_unit`.
 		"""
@@ -430,8 +430,12 @@ class Context(object):
 			else:
 				# unlike terms require a bridge in order to convert.
 				# convert to bridge type, bridge, then from bridge type.
+				br = self.bridges.get((from_term, to_term))
+				if br is None:
+					raise ICE(from_term, to_term, inverse = (to_term, from_term) in self.bridges)
+
 				bu = value * self.compose(from_unit, from_term)
-				bdu = self.bridges[(from_term, to_term)](bu)
+				bdu = br(bu)
 				return bdu * self.compose(to_term, to_unit)
 
 	def register_point_class(self, Point, default = False):

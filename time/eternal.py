@@ -126,4 +126,3 @@ def context(ctx, qname = ''):
 	ctx.register_point_class(Indefinite, default = True)
 
 	ctx.bridge('day', 'eternal', eternal_from_days)
-	#ctx.bridge('eternal', 'day', days_from_eternal)

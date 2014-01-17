@@ -6,6 +6,30 @@ under control and provide easy access to the APIs.
 """
 import abc
 
+class Exception(Exception):
+	pass
+
+class TransformationError(Exception):
+	"""
+	An attempt to transform units failed.
+	"""
+	unit_input = None
+	unit_output = None
+	context = None
+
+	def __init__(self, *args, context = None, inverse = None):
+		self.unit_input, self.unit_output = args
+		self.context = context
+		self.inverse = inverse
+
+class Inconceivable(TransformationError):
+	"""
+	An attempt to represent a unit in like-terms was not possible
+	given the current implementation.
+
+	Usually raised when a finite term attempts to convert an indefinite term.
+	"""
+
 class Time(metaclass=abc.ABCMeta):
 	"""
 	The abstract base class for *all* Time related types.
