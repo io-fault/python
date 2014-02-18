@@ -20,11 +20,11 @@ Calendar Support:
 
 rhythm's APIs are *not* compatible with the standard library's datetime module. *On purpose.*
 
-The surface functionality is provided in :py:mod:`rhythm.lib`::
+The surface functionality is provided in :py:mod:`.rhythm.lib`::
 
 	import rhythm.lib
 
-Current date and time as a :py:class:`rhythm.lib.Timestamp`::
+Current date and time as a :py:class:`.rhythm.lib.Timestamp`::
 
 	now = rhythm.lib.now() # UTC
 
@@ -125,7 +125,7 @@ day of the re-aligned week.
 Clocks
 ------
 
-:py:func:`rhythm.lib.now` provides quick and easy access to "demotic time", UTC
+:py:func:`.rhythm.lib.now` provides quick and easy access to "demotic time", UTC
 wall clock. However, rhythm provides clock based devices for processes with
 monotonic requirements for things like rate limiting, polling timeouts, and
 simple execution-time measures.
@@ -143,7 +143,7 @@ Measuring the execution time of a code block is easy with a rhythm stopwatch::
 
 
 .. note:: Considering the overhead involved with instantiating a
-          :py:class:`rhythm.lib.Timestamp` instance, measuring
+          :py:class:`.rhythm.lib.Timestamp` instance, measuring
           execution with the high-level clock interfaces may
           not be appropriate or may require some adjustments
           accounting for the overhead.

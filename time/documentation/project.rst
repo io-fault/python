@@ -16,33 +16,33 @@ Structure
 
 This project consists of the following modules:
 
- :py:mod:`rhythm.lib`
+ :py:mod:`.rhythm.lib`
   The primary developer interface module that ties many of the other modules
   together. This is the module that is normally imported.
 
- :py:mod:`rhythm.libfs`
-  File system tools based on :py:mod:`rhythm.lib`: :manpage:`stat`,
+ :py:mod:`.rhythm.libfs`
+  File system tools based on :py:mod:`.rhythm.lib`: :manpage:`stat`,
   :manpage:`fstat`, and :manpage:`lstat` calls returning the `ctime`, `mtime`, and
-  `atime` as :py:class:`rhythm.lib.Timestamp` instances.
+  `atime` as :py:class:`.rhythm.lib.Timestamp` instances.
 
- :py:mod:`rhythm.libunit`
+ :py:mod:`.rhythm.libunit`
   The unit context module. This provides the standard context definition used by
-  :py:mod:`rhythm.lib`.
+  :py:mod:`.rhythm.lib`.
 
- :py:mod:`rhythm.libformat`
+ :py:mod:`.rhythm.libformat`
   The implementation of standard formatting functions for parsing and
   formatting.
 
- :py:mod:`rhythm.libzone`
-  :py:mod:`rhythm.libtzif` based time zone support.
+ :py:mod:`.rhythm.libzone`
+  :py:mod:`.rhythm.libtzif` based time zone support.
 
- :py:mod:`rhythm.earth`
+ :py:mod:`.rhythm.earth`
   Definition of earth based measures of time.
 
- :py:mod:`rhythm.metric`
+ :py:mod:`.rhythm.metric`
   Definition of metric-unit based measures of time. Also earth-based.
 
- :py:mod:`rhythm.gregorian`
+ :py:mod:`.rhythm.gregorian`
   The implementation of gregorian-unit based time measures and points; dates,
   day deltas, and month deltas.
 
@@ -96,7 +96,7 @@ Terminology
   An actual Python class representing a [unit] Type defined in a Time Context.
 
  :dfn:`Time Context`
-  An instance of :py:class:`rhythm.libunit.Context` managing the set of defined
+  An instance of :py:class:`.rhythm.libunit.Context` managing the set of defined
   unit Types and any corresponding Representation Types.
 
  :dfn:`Canonical Position`
@@ -106,19 +106,19 @@ Terminology
  :dfn:`Localization`
   Referring to the process of localizing a timestamp to a particular time zone. Given a
   UTC timestamp, a localized version of the timestamp would be the timestamp adjusted by
-  the offset identified by the specified :py:class:`rhythm.libzone.Zone`.
-  :py:meth:`rhythm.libzone.Zone.localize`.
+  the offset identified by the specified :py:class:`.rhythm.libzone.Zone`.
+  :py:meth:`.rhythm.libzone.Zone.localize`.
 
  :dfn:`Normalization`
   Referring the process of normalizing a localized timestamp to a particular time zone.
   Given a localized timestamp, a normalized version of the timestamp would be the
   timestamp adjusted to UTC and then localized. Normalization should be used when
   representing timestamps whose localized version has been manipulated.
-  :py:meth:`rhythm.libzone.Zone.normalize`.
+  :py:meth:`.rhythm.libzone.Zone.normalize`.
 
  :dfn:`Term`
   Internal to rhythm: a core unit. Units are associated as "like" terms by
-  :py:class:`rhythm.libunit.Context` instances.
+  :py:class:`.rhythm.libunit.Context` instances.
   In the default context, there are only two terms: days and months.
 
  :dfn:`Bridge`

@@ -13,7 +13,7 @@ class KClock(object):
 	the :py:class:`.abstract.Clock` interface. By default, a process wide instance is
 	provided at :py:obj:`.lib.iclock`. That instance should normally be used.
 	"""
-	__slots__ = ('_monotonic',)
+	__slots__ = ('_monotonic','_start_time')
 	unit = 'nanosecond'
 	clockwork = kernel
 
@@ -26,13 +26,20 @@ class KClock(object):
 	def __init__(self):
 		# Used as the process' monotonic clock.
 		# Forks *must* inherit the state.
-		self._monotonic = self.clockwork.Chronometer()
+
+		m = self._monotonic = self.clockwork.Chronometer()
+		mt = m.snapshot
+		rt = self.clockwork.snapshot_ns
+		self._start_time = (rt(), mt())
 
 	def monotonic(self):
 		return self._monotonic.snapshot()
 
 	def demotic(self):
 		return self.clockwork.snapshot_ns()
+
+	def monotonic_demotic(self):
+		return self._start_time[0] + self._monotonic.snapshot()
 
 	def sleep(self, x):
 		return self.clockwork.sleep_ns(x)
@@ -100,6 +107,9 @@ class IClock(object):
 	def demotic(self):
 		return self.Point(self.clockwork.demotic())
 
+	def monotonic_demotic(self):
+		return self.Point(self.clockwork.monotonic_demotic())
+
 	def sleep(self, x):
 		if isinstance(x, abstract.Measure):
 			y = self.Measure.of(x)
@@ -123,5 +133,5 @@ class IClock(object):
 		return self.clockwork.stopwatch(Measure = self.Measure)
 abstract.Clock.register(IClock)
 
-#: Primary Kernel Clock
+#: Primary Kernel Clock. Normally accessed indirectly via :py:obj:`.lib.iclock`.
 kclock = KClock()

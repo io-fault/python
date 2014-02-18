@@ -88,7 +88,7 @@ class Measure(Range):
 	def name(self):
 		"""
 		Name of the unit of time. Normally equal to
-		:py:attr:`rhythm.abstract.Time.unit`, but potentially different in cases
+		:py:attr:`.rhythm.abstract.Time.unit`, but potentially different in cases
 		where the proper name is not an identifier.
 		"""
 
@@ -120,9 +120,8 @@ class Measure(Range):
 	def of(type, *times, **parts):
 		"""
 		:param times: A sequence of time instances.
-		:type times: :py:class:`rhythm.abstract.Time`
-		:param parts: Keyword names designate the unit of the corresponding value. The time
-		context dictates what that is.
+		:type times: :py:class:`.rhythm.abstract.Time`
+		:param parts: Keyword names designate the unit of the corresponding value. The time context dictates what that is.
 		:type parts: :py:class:`int`
 
 		Create an instance of the type from the sum of the quantities
@@ -173,8 +172,7 @@ class Measure(Range):
 		:type part: :py:class:`str`
 		:param of: The unit whose total wholes are subtracted from `self` in order to find the correct total parts.
 		:type of: :py:class:`str`
-		:param align: How to align the given part. Trivially, this is a difference that
-		is applied prior to removing wholes: `value = self - align`.
+		:param align: How to align the given part. Trivially, this is a difference that is applied prior to removing wholes: `value = self - align`.
 		:type align: :py:class:`int`
 
 		Extract the number of complete parts designated by `part` after the last
@@ -281,12 +279,12 @@ class Point(Range):
 		the given point in time. The delta between the two points.
 		"""
 
-	@abc.abstractproperty
+	@abc.abstractmethod
 	def elapse(self, *units, **parts):
 		"""
 		Returns an adjusted measure in time by the given arguments and keywords.
 
-		Essentially, this is a call to the :py:meth:`rhythm.abstract.Measure.of`
+		Essentially, this is a call to the :py:meth:`.rhythm.abstract.Measure.of`
 		method with the instance as the first parameter.
 
 		This is shorthand for ``T.of(T, *units, **parts)``.
@@ -306,6 +304,18 @@ class Point(Range):
 		Where :py:obj:`pit` is an arbitrary :py:class:`Point`, :py:obj:`measures`
 		is a sequence of *compatible* :py:class:`Scalar` instances, and
 		:py:obj:`units` is a mapping of unit names to values.
+		"""
+
+	@abc.abstractmethod
+	def precedes(self, pit):
+		"""
+		Returns whether or not the Point in Time, self, comes *before* the given argument, `pit`.
+		"""
+
+	@abc.abstractmethod
+	def proceeds(self, *units, **parts):
+		"""
+		Returns whether or not the Point in Time, self, comes *after* the given argument, `pit`.
 		"""
 
 class Clock(metaclass=abc.ABCMeta):
@@ -368,6 +378,12 @@ class Clock(metaclass=abc.ABCMeta):
 
 		Once :py:meth:`__exit__` is called, the elapsed time must no longer
 		be measured and the result is subsequently consistent.
+		"""
+
+	@abc.abstractmethod
+	def monotonic(self):
+		"""
+		Return a Measure snapshot of the monotonic timer associated with the clock instance.
 		"""
 
 	@abc.abstractmethod

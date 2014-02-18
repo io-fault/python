@@ -7,65 +7,65 @@ provided by rhythm. It refrains from discussing how the parts might be used
 in a wider scope; the :doc:`usage` document should be read for such
 information.
 
-:mod:`rhythm.lib`
-=================
-
-.. automodule:: rhythm.lib
-    :show-inheritance:
-    :members:
-
-:mod:`rhythm.libclock`
-======================
-
-.. automodule:: rhythm.libclock
-    :show-inheritance:
-    :members:
-
-:mod:`rhythm.libflow`
-=====================
-
-.. automodule:: rhythm.libflow
-    :show-inheritance:
-    :members:
-
-:mod:`rhythm.libfs`
-===================
-
-.. automodule:: rhythm.libfs
-    :show-inheritance:
-    :members:
-
-:mod:`rhythm.libunit`
-=====================
-
-.. automodule:: rhythm.libunit
-    :show-inheritance:
-    :members:
-
-:mod:`rhythm.libzone`
-=====================
-
-.. automodule:: rhythm.libzone
-    :show-inheritance:
-    :members:
-
-:mod:`rhythm.libformat`
+:mod:`fault.rhythm.lib`
 =======================
 
-.. automodule:: rhythm.libformat
+.. automodule:: fault.rhythm.lib
     :show-inheritance:
     :members:
 
-:mod:`rhythm`
-=============
+:mod:`fault.rhythm.libclock`
+============================
 
-.. automodule:: rhythm
+.. automodule:: fault.rhythm.libclock
     :show-inheritance:
     :members:
 
-:mod:`rhythm.abstract`
-======================
+:mod:`fault.rhythm.libflow`
+===========================
 
-.. automodule:: rhythm.abstract
+.. automodule:: fault.rhythm.libflow
+    :show-inheritance:
+    :members:
+
+:mod:`fault.rhythm.libfs`
+=========================
+
+.. automodule:: fault.rhythm.libfs
+    :show-inheritance:
+    :members:
+
+:mod:`fault.rhythm.libunit`
+===========================
+
+.. automodule:: fault.rhythm.libunit
+    :show-inheritance:
+    :members:
+
+:mod:`fault.rhythm.libzone`
+===========================
+
+.. automodule:: fault.rhythm.libzone
+    :show-inheritance:
+    :members:
+
+:mod:`fault.rhythm.libformat`
+=============================
+
+.. automodule:: fault.rhythm.libformat
+    :show-inheritance:
+    :members:
+
+:mod:`fault.rhythm`
+===================
+
+.. automodule:: fault.rhythm
+    :show-inheritance:
+    :members:
+
+:mod:`fault.rhythm.abstract`
+============================
+
+.. automodule:: fault.rhythm.abstract
     :show-inheritance:
     :members:

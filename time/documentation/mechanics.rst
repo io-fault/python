@@ -21,7 +21,7 @@ Abstract
 The hierarchy of rhythm time types is relatively straightforward, but is arguably
 peculiar. The Range is the base abstract class for Points and Measures. However, Points
 and Measures are siblings where the Point class is dependent on the presence of a Measure
-for Measurement operations such as :py:meth:`rhythm.abstract.Point.measure`.
+for Measurement operations such as :py:meth:`.rhythm.abstract.Point.measure`.
 
 Constraints
 -----------
@@ -42,7 +42,7 @@ implementation semantically problematic as the constraint could not be inherited
 Storage
 -------
 
-The :py:mod:`rhythm.libunit` module's :py:class:`rhythm.libunit.Context` class
+The :py:mod:`.rhythm.libunit` module's :py:class:`.rhythm.libunit.Context` class
 creates Point in Time types that are subclasses of the built-in Python `int`.
 
 The value of the integer is an offset from the Y2K + One Day Point in Time.

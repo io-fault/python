@@ -266,7 +266,7 @@ class Point(Unit):
 		else:
 			lpit = pit
 		return self > lpit
-abstract.Measure.register(Point)
+abstract.Point.register(Point)
 
 class Segment(tuple):
 	"""

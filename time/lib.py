@@ -50,6 +50,34 @@ emphasized units are the only units with designated classes by default.
 The units in bold are the units with designated Python types. All other units
 are expressed in terms of those units unless the time context is explicitly
 extended.
+
+Indefinite Units
+----------------
+
+Units of unbound quantities of time are called "eternals". They are a special Measure and
+Point types that have only three values: zero, infinity, and negative infinity.
+
+The set of possible Measures and Points dealing with eternals are immediately created and
+set to the following names:
+
+ Genesis
+  The earliest Point in time.
+
+ Never
+  The latest Point in time.
+
+ Present
+  The current Point in time--always moving.
+
+ Future
+  A :py:class:`Segment` whose start is :py:obj:`Present` and end is :py:obj:`Never`.
+  ``ts in rhythm.lib.future``
+
+ Past
+  A segment whose start is :py:obj:`Genesis` and end is :py:obj:`Present`.
+
+ Time
+  A segment whose start is :py:obj:`Genesis` and end is :py:obj:`Never`.
 """
 import sys
 import operator
@@ -67,51 +95,58 @@ Context, MeasureTypes, PointTypes = libunit.standard_context(__name__)
 #: A tuple containing all of the default Scalar types.
 MeasureTypes = MeasureTypes
 
-#: Scalar with finest, default, representation type precision. :py:class:`rhythm.abstract.Time`
-#: .. note:: Currently this is nanosecond precision, but rhythm reserves the right to increase the precision.
+#: Scalar with finest, default, representation type precision. :py:class:`.abstract.Time`
+#: Currently this is nanosecond precision, but rhythm reserves the right to increase the
+#: precision across minor versions.
 Measure = MeasureTypes[0]
 
-#: Scalar in earth-days. :py:class:`rhythm.abstract.Time`
+#: Scalar in earth-days. :py:class:`.abstract.Time`
 Days = MeasureTypes[1]
 
-#: Scalar in seven earth-days. :py:class:`rhythm.abstract.Time`
+#: Scalar in seven earth-days. :py:class:`.abstract.Time`
 Weeks = MeasureTypes[2]
 
-#: Scalar in Gregorian Months. :py:class:`rhythm.abstract.Time`
+#: Scalar in Gregorian Months. :py:class:`.abstract.Time`
 Months = MeasureTypes[3]
 
 #: A tuple containing all of the default Point in Time types.
 PointTypes = PointTypes
 
-#: Point In Time with Measure's precision. :py:class:`rhythm.abstract.Point`
+#: Point In Time with Measure's precision. :py:class:`.abstract.Point`
 Timestamp = PointTypes[0]
 
-#: Point In Time with earth-day precision. :py:class:`rhythm.abstract.Point`
+#: Point In Time with earth-day precision. :py:class:`.abstract.Point`
 Date = PointTypes[1]
 
-#: Point In Time with seven earth-day precision. :py:class:`rhythm.abstract.Point`
+#: Point In Time with seven earth-day precision. :py:class:`.abstract.Point`
 Week = PointTypes[2]
 
-#: Point In Time with Gregorian Month precision. :py:class:`rhythm.abstract.Point`
+#: Point In Time with Gregorian Month precision. :py:class:`.abstract.Point`
 GregorianMonth = PointTypes[3]
 
 #: Infinite measure unit.
 Eternals = Context.measures['eternal'][None]
-#: Infinite unit points.
+
+#: Infinite unit points. Class used for genesis, never, and now.
 Indefinite = Context.points['eternal'][None]
 
-genesis = Indefinite(-1)
-present = Indefinite(0)
-never = Indefinite(1)
+#: Furthest Point in the future.
+Never = Indefinite(1)
+
+#: Furthest Point in the past.
+Genesis = Indefinite(-1)
+
+#: Current Point in Time, always moving.
+Present = Indefinite(0)
 
 #: Segment representing all time. All points in time exist in this segment.
-eternity = Segment((genesis, never))
+Time = Segment((Genesis, Never))
 
 #: Segment representing the future.
-future = Segment((present, never))
+Future = Segment((Present, Never))
 
 #: Segment representing the past.
-past = Segment((genesis, present))
+Past = Segment((Genesis, Present))
 
 #: abstract.Clock interface to the kernel's clock, demotic and monotonic.
 kclock = libclock.kclock
@@ -120,7 +155,7 @@ kclock = libclock.kclock
 #: that provides Measure and Timestamp instances.
 clock = libclock.IClock(kclock, Measure, Timestamp)
 
-#: Shortcut to :py:obj:`rhythm.lib.clock.demotic`
+#: Shortcut to :py:obj:`.lib.clock.demotic`
 now = clock.demotic
 
 del sys
@@ -129,7 +164,7 @@ def unix(unix_timestamp, Timestamp = Timestamp.of):
 	"""
 	unix(unix_timestamp)
 
-	Create a :py:class:`rhythm.lib.Timestamp` instance
+	Create a :py:class:`.lib.Timestamp` instance
 	*from seconds since the unix epoch*.
 
 	Example::
@@ -138,6 +173,14 @@ def unix(unix_timestamp, Timestamp = Timestamp.of):
 		x = rhythm.lib.unix(0)
 		repr(x)
 		# rhythm.lib.Timestamp.of(iso='1970-01-01T00:00:00.000000')
+	
+	If finer precision is needed for the conversion, elapse the result::
+
+		float = time.time()
+		nsecs = int(float)
+		us = int((float - nsecs) * 1000000)
+		x = rhythm.lib.unix(nsecs)
+		x = x.elapse(microsecond=us)
 	"""
 	return Timestamp(unix=unix_timestamp)
 
@@ -205,7 +248,7 @@ def range(start, stop, step = None, Segment = Segment):
 
 	If `step` is provided, it will determine the difference to apply to the
 	starting position for each iteration. If it is not provided, the `step`
-	defaults to the :py:attr:`rhythm.abstract.Point.magnitude` of the start.
+	defaults to the :py:attr:`.abstract.Point.magnitude` of the start.
 
 	Example::
 
@@ -222,13 +265,13 @@ def field_delta(field, start, stop):
 	:param field: The name of the unit whose changes will be represented.
 	:type field: :py:class:`str`
 	:param start: The beginning of the range.
-	:type start: :py:class:`rhythm.abstract.Time`
+	:type start: :py:class:`.abstract.Time`
 	:param stop: The end of the range.
-	:type stop: :py:class:`rhythm.abstract.Time`
+	:type stop: :py:class:`.abstract.Time`
 
 	Return the range components for identifying the exact field changes that occurred between two
-	:py:class:`rhythm.abstract.Time` instances. This function returns components suitable
-	as input to :py:func:`rhythm.lib.range`.
+	:py:class:`.abstract.Time` instances. This function returns components suitable
+	as input to :py:func:`.lib.range`.
 
 	This function can be used to identify the changes that occurred to a particular field
 	within the given range designated by `start` and `stop`.

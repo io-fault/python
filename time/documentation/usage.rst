@@ -6,37 +6,37 @@ This chapter describes how to use `rhythm`. For detailed reference documentation
 please see the :doc:`reference` chapter.
 
 The primary interface to the functionality provided by rhythm should be accessed
-through the :py:mod:`rhythm.lib` module. It's usage is discussed by this
+through the :py:mod:`.rhythm.lib` module. It's usage is discussed by this
 chapter.
 
 Overview
 ========
 
 Time classes in rhythm are created by Time Contexts. The default context is
-initialized and provided by the :py:mod:`rhythm.lib` module. The following
+initialized and provided by the :py:mod:`.rhythm.lib` module. The following
 lists are the time classes created by that context.
 
 Point In Time types:
 
- * :py:class:`rhythm.lib.Timestamp`
- * :py:class:`rhythm.lib.Date`
- * :py:class:`rhythm.lib.Week`
- * :py:class:`rhythm.lib.GregorianMonth`
+ * :py:class:`.rhythm.lib.Timestamp`
+ * :py:class:`.rhythm.lib.Date`
+ * :py:class:`.rhythm.lib.Week`
+ * :py:class:`.rhythm.lib.GregorianMonth`
 
 Measure types:
 
- * :py:class:`rhythm.lib.Measure`
- * :py:class:`rhythm.lib.Days`
- * :py:class:`rhythm.lib.Weeks`
- * :py:class:`rhythm.lib.Months`
+ * :py:class:`.rhythm.lib.Measure`
+ * :py:class:`.rhythm.lib.Days`
+ * :py:class:`.rhythm.lib.Weeks`
+ * :py:class:`.rhythm.lib.Months`
 
 The interfaces are described by the abstract base classes in
-:py:mod:`rhythm.abstract`. Primarily:
+:py:mod:`.rhythm.abstract`. Primarily:
 
- :py:class:`rhythm.abstract.Measure`
+ :py:class:`.rhythm.abstract.Measure`
   A measurement of time.
 
- :py:class:`rhythm.abstract.Point`
+ :py:class:`.rhythm.abstract.Point`
   A point in time. Points are used to specify calendar dates or
   calendar dates with time of day.
 
@@ -47,8 +47,8 @@ rhythm includes the class for arbitrary time ranges. They offer more
 functionality than the builtin the :py:class:`range` iterator, regarding integers,
 but they have similar purposes.
 
-Arbitrary ranges in rhythm are either a pair of :py:class:`rhythm.abstract.Point`
-instances, or a pair of :py:class:`rhythm.abstract.Measure` instances. Mixing points
+Arbitrary ranges in rhythm are either a pair of :py:class:`.rhythm.abstract.Point`
+instances, or a pair of :py:class:`.rhythm.abstract.Measure` instances. Mixing points
 and measures in ranges is not necessary as such cases can be easily normalized into
 a homogenous pair.
 
@@ -93,9 +93,9 @@ The "year" unit in rhythm is strictly referring to gregorian years. This means
 that a "year" in rhythm is actually twelve gregorian months, which means *years
 are a subjective unit of time*. For *metric* measures--Python timedeltas analog--this
 poses a problem in that years should not be used to represent the span when working
-with :py:class:`rhythm.lib.Measure`.
+with :py:class:`.rhythm.lib.Measure`.
 
-In order to compensate, the :py:class:`rhythm.lib.Month` class provides a means to
+In order to compensate, the :py:class:`.rhythm.lib.Month` class provides a means to
 express such subjective time spans.
 
 Math in :py:mod:`datetime` Terms
@@ -110,51 +110,51 @@ The list here points to the abstract base classes.
 Points *are* timestamps, datetimes,. Measures *are* intervals, timedeltas.
 
  ``timedelta() + timedelta()``
-  :py:meth:`rhythm.abstract.Measure.increase`
+  :py:meth:`.rhythm.abstract.Measure.increase`
   ``rhythm.lib.Measure(second=0).increase(rhythm.lib.Measure(second=1))``
 
  ``timedelta() - timedelta()``
-  :py:meth:`rhythm.abstract.Measure.decrease`
+  :py:meth:`.rhythm.abstract.Measure.decrease`
   ``rhythm.lib.Measure(second=2).decrease(rhythm.lib.Measure(second=1))``
 
  ``datetime() + timedelta()``
-  :py:meth:`rhythm.abstract.Point.elapse`
+  :py:meth:`.rhythm.abstract.Point.elapse`
   ``rhythm.lib.Timestamp().elapse(rhythm.lib.Measure(second=1))``
 
  ``datetime() - timedelta()``
-  :py:meth:`rhythm.abstract.Point.rollback`
+  :py:meth:`.rhythm.abstract.Point.rollback`
   ``rhythm.lib.Timestamp().rollback(rhythm.lib.Measure(second=1))``
 
  ``datetime() - datetime()``
-  :py:meth:`rhythm.abstract.Point.measure`
+  :py:meth:`.rhythm.abstract.Point.measure`
   ``rhythm.lib.Timestamp().measure(rhythm.lib.Timestamp())``
 
 Constructing Points and Measures
 ================================
 
 A Point is a Point in Time; like a date or a date and time of day. Usually, this
-is referring to instances of the :py:class:`rhythm.lib.Timestamp` class. A Measure
+is referring to instances of the :py:class:`.rhythm.lib.Timestamp` class. A Measure
 is an arbitrary unit of time and is usually referring to instances the
-:py:class:`rhythm.lib.Measure` class.
+:py:class:`.rhythm.lib.Measure` class.
 
 .. note:: "Point" may be a misnomer considering that rhythm allows these objects
           to be treated as a vector.
 
 Constructing instances is usually performed with the class method
-:py:class:`rhythm.lib.Measure.of`.
-Or, :py:class:`rhythm.lib.Timestamp.of` for Points.
+:py:class:`.rhythm.lib.Measure.of`.
+Or, :py:class:`.rhythm.lib.Timestamp.of` for Points.
 
 Creating a Timestamp
 --------------------
 
-The :py:class:`rhythm.lib.Timestamp` type is the Point In Time Representation
+The :py:class:`.rhythm.lib.Timestamp` type is the Point In Time Representation
 Type with the finest precision available *by default*::
 
 	near_y2k = rhythm.lib.Timestamp.of(date=(2000,1,1), hour=8, minute=24, second=15)
 	>>> near_y2k
 	rhythm.lib.Timestamp.of(iso='2000-01-01T08:24:15.000000')
 
-Currently, The :py:class:`rhythm.lib.Timestamp` and :py:class:`rhythm.lib.Measure` types
+Currently, The :py:class:`.rhythm.lib.Timestamp` and :py:class:`.rhythm.lib.Measure` types
 use nanosecond precision.
 
 .. warning:: The project *may* increase the precision of Timestamp and Measure in
@@ -184,7 +184,7 @@ Getting the Current Point in Time
 ---------------------------------
 
 The primary interface for accessing the system clock is using the
-:py:func:`rhythm.lib.now` callable::
+:py:func:`.rhythm.lib.now` callable::
 
 	current_time = rhythm.lib.now()
 
@@ -196,8 +196,8 @@ The returned timestamp is a UTC timestamp.
 Creating a Timestamp from an ISO-9660 String
 --------------------------------------------
 
-While the :py:mod:`rhythm.libformat` module manages the details, the
-:py:mod:`rhythm.lib` module provides access to the functionality::
+While the :py:mod:`.rhythm.libformat` module manages the details, the
+:py:mod:`.rhythm.lib` module provides access to the functionality::
 
 	ts = rhythm.lib.Timestamp.of(iso='2009-02-01T3:33:45.123321')
 
@@ -228,8 +228,8 @@ And RFC as well::
 Constructing a Timestamp from Parts
 -----------------------------------
 
-A :py:class:`rhythm.lib.Timestamp` can be constructed from time parts using the
-:py:meth:`rhythm.abstract.Time.of` class method. This method takes
+A :py:class:`.rhythm.lib.Timestamp` can be constructed from time parts using the
+:py:meth:`.rhythm.abstract.Time.of` class method. This method takes
 arbitrary positional parameters and keyword parameters whose keys are the name
 of a unit of time known by the time context::
 
@@ -249,18 +249,18 @@ Constructing a Timestamp from a UNIX Timestamp
 
 The `unix` container keyword provides an interface from seconds since the
 UNIX-epoch, "January 1, 1970". A timestamp can be made using the
-:py:meth:`rhythm.abstract.Time.of` method::
+:py:meth:`.rhythm.abstract.Time.of` method::
 
 	epoch = rhythm.lib.Timestamp.of(unix=0)
 
 Subseqently, a given PiT can yield a UNIX timestamp using the
-:py:meth:`rhythm.abstract.Time.select` method::
+:py:meth:`.rhythm.abstract.Time.select` method::
 
 	now = rhythm.lib.now()
 	unix = now.select('unix')
 
-Alternatively, the :py:obj:`rhythm.lib.open` composition constructor can be used
-to build a callable that returns :py:class:`rhythm.lib.Timestamp` instances::
+Alternatively, the :py:obj:`.rhythm.lib.open` composition constructor can be used
+to build a callable that returns :py:class:`.rhythm.lib.Timestamp` instances::
 
 	from_unix = rhythm.lib.open.unix(rhythm.lib.Timestamp)
 
@@ -341,6 +341,21 @@ Subsequently, allowing quick identification::
 	ts = ts.elapse(month=1).update('day', -1, 'month')
 	ts.update('day', 0, 'week', align=-2)
 
+
+Eternal Measures and Points
+===========================
+
+`rhythm` defines eternal units of time. These units are used to
+define the very beginning, the current, and the very end of time: :py:obj:`.lib.Genesis`,
+:py:obj:`.lib.Present`, :py:obj:`.lib.Never`. These points in time are ambiguous and have simple rules
+when used with finite points in time. Never is a point in the future that is greater than
+all other points, Genesis is a point in the past before all other points, and Present
+is a continually moving point representing the current time.
+Like other Points in Time, there are corresponding measures: positive and negative eternity.
+
+Eternals also allow for the creation of indefinite segments as well. There are three built-in
+segments: :py:obj:`.lib.Time`, :py:obj:`.lib.Past`, :py:obj:`.lib.Future`.
+
 Working with Sets and Sequences
 ===============================
 
@@ -348,12 +363,12 @@ The accessor and manipulation methods provide a high level interface to an
 individual PiT or scalar, but often an operation needs to be applied
 *efficiently* to a set or sequence of Time Objects.
 
-The :py:mod:`rhythm.lib` module has a few tools for
+The :py:mod:`.rhythm.lib` module has a few tools for
 constructing--FP'ish--compositions for extraction, manipulation, and creation.
 
- * :py:obj:`rhythm.lib.select`
- * :py:obj:`rhythm.lib.update`
- * :py:obj:`rhythm.lib.open`
+ * :py:obj:`.rhythm.lib.select`
+ * :py:obj:`.rhythm.lib.update`
+ * :py:obj:`.rhythm.lib.open`
 
 Using these objects to construct selectors and manipulations is often desirable
 over `generator expressions` as it allows a reference to the desired transformation.
@@ -366,7 +381,7 @@ over `generator expressions` as it allows a reference to the desired transformat
 Selectors
 ---------
 
-The :py:obj:`rhythm.lib.select` constructor provides a syntactically convenient
+The :py:obj:`.rhythm.lib.select` constructor provides a syntactically convenient
 means to select fields from an arbitrary Time Object.
 
 For instance, ``map(rhythm.lib.select.timeofday(), iter)``, will perform an
@@ -386,7 +401,7 @@ Updaters
   operation consistent to: ``(x.update('day', 0, 'week') for x in iter)``
 
 
-The :py:obj:`rhythm.lib.update` constructor provides a syntactically convenient
+The :py:obj:`.rhythm.lib.update` constructor provides a syntactically convenient
 means to update a field of an arbitrary Time Object.
 
 Field updates can provide a concise means to simplify some rather tricky
@@ -398,7 +413,7 @@ Openers
 There is often a need to construct an opener. Instantiating timestamps from
 date-time tuples, ISO formatted timestamps, and UNIX timestamps is common.
 
-The :py:obj:`rhythm.lib.open` constructor provides a syntactically convenient
+The :py:obj:`.rhythm.lib.open` constructor provides a syntactically convenient
 means of doing so.
 
 Open is different from Select and Update as it is primarily concerned with
@@ -409,11 +424,11 @@ Common forms:
 
  ``rhythm.lib.open.unix(rhythm.lib.Timestamp)``
   Given an integer relative to the UNIX epoch, return a
-  corresponding :py:class:`rhythm.lib.Timestamp` instance.
+  corresponding :py:class:`.rhythm.lib.Timestamp` instance.
 
  ``rhythm.lib.open.iso(rhythm.lib.Timestamp)``
   Given an ISO formatted string, return a
-  corresponding :py:class:`rhythm.lib.Timestamp` instance.
+  corresponding :py:class:`.rhythm.lib.Timestamp` instance.
 
  ``rhythm.lib.open.iso(rhythm.lib.Date)``
   Same as the varient taking the timestamp, but align the Point to the date.
@@ -424,7 +439,7 @@ Common forms:
 
  ``rhythm.lib.open.datetime(rhythm.lib.Timestamp)``
   Build a constructor that takes seconds from the UNIX epoch and returns a
-  :py:class:`rhythm.lib.Timestamp` instance.
+  :py:class:`.rhythm.lib.Timestamp` instance.
 
 
 Working with the Clock
@@ -434,9 +449,9 @@ rhythm has the concept of a clock. This clock has multiple services for tracking
 the passing of time according to the "clockwork" of the underlying operating
 system. This includes monotonic passing of time, and "demotic", colloquial.
 
-The :py:mod:`rhythm.libclock` module provides the implementation of the
-:py:class:`rhythm.abstract.Clock` interface using the :py:mod:`rhythm.system`
-module. The :py:mod:`rhythm.system` module uses whatever facilities it was able
+The :py:mod:`.rhythm.libclock` module provides the implementation of the
+:py:class:`.rhythm.abstract.Clock` interface using the :py:mod:`.rhythm.system`
+module. The :py:mod:`.rhythm.system` module uses whatever facilities it was able
 to find at compile time in order to provide maximum precision.
 
 Demotic and Monotonic Time
@@ -449,21 +464,21 @@ of demotic time is mutable and the monotonic time is, ideally, immutable.
 
 Demotic time is the UTC standard wall clock time and is often referred to
 ambiguously as it is generally assumed to be the desired perspective of time.
-rhythm even refers to this ambiguously as "now", :py:func:`rhythm.lib.now`.
+rhythm even refers to this ambiguously as "now", :py:func:`.rhythm.lib.now`.
 
 Monotonic time is the amount of time that has elapsed from some arbitrary point
-and rhythm denotes that by only returning :py:class:`rhythm.lib.Measure`
+and rhythm denotes that by only returning :py:class:`.rhythm.lib.Measure`
 instances for representing monotonic time.
 
-Direct use of the :py:meth:`rhythm.clock.monotonic` method is not
+Direct use of the :py:meth:`.rhythm.clock.monotonic` method is not
 recommended for most cases. Rather, rhythm provides some iterators and
 context managers that cover the common use-cases of monotonic time.
 
 Time Meters
 -----------
 
-Time meters, :py:meth:`rhythm.lib.clock.meter`, are iterators provided by
-:py:class:`rhythm.abstract.Clock` implementations that track the amount of time
+Time meters, :py:meth:`.rhythm.lib.clock.meter`, are iterators provided by
+:py:class:`.rhythm.abstract.Clock` implementations that track the amount of time
 that has elapsed since the *first* iteration::
 
 	for x in rhythm.lib.clock.meter():
@@ -478,7 +493,7 @@ Delta Meters
 
 In other cases, the total time is not particularly interesting or needs be
 calculated by another component of the process. Delta meters,
-:py:meth:`rhythm.lib.clock.delta` are iterators that yield the amount of time
+:py:meth:`.rhythm.lib.clock.delta` are iterators that yield the amount of time
 that has elapsed since the *prior* iteration.
 
 Delta meters are good for implementing rate limiting::
@@ -494,11 +509,11 @@ Delta meters are good for implementing rate limiting::
 Tracking Arbitrary Units over Time
 ==================================
 
-Using the same underlying functionality as :py:meth:`rhythm.lib.clock.delta`,
-the :py:mod:`rhythm.libflow` module provides tools for tracking units over time
+Using the same underlying functionality as :py:meth:`.rhythm.lib.clock.delta`,
+the :py:mod:`.rhythm.libflow` module provides tools for tracking units over time
 for a set of objects.
 
-Instances of the :py:class:`rhythm.libflow.Radar` class manage the tracked
+Instances of the :py:class:`.rhythm.libflow.Radar` class manage the tracked
 units over a period of time for a given set of objects. It keeps records of the
 given units associated with the amount of time that has elapsed since the last
 record was made. The time deltas are ultimately collected using the system's
@@ -521,10 +536,10 @@ an object. When an object is tracked for the first time, its corresponding
 chronometer is started.
 Subsequently, the initial rate information may be skewed by additional time.
 
-Everytime the units of an object are tracked, :py:meth:`rhythm.lib.Radar.track`,
+Everytime the units of an object are tracked, :py:meth:`.rhythm.lib.Radar.track`,
 a new record is created. *The number of records can grow unbounded unless
 some maintenance is performed*. There are two methods for maintenance:
-:py:meth:`rhythm.lib.Radar.collapse` and :py:meth:`rhythm.lib.Radar.truncate`.
+:py:meth:`.rhythm.lib.Radar.collapse` and :py:meth:`.rhythm.lib.Radar.truncate`.
 
 In cases where the overall rate is desired, collapse provides the necessary
 functionality to aggregate the records::
@@ -595,8 +610,8 @@ Each situation has its own requirements for proper zone handling.
 
 In the first, the zone identifier should be associated with the PiT object.
 These objects should always be a type capable of designating a date and time of
-day, the :py:class:`rhythm.lib.Timestamp` type. Representation types like
-:py:class:`rhythm.lib.Date` don't require zone adjustments unless it
+day, the :py:class:`.rhythm.lib.Timestamp` type. Representation types like
+:py:class:`.rhythm.lib.Date` don't require zone adjustments unless it
 is ultimately intended to refer to the beginning of the day in that particular
 zone in UTC.
 
@@ -606,14 +621,14 @@ should be associated with the PiT object.
 Getting an Offset from a UTC Point in Time
 ------------------------------------------
 
-While :py:mod:`rhythm.libzone` provides the implementation of Zone objects, high level
-access is provided via the :py:func:`rhythm.lib.zone` function::
+While :py:mod:`.rhythm.libzone` provides the implementation of Zone objects, high level
+access is provided via the :py:func:`.rhythm.lib.zone` function::
 
    tz = rhythm.lib.zone('America/Los_Angeles')
    pit = rhythm.lib.now()
    offset = tz.find(pit)
 
-Once the :py:class:`rhythm.libzone.Offset` object has been found for a given point in
+Once the :py:class:`.rhythm.libzone.Offset` object has been found for a given point in
 time, the UTC point can be adjusted::
 
    la_pit = pit.elapse(offset)
@@ -622,8 +637,8 @@ Localizing a UTC Point in Time
 ------------------------------
 
 The examples in the previous section show the details of localization.
-:py:class:`rhythm.libzone.Zone` instances have the above functionality packed into a
-single method, :py:meth:`rhythm.libzone.Zone.localize`::
+:py:class:`.rhythm.libzone.Zone` instances have the above functionality packed into a
+single method, :py:meth:`.rhythm.libzone.Zone.localize`::
 
    pit, offset = rhythm.lib.zone().localize(rhythm.lib.now())
 
@@ -637,7 +652,7 @@ Normalizing a Local Point in Time
 ---------------------------------
 
 Normalization is the process of adjusting a localized timestamp by its *known* offset into
-a UTC timestamp and then localizing it. The :py:meth:`rhythm.libzone.Zone.normalize`
+a UTC timestamp and then localizing it. The :py:meth:`.rhythm.libzone.Zone.normalize`
 method has this functionality::
 
    pit, offset = rhythm.lib.zone().localize(rhythm.lib.now())
