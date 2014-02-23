@@ -522,6 +522,60 @@ def test_zone_slice(test):
 	]
 	test/list(lib.zone('MST').slice(start, stop)) == []
 
+def test_indefinite_comparisons(test):
+	test/True == lib.Never.proceeds(lib.Genesis)
+	test/True == lib.Never.proceeds(lib.Present)
+
+	test/True == lib.Genesis.precedes(lib.Never)
+	test/True == lib.Genesis.precedes(lib.Present)
+
+	test/True == lib.Present.proceeds(lib.Genesis)
+	test/True == lib.Present.precedes(lib.Never)
+
+def test_indefinite_definite_comparisons(test):
+	ts = lib.now()
+
+	test/True == lib.Present.proceeds(ts.elapse(hour=-1))
+	test/True == lib.Present.precedes(ts.elapse(hour=1))
+
+	test/True == lib.Never.proceeds(ts)
+	test/True == lib.Genesis.precedes(ts)
+
+	test/True == ts.proceeds(lib.Genesis)
+	test/True == ts.precedes(lib.Never)
+
+def test_indefinite_segments(test):
+	# present is *part* of the past and the future according to our definition.
+	test/True == (lib.Present in lib.Past)
+	test/True == (lib.Present in lib.Future)
+	test/True == (lib.Present in lib.Time)
+
+	test/True == (lib.now().elapse(hour=1) in lib.Future)
+	test/True == (lib.now().elapse(hour=-1) in lib.Past)
+
+	test/False == (lib.now().elapse(hour=-1) in lib.Future)
+	test/False == (lib.now().elapse(hour=1) in lib.Past)
+
+def test_indefinite_containment(test):
+	start = lib.now().elapse(hour=-2)
+	end = start.elapse(hour=4)
+	present_window = lib.Segment((start, end))
+
+	start = lib.now().elapse(hour=-2)
+	end = start.elapse(hour=1)
+	past_window = lib.Segment((start, end))
+
+	start = lib.now().elapse(hour=1)
+	end = start.elapse(hour=1)
+	future_window = lib.Segment((start, end))
+
+	test/True == (lib.Present in present_window)
+
+	if 0:
+		# XXX: Does not prioritized indefinite -> definite conversion.
+		test/False == (lib.Present in past_window)
+		test/False == (lib.Present in future_window)
+
 if __name__ == '__main__':
 	import sys; from ...dev import libtest
 	libtest.execute(sys.modules[__name__])

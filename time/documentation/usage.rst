@@ -111,22 +111,27 @@ Points *are* timestamps, datetimes,. Measures *are* intervals, timedeltas.
 
  ``timedelta() + timedelta()``
   :py:meth:`.rhythm.abstract.Measure.increase`
+
   ``rhythm.lib.Measure(second=0).increase(rhythm.lib.Measure(second=1))``
 
  ``timedelta() - timedelta()``
   :py:meth:`.rhythm.abstract.Measure.decrease`
+
   ``rhythm.lib.Measure(second=2).decrease(rhythm.lib.Measure(second=1))``
 
  ``datetime() + timedelta()``
   :py:meth:`.rhythm.abstract.Point.elapse`
+
   ``rhythm.lib.Timestamp().elapse(rhythm.lib.Measure(second=1))``
 
  ``datetime() - timedelta()``
   :py:meth:`.rhythm.abstract.Point.rollback`
+
   ``rhythm.lib.Timestamp().rollback(rhythm.lib.Measure(second=1))``
 
  ``datetime() - datetime()``
   :py:meth:`.rhythm.abstract.Point.measure`
+
   ``rhythm.lib.Timestamp().measure(rhythm.lib.Timestamp())``
 
 Constructing Points and Measures
@@ -345,7 +350,7 @@ Subsequently, allowing quick identification::
 Eternal Measures and Points
 ===========================
 
-`rhythm` defines eternal units of time. These units are used to
+`rhythm` defines eternal units of time that are of Indefinite periods. These units are used to
 define the very beginning, the current, and the very end of time: :py:obj:`.lib.Genesis`,
 :py:obj:`.lib.Present`, :py:obj:`.lib.Never`. These points in time are ambiguous and have simple rules
 when used with finite points in time. Never is a point in the future that is greater than
@@ -353,8 +358,14 @@ all other points, Genesis is a point in the past before all other points, and Pr
 is a continually moving point representing the current time.
 Like other Points in Time, there are corresponding measures: positive and negative eternity.
 
-Eternals also allow for the creation of indefinite segments as well. There are three built-in
-segments: :py:obj:`.lib.Time`, :py:obj:`.lib.Past`, :py:obj:`.lib.Future`.
+Eternals also allow for the creation of indefinite segments. There are three built-in
+segments: :py:obj:`.lib.Time`, :py:obj:`.lib.Past`, :py:obj:`.lib.Future`. These segments
+represent common concepts that can be used to identify whether or not a given point has
+already occurred or will occur as Present, the start or stop of the segments, is a
+continually moving point in time.
+
+Indefinite points such as Never and Genesis are also useful for creating unbounded
+segments.
 
 Working with Sets and Sequences
 ===============================
@@ -384,8 +395,8 @@ Selectors
 The :py:obj:`.rhythm.lib.select` constructor provides a syntactically convenient
 means to select fields from an arbitrary Time Object.
 
-For instance, ``map(rhythm.lib.select.timeofday(), iter)``, will perform an
-operation consistent to: ``(x.select('timeofday') for x in iter)``.
+For instance, ``map(rhythm.lib.select.timeofday(), iter(obj))``, will perform an
+operation consistent to: ``(x.select('timeofday') for x in iter(obj))``.
 
 In the case where the `whole` needs to be specified, a second attribute may be
 given::
@@ -396,13 +407,11 @@ given::
 Updaters
 --------
 
-  Constructs an updater that can mapped onto an iterator of Time Objects.
-  For instance, ``map(rhythm.lib.update.day.week(0), iter)``, will perform an
-  operation consistent to: ``(x.update('day', 0, 'week') for x in iter)``
-
-
 The :py:obj:`.rhythm.lib.update` constructor provides a syntactically convenient
-means to update a field of an arbitrary Time Object.
+means to update *a* field of an arbitrary Time Object.
+
+For instance, ``map(rhythm.lib.update.day.week(0), iter(obj))``, will perform an
+operation consistent to: ``(x.update('day', 0, 'week') for x in iter(obj))``
 
 Field updates can provide a concise means to simplify some rather tricky
 date-time math.

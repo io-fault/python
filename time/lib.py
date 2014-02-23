@@ -71,7 +71,7 @@ set to the following names:
 
  Future
   A :py:class:`Segment` whose start is :py:obj:`Present` and end is :py:obj:`Never`.
-  ``ts in rhythm.lib.future``
+  ``ts in rhythm.lib.Future``
 
  Past
   A segment whose start is :py:obj:`Genesis` and end is :py:obj:`Present`.
@@ -86,6 +86,7 @@ from . import abstract
 from . import libunit # Context & Standard Definitions.
 from . import libclock
 from . import libzone
+from . import eternal
 
 #: Range class.
 Segment = libunit.Segment
@@ -158,6 +159,9 @@ clock = libclock.IClock(kclock, Measure, Timestamp)
 #: Shortcut to :py:obj:`.lib.clock.demotic`
 now = clock.demotic
 
+# Support for Present to Finite Point
+Context.bridge('eternal', 'day', eternal.days_from_current_factory(clock, abstract.Inconceivable))
+
 del sys
 
 def unix(unix_timestamp, Timestamp = Timestamp.of):
@@ -223,7 +227,7 @@ def construct_open(names, args, kw, mc = operator.methodcaller):
 # Hide the module from view.
 del operator
 
-#: Composition constructor for selecting parts from Time Objects.
+#: Composition constructor for selecting parts from [time] Unit Objects.
 #: For instance, ``select.day.week()``.
 select = PartialAttributes(construct_select)
 
@@ -231,13 +235,22 @@ select = PartialAttributes(construct_select)
 #: For instance, ``update.day.week(0)``.
 update = PartialAttributes(construct_update)
 
-#: Composition constructor for instantiating Time Objects from Container types.
+#: Composition constructor for instantiating [time] Unit Objects from Container types.
 #: Example::
 #:
 #:		from rhythm import lib
 #:		from_iso = lib.open.iso(lib.Timestamp)
-#:		pit = from_iso("2002-01-01T3:45:00")
+#:		pits = map(from_iso, ("2002-01-01T3:45:00",))
+#:
+#: Access to standard format parsers are made available:
+#: :py:func:`parse_iso8601`, :py:func:`parse_rfc1123`.
 open = PartialAttributes(construct_open)
+
+#: Parse ISO-8601 timestamp strings into a :py:class:`Timestamp` instance.
+parse_iso8601 = open.iso(Timestamp)
+
+#: Parse RFC-1123 timestamp strings into a :py:class:`Timestamp` instance.
+parse_rfc1123 = open.rfc(Timestamp)
 
 # This may end up getting moved, so don't expose it.
 del PartialAttributes, construct_update, construct_select, construct_open
@@ -253,8 +266,9 @@ def range(start, stop, step = None, Segment = Segment):
 	Example::
 
 		pit = rhythm.lib.now()
-		begin = pit.update('day', 1, 'week')
-		this_business_week = rhythm.lib.range(week_start, week_end, lib.Days(1))
+		week_start = pit.update('day', 1, 'week')
+		week_end = begin.elapse(day=7)
+		this_week = rhythm.lib.range(week_start, week_end, lib.Days(1))
 	"""
 	return Segment((start, stop)).points(step)
 

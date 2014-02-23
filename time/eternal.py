@@ -16,11 +16,25 @@ points = (
 	'never',
 	'genesis',
 )
+
+#: Sorted by index use: -1 is "ineternity", 0 is eternity, and 1 is eternity.
 measures = (
 	'zero',
 	'eternity',
 	'ineternity'
 )
+
+def days_from_current_factory(clock, ICE):
+	ref = clock.demotic()
+	ratio = ref.context.compose(ref.unit, 'day')
+	datum = ref.datum * ratio
+
+	def days_from_eternal(eternal, clock = clock, ICE = ICE, ratio = ratio, datum = datum):
+		if eternal == 0:
+			r = (ratio * int(clock.demotic())) + datum
+			return r
+		raise ICE('eternal', 'day', inverse = True)
+	return days_from_eternal
 
 def eternal_from_days(days):
 	"""
@@ -32,11 +46,12 @@ def context(ctx, qname = ''):
 	from . import libunit
 
 	# eternal units are indifferent to the datum.
-	ctx.declare('eternal', 0)
+	ctx.declare('eternal', 0, kind = 'indefinite')
 
 	class Eternals(libunit.Measure):
 		__slots__ = ()
 		unit = unit
+		kind = 'indefinite'
 		magnitude = 0
 		datum = 0
 		context = ctx
@@ -51,7 +66,13 @@ def context(ctx, qname = ''):
 			cls.__cache = tuple(libunit.Measure.__new__(cls, x) for x in identifiers)
 
 		def __new__(cls, val):
-			return cls.__cache[val]
+			# Reduce superfluous quantities.
+			if val > 0:
+				return cls.__cache[1]
+			elif val < 0:
+				return cls.__cache[-1]
+			else:
+				return cls.__cache[0]
 
 		def __float__(self, choice = (0, float('inf'), float('-inf'),)):
 			return choice[int(self)]
@@ -70,9 +91,11 @@ def context(ctx, qname = ''):
 	class Indefinite(libunit.Point):
 		__slots__ = ()
 		unit = unit
+		kind = 'indefinite'
 		magnitude = 0
 		datum = Eternals(0) # now
 		context = ctx
+
 		Measure = Eternals
 
 		name = 'Indefinite'

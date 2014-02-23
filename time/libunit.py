@@ -12,7 +12,15 @@ import collections
 import fractions
 import functools
 import operator
+
 from . import abstract
+
+# Unit Kinds
+kinds = (
+	'definite',
+	'indefinite',
+	'subjective',
+)
 
 class Unit(int):
 	"""
@@ -35,16 +43,18 @@ class Unit(int):
 		# Keyword processing. First, combine like terms.
 		append(parts.items())
 
-		containers = typ.context.containers
-		convert = typ.context.convert
-		getterm = typ.context.terms.get
+		context = typ.context
+		containers = context.containers
+		convert = context.convert
+		getterm = context.terms.get
+		kinds = context.kinds
 
 		target_unit = typ.unit
 		target_term = getterm(target_unit)
 		total = start
 
-		# currently containers can return containers,
-		# thus this. :(
+		# containers can return containers, so the loop needs
+		# to continue until no containers are returned.
 		while d:
 			parts = popleft()
 			for unit, value in parts:
@@ -63,7 +73,8 @@ class Unit(int):
 					# not a like term. sum up all the unlike terms for later conversion.
 					terms[term] = terms.get(term, 0) + convert(unit, term, value)
 
-		# apply units
+		# Add units to total if like terms.
+		# Otherwise, prepare terms for conversion.
 		for x in units:
 			term = getterm(x.unit)
 			if term == target_term:
@@ -71,7 +82,15 @@ class Unit(int):
 			else:
 				terms[term] = terms.get(term, 0) + convert(x.unit, term, int(x))
 
+		# All like terms have been combined (op(x,y)). The target term (typ.term) is
+		# stored in total and it's time to apply unlike terms using the context's
+		# bridges.
 		for term, value in terms.items():
+			if kinds[term] == 'indefinite':
+				# indefinites are a special case that don't need to consider subjectivity.
+				total = op(total, convert(term, target_unit, value))
+				continue
+
 			# first convert the existing total to the unlike-term units.
 			# this gives context for the term's value.
 			ctx = convert(target_unit, term, total)
@@ -240,7 +259,9 @@ class Point(Unit):
 		return self.Measure(pit - self)
 
 	def precedes(self, pit):
-		if pit.unit != self.unit:
+		if pit.unit == self.unit:
+			lpit = pit
+		else:
 			try:
 				lpit = self.construct((pit,), {})
 			except abstract.Inconceivable as ice:
@@ -249,12 +270,12 @@ class Point(Unit):
 					local = pit.__class__(c)
 					return pit.proceeds(local) or pit == local
 				raise
-		else:
-			lpit = pit
 		return self < lpit
 
 	def proceeds(self, pit):
-		if pit.unit != self.unit:
+		if pit.unit == self.unit:
+			lpit = pit
+		else:
 			try:
 				lpit = self.construct((pit,), {})
 			except abstract.Inconceivable as ice:
@@ -263,8 +284,6 @@ class Point(Unit):
 					local = pit.__class__(c)
 					return pit.precedes(local) or pit == local
 				raise
-		else:
-			lpit = pit
 		return self > lpit
 abstract.Point.register(Point)
 
@@ -286,7 +305,10 @@ class Segment(tuple):
 		return self.start.measure(self.stop) // abs(self.magnitude)
 
 	def __contains__(self, point):
-		return not (point.precedes(self.start) or point.proceeds(self.stop))
+		return not (
+			point.precedes(self.start) \
+			or point.proceeds(self.stop)
+		)
 
 	@property
 	def start(self):
@@ -347,8 +369,9 @@ class Context(object):
 		self.points = {} # PointInTime types {unit: type}
 		self.names = {} # unit names
 		self.constants = {} # constant values used by the context. storage area
+		self.kinds = {} # the kind of term
 
-	def declare(self, id, datum):
+	def declare(self, id, datum, kind = 'definite'):
 		"""
 		Declare a fundamental unit for use in a context.
 
@@ -363,6 +386,7 @@ class Context(object):
 		self.measures[id] = {}
 		self.points[id] = {}
 		self.datums[id] = datum
+		self.kinds[id] = kind
 
 	def define(self, id, term, exponent, base = 10):
 		"""
@@ -393,7 +417,7 @@ class Context(object):
 		self.constants[id] = value
 
 	@functools.lru_cache()
-	def compose(self, from_unit, to_unit):
+	def compose(self, from_unit, to_unit, int = int):
 		"""
 		Compose two ratios into another so that the `from_unit` can be converted
 		into the `to_unit`.
@@ -422,8 +446,10 @@ class Context(object):
 				for part, value in pkg
 			])
 		else:
+			# otherwise, a simple ratio or a bridge to a ratio
 			from_term = self.terms[from_unit]
 			to_term = self.terms[to_unit]
+
 			if from_term == to_term:
 				# like terms, multiple by the composed ratio
 				return value * self.compose(from_unit, to_unit)
@@ -435,8 +461,7 @@ class Context(object):
 					raise ICE(from_term, to_term, inverse = (to_term, from_term) in self.bridges)
 
 				bu = value * self.compose(from_unit, from_term)
-				bdu = br(bu)
-				return bdu * self.compose(to_term, to_unit)
+				return br(bu) * self.compose(to_term, to_unit)
 
 	def register_point_class(self, Point, default = False):
 		# ABC registration
@@ -454,13 +479,13 @@ class Context(object):
 		if default:
 			self.measures[Measure.liketerm][None] = Measure
 
-	def new_measure_class(self, id, qname = None, default = False):
-		Measure = self.measure_factory(id, qname)
+	def new_measure_class(self, id, kind = 'definite', qname = None, default = False):
+		Measure = self.measure_factory(id, qname, kind = kind)
 		self.register_measure_class(Measure, default = default)
 		return Measure
 
-	def new_point_class(self, Measure, qname = None, default = False):
-		Point = self.point_factory(Measure, qname)
+	def new_point_class(self, Measure, kind = 'definite', qname = None, default = False):
+		Point = self.point_factory(Measure, qname, kind = kind)
 		self.register_point_class(Measure, default = default)
 		return Point
 
@@ -489,38 +514,45 @@ class Context(object):
 	def represent(self, term, unitseq):
 		self.measure_repr[term] = unitseq
 
-	def point_factory(self, Measure, qname, Class = Point, point_magnitude = 1):
+	def point_factory(self, Measure, qname, kind = 'definite', Class = Point, point_magnitude = 1):
 		"""
 		Construct a Point class from the given scalar.
 		"""
+		unit_kind = kind
+
 		class Point(Class):
 			__slots__ = ()
 			__name__ = qname
 			unit = Measure.unit
+			kind = unit_kind
 			name = Measure.name
 			datum = self.datum_for_point(Measure.unit)
 			# vector properties
 			magnitude = point_magnitude # Vector is: Point -> Point+magnitude
 			context = self
 			liketerm = self.terms[Measure.unit]
+
 		Point.Measure = Measure
 		return Point
 
-	def measure_factory(self, id, qname, Class = Measure, name = None, address = None):
+	def measure_factory(self, id, qname, kind = 'definite', Class = Measure, name = None, address = None):
 		"""
 		Construct a measure with the designated unit identifier and class.
 		"""
 		proper_name = name or id
+		unit_kind = kind
 
 		# Build constructors/classes for the parameterized unit.
 		class Measure(Class):
 			__slots__ = ()
 			__name__ = qname
 			unit = id
+			kind = unit_kind
 			name = proper_name
 			datum = 0
 			context = self
 			liketerm = self.terms[id]
+
 		return Measure
 
 def standard_context(qname):
@@ -539,10 +571,10 @@ def standard_context(qname):
 
 	# Most practical time units are actually related to a day.
 	# Here, we declare the datum for day based PiTs
-	context.declare('day', 5 * ((((365*4) + 1) * 100) - 3) + 1)
+	context.declare('day', 5 * ((((365*4) + 1) * 100) - 3) + 1, kind = 'definite')
 
 	# Likewise, Month PiTs are relative to Y2K
-	context.declare('month', 2000*12)
+	context.declare('month', 2000*12, kind = 'subjective')
 	# NOTE: The month offset and day offset are *not* equal.
 	#       Day offsets are relative to the beginning of the first week
 	#       in Y2K in order to aid week updates.
@@ -586,7 +618,9 @@ def standard_context(qname):
 
 		# gregorian month terms
 		context.new_measure_class(
-			'month', qname = qname + '.Months', default = True),
+			'month',
+			kind = 'subjective',
+			qname = qname + '.Months', default = True),
 	)
 
 	points = (
