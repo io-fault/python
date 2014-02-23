@@ -27,8 +27,55 @@ class Inconceivable(TransformationError):
 	An attempt to represent a unit in like-terms was not possible
 	given the current implementation.
 
-	Usually raised when a finite term attempts to convert an indefinite term.
+	Usually raised when a finite term attempts to convert an indefinite term or an
+	ambiguous term.
 	"""
+
+class FormatError(Exception):
+	pass
+
+class ParseError(FormatError):
+	"""
+	The exception raised when the format of the datetime could not be parsed.
+	"""
+	def __init__(self, source, format = None):
+		self.format = format
+		self.source = source
+
+	def __str__(self):
+		return "[{0}] {1}".format(self.format, self.source)
+
+class StructureError(FormatError):
+	"""
+	The exception raised when the structure of a parsed format could not be
+	transformed.
+	"""
+	def __init__(self, source, struct, format = None):
+		self.format = format
+		self.struct = struct
+		self.source = source
+
+	def __str__(self):
+		return "[{0}] ".format(self.format) + self.source + \
+			"\n-> " + str(self.struct)
+
+class IntegrityError(FormatError):
+	"""
+	The exception raised when a parsed point in time is not consistent.
+
+	Notably, in the RFC format, there are portions specifying intersecting
+	parts of a timestamp. (The day of week field is arguably superfluous.)
+	"""
+	def __init__(self, source, struct, tuple, format = None):
+		self.format = format
+		self.tuple = tuple
+		self.struct = struct
+		self.source = source
+
+	def __str__(self):
+		return "[{0}] ".format(self.format) + self.source + \
+			"\n-> " + str(self.struct) + \
+			"\n-> " + str(self.tuple) + "\n-> " + str(self.pit)
 
 class Time(metaclass=abc.ABCMeta):
 	"""
@@ -75,6 +122,12 @@ class Measure(Range):
 	An abstract quantity time. Usually, identified as a Scalar quantity unless
 	subclassed.
 	"""
+
+	@abc.abstractproperty
+	def kind(self):
+		"""
+		Classification for the unit type with respect to measurements.
+		"""
 
 	@abc.abstractproperty
 	def unit(self):
@@ -238,6 +291,12 @@ class Point(Range):
 	The use of magnitudes on Points is purely practical as leveraging this
 	with Earth-Day units is far to useful to dismiss.
 	"""
+
+	@abc.abstractproperty
+	def kind(self):
+		"""
+		Classification for the unit type with respect to Points in Time.
+		"""
 
 	@abc.abstractproperty
 	def Measure(self):

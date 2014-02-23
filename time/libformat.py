@@ -1,82 +1,24 @@
 """
 Format and parse datetime strings.
 
-Primarily this module exposes two functions: :py:func:`rhythm.libformat.parser`,
-:py:func:`rhythm.libformat.formatter`. These functions provide access to datetime
+Primarily this module exposes two functions: :py:func:`.libformat.parser`,
+:py:func:`.libformat.formatter`. These functions provide access to datetime
 formats defined by a standard or deemed common enough to merit a builtin implementation.
 
 .. note:: The near future will bring a strptime and strftime implementation.
 
 While formatting PiTs can usually occur without error, parsing them from strings
 can result in a variety of errors. The parsers available in
-:py:mod:`rhythm.libformat` can raise the following errors:
-
- :py:mod:`rhythm.libformat.ParseError`
-  This error is raised in cases where the string could not be separated by the
-  known delimiters of the format.
-
- :py:mod:`rhythm.libformat.StructureError`
-  This error is raised when the parts of the string could not be converted.
-  Normally, this means a given field was not an integer or the field was not
-  found in a mapping resolving the field's value.
-
- :py:mod:`rhythm.libformat.IntegrityError`
-  This error is raised when the parts of the timestamp contradict each other.
-  This error is only possible in formats that contain redundant information
-  about the timestamp.
+:py:mod:`.libformat` can raise subclasses of :py:class:`.abstract.FormatError`.
 """
 import operator
 import functools
 import fractions # For arbitrary subsecond representations.
 import math
+
+from . import abstract
 from . import gregorian
 from . import week
-
-class Error(Exception):
-	pass
-
-class ParseError(Error):
-	"""
-	The exception raised when the format of the datetime could not be parsed.
-	"""
-	def __init__(self, source, format = None):
-		self.format = format
-		self.source = source
-
-	def __str__(self):
-		return "[{0}] {1}".format(self.format, self.source)
-
-class StructureError(Error):
-	"""
-	The exception raised when the structure of a parsed format could not be
-	transformed.
-	"""
-	def __init__(self, source, struct, format = None):
-		self.format = format
-		self.struct = struct
-		self.source = source
-
-	def __str__(self):
-		return "[{0}] ".format(self.format) + self.source + \
-			"\n-> " + str(self.struct)
-
-class IntegrityError(Error):
-	"""
-	The exception raised when a parsed point in time is not consistent.
-
-	Notably, in the RFC format, there are portions specifying intersecting
-	parts of a timestamp. (The day of week field is arguably superfluous.)
-	"""
-	def __init__(self, source, struct, tuple, format = None):
-		self.format = format
-		self.tuple = tuple
-		self.struct = struct
-		self.source = source
-
-	def __str__(self):
-		return "[{0}] ".format(self.format) + self.source + \
-			"\n-> " + str(self.struct) + \
-			"\n-> " + str(self.tuple) + "\n-> " + str(self.pit)
 
 rfc1123 = "{day_of_week}, {day:02} {month} {year} {hour:02}:{minute:02}:{second:02}"
 iso8601 = "{0}-{1:02}-{2:02}T{3:02}:{4:02}:{5:02}.{6}"
@@ -240,10 +182,10 @@ def _parse(fun, format):
 	def EXCEPTION(src, fun = fun, format = format):
 		try:
 			return (src, dict(fun(src)))
-		except ParseError:
+		except abstract.ParseError:
 			raise
 		except Exception as e:
-			parse_error = ParseError(src, format = format)
+			parse_error = abstract.ParseError(src, format = format)
 			parse_error.__cause__ = e
 			raise parse_error
 	functools.update_wrapper(EXCEPTION, fun)
@@ -253,10 +195,10 @@ def _structure(fun, format):
 	def EXCEPTION(state):
 		try:
 			return fun(state)
-		except StructureError:
+		except abstract.StructureError:
 			raise
 		except Exception as e:
-			struct_error = StructureError(*state, format = format)
+			struct_error = abstract.StructureError(*state, format = format)
 			struct_error.__cause__ = e
 			raise struct_error
 	functools.update_wrapper(EXCEPTION, fun)
@@ -266,10 +208,10 @@ def _integrity(fun, format):
 	def EXCEPTION(state):
 		try:
 			return fun(state)
-		except IntegrityError:
+		except abstract.IntegrityError:
 			raise
 		except Exception as e:
-			integ_error = IntegrityError(*state, format = format)
+			integ_error = abstract.IntegrityError(*state, format = format)
 			integ_error.__cause__ = e
 			raise integ_error
 	functools.update_wrapper(EXCEPTION, fun)
@@ -331,7 +273,7 @@ formats = {
 }
 
 def context(context):
-	for k,id in formats.items():
+	for k, id in formats.items():
 		fmt = formatter(id)
 		par = parser(id)
 		def unpack_and_format(x, arg, fmt = fmt):
