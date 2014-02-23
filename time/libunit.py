@@ -272,7 +272,7 @@ class Point(Unit):
 				raise
 		return self < lpit
 
-	def proceeds(self, pit):
+	def follows(self, pit):
 		if pit.unit == self.unit:
 			lpit = pit
 		else:
@@ -285,6 +285,7 @@ class Point(Unit):
 					return pit.precedes(local) or pit == local
 				raise
 		return self > lpit
+	proceeds = follows
 abstract.Point.register(Point)
 
 class Segment(tuple):
@@ -321,8 +322,9 @@ class Segment(tuple):
 	def precedes(self, pit):
 		return self.stop.precedes(pit)
 
-	def proceeds(self, pit):
+	def follows(self, pit):
 		return self.start.proceeds(pit)
+	proceeds = follows
 
 	def points(self, step = None):
 		"""

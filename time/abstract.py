@@ -127,6 +127,10 @@ class Measure(Range):
 	def kind(self):
 		"""
 		Classification for the unit type with respect to measurements.
+
+		Currently, only three kinds exist: definite, subjective, and indefinite.
+
+		Measures and Points of the same unit may have different unit kinds.
 		"""
 
 	@abc.abstractproperty
@@ -372,7 +376,7 @@ class Point(Range):
 		"""
 
 	@abc.abstractmethod
-	def proceeds(self, *units, **parts):
+	def follows(self, *units, **parts):
 		"""
 		Returns whether or not the Point in Time, self, comes *after* the given argument, `pit`.
 		"""

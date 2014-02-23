@@ -124,6 +124,8 @@ def context(ctx, qname = ''):
 			if isinstance(pit, Indefinite):
 				assert pit in (0, 1, -1)
 				return self < pit
+			elif self == 0:
+				return pit.of(self).precedes(pit)
 			else:
 				assert self in (0, 1, -1)
 				return (
@@ -132,10 +134,12 @@ def context(ctx, qname = ''):
 					True, # genesis
 				)[self]
 
-		def proceeds(self, pit, inversed = None):
+		def follows(self, pit, inversed = None):
 			if isinstance(pit, Indefinite):
 				assert pit in (0, 1, -1)
 				return self > pit
+			elif self == 0:
+				return pit.of(self).follows(pit)
 			else:
 				assert self in (0, 1, -1)
 				return (
@@ -143,6 +147,7 @@ def context(ctx, qname = ''):
 					True, # never
 					False, # genesis
 				)[self]
+		proceeds = follows
 	Indefinite._init()
 
 	ctx.register_measure_class(Eternals, default = True)
