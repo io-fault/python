@@ -14,37 +14,19 @@ configurable precision.
 Structure
 =========
 
-This project consists of the following modules:
+rhythm exposes most functionality via the :py:mod:`.rhythm.lib` module. The underlying
+unit modules are rarely accessed directly and are primarily used by the
+:py:mod:`.rhythm.libunit` module which provides :py:mod:`.rhythm.lib` with most of its
+functionality.
 
- :py:mod:`.rhythm.lib`
-  The primary developer interface module that ties many of the other modules
-  together. This is the module that is normally imported.
+:py:mod:`.rhythm.libunit` is a module that defines unit base classes and defines the
+standard time context that creates classes for common units--Measures and Points In Time.
+The Time Context is the center of rhythm as it provides the
+necessary mappings for converting unlike units. All unit-qualified Time objects have a
+reference to this context.
 
- :py:mod:`.rhythm.libfs`
-  File system tools based on :py:mod:`.rhythm.lib`: :manpage:`stat`,
-  :manpage:`fstat`, and :manpage:`lstat` calls returning the `ctime`, `mtime`, and
-  `atime` as :py:class:`.rhythm.lib.Timestamp` instances.
-
- :py:mod:`.rhythm.libunit`
-  The unit context module. This provides the standard context definition used by
-  :py:mod:`.rhythm.lib`.
-
- :py:mod:`.rhythm.libformat`
-  The implementation of standard formatting functions for parsing and
-  formatting.
-
- :py:mod:`.rhythm.libzone`
-  :py:mod:`.rhythm.libtzif` based time zone support.
-
- :py:mod:`.rhythm.earth`
-  Definition of earth based measures of time.
-
- :py:mod:`.rhythm.metric`
-  Definition of metric-unit based measures of time. Also earth-based.
-
- :py:mod:`.rhythm.gregorian`
-  The implementation of gregorian-unit based time measures and points; dates,
-  day deltas, and month deltas.
+Primarily, rhythm works with two classes that store units defined in a context: Measures
+and Points. Measures are measurements of time, and Points are points in time. 
 
 Requirements
 ============
@@ -130,13 +112,6 @@ Terminology
   A particular unit of time in a Time Context. `second`, `day`, `month` are
   all types.
 
-Examples
---------
-
-Examples will often reference a `libtime` module. This module is defined::
-
-	from rhythm import lib as libtime
-
 Defense
 =======
 
@@ -184,32 +159,3 @@ Here are many of the links:
 
  * http://en.wikipedia.org/wiki/Second
  * http://en.wikipedia.org/wiki/Julian_year_(astronomy)
-
-Gotchas
-=======
-
-Points and Measures are Python Integers
----------------------------------------
-
-This has the effect that integers with the same value will be seen as the same
-key::
-
-	>>> from rhythm import lib
-	>>> d = {}
-	>>> d[lib.Date(0)] = 'Hello, World!'
-	>>> print d[0]
-	Hello, World!
-
-Month Arithmetic Can Overflow
------------------------------
-
-The implementation of month arithmetic is sensitive to the selected day::
-
-	# working with a leap year
-	pit = lib.Timestamp.of(iso='2012-01-31T18:55:33.946259')
-	pit.elapse(month=1)
-	rhythm.lib.Timestamp.of(iso='2012-03-02T18:55:33.946259')
-
-The issue can be avoided by adjusted the PiT to the beginning of the month::
-
-	pit = pit.update('day', 0, 'month')

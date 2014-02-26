@@ -57,6 +57,30 @@ a homogenous pair.
 Eccentricities
 --------------
 
+Points and Measures are Python Integers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This has the effect that integers with the same value will be seen as the same
+key in dictionaries::
+
+	>>> from rhythm import lib
+	>>> d = {}
+	>>> d[lib.Date(0)] = 'Hello, World!'
+	>>> print d[0]
+	Hello, World!
+
+If type based scoping is needed, the key can be qualified with the type::
+
+   d = {}
+   d[(lib.Date, lib.Date(0))] = 'Hello, Date!'
+   d[(lib.Timestamp, lib.Timestamp(0))] = 'Hello, Timestamp!'
+
+Or, nested dictionaries could be used::
+
+   d = {lib.Date: {}, lib.Timestamp: {}}
+   d[lib.Date][lib.Date(0))] = 'Hello, Date!'
+   d[lib.Timestamp][lib.Timestamp(0))] = 'Hello, Timestamp!'
+
 Datetime Math
 ~~~~~~~~~~~~~
 
@@ -86,6 +110,21 @@ More clearly::
 As opposed to the day-of-month and month-of-year fields being equal to `1` as
 one might expect them to be. Rather, *they are offsets*.
 
+Month Arithmetic Can Overflow
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The implementation of month arithmetic is sensitive to the selected day::
+
+	# working with a leap year
+	pit = lib.Timestamp.of(iso='2012-01-31T18:55:33.946259')
+	pit.elapse(month=1)
+	rhythm.lib.Timestamp.of(iso='2012-03-02T18:55:33.946259')
+
+The issue can be avoided by adjusting the PiT to the beginning of the month::
+
+	pit = pit.update('day', 0, 'month')
+	pit.elapse(month=1)
+
 Annums and Years
 ~~~~~~~~~~~~~~~~
 
@@ -97,6 +136,19 @@ with :py:class:`.rhythm.lib.Measure`.
 
 In order to compensate, the :py:class:`.rhythm.lib.Month` class provides a means to
 express such subjective time spans.
+
+Unit Aware Comparison
+~~~~~~~~~~~~~~~~~~~~~
+
+Unit subclasses do *not* override the built-in comparison methods implemented by the
+:py:class:`int` type that all unit classes are based on. Given that these classes can
+represent different units, comparisons *must* be performed with *like units* in order
+to yield consistently correct results. In order to compensate, unit aware comparisons are
+provided for :py:class:`.rhythm.abstract.Point` types:
+:py:meth:`.rhythm.abstract.Point.leads` and :py:meth:`.rhythm.abstract.Point.follows`.
+
+Measures do not implement unit-aware comparisons and must be converted to like-units
+before the integer comparisons may be used.
 
 Math in :py:mod:`datetime` Terms
 --------------------------------
@@ -346,17 +398,18 @@ Subsequently, allowing quick identification::
 	ts = ts.elapse(month=1).update('day', -1, 'month')
 	ts.update('day', 0, 'week', align=-2)
 
-
 Eternal Measures and Points
 ===========================
 
-`rhythm` defines eternal units of time that are of Indefinite periods. These units are used to
+`rhythm` defines eternal units of time that are of Indefinite non-zero periods. These units are used to
 define the very beginning, the current, and the very end of time: :py:obj:`.lib.Genesis`,
 :py:obj:`.lib.Present`, :py:obj:`.lib.Never`. These points in time are ambiguous and have simple rules
 when used with finite points in time. Never is a point in the future that is greater than
 all other points, Genesis is a point in the past before all other points, and Present
-is a continually moving point representing the current time.
-Like other Points in Time, there are corresponding measures: positive and negative eternity.
+is a continually moving point representing the current point in time, which is a subjective concept normally
+defined by the system's wall clock time.
+Like other Points in Time, there are corresponding measures: positive and negative eternity, but are
+not commonly referred to or used.
 
 Eternals also allow for the creation of indefinite segments. There are three built-in
 segments: :py:obj:`.lib.Time`, :py:obj:`.lib.Past`, :py:obj:`.lib.Future`. These segments
@@ -365,7 +418,19 @@ already occurred or will occur as Present, the start or stop of the segments, is
 continually moving point in time.
 
 Indefinite points such as Never and Genesis are also useful for creating unbounded
-segments.
+segments from a particular point in time::
+
+   pit = rhythm.lib.now().rollback(hour=1)
+   rfuture = rhythm.lib.Segment((pit, rhythm.lib.Never))
+
+The `rfuture` segment starts an hour in the past and never ends. Notably, iterators
+created by the segment are continuous in the future::
+
+   hourly = rfuture.points(rhythm.lib.Measure.of(hour=1))
+   for x, ts in zip(range(3), hourly):
+      print(x, ts)
+
+Managing sets of unbounded segments are the recommended way to manage recurring jobs.
 
 Working with Sets and Sequences
 ===============================
@@ -546,8 +611,11 @@ chronometer is started.
 Subsequently, the initial rate information may be skewed by additional time.
 
 Everytime the units of an object are tracked, :py:meth:`.rhythm.lib.Radar.track`,
-a new record is created. *The number of records can grow unbounded unless
-some maintenance is performed*. There are two methods for maintenance:
+a new record is created.
+
+.. warning:: The number of records can grow unbounded unless some maintenance is performed.
+
+There are two methods for maintenance:
 :py:meth:`.rhythm.lib.Radar.collapse` and :py:meth:`.rhythm.lib.Radar.truncate`.
 
 In cases where the overall rate is desired, collapse provides the necessary

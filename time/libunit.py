@@ -5,7 +5,6 @@ relationship to other unit types.
 The contents of this module are largely the mechanics under the hood and should
 not be used directly.
 
-.. danger:: NOTHING IN THIS FILE SHOULD BE RELIED UPON.
 .. danger:: THESE INTERFACES ARE SUBJECT TO CHANGE WITHOUT WARNING
 """
 import collections
@@ -258,7 +257,7 @@ class Point(Unit):
 	def measure(self, pit):
 		return self.Measure(pit - self)
 
-	def precedes(self, pit):
+	def leads(self, pit):
 		if pit.unit == self.unit:
 			lpit = pit
 		else:
@@ -271,6 +270,7 @@ class Point(Unit):
 					return pit.proceeds(local) or pit == local
 				raise
 		return self < lpit
+	precedes = leads
 
 	def follows(self, pit):
 		if pit.unit == self.unit:
@@ -319,8 +319,9 @@ class Segment(tuple):
 	def stop(self):
 		return self[1]
 
-	def precedes(self, pit):
+	def leads(self, pit):
 		return self.stop.precedes(pit)
+	precedes = leads
 
 	def follows(self, pit):
 		return self.start.proceeds(pit)
@@ -353,8 +354,6 @@ class Segment(tuple):
 class Context(object):
 	"""
 	A container for time units and transformations.
-
-	.. warning:: **The APIs here are subject to change.**
 	"""
 	def __init__(self, Unit = Unit, Measure = Measure, Point = Point):
 		# opaque transformations

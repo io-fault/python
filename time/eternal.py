@@ -120,7 +120,7 @@ def context(ctx, qname = ''):
 			i = int(self)
 			return strings[i and i // (abs(i))]
 
-		def precedes(self, pit, inversed = None):
+		def leads(self, pit, inversed = None):
 			if isinstance(pit, Indefinite):
 				assert pit in (0, 1, -1)
 				return self < pit
@@ -133,6 +133,7 @@ def context(ctx, qname = ''):
 					False, # never
 					True, # genesis
 				)[self]
+		precedes = leads
 
 		def follows(self, pit, inversed = None):
 			if isinstance(pit, Indefinite):

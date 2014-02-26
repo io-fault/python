@@ -370,7 +370,7 @@ class Point(Range):
 		"""
 
 	@abc.abstractmethod
-	def precedes(self, pit):
+	def leads(self, pit):
 		"""
 		Returns whether or not the Point in Time, self, comes *before* the given argument, `pit`.
 		"""
