@@ -1,2 +1,2 @@
-from dev import libtest
+from ...dev import libtest
 libtest.execmodule()
