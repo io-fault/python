@@ -86,8 +86,8 @@ class Range(Time):
 	"""
 	The representation of the span between two quantities.
 
-	Often, time quantities are treated as ranges, so rhythm
-	makes all time types ranges for practical purposes.
+	Often, time quantities are treated as ranges,
+	so make all time types ranges for practical purposes.
 	"""
 
 	@abc.abstractproperty
@@ -145,7 +145,7 @@ class Measure(Range):
 	def name(self):
 		"""
 		Name of the unit of time. Normally equal to
-		:py:attr:`.rhythm.abstract.Time.unit`, but potentially different in cases
+		:py:attr:`.Time.unit`, but potentially different in cases
 		where the proper name is not an identifier.
 		"""
 
@@ -177,14 +177,14 @@ class Measure(Range):
 	def of(type, *times, **parts):
 		"""
 		:param times: A sequence of time instances.
-		:type times: :py:class:`.rhythm.abstract.Time`
+		:type times: :py:class:`.Time`
 		:param parts: Keyword names designate the unit of the corresponding value. The time context dictates what that is.
 		:type parts: :py:class:`int`
 
 		Create an instance of the type from the sum of the quantities
 		specified by `units` and `parts`::
 
-			measure = rhythm.lib.Measure.of(hour = 33, microsecond = 44)
+			measure = chronometry.lib.Measure.of(hour = 33, microsecond = 44)
 		"""
 
 	@abc.abstractmethod
@@ -347,7 +347,7 @@ class Point(Range):
 		"""
 		Returns an adjusted measure in time by the given arguments and keywords.
 
-		Essentially, this is a call to the :py:meth:`.rhythm.abstract.Measure.of`
+		Essentially, this is a call to the :py:meth:`.Measure.of`
 		method with the instance as the first parameter.
 
 		This is shorthand for ``T.of(T, *units, **parts)``.

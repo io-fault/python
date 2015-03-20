@@ -558,7 +558,7 @@ class Context(object):
 
 def standard_context(qname):
 	"""
-	Construct the standard time context from the modules in rhythm.
+	Construct the standard time context from the local modules.
 	"""
 	from . import eternal
 	from . import earth

@@ -1,12 +1,13 @@
 'project information'
 
 #: Project name.
-name = 'rhythm'
-abstract = 'A datetime package that moves to a different beat'
+name = 'chronometry'
+abstract = 'A time package suitable for any application'
 icon = '⌛'
+study = 'horology'
 
 #: IRI based project identity. (project homepage)
-identity = 'http://fault.io/case/python/rhythm'
+identity = 'http://fault.io/case/python/chronometry'
 
 #: Responsible Party
 meaculpa = 'fault.io'
@@ -14,7 +15,7 @@ meaculpa = 'fault.io'
 #: Contact point for the Responsible Party
 contact = 'mailto:critical@fault.io'
 
-fork = 'melody'
+fork = 'rhythm'
 
 #: Version tuple: (major, minor, patch)
 version_info = (0, 7, 0)

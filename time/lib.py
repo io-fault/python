@@ -1,6 +1,6 @@
 """
 This is the primary module for using the datetime types and functions in the
-rhythm package.
+chronometry package.
 
 Unit Knowledge
 --------------
@@ -71,7 +71,7 @@ set to the following names:
 
  Future
   A :py:class:`Segment` whose start is :py:obj:`Present` and end is :py:obj:`Never`.
-  ``ts in rhythm.lib.Future``
+  ``ts in chronometry.lib.Future``
 
  Past
   A segment whose start is :py:obj:`Genesis` and end is :py:obj:`Present`.
@@ -97,7 +97,7 @@ Context, MeasureTypes, PointTypes = libunit.standard_context(__name__)
 MeasureTypes = MeasureTypes
 
 #: Scalar with finest, default, representation type precision. :py:class:`.abstract.Time`
-#: Currently this is nanosecond precision, but rhythm reserves the right to increase the
+#: Currently this is nanosecond precision, but chronometry reserves the right to increase the
 #: precision across minor versions.
 Measure = MeasureTypes[0]
 
@@ -173,17 +173,17 @@ def unix(unix_timestamp, Timestamp = Timestamp.of):
 
 	Example::
 
-		import rhythm.lib
-		x = rhythm.lib.unix(0)
+		import chronometry.lib
+		x = chronometry.lib.unix(0)
 		repr(x)
-		# rhythm.lib.Timestamp.of(iso='1970-01-01T00:00:00.000000')
+		# chronometry.lib.Timestamp.of(iso='1970-01-01T00:00:00.000000')
 	
 	If finer precision is needed for the conversion, elapse the result::
 
 		float = time.time()
 		nsecs = int(float)
 		us = int((float - nsecs) * 1000000)
-		x = rhythm.lib.unix(nsecs)
+		x = chronometry.lib.unix(nsecs)
 		x = x.elapse(microsecond=us)
 	"""
 	return Timestamp(unix=unix_timestamp)
@@ -238,7 +238,7 @@ update = PartialAttributes(construct_update)
 #: Composition constructor for instantiating [time] Unit Objects from Container types.
 #: Example::
 #:
-#:		from rhythm import lib
+#:		from chronometry import lib
 #:		from_iso = lib.open.iso(lib.Timestamp)
 #:		pits = map(from_iso, ("2002-01-01T3:45:00",))
 #:
@@ -265,10 +265,10 @@ def range(start, stop, step = None, Segment = Segment):
 
 	Example::
 
-		pit = rhythm.lib.now()
+		pit = chronometry.lib.now()
 		week_start = pit.update('day', 1, 'week')
 		week_end = begin.elapse(day=7)
-		this_week = rhythm.lib.range(week_start, week_end, lib.Days(1))
+		this_week = chronometry.lib.range(week_start, week_end, lib.Days(1))
 	"""
 	return Segment((start, stop)).points(step)
 

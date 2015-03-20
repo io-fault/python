@@ -67,7 +67,7 @@ class Offset(tuple):
 	@classmethod
 	def from_tzinfo(typ, tzinfo):
 		"""
-		Construct a Zone instance from a :py:class:`rhythm.tzif.tzinfo` tuple.
+		Construct a Zone instance from a :py:class:`.tzif.tzinfo` tuple.
 		"""
 		return typ(
 			(
@@ -128,9 +128,9 @@ class Zone(object):
 		slice(start, stop)
 
 		:param start: The start of the period.
-		:type start: :py:class:`rhythm.abstract.Point`
+		:type start: :py:class:`.abstract.Point`
 		:param stop:  The end of the period.
-		:type stop: :py:class:`rhythm.abstract.Point`
+		:type stop: :py:class:`.abstract.Point`
 		:returns: A sequence of offsets, transitions, that have occurred during the period.
 		:rtype: [:py:class:`Offset`]
 
@@ -148,7 +148,7 @@ class Zone(object):
 		"""
 		:param pit: The timestamp to localize.
 		:returns: The localized timestamp.
-		:rtype: :py:class:`rhythm.abstract.Point`
+		:rtype: :py:class:`.abstract.Point`
 
 		Given a `pit`, return the localized version according to the zone's transitions.
 
@@ -163,7 +163,7 @@ class Zone(object):
 		:param offset: The offset of the `pit`.
 		:param pit: The localized point in time to normalize.
 		:returns: The re-localized `pit` and it's new offset in a tuple.
-		:rtype: (:py:class:`rhythm.abstract.Point`, :py:class:`Offset`)
+		:rtype: (:py:class:`.abstract.Point`, :py:class:`Offset`)
 
 		This function should be used in cases where adjustments are being made to
 		an already zoned point in time. Once the adjustments are complete, the point should be

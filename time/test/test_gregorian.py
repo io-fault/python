@@ -1,5 +1,4 @@
 """
-rhythm.test.test_gregorian
 """
 import itertools
 from .. import gregorian

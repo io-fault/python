@@ -7,7 +7,7 @@ from . import kernel
 
 class KClock(object):
 	"""
-	Operating System's :py:class:`rhythm.abstract.Clock` implementation.
+	Operating System's :py:class:`chronometry.abstract.Clock` implementation.
 
 	This Class provides access to the kernel's clockwork. It is a thin wrapper providing
 	the :py:class:`.abstract.Clock` interface. By default, a process wide instance is

@@ -63,7 +63,7 @@ class Harmony(object):
 		put(*schedules)
 
 		:param schedules: The Measure, Event pairs.
-		:type schedules: (:py:class:`rhythm.lib.Measure`, :py:class:`object`)
+		:type schedules: (:py:class:`.lib.Measure`, :py:class:`object`)
 		:returns: A sequence of event identifiers that can be used for cancellation.
 		:rtype: [:py:class:`int`]
 
@@ -90,7 +90,7 @@ class Harmony(object):
 		get()
 
 		:returns: The events whose scheduled point in time has elapsed.
-		:rtype: [(:py:class:`rhythm.lib.Measure`, :py:class:`object`), ...]
+		:rtype: [(:py:class:`.lib.Measure`, :py:class:`object`), ...]
 
 		Return all events whose sheduled delay has elapsed according to the Chronometer.
 

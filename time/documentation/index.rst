@@ -1,11 +1,11 @@
-⌛ rhythm
-========
+⌛ chronometry
+==============
 
 "Time is an illusion."
 
 ―Albert Einstein (March 14, 1879 - April 18, 1955)
 
-.. warning:: rhythm is a Work In Progress.
+.. warning:: chronometry is a Work In Progress.
 
 Contents
 --------

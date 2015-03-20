@@ -1,5 +1,4 @@
 """
-rhythm.test.abstract
 """
 import itertools
 from .. import abstract

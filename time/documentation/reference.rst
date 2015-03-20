@@ -3,69 +3,69 @@ Reference
 =========
 
 This chapter describes the specifics of the modules, classes, and methods
-provided by rhythm. It refrains from discussing how the parts might be used
+provided by chronometry. It refrains from discussing how the parts might be used
 in a wider scope; the :doc:`usage` document should be read for such
 information.
 
-:mod:`fault.rhythm.lib`
-=======================
-
-.. automodule:: fault.rhythm.lib
-    :show-inheritance:
-    :members:
-
-:mod:`fault.rhythm.libclock`
+:mod:`fault.chronometry.lib`
 ============================
 
-.. automodule:: fault.rhythm.libclock
+.. automodule:: fault.chronometry.lib
     :show-inheritance:
     :members:
 
-:mod:`fault.rhythm.libflow`
-===========================
+:mod:`fault.chronometry.libclock`
+=================================
 
-.. automodule:: fault.rhythm.libflow
+.. automodule:: fault.chronometry.libclock
     :show-inheritance:
     :members:
 
-:mod:`fault.rhythm.libfs`
-=========================
+:mod:`fault.chronometry.libflow`
+================================
 
-.. automodule:: fault.rhythm.libfs
+.. automodule:: fault.chronometry.libflow
     :show-inheritance:
     :members:
 
-:mod:`fault.rhythm.libunit`
-===========================
+:mod:`fault.chronometry.libfs`
+==============================
 
-.. automodule:: fault.rhythm.libunit
+.. automodule:: fault.chronometry.libfs
     :show-inheritance:
     :members:
 
-:mod:`fault.rhythm.libzone`
-===========================
+:mod:`fault.chronometry.libunit`
+================================
 
-.. automodule:: fault.rhythm.libzone
+.. automodule:: fault.chronometry.libunit
     :show-inheritance:
     :members:
 
-:mod:`fault.rhythm.libformat`
-=============================
+:mod:`fault.chronometry.libzone`
+================================
 
-.. automodule:: fault.rhythm.libformat
+.. automodule:: fault.chronometry.libzone
     :show-inheritance:
     :members:
 
-:mod:`fault.rhythm`
-===================
+:mod:`fault.chronometry.libformat`
+==================================
 
-.. automodule:: fault.rhythm
+.. automodule:: fault.chronometry.libformat
     :show-inheritance:
     :members:
 
-:mod:`fault.rhythm.abstract`
-============================
+:mod:`fault.chronometry`
+========================
 
-.. automodule:: fault.rhythm.abstract
+.. automodule:: fault.chronometry
+    :show-inheritance:
+    :members:
+
+:mod:`fault.chronometry.abstract`
+=================================
+
+.. automodule:: fault.chronometry.abstract
     :show-inheritance:
     :members:

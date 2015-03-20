@@ -1,7 +1,7 @@
 """
 Rate specification primitive for managing contraint configuration.
 
-The :py:mod:`rhythm.libflow` module provides a Radar for tracking the rate of arbitrary
+The :py:mod:`.libflow` module provides a Radar for tracking the rate of arbitrary
 flows. This class only performs the tracking and additional configuration is necessary in
 order to manage a rate constraint.
 """

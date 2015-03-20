@@ -2,31 +2,31 @@
 Mechanics
 =========
 
-This chapter discusses the mechanics of `rhythm`. In part, this document's
-intended audience are people who are interested in working on `rhythm`. However,
+This chapter discusses the mechanics of `chronometry`. In part, this document's
+intended audience are people who are interested in working on `chronometry`. However,
 individuals troublshooting a dependent project may also find it useful in
 order to illuminate whether an observed behaviour should be expected or *why*
-`rhythm` behaves in the observed fashion.
+`chronometry` behaves in the observed fashion.
 
 Overview
 ========
 
-The primary types represented in rhythm are the range, the measure, and the point. Measures are
+The primary types represented in chronometry are the range, the measure, and the point. Measures are
 concerned with mere deltas and Points are concerned with a position in time relative to a
 datum.
 
 Abstract
 --------
 
-The hierarchy of rhythm time types is relatively straightforward, but is arguably
+The hierarchy of chronometry time types is relatively straightforward, but is arguably
 peculiar. The Range is the base abstract class for Points and Measures. However, Points
 and Measures are siblings where the Point class is dependent on the presence of a Measure
-for Measurement operations such as :py:meth:`.rhythm.abstract.Point.measure`.
+for Measurement operations such as :py:meth:`.abstract.Point.measure`.
 
 Constraints
 -----------
 
-In earlier versions of rhythm, Points inherited from Measures. This relationship turned
+In earlier versions of chronometry, Points inherited from Measures. This relationship turned
 out to be inappropriate as their constraints differ; the idea that a Point inherited from
 a Measure made it difficult to establish the semantic distinctions.
 
@@ -42,7 +42,7 @@ implementation semantically problematic as the constraint could not be inherited
 Storage
 -------
 
-The :py:mod:`.rhythm.libunit` module's :py:class:`.rhythm.libunit.Context` class
+The :py:mod:`.libunit` module's :py:class:`.libunit.Context` class
 creates Point in Time types that are subclasses of the built-in Python `int`.
 
 The value of the integer is an offset from the Y2K + One Day Point in Time.

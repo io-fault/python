@@ -7,26 +7,26 @@ This chapter discusses the project from a management perspective.
 Introduction
 ============
 
-rhythm exists to provide a pure-Python, nanosecond precision time package. It
+chronometry exists to provide a pure-Python, nanosecond precision time package. It
 features support for the proleptic gregorian calendar, and points and deltas of
 configurable precision.
 
 Structure
 =========
 
-rhythm exposes most functionality via the :py:mod:`.rhythm.lib` module. The underlying
+chronometry exposes most functionality via the :py:mod:`.lib` module. The underlying
 unit modules are rarely accessed directly and are primarily used by the
-:py:mod:`.rhythm.libunit` module which provides :py:mod:`.rhythm.lib` with most of its
+:py:mod:`.libunit` module which provides :py:mod:`.lib` with most of its
 functionality.
 
-:py:mod:`.rhythm.libunit` is a module that defines unit base classes and defines the
+:py:mod:`.libunit` is a module that defines unit base classes and defines the
 standard time context that creates classes for common units--Measures and Points In Time.
-The Time Context is the center of rhythm as it provides the
+The Time Context is the center of chronometry as it provides the
 necessary mappings for converting unlike units. All unit-qualified Time objects have a
 reference to this context.
 
-Primarily, rhythm works with two classes that store units defined in a context: Measures
-and Points. Measures are measurements of time, and Points are points in time. 
+Primarily, chronometry works with two classes that store units defined in a context: Measures
+and Points. Measures are measurements of time, and Points are points in time.
 
 Requirements
 ============
@@ -78,7 +78,7 @@ Terminology
   An actual Python class representing a [unit] Type defined in a Time Context.
 
  :dfn:`Time Context`
-  An instance of :py:class:`.rhythm.libunit.Context` managing the set of defined
+  An instance of :py:class:`.libunit.Context` managing the set of defined
   unit Types and any corresponding Representation Types.
 
  :dfn:`Canonical Position`
@@ -88,23 +88,23 @@ Terminology
  :dfn:`Localization`
   Referring to the process of localizing a timestamp to a particular time zone. Given a
   UTC timestamp, a localized version of the timestamp would be the timestamp adjusted by
-  the offset identified by the specified :py:class:`.rhythm.libzone.Zone`.
-  :py:meth:`.rhythm.libzone.Zone.localize`.
+  the offset identified by the specified :py:class:`.libzone.Zone`.
+  :py:meth:`.libzone.Zone.localize`.
 
  :dfn:`Normalization`
   Referring the process of normalizing a localized timestamp to a particular time zone.
   Given a localized timestamp, a normalized version of the timestamp would be the
   timestamp adjusted to UTC and then localized. Normalization should be used when
   representing timestamps whose localized version has been manipulated.
-  :py:meth:`.rhythm.libzone.Zone.normalize`.
+  :py:meth:`.libzone.Zone.normalize`.
 
  :dfn:`Term`
-  Internal to rhythm: a core unit. Units are associated as "like" terms by
-  :py:class:`.rhythm.libunit.Context` instances.
+  Internal use only; a core unit. Units are associated as "like" terms by
+  :py:class:`.libunit.Context` instances.
   In the default context, there are only two terms: days and months.
 
  :dfn:`Bridge`
-  Internal to rhythm: a set of mappings that allow "unlike" terms to be
+  Internal use only; a set of mappings that allow "unlike" terms to be
   converted. This is the infrastructure that provides a means to register
   the conversion methods for converting days to months and months to days.
 
@@ -115,12 +115,12 @@ Terminology
 Defense
 =======
 
-This section details arguments for rhythm's existence.
+This section details arguments for chronometry's existence.
 
 Existence
 ---------
 
-rhythm is the only alternative pure-Python, save clock access, datetime package.
+chronometry is the only alternative pure-Python, save clock access, datetime package.
 
 Development
 ===========
@@ -128,13 +128,13 @@ Development
 Evolution
 ---------
 
-rhythm strives to isolate functionality as much as possible. However, in early
+chronometry strives to isolate functionality as much as possible. However, in early
 implementations, difficulty came when using managing distinct units as separate
 classes. Even with a common superclass, greater integration was necessary to
 provide a cohesive programmer interface. Notably, when using time classes
 interchangeably.
 
-rhythm still strives, and does so with regards to basic functionality and logic.
+chronometry still strives, and does so with regards to basic functionality and logic.
 But in order to provide the greater integration, unit classes are connected by a
 Time Context that defines the consistency of all time types, and provides a
 means for resolving unit conversion paths.
@@ -143,18 +143,18 @@ References
 ==========
 
 The functionality and API choices of a number of datetime implementations were
-analyzed during the development of rhythm:
+analyzed during the development of chronometry:
 
 	* Chronus-ST (http://chronos-st.org/)
 	* SQL/Postgres' DATE, TIME, and TIMESTAMP types.
 	* Python datetime
 	* dateutils
 	* mxDateTime
-	* <There is another datetime package that largely influenced rhythm's API. Can't find it again...>
+	* <There is another datetime package that largely influenced chronometry's API. Can't find it again...>
 
 In addition to various packages for other languages such as ruby and java.
 
-Wikipedia was, naturally, heavily referenced during the development of rhythm.
+Wikipedia was, naturally, heavily referenced during the development of chronometry.
 Here are many of the links:
 
  * http://en.wikipedia.org/wiki/Second

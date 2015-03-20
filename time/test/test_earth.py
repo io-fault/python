@@ -1,5 +1,4 @@
 """
-rhythm.test.test_earth
 """
 import itertools
 from .. import earth

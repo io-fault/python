@@ -161,7 +161,7 @@ class Radar(object):
 		:param subject: The object whose flow-time is to be zeroed.
 		:type subject: :py:class:`object`
 		:returns: The amount of time dropped.
-		:rtype: :py:class:`rhythm.lib.Measure`
+		:rtype: :py:class:`.lib.Measure`
 
 		Zero out the Chronometer for the given subject.
 
@@ -216,7 +216,7 @@ class Radar(object):
 		:param subject: The tracked object.
 		:type subject: :py:class:`object`
 		:param window: The amount of time in the past to retain.
-		:type window: :py:class:`rhythm.lib.Measure`
+		:type window: :py:class:`.lib.Measure`
 		:returns: The number of records removed.
 		:rtype: :py:class:`int`
 

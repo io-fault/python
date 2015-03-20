@@ -12,7 +12,7 @@ def fstat(fileno, f = os.fstat, xf = convert_stat):
 	fstat(fileno)
 
 	Call to :py:obj:`os.fstat` transforming local UNIX times into
-	:py:class:`rhythm.lib.Timestamp` instances relative to UTC.
+	:py:class:`.lib.Timestamp` instances relative to UTC.
 	"""
 	return xf(f(fileno))
 
@@ -21,7 +21,7 @@ def stat(path, f = os.stat, xf = convert_stat):
 	stat(path)
 
 	Call to :py:obj:`os.stat` transforming local UNIX times into
-	:py:class:`rhythm.lib.Timestamp` instances relative to UTC.
+	:py:class:`.lib.Timestamp` instances relative to UTC.
 	"""
 	return xf(f(path))
 
@@ -30,6 +30,6 @@ def lstat(path, f = os.lstat, xf = convert_stat):
 	lstat(path)
 
 	Call to :py:obj:`os.lstat` transforming local UNIX times into
-	:py:class:`rhythm.lib.Timestamp` instances relative to UTC.
+	:py:class:`.lib.Timestamp` instances relative to UTC.
 	"""
 	return xf(f(path))
