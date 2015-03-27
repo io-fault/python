@@ -138,3 +138,7 @@ def test_Range(test):
 	selection = range.query(text_html)
 	# text/html;level=1 should have precedence over text/* and text/html
 	test/selection == (text_html, text_html_foo, 100)
+
+if __name__ == '__main__':
+	import sys; from ...development import libtest
+	libtest.execute(sys.modules['__name__'])

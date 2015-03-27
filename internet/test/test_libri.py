@@ -504,3 +504,7 @@ def test_combinations(test, S = libri.serialize, P = libri.parse):
 		s = S(x); p = P(s)
 		if p != x:
 			test.fail("%r -> %r != %r" %(x, s, p))
+
+if __name__ == '__main__':
+	import sys; from ...development import libtest
+	libtest.execute(sys.modules['__name__'])

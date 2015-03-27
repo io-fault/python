@@ -497,3 +497,7 @@ def test_assemble_ooo(test):
 	g = libhttp.assembly()
 	r = g.send([(libhttp.Event.content, b'foo')])
 	test/r == b'foo'
+
+if __name__ == '__main__':
+	import sys; from ...development import libtest
+	libtest.execute(sys.modules['__name__'])
