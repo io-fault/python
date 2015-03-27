@@ -113,5 +113,5 @@ def test_harmony_cancel(test):
 	test/[] == H.get()
 
 if __name__ == '__main__':
-	import sys; from ...dev import libtest
+	import sys; from ...development import libtest
 	libtest.execute(sys.modules[__name__])

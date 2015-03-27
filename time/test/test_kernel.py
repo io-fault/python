@@ -40,5 +40,5 @@ def test_fork_monotonic(test):
 	test/os.WEXITSTATUS(code) == 0 # if 13, Chronometer state did not persist across fork
 
 if __name__ == '__main__':
-	import sys; from ...dev import libtest
+	import sys; from ...development import libtest
 	libtest.execute(sys.modules[__name__])

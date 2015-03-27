@@ -42,5 +42,5 @@ def test_Spec_throttle(test):
 	test/spec.throttle(-123) == 0
 
 if __name__ == '__main__':
-	import sys; from ...dev import libtest
+	import sys; from ...development import libtest
 	libtest.execute(sys.modules[__name__])

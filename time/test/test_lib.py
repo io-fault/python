@@ -574,5 +574,5 @@ def test_indefinite_definite_comparisons(test):
 	test/True == lib.Present.precedes(ts.elapse(hour=1))
 
 if __name__ == '__main__':
-	import sys; from ...dev import libtest
+	import sys; from ...development import libtest
 	libtest.execute(sys.modules[__name__])

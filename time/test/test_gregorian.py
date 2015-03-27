@@ -106,5 +106,5 @@ def test_days_from_date(test):
 		test/days == gregorian.days_from_date(date)
 
 if __name__ == '__main__':
-	import sys; from ...dev import libtest
+	import sys; from ...development import libtest
 	libtest.execute(sys.modules[__name__])

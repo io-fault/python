@@ -225,5 +225,5 @@ def test_Radar_zero(test):
 	test/R.rate(a, 100) == (0, lib.Measure(0))
 
 if __name__ == '__main__':
-	import sys; from ...dev import libtest
+	import sys; from ...development import libtest
 	libtest.execute(sys.modules[__name__])
