@@ -3,8 +3,7 @@ Parse and Serialize Structured Resource Indicators
 
 As with many implementations in `internet`, libri is not strict with regards
 to a particular specification. Rather, it seeks to handle all cases with relative
-sanity such that any error checking may be performed by the user of the
-:py:mod:`internet.libri`.
+sanity such that any error checking may be performed by the user.
 """
 import re
 import collections

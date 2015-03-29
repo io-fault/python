@@ -1,20 +1,20 @@
 'project information'
 
-#: Project name.
+abstract = 'internet protocol implementation project'
+
 name = 'internet'
-abstract = 'the ironic internet protocol project'
+fork = 'darpa'
+
 icon = '📡'
 
 #: IRI based project identity. (project homepage)
-identity = 'http://fault.io/case/python/internet'
+identity = 'https://fault.io/project/python/internet'
 
 #: Responsible Party
-meaculpa = 'fault.io'
+controller = 'fault.io'
 
 #: Contact point for the Responsible Party
 contact = 'mailto:critical@fault.io'
-
-fork = 'darpa'
 
 #: Version tuple: (major, minor, patch)
 version_info = (0, 1, 0)
