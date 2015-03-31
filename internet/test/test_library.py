@@ -1,4 +1,4 @@
-from .. import lib
+from .. import library
 
 def test_nothing(test):
 	pass
