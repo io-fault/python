@@ -9,9 +9,9 @@ def test_stats(test):
 
 	test/fstat == stat # potentially a bogus failure
 	for x in fstat, stat:
-		test/x.st_atime / libfs.lib.Timestamp
-		test/x.st_mtime / libfs.lib.Timestamp
-		test/x.st_ctime / libfs.lib.Timestamp
+		test/x.st_atime / libfs.library.Timestamp
+		test/x.st_mtime / libfs.library.Timestamp
+		test/x.st_ctime / libfs.library.Timestamp
 
 def test_modification_time(test):
 	'Somewhat of a file system test'

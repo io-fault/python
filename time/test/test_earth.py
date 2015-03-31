@@ -2,7 +2,7 @@
 """
 import itertools
 from .. import earth
-from .. import lib
+from .. import library as lib
 
 from_units_data = [
 	lib.Days(-1),

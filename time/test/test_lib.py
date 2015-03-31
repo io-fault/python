@@ -1,6 +1,6 @@
 import fractions
 from .. import abstract
-from .. import lib
+from .. import library as lib
 from .. import libzone
 
 def test_classes(test):

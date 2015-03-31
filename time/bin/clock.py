@@ -1,8 +1,8 @@
 import sys
-from .. import lib
+from .. import library
 
-def main(clock = lib.clock):
-	localtime = lib.zone()
+def main(clock = library.clock):
+	localtime = library.zone()
 	try:
 		for total in clock.meter(centisecond=4):
 			ts = clock.demotic()

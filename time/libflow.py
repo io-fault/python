@@ -8,7 +8,7 @@ import weakref
 # Use the Chronometer directly for performance reasons.
 from . import kernel
 # But some surface functionality can return Measures for typed units
-from . import lib
+from . import library as lib
 
 class Radar(object):
 	"""

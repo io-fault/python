@@ -71,7 +71,7 @@ set to the following names:
 
  Future
   A :py:class:`Segment` whose start is :py:obj:`Present` and end is :py:obj:`Never`.
-  ``ts in chronometry.lib.Future``
+  ``ts in Future``
 
  Past
   A segment whose start is :py:obj:`Genesis` and end is :py:obj:`Present`.
@@ -156,7 +156,7 @@ kclock = libclock.kclock
 #: that provides Measure and Timestamp instances.
 clock = libclock.IClock(kclock, Measure, Timestamp)
 
-#: Shortcut to :py:obj:`.lib.clock.demotic`
+#: Shortcut to @clock.demotic
 now = clock.demotic
 
 # Support for Present to Finite Point
@@ -168,22 +168,21 @@ def unix(unix_timestamp, Timestamp = Timestamp.of):
 	"""
 	unix(unix_timestamp)
 
-	Create a :py:class:`.lib.Timestamp` instance
-	*from seconds since the unix epoch*.
+	Create a @Timestamp instance *from seconds since the unix epoch*.
 
 	Example::
 
-		import chronometry.lib
-		x = chronometry.lib.unix(0)
+		import chronometry.library
+		x = chronometry.library.unix(0)
 		repr(x)
-		# chronometry.lib.Timestamp.of(iso='1970-01-01T00:00:00.000000')
+		# chronometry.library.Timestamp.of(iso='1970-01-01T00:00:00.000000')
 	
 	If finer precision is needed for the conversion, elapse the result::
 
 		float = time.time()
 		nsecs = int(float)
 		us = int((float - nsecs) * 1000000)
-		x = chronometry.lib.unix(nsecs)
+		x = chronometry.library.unix(nsecs)
 		x = x.elapse(microsecond=us)
 	"""
 	return Timestamp(unix=unix_timestamp)
@@ -238,8 +237,8 @@ update = PartialAttributes(construct_update)
 #: Composition constructor for instantiating [time] Unit Objects from Container types.
 #: Example::
 #:
-#:		from chronometry import lib
-#:		from_iso = lib.open.iso(lib.Timestamp)
+#:		from chronometry import library
+#:		from_iso = library.open.iso(library.Timestamp)
 #:		pits = map(from_iso, ("2002-01-01T3:45:00",))
 #:
 #: Access to standard format parsers are made available:
@@ -265,10 +264,10 @@ def range(start, stop, step = None, Segment = Segment):
 
 	Example::
 
-		pit = chronometry.lib.now()
+		pit = chronometry.library.now()
 		week_start = pit.update('day', 1, 'week')
 		week_end = begin.elapse(day=7)
-		this_week = chronometry.lib.range(week_start, week_end, lib.Days(1))
+		this_week = chronometry.library.range(week_start, week_end, library.Days(1))
 	"""
 	return Segment((start, stop)).points(step)
 
@@ -285,7 +284,7 @@ def field_delta(field, start, stop):
 
 	Return the range components for identifying the exact field changes that occurred between two
 	:py:class:`.abstract.Time` instances. This function returns components suitable
-	as input to :py:func:`.lib.range`.
+	as input to :py:func:`.library.range`.
 
 	This function can be used to identify the changes that occurred to a particular field
 	within the given range designated by `start` and `stop`.

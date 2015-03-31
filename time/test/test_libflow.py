@@ -1,4 +1,4 @@
-from .. import lib
+from .. import library as lib
 from .. import libflow
 from .mock import Chronometer
 
