@@ -559,13 +559,15 @@ INIT_MACH_PORT(void)
 
 INIT("clock mechanics using common userland interfaces")
 {
-	PyObj mod;
+	PyObj mod = NULL;
 
 	MACH(INIT_MACH_PORT());
 	/* fork cases need to reinit the port */
 	MACH(pthread_atfork(NULL, NULL, INIT_MACH_PORT));
 
 	CREATE_MODULE(&mod);
+	if (mod == NULL)
+		return(NULL);
 
 	if (PyType_Ready(&ChronometerType) != 0)
 		goto fail;

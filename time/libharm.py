@@ -87,10 +87,7 @@ class Harmony(object):
 
 	def get(self, pop = heapq.heappop, push = heapq.heappush):
 		"""
-		get()
-
-		:returns: The events whose scheduled point in time has elapsed.
-		:rtype: [(:py:class:`.lib.Measure`, :py:class:`object`), ...]
+		:rtype: [(:py:class:`.library.Measure`, :py:class:`object`), ...]
 
 		Return all events whose sheduled delay has elapsed according to the Chronometer.
 

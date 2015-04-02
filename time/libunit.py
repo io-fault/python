@@ -228,6 +228,8 @@ class Measure(Unit):
 abstract.Measure.register(Measure)
 
 class Point(Unit):
+	__slots__ = ()
+
 	@property
 	def start(self):
 		return self

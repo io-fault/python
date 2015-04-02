@@ -1,12 +1,10 @@
 """
-Time is an illusion?
-
 ⌛ About
 --------
 
 .. warning:: chronometry is a work in progress.
 
-chronometry is a pure-Python horology package based on the built-in Python `int`.
+chronometry is a date and time package based on the built-in Python `int`.
 By default, timestamps have nanosecond precision granting common applications
 more than enough detail about a point in time. For specialized purposes, the
 units handled by chronometry can be arbitrarily extended--the `int` subclasses
@@ -20,39 +18,39 @@ Calendar Support:
 
 chronometry's APIs are *not* compatible with the standard library's datetime module. *On purpose.*
 
-The surface functionality is provided in :py:mod:`.chronometry.library`::
+The surface functionality is provided library @:package.library.
 
 	import chronometry.library
 
-Current date and time as a :py:class:`.chronometry.library.Timestamp`::
+Current date and time as a @:package.library.Timestamp.
 
 	now = chronometry.library.now() # UTC
 
 Calendar Representation
 -----------------------
 
-A Date can be used to represent the span of the entire day::
+A Date can be used to represent the span of the entire day.
 
 	date = chronometry.library.Date.of(year=1982, month=4, day=17)
 	assert date.select('day', 'month') == 17
 
-However, the above actually represents::
+However, the above actually represents.
 
 	assert date.select('date') == (1982, 5, 18)
 
 Usually, using the `date` keyword is best way to to work with
-literal dates::
+literal dates.
 
 	assert chronometry.library.Date.of(date=(1982,5,18)) == date
 
 The calendrical **representation** only takes effect through certain
-interfaces::
+interfaces.
 
 	ts = chronometry.library.Timestamp.of(iso="2001-01-01T05:30:01")
 	print(repr(ts))
 	chronometry.library.Timestamp.of(iso='2001-01-01T05:30:01.000000')
 
-And from a datetime tuple::
+And from a datetime tuple.
 
 	ts2 = chronometry.library.Timestamp.of(datetime = (2001, 1, 1, 5, 30, 1, 0))
 	assert ts == ts2
@@ -60,7 +58,7 @@ And from a datetime tuple::
 chronometry PiTs do not perform calendrical validation; rather, fields with excess
 values overflow onto larger units. This is similar to how MySQL handles
 overflow. For chronometry, this choice is deliberate and the user is expected to
-perform any desired validation::
+perform any desired validation.
 
 	pit = chronometry.library.Date.of(date=(1982,5,0))
 
@@ -72,7 +70,7 @@ Datetime Math
 -------------
 
 chronometry can easily answer questions like, "What was third weekend of the fifth
-month of last year?"::
+month of last year?".
 
 	pit = chronometry.library.now()
 	pit = pit.update('day', 0, 'month') # set to the first day to avoid overflow
