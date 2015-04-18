@@ -17,26 +17,29 @@ class Event(int):
 	Event Structure:
 
 	 BYPASS
-	  (:py:obj:`Event.bypass`, :py:class:`bytes`)
+	  (&Event.bypass, &bytes)
 
 	 RLINE
-	  For requests: (:py:obj:`Event.rline`, (method, uri, version))
-	  For responses: (:py:obj:`Event.rline`, (version, response_code, description))
+	  For requests: (&Event.rline, (method, uri, version))
+	  For responses: (&Event.rline, (version, response_code, description))
 
     CHUNK
-	  (:py:obj:`Event.chunk`, :py:class:`bytes`)
+	  (&Event.chunk, &bytearray)
 
 	 CONTENT
-	  (:py:obj:`Event.content`, :py:class:`bytes`)
+	  (&Event.content, &bytearray)
 
 	 HEADERS
-	  (:py:obj:`Event.headers`, [(:py:class:`bytes`, :py:class:`bytes`),...])
+	  (&Event.headers, [(&bytes, &bytes),...])
 
 	 TRAILERS
-	  (:py:obj:`Event.trailers`, [(:py:class:`bytes`, :py:class:`bytes`),...])
+	  (&Event.trailers, [(&bytes, &bytes),...])
+
+	 MESSAGE
+	  (&Event.message, &None)
 
 	 VIOLATION
-	  (:py:obj:`Event.trailers`, (type, ...))
+	  (&Event.trailers, (type, ...))
 	  Where `type` is:
 
 	   :py:obj:`'limit'`
@@ -53,17 +56,20 @@ class Event(int):
 		'CONTENT',
 		'CHUNK',
 		'TRAILERS',
+		'MESSAGE',
 		'VIOLATION',
 		'BYPASS', # for indexing; names[Event.bypass==-1] == 'BYPASS'
 	)
+
 	codes = {
-		'BYPASS': -1,
 		'RLINE': 0,
 		'HEADERS': 1,
 		'CONTENT': 2,
 		'CHUNK': 3,
 		'TRAILERS': 4,
-		'VIOLATION': 5,
+		'MESSAGE': 5,
+		'VIOLATION': 6,
+		'BYPASS': -1,
 	}
 
 	def __repr__(self, format = "{0}.{1}.{2}".format, names = names):
@@ -78,10 +84,11 @@ Event.headers = Event(Event.codes['HEADERS'])
 Event.content = Event(Event.codes['CONTENT'])
 Event.chunk = Event(Event.codes['CHUNK'])
 Event.trailers = Event(Event.codes['TRAILERS'])
+Event.message = Event(Event.codes['MESSAGE'])
 Event.violation = Event(Event.codes['VIOLATION'])
 
-#: End of Headers
 EOH = (Event.headers, ())
+EOM = (Event.message, None)
 
 ###
 # Field extraction and transfer length handling.
@@ -153,9 +160,11 @@ def Disassembler(
 		# Content-Length/is chunking
 		size = None
 
-		if not req:
+		if events and not req:
+			# flush EOM event
 			req += (yield events)
 			events = []
+
 		##
 		# emit request
 		eof = fnf
@@ -297,8 +306,9 @@ def Disassembler(
 		# Emit remaining headers.
 		if headers:
 			events.append((headers_ev, headers))
-		# terminator
+
 		headers = ()
+		# terminator
 		events.append(EOH)
 
 		# trim trailing CRLF
@@ -349,10 +359,7 @@ def Disassembler(
 					try:
 						chunk_size = int(chunk_field, 16)
 					except ValueError:
-						events.append((
-							violation_ev,
-							('protocol', 'chunk-field', chunk_field)
-						))
+						events.append((violation_ev, ('protocol', 'chunk-field', chunk_field)))
 						events.append((bypass_ev, req))
 						req = (yield events)
 						del events
@@ -409,6 +416,7 @@ def Disassembler(
 					chunk_size = -1
 					size = -1
 				# else assert chunk_size == size == 0
+
 		# :while size
 		# terminate body; but there may be trailers to parse
 		events.append((body_ev, b''))
@@ -478,24 +486,18 @@ def Disassembler(
 			# signals the end of trailers
 			trailers = ()
 			events.append((trailers_ev, trailers))
+		# chunk_size == 0
+
+		# finish up by resetting size and emitting EOM on continuation
 		size = None
-	else:
+		events.append(EOM)
+	else: # for message_number in range(...):
 		# too many messages
-		if req:
-			last = req
-		else:
-			last = (yield events)
-			events = []
-		if last:
-			events.append((
-				violation_ev, ('limit', 'max_messages', max_messages)
-			))
-			events.append((
-				bypass_ev, last
-			))
+		events.append((violation_ev, ('limit', 'max_messages', max_messages)))
+		while True:
+			events.append((bypass_ev, req))
 			req = (yield events)
-			while True:
-				req = (yield [(bypass_ev, req)])
+			events = []
 
 def disassembly(**config):
 	"""
@@ -552,6 +554,8 @@ def Assembler(
 						buf += CRLF
 			elif x[0] in (content_ev,):
 				buf += x[1]
+			elif x == EOM:
+				pass
 			else:
 				# default to mere concatenation of event payload
 				buf += x[1]

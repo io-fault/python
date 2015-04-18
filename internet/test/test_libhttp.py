@@ -17,8 +17,9 @@ Host: host\r
 	x = [
 		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
 		(libhttp.Event.headers, [(b'Host', b'host')]),
-		(libhttp.Event.headers, ()),
+		libhttp.EOH,
 		(libhttp.Event.content, b''),
+		libhttp.EOM,
 	]
 	test/x == events
 
@@ -42,10 +43,11 @@ fffff\r
 			(b'Transfer-Encoding', b'chunked'),
 			(b'Host', b'host')
 		]),
-		(libhttp.Event.headers, ()),
+		libhttp.EOH,
 		(libhttp.Event.chunk, b'fffff'),
 		(libhttp.Event.chunk, b''),
 		(libhttp.Event.trailers, ()),
+		libhttp.EOM,
 	]
 	test/x == output
 
@@ -74,7 +76,7 @@ fff"""
 				(b'Host', b'host')
 			],
 		),
-		(libhttp.Event.headers, ()),
+		libhttp.EOH,
 	]
 	x2 = [
 		(libhttp.Event.chunk, b'fff'),
@@ -83,6 +85,7 @@ fff"""
 		(libhttp.Event.chunk, b'ff'),
 		(libhttp.Event.chunk, b''),
 		(libhttp.Event.trailers, ()),
+		libhttp.EOM,
 	]
 
 	test/x1 == eventseq1
@@ -115,6 +118,7 @@ Trailer: value\r
 		(libhttp.Event.chunk, b''),
 		(libhttp.Event.trailers, [(b'Trailer', b'value')]),
 		(libhttp.Event.trailers, ()),
+		libhttp.EOM,
 	]
 	test/x1 == eventseq1
 
@@ -154,6 +158,7 @@ Trailer: value\r
 			(b'Trailer', b'value2')
 		]),
 		(libhttp.Event.trailers, ()),
+		libhttp.EOM,
 	]
 	test/x1 == eventseq1
 	test/x2 == eventseq2
@@ -197,7 +202,7 @@ Host: host\r
 	x4 = [(libhttp.Event.chunk, b'')]
 	test/x4 == g.send(data9)
 
-	x5 = [(libhttp.Event.trailers, ())]
+	x5 = [(libhttp.Event.trailers, ()), libhttp.EOM]
 	test/x5 == g.send(data10)
 
 def test_dis_crlf_prefix_strip(test):
@@ -231,12 +236,14 @@ Content-Length: 30\r
 		(libhttp.Event.headers, ()),
 		(libhttp.Event.content, b'A' * 20),
 		(libhttp.Event.content, b''),
+		libhttp.EOM,
 
 		(libhttp.Event.rline, (b'POST', b'/data.html', b'HTTP/1.1')),
 		(libhttp.Event.headers, [(b'Host', b'localhost'), (b'Content-Length', b'30')]),
 		(libhttp.Event.headers, ()),
 		(libhttp.Event.content, b'Bad' * 10),
 		(libhttp.Event.content, b''),
+		libhttp.EOM,
 	]
 	eventseq1 = g.send(mrequest)
 	test/x1 == eventseq1
@@ -500,4 +507,4 @@ def test_assemble_ooo(test):
 
 if __name__ == '__main__':
 	import sys; from ...development import libtest
-	libtest.execute(sys.modules['__name__'])
+	libtest.execute(sys.modules[__name__])
