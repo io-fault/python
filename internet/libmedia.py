@@ -1,7 +1,7 @@
 """
-Mime Type Parser for HTTP.
+Mime Type Parser for content types and ranges.
 
-Accept headers contain MIME-Type ranges for content negotiation.
+Interfaces here work exclusively with character-strings; wire data must be decoded.
 """
 import operator
 
@@ -35,7 +35,7 @@ class Type(tuple):
 		return format(self[:2]) + optstr
 
 	def __bytes__(self):
-		return str(self).encode('ascii')
+		return str(self).encode('utf-8')
 
 	@property
 	def cotype(self):
@@ -48,13 +48,32 @@ class Type(tuple):
 		return self[1]
 
 	@property
-	def options(self):
+	def parameters(self):
+		'Parameters such as charset for encoding designation.'
 		return self[2]
 
 	@classmethod
-	def from_string(typ, string, **options):
-		ct, st = map(str.strip, string.split('/', 1))
-		os = frozenset([tuple(map(str, x)) for x in options.items()])
+	def from_string(typ, string, **parameters):
+		"""
+		Split on the ';' and '/' separators and build an instance.
+		"""
+		mtype, *strparams = string.split(';')
+
+		ct, st = map(str.strip, mtype.split('/', 1))
+
+		params = [
+			map(str.strip, x.split('=', 1)) for x in strparams
+		]
+		for i in range(len(params)):
+			# handle cases where the parameter had no equal sign with a &None indicator
+			p = params[i]
+			if len(p) == 1:
+				params[i] = (p[0], None)
+
+		# allow for keyword overrides for parameters
+		params.extend(parameters.items())
+
+		os = frozenset([tuple(map(str, x)) for x in params])
 		return typ((ct,st,os))
 
 	def __contains__(self, mtype):
@@ -80,7 +99,7 @@ def parse(header, strip = str.strip,
 
 	Where the second item in the yielded tuples is a list of media type options.
 
-	.. note:: This function must be used explicitly used by the receiver
+	.. note:: This function must be used explicitly by the receiver
 				 of the disassembler as parsing this information has costs.
 	"""
 	# fuck parser generators! we like the pain
@@ -208,7 +227,7 @@ class Range(tuple):
 
 	@classmethod
 	def from_bytes(typ, data):
-		return typ.from_string(data.decode('ascii'))
+		return typ.from_string(data.decode('utf-8'))
 
 	@classmethod
 	def from_string(typ, string,
