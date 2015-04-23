@@ -43,12 +43,12 @@ def eternal_from_days(days):
 	return 0
 
 def context(ctx, qname = ''):
-	from . import libunit
+	from . import core
 
 	# eternal units are indifferent to the datum.
 	ctx.declare('eternal', 0, kind = 'indefinite')
 
-	class Eternals(libunit.Measure):
+	class Eternals(core.Measure):
 		__slots__ = ()
 		unit = unit
 		kind = 'indefinite'
@@ -63,7 +63,7 @@ def context(ctx, qname = ''):
 		@classmethod
 		def _init(cls, identifiers = (0, 1, -1)):
 			# unorderable is a hack to keep tuple comparisons away
-			cls.__cache = tuple(libunit.Measure.__new__(cls, x) for x in identifiers)
+			cls.__cache = tuple(core.Measure.__new__(cls, x) for x in identifiers)
 
 		def __new__(cls, val):
 			# Reduce superfluous quantities.
@@ -88,7 +88,7 @@ def context(ctx, qname = ''):
 				return int(self)== 0 and int(ob) == 0
 	Eternals._init()
 
-	class Indefinite(libunit.Point):
+	class Indefinite(core.Point):
 		__slots__ = ()
 		unit = unit
 		kind = 'indefinite'
@@ -105,7 +105,7 @@ def context(ctx, qname = ''):
 		@classmethod
 		def _init(cls, identifiers = (0, 1, -1)):
 			# unorderable is a hack to keep tuple comparisons away
-			cls.__cache = tuple(libunit.Point.__new__(cls, x) for x in identifiers)
+			cls.__cache = tuple(core.Point.__new__(cls, x) for x in identifiers)
 
 		def __new__(cls, val):
 			return cls.__cache[val]

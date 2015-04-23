@@ -1,5 +1,4 @@
 import fractions
-from .. import abstract
 from .. import library as lib
 from .. import libzone
 
@@ -8,11 +7,6 @@ def test_classes(test):
 	test//lib.Date - lib.Days
 	test//lib.Week - lib.Weeks
 	test//lib.GregorianMonth - lib.Months
-
-	test/lib.Measure - abstract.Time
-	test/lib.Days - abstract.Time
-	test/lib.Weeks - abstract.Time
-	test/lib.Months - abstract.Time
 
 def test_instants(test):
 	ts = lib.Timestamp(0)
@@ -523,26 +517,26 @@ def test_zone_slice(test):
 	test/list(lib.zone('MST').slice(start, stop)) == []
 
 def test_indefinite_comparisons(test):
-	test/True == lib.Never.follows(lib.Genesis)
-	test/True == lib.Never.follows(lib.Present)
+	test/True == lib.never.follows(lib.genesis)
+	test/True == lib.never.follows(lib.present)
 
-	test/True == lib.Genesis.precedes(lib.Never)
-	test/True == lib.Genesis.precedes(lib.Present)
+	test/True == lib.genesis.precedes(lib.never)
+	test/True == lib.genesis.precedes(lib.present)
 
-	test/True == lib.Present.follows(lib.Genesis)
-	test/True == lib.Present.precedes(lib.Never)
+	test/True == lib.present.follows(lib.genesis)
+	test/True == lib.present.precedes(lib.never)
 
 def test_indefinite_segments(test):
 	# present is *part* of the past and the future according to our definition.
-	test/True == (lib.Present in lib.Past)
-	test/True == (lib.Present in lib.Future)
-	test/True == (lib.Present in lib.Time)
+	test/True == (lib.present in lib.past)
+	test/True == (lib.present in lib.future)
+	test/True == (lib.present in lib.continuum)
 
-	test/True == (lib.now().elapse(hour=1) in lib.Future)
-	test/True == (lib.now().elapse(hour=-1) in lib.Past)
+	test/True == (lib.now().elapse(hour=1) in lib.future)
+	test/True == (lib.now().elapse(hour=-1) in lib.past)
 
-	test/False == (lib.now().elapse(hour=-1) in lib.Future)
-	test/False == (lib.now().elapse(hour=1) in lib.Past)
+	test/False == (lib.now().elapse(hour=-1) in lib.future)
+	test/False == (lib.now().elapse(hour=1) in lib.past)
 
 def test_indefinite_containment(test):
 	start = lib.now().elapse(hour=-2)
@@ -557,21 +551,21 @@ def test_indefinite_containment(test):
 	end = start.elapse(hour=1)
 	future_window = lib.Segment((start, end))
 
-	test/True == (lib.Present in present_window)
-	test/False == (lib.Present in past_window)
-	test/False == (lib.Present in future_window)
+	test/True == (lib.present in present_window)
+	test/False == (lib.present in past_window)
+	test/False == (lib.present in future_window)
 
 def test_indefinite_definite_comparisons(test):
 	ts = lib.now()
 
-	test/True == lib.Never.follows(ts)
-	test/True == lib.Genesis.precedes(ts)
+	test/True == lib.never.follows(ts)
+	test/True == lib.genesis.precedes(ts)
 
-	test/True == ts.follows(lib.Genesis)
-	test/True == ts.precedes(lib.Never)
+	test/True == ts.follows(lib.genesis)
+	test/True == ts.precedes(lib.never)
 
-	test/True == lib.Present.follows(ts.elapse(hour=-1))
-	test/True == lib.Present.precedes(ts.elapse(hour=1))
+	test/True == lib.present.follows(ts.elapse(hour=-1))
+	test/True == lib.present.precedes(ts.elapse(hour=1))
 
 if __name__ == '__main__':
 	import sys; from ...development import libtest

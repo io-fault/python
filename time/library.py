@@ -1,6 +1,5 @@
 """
-This is the primary module for using the datetime types and functions in the
-chronometry package.
+Primary module for using the datetime types and functions in the chronometry package.
 
 Unit Knowledge
 --------------
@@ -8,34 +7,34 @@ Unit Knowledge
 All of the following units are defined in the default Time Context. However, the
 emphasized units are the only units with designated classes by default.
 
- Earth
+/earth
   - second
   - minute
   - hour
-  - **day**
-  - **week**
+  - *day*
+  - *week*
   - annum (Julian Year)
 
- Gregorian
-  - **month**
+/gregorian
+  - *month*
   - year
   - decade
   - century
   - millennium
 
- Metric Small
+/metric subseconds
   - decisecond
   - centisecond
   - millisecond
   - microsecond
-  - **nanosecond**
+  - *nanosecond*
   - picosecond
   - femtosecond
   - attosecond
   - zeptosecond
   - yoctosecond
 
- Metric Large
+/metric seconds
   - decasecond
   - hectosecond
   - kilosecond
@@ -47,51 +46,50 @@ emphasized units are the only units with designated classes by default.
   - zettasecond
   - yottasecond
 
-The units in bold are the units with designated Python types. All other units
-are expressed in terms of those units unless the time context is explicitly
-extended.
+The emphasized units are the units associated with actual Python types. All other units
+are expressed in terms of those units unless the time context is explicitly extended.
 
 Indefinite Units
 ----------------
 
 Units of unbound quantities of time are called "eternals". They are a special Measure and
-Point types that have only three values: zero, infinity, and negative infinity.
+Point type that have only three values: zero, infinity, and negative infinity.
 
 The set of possible Measures and Points dealing with eternals are immediately created and
 set to the following names:
 
- Genesis
-  The earliest Point in time.
+/&genesis
+	The earliest Point in time.
 
- Never
-  The latest Point in time.
+/&never
+	The latest Point in time.
 
- Present
-  The current Point in time--always moving.
+/&present
+	The current Point in time--always moving.
 
- Future
-  A :py:class:`Segment` whose start is :py:obj:`Present` and end is :py:obj:`Never`.
-  ``ts in Future``
+/&future
+	A &Segment whose start is &present and end is &never.
 
- Past
-  A segment whose start is :py:obj:`Genesis` and end is :py:obj:`Present`.
+/&past
+	A segment whose start is &genesis and end is &present.
 
- Time
-  A segment whose start is :py:obj:`Genesis` and end is :py:obj:`Never`.
+/&continuum
+	A segment whose start is &genesis and end is &never; essentially, this is intended to
+	be a type check and determines if the given object is representing a Point in Time.
 """
 import sys
 import operator
 import functools
 from . import abstract
-from . import libunit # Context & Standard Definitions.
+from . import core # Context & Standard Definitions.
 from . import libclock
 from . import libzone
 from . import eternal
 
 #: Range class.
-Segment = libunit.Segment
+Segment = core.Segment
 
-Context, MeasureTypes, PointTypes = libunit.standard_context(__name__)
+Context, MeasureTypes, PointTypes = core.standard_context(__name__)
 
 #: A tuple containing all of the default Scalar types.
 MeasureTypes = MeasureTypes
@@ -132,22 +130,22 @@ Eternals = Context.measures['eternal'][None]
 Indefinite = Context.points['eternal'][None]
 
 #: Furthest Point in the future.
-Never = Indefinite(1)
+never = Indefinite(1)
 
 #: Furthest Point in the past.
-Genesis = Indefinite(-1)
+genesis = Indefinite(-1)
 
 #: Current Point in Time, always moving.
-Present = Indefinite(0)
+present = Indefinite(0)
 
 #: Segment representing all time. All points in time exist in this segment.
-Time = Segment((Genesis, Never))
+continuum = Segment((genesis, never))
 
 #: Segment representing the future.
-Future = Segment((Present, Never))
+future = Segment((present, never))
 
 #: Segment representing the past.
-Past = Segment((Genesis, Present))
+past = Segment((genesis, present))
 
 #: abstract.Clock interface to the kernel's clock, demotic and monotonic.
 kclock = libclock.kclock
@@ -160,7 +158,7 @@ clock = libclock.IClock(kclock, Measure, Timestamp)
 now = clock.demotic
 
 # Support for Present to Finite Point
-Context.bridge('eternal', 'day', eternal.days_from_current_factory(clock, abstract.Inconceivable))
+Context.bridge('eternal', 'day', eternal.days_from_current_factory(clock, core.Inconceivable))
 
 del sys
 
@@ -168,22 +166,18 @@ def unix(unix_timestamp, Timestamp = Timestamp.of):
 	"""
 	unix(unix_timestamp)
 
-	Create a @Timestamp instance *from seconds since the unix epoch*.
+	Create a &Timestamp instance *from seconds since the unix epoch*.
 
-	Example::
+	>>> chronometry.library.unix(0)
+	... chronometry.library.Timestamp.of(iso='1970-01-01T00:00:00.0')
 
-		import chronometry.library
-		x = chronometry.library.unix(0)
-		repr(x)
-		# chronometry.library.Timestamp.of(iso='1970-01-01T00:00:00.000000')
-	
-	If finer precision is needed for the conversion, elapse the result::
+	For precision beyond seconds, a subsequent elapse can be used.
 
-		float = time.time()
-		nsecs = int(float)
-		us = int((float - nsecs) * 1000000)
-		x = chronometry.library.unix(nsecs)
-		x = x.elapse(microsecond=us)
+	>>> float_ts = time.time()
+	>>> nsecs = int(float_ts)
+	>>> us = int((float_ts - nsecs) * 1000000)
+	>>> x = chronometry.library.unix(nsecs)
+	>>> x = x.elapse(microsecond=us)
 	"""
 	return Timestamp(unix=unix_timestamp)
 
@@ -192,6 +186,8 @@ class PartialAttributes(object):
 	Collect an arbitrary series of identifiers.
 
 	When called, give the names, arguments, and keywords to the constructor.
+
+	Chronometry internal use only.
 	"""
 	__slots__ = ('__construct', '__names')
 	def __init__(self, construct, names = ()):
@@ -256,38 +252,33 @@ del PartialAttributes, construct_update, construct_select, construct_open
 
 def range(start, stop, step = None, Segment = Segment):
 	"""
-	Construct an iterator producing Points between the given `start` and `stop`.
+	Construct an iterator producing Points between the given &start and &stop.
 
-	If `step` is provided, it will determine the difference to apply to the
-	starting position for each iteration. If it is not provided, the `step`
-	defaults to the :py:attr:`.abstract.Point.magnitude` of the start.
+	If &step is provided, it will determine the difference to apply to the
+	starting position for each iteration. If it is not provided, the &step
+	defaults to the &.abstract.Point.magnitude of the &start.
 
-	Example::
-
-		pit = chronometry.library.now()
-		week_start = pit.update('day', 1, 'week')
-		week_end = begin.elapse(day=7)
-		this_week = chronometry.library.range(week_start, week_end, library.Days(1))
+	>>> pit = chronometry.library.now()
+	>>> week_start = pit.update('day', 1, 'week')
+	>>> week_end = begin.elapse(day=7)
+	>>> this_week = chronometry.library.range(week_start, week_end, library.Days(1))
 	"""
 	return Segment((start, stop)).points(step)
 
 def field_delta(field, start, stop):
 	"""
-	field_delta(field, start, stop)
-
-	:param field: The name of the unit whose changes will be represented.
-	:type field: :py:class:`str`
-	:param start: The beginning of the range.
-	:type start: :py:class:`.abstract.Time`
-	:param stop: The end of the range.
-	:type stop: :py:class:`.abstract.Time`
+	/&field
+		The name of the unit whose changes will be represented.
+	/&start
+		The beginning of the range.
+	/&stop
+		The end of the range.
 
 	Return the range components for identifying the exact field changes that occurred between two
-	:py:class:`.abstract.Time` instances. This function returns components suitable
-	as input to :py:func:`.library.range`.
+	&.abstract.Time instances. This function returns components suitable as input to &range.
 
 	This function can be used to identify the changes that occurred to a particular field
-	within the given range designated by `start` and `stop`.
+	within the given range designated by &start and &stop.
 	"""
 	start = start.truncate(field)
 	stop = stop.truncate(field)
@@ -302,9 +293,7 @@ def field_delta(field, start, stop):
 
 def business_week(pit, five = Days(5), one = Days(1), list = list):
 	"""
-	business_week(pit)
-
-	Return an iterator to the business days in the week of the given `pit`.
+	Return an iterator to the business days in the week of the given &pit.
 	"""
 	start = Date.of(pit.update('day', 1, 'week'))
 	stop = start.elapse(five)

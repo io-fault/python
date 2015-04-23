@@ -1,22 +1,22 @@
 """
 Format and parse datetime strings.
 
-Primarily this module exposes two functions: :py:func:`.libformat.parser`,
-:py:func:`.libformat.formatter`. These functions provide access to datetime
-formats defined by a standard or deemed common enough to merit a builtin implementation.
+Primarily this module exposes two functions: &parser,
+&formatter. These functions provide access to datetime formats defined by a
+standard or deemed common enough to merit a builtin implementation.
 
 .. note:: The near future will bring a strptime and strftime implementation.
 
 While formatting PiTs can usually occur without error, parsing them from strings
 can result in a variety of errors. The parsers available in
-:py:mod:`.libformat` can raise subclasses of :py:class:`.abstract.FormatError`.
+libformat can raise subclasses of &.core.FormatError.
 """
 import operator
 import functools
 import fractions # For arbitrary subsecond representations.
 import math
 
-from . import abstract
+from . import core
 from . import gregorian
 from . import week
 
@@ -182,10 +182,10 @@ def _parse(fun, format):
 	def EXCEPTION(src, fun = fun, format = format):
 		try:
 			return (src, dict(fun(src)))
-		except abstract.ParseError:
+		except core.ParseError:
 			raise
 		except Exception as e:
-			parse_error = abstract.ParseError(src, format = format)
+			parse_error = core.ParseError(src, format = format)
 			parse_error.__cause__ = e
 			raise parse_error
 	functools.update_wrapper(EXCEPTION, fun)
@@ -195,10 +195,10 @@ def _structure(fun, format):
 	def EXCEPTION(state):
 		try:
 			return fun(state)
-		except abstract.StructureError:
+		except core.StructureError:
 			raise
 		except Exception as e:
-			struct_error = abstract.StructureError(*state, format = format)
+			struct_error = core.StructureError(*state, format = format)
 			struct_error.__cause__ = e
 			raise struct_error
 	functools.update_wrapper(EXCEPTION, fun)
@@ -208,10 +208,10 @@ def _integrity(fun, format):
 	def EXCEPTION(state):
 		try:
 			return fun(state)
-		except abstract.IntegrityError:
+		except core.IntegrityError:
 			raise
 		except Exception as e:
-			integ_error = abstract.IntegrityError(*state, format = format)
+			integ_error = core.IntegrityError(*state, format = format)
 			integ_error.__cause__ = e
 			raise integ_error
 	functools.update_wrapper(EXCEPTION, fun)

@@ -1,4 +1,4 @@
-from .. import abstract
+from .. import core
 from .. import libformat
 
 samples = [
@@ -53,27 +53,27 @@ samples = [
 
 exceptional_samples = [
 	('iso8601', (
-		(abstract.ParseError, (
+		(core.ParseError, (
 			123, # not a string
 			None, # not a string
 		)),
-		(abstract.StructureError, (
+		(core.StructureError, (
 			"2000-01-01T5:30:0-0A:00", # "0A" not an integer
 			"Tue, 16 Jul 2010 02:32:39 GMT", # inappropriate format
 		)),
-		(abstract.IntegrityError, (
+		(core.IntegrityError, (
 			# no integrity checks performed by iso8601
 		)),
 	)),
 	('rfc1123', (
-		(abstract.ParseError, (
+		(core.ParseError, (
 			123, # not a string
 			None, # not a string
 		)),
-		(abstract.StructureError, (
+		(core.StructureError, (
 			"Fri, 16 Jel 2010 02:32:39 GMT", # can't structure with invalid month name
 		)),
-		(abstract.IntegrityError, (
+		(core.IntegrityError, (
 			#"Tue, 16 Jul 2010 02:32:39 GMT", invalid weekday
 			"Fri, 16 Jul 2010 02:32:39 PCT",
 		)),

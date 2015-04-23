@@ -1,25 +1,93 @@
 """
 Defines the time Context that constructs unit types and manages their
-relationship to other unit types.
-
-The contents of this module are largely the mechanics under the hood and should
-not be used directly.
-
-.. danger:: THESE INTERFACES ARE SUBJECT TO CHANGE WITHOUT WARNING
+relationships to other unit types.
 """
 import collections
 import fractions
 import functools
 import operator
 
-from . import abstract
-
-# Unit Kinds
+# Definite being a finite position.
+# Indefinite referring to the infinite (eternals).
+# Subjective referring to months whose consistency is based on the year.
 kinds = (
 	'definite',
 	'indefinite',
 	'subjective',
 )
+
+class Exception(Exception):
+	"""
+	Chronometry base exception.
+	"""
+
+class TransformationError(Exception):
+	"""
+	An attempt to transform units failed.
+	"""
+	unit_input = None
+	unit_output = None
+	context = None
+
+	def __init__(self, *args, context = None, inverse = None):
+		self.unit_input, self.unit_output = args
+		self.context = context
+		self.inverse = inverse
+
+class Inconceivable(TransformationError):
+	"""
+	An attempt to represent a unit in like-terms was not possible
+	given the current implementation.
+
+	Usually raised when a finite term attempts to convert an indefinite term or an
+	ambiguous term.
+	"""
+
+class FormatError(Exception):
+	pass
+
+class ParseError(FormatError):
+	"""
+	The exception raised when the format of the datetime could not be parsed.
+	"""
+	def __init__(self, source, format = None):
+		self.format = format
+		self.source = source
+
+	def __str__(self):
+		return "[{0}] {1}".format(self.format, self.source)
+
+class StructureError(FormatError):
+	"""
+	The exception raised when the structure of a parsed format could not be
+	transformed.
+	"""
+	def __init__(self, source, struct, format = None):
+		self.format = format
+		self.struct = struct
+		self.source = source
+
+	def __str__(self):
+		return "[{0}] ".format(self.format) + self.source + \
+			"\n-> " + str(self.struct)
+
+class IntegrityError(FormatError):
+	"""
+	The exception raised when a parsed point in time is not consistent.
+
+	Notably, in the RFC format, there are portions specifying intersecting
+	parts of a timestamp. (The day of week field is arguably superfluous.)
+	"""
+	def __init__(self, source, struct, tuple, format = None):
+		self.format = format
+		self.tuple = tuple
+		self.struct = struct
+		self.source = source
+
+	def __str__(self):
+		return "[{0}] ".format(self.format) + self.source + \
+			"\n-> " + str(self.struct) + \
+			"\n-> " + str(self.tuple) + "\n-> " + str(self.pit)
 
 class Unit(int):
 	"""
@@ -225,7 +293,6 @@ class Measure(Unit):
 
 	def decrease(self, *units, **parts):
 		return self.construct(units, parts, start = self, op = operator.sub)
-abstract.Measure.register(Measure)
 
 class Point(Unit):
 	__slots__ = ()
@@ -265,7 +332,7 @@ class Point(Unit):
 		else:
 			try:
 				lpit = self.construct((pit,), {})
-			except abstract.Inconceivable as ice:
+			except Inconceivable as ice:
 				if ice.inverse:
 					c = self.context.convert(self.unit, pit.unit, self)
 					local = pit.__class__(c)
@@ -280,7 +347,7 @@ class Point(Unit):
 		else:
 			try:
 				lpit = self.construct((pit,), {})
-			except abstract.Inconceivable as ice:
+			except Inconceivable as ice:
 				if ice.inverse:
 					c = self.context.convert(self.unit, pit.unit, self)
 					local = pit.__class__(c)
@@ -288,7 +355,6 @@ class Point(Unit):
 				raise
 		return self > lpit
 	proceeds = follows
-abstract.Point.register(Point)
 
 class Segment(tuple):
 	"""
@@ -368,7 +434,7 @@ class Context(object):
 		self.ratios = {} # specifies ratios between like-terms (sometimes fractions)
 		self.containers = {} # "terms" containing sets of terms.
 		self.measures = {} # scalar types {term: type}
-		self.measure_repr = {} # term to unit sequence to build out Scalar repr()
+		self.measure_repr = {} # term -> unit sequence to build out Scalar repr()
 		self.points = {} # PointInTime types {unit: type}
 		self.names = {} # unit names
 		self.constants = {} # constant values used by the context. storage area
@@ -378,8 +444,7 @@ class Context(object):
 		"""
 		Declare a fundamental unit for use in a context.
 
-		All defined, :py:meth:`.Context.define`, units are defined
-		in terms of a declared unit.
+		All defined, &Context.define, units are defined in terms of a declared unit.
 		"""
 		if not id.isidentifier():
 			raise ValueError("unit names must be valid identifiers")
@@ -422,8 +487,8 @@ class Context(object):
 	@functools.lru_cache()
 	def compose(self, from_unit, to_unit, int = int):
 		"""
-		Compose two ratios into another so that the `from_unit` can be converted
-		into the `to_unit`.
+		Compose two ratios into another so that the &from_unit can be converted
+		into the &to_unit.
 
 		Ratio compositions are LRU cached.
 		"""
@@ -437,12 +502,13 @@ class Context(object):
 		else:
 			return r
 
-	def convert(self, from_unit, to_unit, value, ICE = abstract.Inconceivable):
+	def convert(self, from_unit, to_unit, value, ICE = Inconceivable):
 		"""
-		Convert the `value` into `to_unit` from the `from_unit`.
+		Convert the &value into &to_unit from the &from_unit.
 		"""
 		if from_unit in self.containers:
 			# Containers have their own conversion implementation.
+			# Basically, it's a method of a particular type stored in the Context.
 			pkg = self.containers[from_unit][1](value)
 			return sum([
 				self.convert(part, to_unit, value)
@@ -467,16 +533,12 @@ class Context(object):
 				return br(bu) * self.compose(to_term, to_unit)
 
 	def register_point_class(self, Point, default = False):
-		# ABC registration
-		abstract.Point.register(Point)
 		# Associate with related unit.
 		self.points[Point.liketerm][Point.unit] = Point
 		if default:
 			self.points[Point.liketerm][None] = Point
 
 	def register_measure_class(self, Measure, default = False):
-		# ABC registration
-		abstract.Time.register(Measure)
 		# Associate with related unit.
 		self.measures[Measure.liketerm][Measure.unit] = Measure
 		if default:
@@ -562,10 +624,10 @@ def standard_context(qname):
 	"""
 	Construct the standard time context from the local modules.
 	"""
-	from . import eternal
 	from . import earth
 	from . import metric
 	from . import week
+	from . import eternal
 	from . import gregorian
 	from . import libformat
 	from . import libzone
@@ -573,10 +635,10 @@ def standard_context(qname):
 	context = Context()
 
 	# Most practical time units are actually related to a day.
-	# Here, we declare the datum for day based PiTs
+	# Declare the datum for day based PiTs
 	context.declare('day', 5 * ((((365*4) + 1) * 100) - 3) + 1, kind = 'definite')
 
-	# Likewise, Month PiTs are relative to Y2K
+	# Likewise, Month PiTs are relative to Y2K, but have a different datum.
 	context.declare('month', 2000*12, kind = 'subjective')
 	# NOTE: The month offset and day offset are *not* equal.
 	#       Day offsets are relative to the beginning of the first week
@@ -584,9 +646,10 @@ def standard_context(qname):
 
 	eternal.context(context, qname)
 	earth.context(context)
-	gregorian.context(context)
 	week.context(context)
 	metric.context(context)
+	gregorian.context(context)
+
 	libformat.context(context) # 'iso' and 'rfc' containers
 	context.container('__str__', *context.containers['iso'])
 
@@ -651,6 +714,7 @@ def standard_context(qname):
 
 	def pack_unix(pit, arg, delta = unix_delta):
 		return (pit.select(pit.unit) - delta) / 1000000
+
 	context.container('unix', pack_unix, unpack_unix)
 	context.constant('unix', unix_delta)
 
