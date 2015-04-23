@@ -115,8 +115,13 @@ def Disassembler(
 
 	CRLF = http.CRLF, SP = http.SP,
 	PROTOCOLS = http.VERSIONS,
+
 	NO_BODY_RESPONSE_CODES = frozenset((
 		http.codes['NOT_MODIFIED'], http.codes['NO_CONTENT']
+	)),
+
+	SIZE_DESIGNATION = frozenset((
+		b'content-length', b'transfer-encoding',
 	)),
 
 	bypass_ev = Event.bypass,
@@ -226,6 +231,8 @@ def Disassembler(
 		nheaders = 0
 		chunk_size = None
 		headers = []
+		connection = None
+
 		while not req.startswith(CRLF):
 			eof = req.find(CRLF, pos, max_header_size)
 			if eof == -1:
@@ -264,10 +271,16 @@ def Disassembler(
 				header = tuple(map(bytes, map(bastrip, req[:eof].split(b':', 1))))
 				del req[:eof+2]
 
+				field_name = header[0].lower()
 				##
 				# Identify message size.
-				if has_body is True and size is None:
-					if header[0] == b'Content-Length':
+				if field_name == b'connection':
+					# need to know this in order to handle responses without content-length
+					connection = header[1]
+				elif has_body is True and field_name in SIZE_DESIGNATION:
+					if size is not None:
+						pass
+					elif field_name == b'content-length':
 						try:
 							size = int(header[1])
 						except ValueError:
@@ -283,8 +296,7 @@ def Disassembler(
 							req = (yield events)
 							while True:
 								req = (yield ((bypass_ev, req)))
-
-					elif header[0] == b'Transfer-Encoding' and header[1] != b'identity':
+					elif field_name == b'transfer-encoding' and header[1].lower() == b'chunked':
 						# It's chunked. See section 4.4 of the protocol.
 						chunk_size = -1
 						size = -1
@@ -367,8 +379,7 @@ def Disassembler(
 							req = (yield [(bypass_ev, req)])
 					del chunk_field
 					size = chunk_size
-			##
-			# consume the size, chunk or complete
+
 			n = len(req)
 			while n < size:
 				if req:
@@ -418,10 +429,19 @@ def Disassembler(
 				# else assert chunk_size == size == 0
 
 		# :while size
+		else:
+			# consume the size, chunk or complete
+			if size is None and connection == b'close':
+				# no identified size and connection is close
+				while True:
+					events.append((body_ev, req))
+					req = (yield events)
+					events = []
+
 		# terminate body; but there may be trailers to parse
 		events.append((body_ev, b''))
 
-		if chunk_size == 0:
+		if chunk_size == 0: # initial value indicating chunking
 			# chunking occurred, read and emit trailers
 			ntrailers = 0
 			trailers = []
@@ -561,10 +581,10 @@ def Assembler(
 				buf += x[1]
 		events = (yield buf)
 
-def assembly(G = Assembler, next = next):
+def assembly(**config):
 	"""
 	Return a started :py:func:`Assembler` generator.
 	"""
-	g = G()
+	g = Assembler()
 	next(g)
 	return g
