@@ -8,17 +8,17 @@ def test_Type(test):
 	# this tests .parse_accept and .parse_options
 	text_xml = libmedia.Type.from_string('text/xml')
 	test/text_xml == libmedia.Type(('text', 'xml', frozenset()))
-	test/text_xml.options == frozenset()
+	test/text_xml.parameters == frozenset()
 	text_xml in test/text_xml
 
 	text_any = libmedia.Type.from_string('text/*')
 	test/text_any == libmedia.Type(('text', '*', frozenset()))
-	test/text_any.options == frozenset()
+	test/text_any.parameters == frozenset()
 	text_xml in test/text_any
 
 	any_any = libmedia.Type.from_string('*/*')
 	test/any_any == libmedia.Type(('*', '*', frozenset()))
-	test/any_any.options == frozenset()
+	test/any_any.parameters == frozenset()
 	text_any in test/any_any
 	text_xml in test/any_any
 
