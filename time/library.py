@@ -80,7 +80,6 @@ set to the following names:
 import sys
 import operator
 import functools
-from . import abstract
 from . import core # Context & Standard Definitions.
 from . import libclock
 from . import libzone
@@ -94,33 +93,33 @@ Context, MeasureTypes, PointTypes = core.standard_context(__name__)
 #: A tuple containing all of the default Scalar types.
 MeasureTypes = MeasureTypes
 
-#: Scalar with finest, default, representation type precision. :py:class:`.abstract.Time`
+#: Scalar with finest, default, representation type precision.
 #: Currently this is nanosecond precision, but chronometry reserves the right to increase the
 #: precision across minor versions.
 Measure = MeasureTypes[0]
 
-#: Scalar in earth-days. :py:class:`.abstract.Time`
+#: Scalar in earth-days.
 Days = MeasureTypes[1]
 
-#: Scalar in seven earth-days. :py:class:`.abstract.Time`
+#: Scalar in seven earth-days.
 Weeks = MeasureTypes[2]
 
-#: Scalar in Gregorian Months. :py:class:`.abstract.Time`
+#: Scalar in Gregorian Months.
 Months = MeasureTypes[3]
 
 #: A tuple containing all of the default Point in Time types.
 PointTypes = PointTypes
 
-#: Point In Time with Measure's precision. :py:class:`.abstract.Point`
+#: Point In Time with Measure's precision.
 Timestamp = PointTypes[0]
 
-#: Point In Time with earth-day precision. :py:class:`.abstract.Point`
+#: Point In Time with earth-day precision.
 Date = PointTypes[1]
 
-#: Point In Time with seven earth-day precision. :py:class:`.abstract.Point`
+#: Point In Time with seven earth-day precision.
 Week = PointTypes[2]
 
-#: Point In Time with Gregorian Month precision. :py:class:`.abstract.Point`
+#: Point In Time with Gregorian Month precision.
 GregorianMonth = PointTypes[3]
 
 #: Infinite measure unit.
@@ -147,10 +146,10 @@ future = Segment((present, never))
 #: Segment representing the past.
 past = Segment((genesis, present))
 
-#: abstract.Clock interface to the kernel's clock, demotic and monotonic.
+#: Clock interface to the kernel's clock, demotic and monotonic.
 kclock = libclock.kclock
 
-#: abstract.Clock interface to the :py:obj:`kclock`
+#: Clock interface to the :py:obj:`kclock`
 #: that provides Measure and Timestamp instances.
 clock = libclock.IClock(kclock, Measure, Timestamp)
 

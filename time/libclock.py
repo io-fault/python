@@ -2,16 +2,15 @@
 System clock management and query interface.
 """
 import contextlib
-from . import abstract
 from . import kernel
 
 class KClock(object):
 	"""
-	Operating System's :py:class:`chronometry.abstract.Clock` implementation.
+	Operating System's &.abstract.Clock implementation.
 
 	This Class provides access to the kernel's clockwork. It is a thin wrapper providing
-	the :py:class:`.abstract.Clock` interface. By default, a process wide instance is
-	provided at :py:obj:`.lib.iclock`. That instance should normally be used.
+	the &.abstract.Clock interface. By default, a process wide instance is
+	provided at &.library.iclock. That instance should normally be used.
 	"""
 	__slots__ = ('_monotonic','_start_time')
 	unit = 'nanosecond'
@@ -87,7 +86,6 @@ class KClock(object):
 			yield inspect
 		finally:
 			cell.append(Measure(meter()))
-abstract.Clock.register(KClock)
 
 class IClock(object):
 	"""
@@ -131,7 +129,6 @@ class IClock(object):
 
 	def stopwatch(self):
 		return self.clockwork.stopwatch(Measure = self.Measure)
-abstract.Clock.register(IClock)
 
-#: Primary Kernel Clock. Normally accessed indirectly via :py:obj:`.lib.iclock`.
+#: Primary Kernel Clock. Normally accessed indirectly via &.library.iclock
 kclock = KClock()
