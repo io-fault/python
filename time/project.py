@@ -10,7 +10,7 @@ study = 'horology'
 identity = 'http://fault.io/case/python/chronometry'
 
 #: Responsible Party
-meaculpa = 'fault.io'
+controller = 'fault.io'
 
 #: Contact point for the Responsible Party
 contact = 'mailto:critical@fault.io'

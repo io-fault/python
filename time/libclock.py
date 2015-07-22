@@ -109,7 +109,7 @@ class IClock(object):
 		return self.Point(self.clockwork.monotonic_demotic())
 
 	def sleep(self, x):
-		if isinstance(x, abstract.Measure):
+		if isinstance(x, self.Measure):
 			y = self.Measure.of(x)
 			z = y.select('nanosecond')
 		else:
