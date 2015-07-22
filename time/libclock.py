@@ -9,8 +9,9 @@ class KClock(object):
 	Operating System's &.abstract.Clock implementation.
 
 	This Class provides access to the kernel's clockwork. It is a thin wrapper providing
-	the &.abstract.Clock interface. By default, a process wide instance is
-	provided at &.library.iclock. That instance should normally be used.
+	the &.abstract.Clock interface.
+
+	Normally, KClock should be used via the &.library.iclock instance.
 	"""
 	__slots__ = ('_monotonic','_start_time')
 	unit = 'nanosecond'
