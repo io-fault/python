@@ -255,6 +255,7 @@ def Disassembler(
 					del events
 					while True:
 						req = (yield [(bypass_ev, req)])
+
 				req += (yield events)
 				events = []
 				# continues
@@ -301,6 +302,7 @@ def Disassembler(
 						chunk_size = -1
 						size = -1
 						body_ev = chunk_ev
+
 				headers.append(header)
 				nheaders += 1
 				pos = 0
@@ -496,8 +498,10 @@ def Disassembler(
 						del events
 						while True:
 							req = (yield [(bypass_ev, req)])
+
 				# find next end of field.
 				eof = req.find(CRLF, 0, max_header_size)
+
 			# remove the trailing CRLF
 			del req[0:2]
 			# Emit remaining headers.
