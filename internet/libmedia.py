@@ -5,13 +5,18 @@ Interfaces here work exclusively with character-strings; wire data must be decod
 """
 import operator
 
+binary = 'application/octet-stream'
+text = 'text/plain'
+xml = 'text/xml'
+html = 'text/html'
+
 class Type(tuple):
 	"""
 	The Content-Type, Subtype, Options triple describing the type of data.
 
 	An IANA Media Type.
 
-	A container interface (``in``) is provided in order to identify if a given
+	A container interface (`in`) is provided in order to identify if a given
 	type is considered to be within another::
 
 	 text/html in */*
@@ -81,15 +86,16 @@ class Type(tuple):
 			# content-type match
 			if self.subtype in ('*', mtype[1]):
 				# sub-type match
-				if not self.options or (mtype[2] and mtype[2].issubset(self.options)):
+				if not self.parameters or (mtype[2] and mtype[2].issubset(self.parameters)):
 					# options match
 					return True
 		return False
 
-def parse(header, strip = str.strip,
-	typsep = ',', optsep = ';', valsep = '=', quote = '"',
-	escape = '\\',
-):
+def parse(header,
+		typsep = ',', optsep = ';', valsep = '=', quote = '"',
+		escape = '\\',
+		strip=str.strip, map=map, len=len, tuple=tuple,
+	):
 	"""
 	Generate the media range from the contents of an Accept header.
 
@@ -208,11 +214,6 @@ class Range(tuple):
 	"""
 	__slots__ = ()
 
-	@classmethod
-	def from_header(typ, header, MediaType = Type):
-		l = parse_accept(header)
-		return typ()
-
 	@staticmethod
 	def parse_options(options, strip = str.strip, tuple = tuple):
 		"""
@@ -223,16 +224,25 @@ class Range(tuple):
 
 		Parse and strip equality, b'=', delimited key-values.
 		"""
+
 		return [tuple(map(strip, f.split('=', 1))) for f in options]
 
 	@classmethod
-	def from_bytes(typ, data):
-		return typ.from_string(data.decode('utf-8'))
+	def from_bytes(typ, data, encoding='utf-8'):
+		"""
+		Instantiate the Range from a bytes object; decoded and passed to &from_string.
+		"""
+
+		return typ.from_string(data.decode(encoding))
 
 	@classmethod
 	def from_string(typ, string,
-		skey = operator.itemgetter(0),
-	):
+			skey = operator.itemgetter(0),
+		):
+		"""
+		Instantiate the Range from a Python string.
+		"""
+
 		l = []
 		for tpair, options, quality in parse(string):
 			cotype, subtype = tpair
@@ -249,6 +259,7 @@ class Range(tuple):
 		current = None
 		position = None
 		quality = 0
+
 		for x in available:
 			# PERF: nested loop sadface O(len(available)*len(self))
 			for q, mt in self:
@@ -267,6 +278,8 @@ class Range(tuple):
 							# the range is ordered by quality
 							# everything past this point is lower quality
 							break
+
 		if current is None:
 			return None
+
 		return (current, position, quality)
