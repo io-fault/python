@@ -5,6 +5,7 @@ As with many implementations in `internet`, libri is not strict with regards
 to a particular specification. Rather, it seeks to handle all cases with relative
 sanity such that any error checking may be performed by the user.
 """
+
 import re
 import collections
 
@@ -12,12 +13,13 @@ pct_encode = '%%%0.2X'.__mod__
 unescaped = '%' + ''.join([chr(x) for x in range(0, 33)])
 
 percent_escapes_re = re.compile('(%[0-9a-fA-F]{2,2})+')
+
 escape_re = re.compile('[%s]' %(re.escape(unescaped),))
 escape_user_re = re.compile('[%s]' %(re.escape(unescaped + ':@/?#'),))
 escape_password_re = re.compile('[%s]' %(re.escape(unescaped + '@/?#'),))
-escape_host_re = re.compile('[%s]' %(re.escape(unescaped + '/?#'),))
-escape_port_re = re.compile('[%s]' %(re.escape(unescaped + '/?#'),))
-escape_path_re = re.compile('[%s]' %(re.escape(unescaped + '/?#'),))
+
+escape_host_re = escape_port_re = escape_path_re = \
+	re.compile('[%s]' %(re.escape(unescaped + '/?#'),))
 escape_query_key_re = re.compile('[%s]' %(re.escape(unescaped + '&=#'),))
 escape_query_value_re = re.compile('[%s]' %(re.escape(unescaped + '&#'),))
 
@@ -32,11 +34,13 @@ for x in range(256):
 scheme_chars = '-.+0123456789'
 del x
 
-def unescape(x, mkval = chr):
-	'Substitute percent escapes with literal characters'
+def unescape(x, mkval=chr, len=len, isinstance=isinstance):
+	"Substitute percent escapes with literal characters."
+
 	nstr = type(x)('')
 	if isinstance(x, str):
 		mkval = chr
+
 	pos = 0
 	end = len(x)
 	while pos != end:
@@ -86,22 +90,22 @@ def split(iri):
 	end = len(s)
 
 	# absolute IRIs
-	if s.startswith('//'):
+	if s.startswith("//"):
 		pos = 2
-		type = 'relative' # scheme is defined by context.
+		type = "relative" # scheme is defined by context.
 	else:
 		scheme_pos = s.find(':')
 		if scheme_pos == -1:
 			# No ':' at all. No scheme spec whatsoever.
-			type = 'none'
+			type = "none"
 		else:
 			# Look for following slashes
 			if s.startswith('://', scheme_pos):
-				type = 'authority'
+				type = "authority"
 				pos = scheme_pos + 3
 			else:
 				# just a ':'
-				type = 'absolute'
+				type = "absolute"
 				pos = scheme_pos + 1
 			scheme = s[:scheme_pos]
 
@@ -112,7 +116,7 @@ def split(iri):
 					# it's not a valid scheme
 					pos = 0
 					scheme = None
-					type = 'amorphous'
+					type = "amorphous"
 					break
 
 	end_of_netloc = end
@@ -161,13 +165,16 @@ def split(iri):
 
 	return Parts(type, scheme, netloc, path, query, fragment)
 
-def unsplit_path(p, _re = escape_path_re, _re_pct_encode = re_pct_encode):
+def join_path(p, _re = escape_path_re, _re_pct_encode = re_pct_encode):
 	"""
 	Join a list of paths(strings) on "/" *after* escaping them.
 	"""
+
 	if not p:
 		return None
 	return '/'.join([_re.sub(re_pct_encode, x) for x in p])
+
+unsplit_path = join_path
 
 def split_path(p, fieldproc = unescape):
 	"""
@@ -176,12 +183,14 @@ def split_path(p, fieldproc = unescape):
 	Set `fieldproc` to `str` if the components' percent escapes should not be
 	decoded.
 	"""
+
 	if p is None:
 		return []
 	return [fieldproc(x) for x in p.split('/')]
 
-def unsplit(t):
-	'Make an RI from a split RI(5-tuple)'
+def join(t):
+	"Make an RI from a split RI(5-tuple)"
+
 	s = ''
 	if t[0] == 'authority':
 		s += t[1] or ''
@@ -205,6 +214,8 @@ def unsplit(t):
 		s += t[5]
 	return s
 
+unsplit = join
+
 def split_netloc(netloc, fieldproc = unescape):
 	"""
 	Split a net location into a 4-tuple, (user, password, host, port).
@@ -212,6 +223,7 @@ def split_netloc(netloc, fieldproc = unescape):
 	Set `fieldproc` to `str` if the components' percent escapes should not be
 	decoded.
 	"""
+
 	pos = netloc.find('@')
 	if pos == -1:
 		# No user information
@@ -258,8 +270,9 @@ def split_netloc(netloc, fieldproc = unescape):
 
 	return (user, password, addr, port)
 
-def unsplit_netloc(t):
-	'Create a netloc fragment from the given tuple(user,password,host,port)'
+def join_netloc(t):
+	"Create a netloc fragment from the given tuple(user,password,host,port)"
+
 	if t[0] is None and t[2] is None:
 		return None
 	s = ''
@@ -278,13 +291,16 @@ def unsplit_netloc(t):
 
 	return s
 
-def structure(t, fieldproc = unescape):
+unsplit_netloc = join_netloc
+
+def structure(t, fieldproc = unescape, tuple = tuple, list = list, map = map):
 	"""
 	Create a dictionary from a split RI(5-tuple).
 
 	Set `fieldproc` to `str` if the components' percent escapes should not be
 	decoded.
 	"""
+
 	d = {}
 
 	# type determines inclusion of scheme, so absence no
@@ -321,10 +337,11 @@ def structure(t, fieldproc = unescape):
 	return d
 
 def construct_query(x,
-	key_re = escape_query_key_re,
-	value_re = escape_query_value_re,
-):
-	'Given a sequence of (key, value) pairs, construct'
+		key_re = escape_query_key_re,
+		value_re = escape_query_value_re,
+	):
+	"Given a sequence of (key, value) pairs, construct."
+
 	return '&'.join([
 		v is not None and \
 		'='.join((
@@ -336,7 +353,8 @@ def construct_query(x,
 	])
 
 def construct(x):
-	'Construct a RI tuple(5-tuple) from a dictionary object'
+	"Construct a RI tuple(5-tuple) from a dictionary object."
+
 	p = x.get('path')
 	if p is not None:
 		p = '/'.join([escape_path_re.sub(re_pct_encode, y) for y in p])
@@ -355,8 +373,9 @@ def construct(x):
 	return (
 		x.get('type'),
 		x.get('scheme'),
+
 		# netloc: [user[:pass]@]host[:port]
-		unsplit_netloc((
+		join_netloc((
 			x.get('user'),
 			x.get('password'),
 			x.get('host'),
@@ -374,12 +393,30 @@ def parse(iri, structure = structure, split = split, fieldproc = unescape):
 	Set `fieldproc` to `str` if the components' percent escapes should not be
 	decoded.
 	"""
+
 	return structure(split(iri), fieldproc = fieldproc)
 
-def serialize(x, unsplit = unsplit, construct = construct):
+def serialize(x, join = join, construct = construct):
 	"""
 	serialize(deconstructed)
 
-	Return an RI from a dictionary object. Synonym for ``unsplit(construct(x))``.
+	Return an RI from a dictionary object. Synonym for ``join(construct(x))``.
 	"""
-	return unsplit(construct(x))
+
+	return join(construct(x))
+
+def http(struct):
+	"""
+	Return the HTTP Request-URI suitable for submission with an HTTP request.
+	"""
+
+	if "path" in struct:
+		p = join_path(struct["path"]) or "/"
+	else:
+		p = "/"
+
+	if "query" in struct:
+		q = construct_query(struct["query"])
+		return "?".join((p, q))
+
+	return p
