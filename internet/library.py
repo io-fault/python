@@ -7,41 +7,69 @@ class Service(int):
 	"""
 	Internet port identifier. Empty subclass for identification purposes.
 	"""
-	pass
+	__slots__ = ()
+
+	def valid(self):
+		"Whether or not the Service port is within the standard range."
+
+		return self >= 0 and self <= 0xFFFF
 
 class Endpoint(tuple):
 	"""
-	Endpoint type for internet addresses.
+	Endpoint type, address-port pairs, for internet addresses.
 	"""
 	__slots__ = ()
+
 	address_types = (ipaddress.IPv4Address, ipaddress.IPv6Address)
 
+	@classmethod
+	def create_ip4(Class, string, port, Type=ipaddress.IPv4Address):
+		"Create an IPv4 Endpoint Instance"
+
+		return Class((Type(string), Service(port)))
+
+	@classmethod
+	def create_ip6(Class, string, port, Type=ipaddress.IPv6Address):
+		"Create an IPv6 Endpoint Instance"
+
+		return Class((Type(string), Service(port)))
+
 	@property
-	def protocol(self, str = str):
+	def protocol(self, str=str):
 		'Addressing protocol; 4 or 6'
 		return 'ip' + str(self.address.version)
 
 	@property
-	def address(self):
+	def interface(self):
+		"The &ipaddress typed address."
 		return self[0]
+
+	address = interface
 
 	@property
 	def port(self):
+		"The &Service of the endpoint."
+
 		return self[1]
 
 	def __str__(self):
-		if self.address.version == 6:
-			return '[' + str(self.address) + ']:' + str(self.port)
+		"""
+		"<address>:<port>" representation suitable for interpolation into
+		IRI network location.
+		"""
+
+		if self.interface.version == 6:
+			return '[' + str(self.interface) + ']:' + str(self.port)
 		else:
-			return str(self.address) + ':' + str(self.port)
+			return str(self.interface) + ':' + str(self.port)
 
 	def __hash__(self):
-		return hash((self.address, self.port))
+		return hash((self.protocol, self.interface, self.port))
 
 	@classmethod
-	def create(Class, identifier, port, type = ipaddress.ip_address):
+	def create(Class, interface, port, construct=ipaddress.ip_address):
 		"""
 		Primary method for creating an endpoint.
 		The &ipaddress type will be selected by the &ipaddress.ip_address function.
 		"""
-		return Class((type(identifier), Service(port)))
+		return Class((construct(interface), Service(port)))
