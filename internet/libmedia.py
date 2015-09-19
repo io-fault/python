@@ -2,13 +2,110 @@
 Mime Type Parser for content types and ranges.
 
 Interfaces here work exclusively with character-strings; wire data must be decoded.
+
+[ Data ]
+
+/types
+	A mapping of type names to MIME type strings.
+
+/filename_extensions
+	A mapping of filename extensions to type name.
 """
 import operator
+import functools
 
-binary = 'application/octet-stream'
-text = 'text/plain'
-xml = 'text/xml'
-html = 'text/html'
+types = {
+	'data': 'application/octet-stream', # browsers interpret this as a file download
+
+	'python-pickle': 'application/x-python-object+pickle',
+	'python-marshal': 'application/x-python-object+marshal',
+	'python-xml': 'application/x-python-object+xml', # fault.xml format
+	# 'structures': 'application/x-conceptual+xml',
+
+	'text': 'text/plain',
+	'txt': 'text/plain',
+	'rtf': 'application/rtf',
+
+	'cache': 'text/cache-manifest',
+	'html': 'text/html',
+	'htm': 'text/html',
+	'css': 'text/css',
+
+	'pdf': 'application/pdf',
+	'postscript': 'application/postscript',
+
+	'json': 'application/json',
+	'javascript': 'application/javascript',
+	'js': 'application/javascript',
+
+	'xml': 'text/xml',
+
+	'rdf': 'application/rdf+xml',
+	'rss': 'application/rss+xml',
+	'atom': 'application/atom+xml',
+	'xslt': 'application/xslt+xml',
+	'xsl': 'application/xslt+xml',
+
+	'zip': 'application/zip',
+	'gzip': 'application/gzip',
+	'bzip2': 'application/x-bzip2',
+	'tar': 'application/x-tar',
+	'xz': 'application/x-xz',
+	'rar': 'application/x-rar-compressed',
+	'sit': 'application/x-stuffit',
+
+	# images
+	'svg': 'image/svg+xml',
+	'png': 'image/png',
+	'gif': 'image/gif',
+	'tiff': 'image/tiff',
+	'tif': 'image/tiff',
+	'jpeg': 'image/jpeg',
+	'jpg': 'image/jpeg',
+
+	# video
+	'mpg': 'video/mpeg',
+	'mpeg': 'video/mpeg',
+	'mp2': 'video/mpeg',
+	'mov': 'video/quicktime',
+
+	# audio
+	'aif': 'audio/x-aiff',
+	'aiff': 'audio/x-aiff',
+	'mp3': 'audio/mpeg',
+	'wav': 'audio/x-wav',
+
+	# microsoft
+	'xls': 'application/vnd.ms-excel',
+	'doc': 'application/msword',
+	'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+	'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+	'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+	'ppsx': 'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
+	'potx': 'application/vnd.openxmlformats-officedocument.presentationml.template',
+}
+
+@functools.lru_cache(16)
+def file_type(filename):
+	"""
+	Identify the MIME type from a filename using common file extensions.
+
+	Unidentified extensions will likely return application/octets-stream.
+	"""
+	global types
+
+	parts = filename.rsplit('.')
+	parts.reverse()
+
+	t = [Type.from_string(types[x]) for x in parts if x in types]
+	if not t:
+		return Type.from_string(types['data'])
+
+	start = t[0]
+	exposed = [x for x in t if x.cotype == start.cotype]
+	subtype = '+'.join([x.subtype for x in reversed(exposed)])
+
+	return Type((start.cotype, subtype, frozenset(())))
 
 class Type(tuple):
 	"""
@@ -57,7 +154,27 @@ class Type(tuple):
 		'Parameters such as charset for encoding designation.'
 		return self[2]
 
+	def push(self, subtype):
+		"Return a new &Type with the given &subtype appended to the instance's &.subtype"
+
+		cotype, ssubtype, *remainder = self
+
+		return self.__class__((cotype, '+'.join(ssubtype, subtype))+remainder)
+
+	def pop(self):
+		"Return a new &Type with the last '+'-delimited subtype removed. (inverse of push)"
+
+		cotype, ssubtype, *remainder = self
+		index = ssubtype.rfind('+')
+
+		if index == -1:
+			# nothing to pop
+			return self
+
+		return self.__class__((cotype, ssubtype[:index]) + remainder)
+
 	@classmethod
+	@functools.lru_cache(16)
 	def from_string(typ, string, **parameters):
 		"""
 		Split on the ';' and '/' separators and build an instance.
@@ -236,6 +353,7 @@ class Range(tuple):
 		return typ.from_string(data.decode(encoding))
 
 	@classmethod
+	@functools.lru_cache(16)
 	def from_string(typ, string,
 			skey = operator.itemgetter(0),
 		):
@@ -251,6 +369,7 @@ class Range(tuple):
 		l.sort(key=skey, reverse=True)
 		return typ(l)
 
+	@functools.lru_cache(16)
 	def query(self, *available):
 		"""
 		Given a sequence of mime types, return the best match
@@ -283,3 +402,6 @@ class Range(tuple):
 			return None
 
 		return (current, position, quality)
+
+any_type = Type(('*', '*', frozenset()))
+any_range = Range([(100, any_type)])
