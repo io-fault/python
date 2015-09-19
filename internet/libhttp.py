@@ -97,7 +97,6 @@ EOM = (Event.message, None)
 # Some notably relevant portions are:
 #  4.4 Message Length (chunked vs Content-Length)
 def Disassembler(
-	max_messages = 32, # implicitly the pipeline limit
 	max_line_size = 0xFFFF*3, # maximum length of the Request-Line or Response-Line
 	max_headers = 1024, # maximum number of headers to accept
 	max_trailers = 32, # maximum number of trailers to accept
@@ -151,6 +150,7 @@ def Disassembler(
 	In addition to giving structure to HTTP line and headers, it will handle the
 	transfer encoding of the message's body. (*Not* at the entity level.)
 	"""
+
 	# Parse Request and Headers
 	message_number = -1
 	events = []
@@ -159,7 +159,7 @@ def Disassembler(
 	# initial next(g)
 	req += (yield None)
 
-	for message_number in range(max_messages):
+	while True:
 		body_ev = content_ev # in chunking cases, this get turned into chunk_ev
 		has_body = True
 		# Content-Length/is chunking
@@ -325,6 +325,11 @@ def Disassembler(
 		# terminator
 		events.append(EOH)
 
+		# headers processed, determine has_body
+		if has_body is True and size is None:
+			# size was not initialized so it should assume there's no body
+			has_body = False
+
 		# trim trailing CRLF
 		del req[:2]
 		pos = 0
@@ -432,16 +437,18 @@ def Disassembler(
 
 		# :while size
 		else:
-			# consume the size, chunk or complete
 			if size is None and connection == b'close':
 				# no identified size and connection is close
+				events.append(EOM)
 				while True:
-					events.append((body_ev, req))
+					if req:
+						events.append((bypass_ev, req))
 					req = (yield events)
 					events = []
 
 		# terminate body; but there may be trailers to parse
-		events.append((body_ev, b''))
+		if has_body:
+			events.append((body_ev, b''))
 
 		if chunk_size == 0: # initial value indicating chunking
 			# chunking occurred, read and emit trailers
