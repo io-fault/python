@@ -6,10 +6,28 @@ Interfaces here work exclusively with character-strings; wire data must be decod
 [ Data ]
 
 /types
-	A mapping of type names to MIME type strings.
+	A mapping of type names and file extensions to MIME type strings.
 
 /filename_extensions
 	A mapping of filename extensions to type name.
+
+[ Override ]
+
+/type_from_string
+
+	Construct a &Type instance from a MIME type string.
+
+	Code:[python]
+
+		mt = libmedia.type_from_string("text/xml")
+
+	Equivalent to &Type.from_string, but cached.
+
+/range_from_string
+
+	Construct a &Range instance from a Media Range string like an Accept header.
+
+	Equivalent to &Range.from_string, but cached.
 """
 import operator
 import functools
@@ -102,7 +120,7 @@ types = {
 	'potx': 'application/vnd.openxmlformats-officedocument.presentationml.template',
 }
 
-@functools.lru_cache(16)
+@functools.lru_cache(32)
 def file_type(filename):
 	"""
 	Identify the MIME type from a filename using common file extensions.
@@ -117,6 +135,10 @@ def file_type(filename):
 		return Type.from_string(types['data'])
 
 	return Type.from_string(types[parts[1]])
+
+# Cached constructors.
+type_from_string = functools.lru_cache(32)(Type.from_string)
+range_from_string = functools.lru_cache(32)(Range.from_string)
 
 class Type(tuple):
 	"""
@@ -185,7 +207,6 @@ class Type(tuple):
 		return self.__class__((cotype, ssubtype[:index]) + remainder)
 
 	@classmethod
-	@functools.lru_cache(16)
 	def from_string(typ, string, **parameters):
 		"""
 		Split on the ';' and '/' separators and build an instance.
@@ -364,7 +385,6 @@ class Range(tuple):
 		return typ.from_string(data.decode(encoding))
 
 	@classmethod
-	@functools.lru_cache(16)
 	def from_string(typ, string,
 			skey = operator.itemgetter(0),
 		):
@@ -380,7 +400,6 @@ class Range(tuple):
 		l.sort(key=skey, reverse=True)
 		return typ(l)
 
-	@functools.lru_cache(16)
 	def query(self, *available):
 		"""
 		Given a sequence of mime types, return the best match
