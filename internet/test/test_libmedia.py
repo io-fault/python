@@ -1,4 +1,5 @@
-from .. import libmedia
+from .. import libmedia as library
+libmedia = library
 
 def test_module_protocol(test):
 	'Type' in test/dir(libmedia)
@@ -139,6 +140,12 @@ def test_Range(test):
 	# text/html;level=1 should have precedence over text/* and text/html
 	test/selection == (text_html, text_html_foo, 100)
 
+def test_file_type(test):
+	test/library.file_type('foo.svg') == library.Type.from_string('image/svg+xml')
+	test/library.file_type('foo.tar.gz') == library.Type.from_string('application/gzip')
+	test/library.file_type('foo.tar') == library.Type.from_string('application/x-tar')
+	test/library.file_type('foo.xml') == library.Type.from_string('text/xml')
+
 if __name__ == '__main__':
 	import sys; from ...development import libtest
-	libtest.execute(sys.modules['__name__'])
+	libtest.execute(sys.modules[__name__])

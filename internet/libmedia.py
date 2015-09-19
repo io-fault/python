@@ -39,6 +39,7 @@ types = {
 	'js': 'application/javascript',
 
 	'xml': 'text/xml',
+	'sgml': 'text/sgml',
 
 	'rdf': 'application/rdf+xml',
 	'rss': 'application/rss+xml',
@@ -48,11 +49,16 @@ types = {
 
 	'zip': 'application/zip',
 	'gzip': 'application/gzip',
+	'gz': 'application/gzip',
 	'bzip2': 'application/x-bzip2',
 	'tar': 'application/x-tar',
 	'xz': 'application/x-xz',
 	'rar': 'application/x-rar-compressed',
 	'sit': 'application/x-stuffit',
+	'z': 'application/x-compress',
+
+	'tgz': 'application/x-tar+gzip',
+	'txz': 'application/x-tar+x-xz',
 
 	# images
 	'svg': 'image/svg+xml',
@@ -68,12 +74,23 @@ types = {
 	'mpeg': 'video/mpeg',
 	'mp2': 'video/mpeg',
 	'mov': 'video/quicktime',
+	'mp4': 'video/mp4',
+	'webm': 'video/webm',
+	'ogv': 'video/ogg',
+	'avi': 'video/avi',
 
 	# audio
 	'aif': 'audio/x-aiff',
 	'aiff': 'audio/x-aiff',
 	'mp3': 'audio/mpeg',
 	'wav': 'audio/x-wav',
+	'mid': 'audio/midi',
+
+	'ogg': 'audio/ogg',
+	'opus': 'audio/ogg',
+	'oga': 'audio/ogg',
+	'ogx': 'application/ogg',
+	'spx': 'audio/ogg',
 
 	# microsoft
 	'xls': 'application/vnd.ms-excel',
@@ -94,18 +111,12 @@ def file_type(filename):
 	"""
 	global types
 
-	parts = filename.rsplit('.')
-	parts.reverse()
+	parts = filename.rsplit('.', 1)
 
-	t = [Type.from_string(types[x]) for x in parts if x in types]
-	if not t:
+	if parts[1] not in types:
 		return Type.from_string(types['data'])
 
-	start = t[0]
-	exposed = [x for x in t if x.cotype == start.cotype]
-	subtype = '+'.join([x.subtype for x in reversed(exposed)])
-
-	return Type((start.cotype, subtype, frozenset(())))
+	return Type.from_string(types[parts[1]])
 
 class Type(tuple):
 	"""
