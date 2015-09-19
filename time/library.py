@@ -58,22 +58,22 @@ Point type that have only three values: zero, infinity, and negative infinity.
 The set of possible Measures and Points dealing with eternals are immediately created and
 set to the following names:
 
-/ &genesis
+/&genesis
 	The earliest Point in time.
 
-/ &never
+/&never
 	The latest Point in time.
 
-/ &present
+/&present
 	The current Point in time--always moving.
 
-/ &future
+/&future
 	A &Segment whose start is &present and end is &never.
 
-/ &past
+/&past
 	A segment whose start is &genesis and end is &present.
 
-/ &continuum
+/&continuum
 	A segment whose start is &genesis and end is &never; essentially, this is intended to
 	be a type check and determines if the given object is representing a Point in Time.
 """
@@ -416,7 +416,7 @@ class Scheduler(object):
 				push(self.heap, item)
 				break
 			else:
-				eventq = self.schedule[item]
+				eventq = self.schedule.pop(item)
 				while eventq:
 					x = eventq.popleft()
 					if x in self.cancellations:
@@ -425,6 +425,5 @@ class Scheduler(object):
 						self.cancellations.discard(x)
 					else:
 						events.append((overflow, x))
-				if not events:
-					self.schedule.pop(item, None)
+
 		return events
