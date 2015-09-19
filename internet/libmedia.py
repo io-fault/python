@@ -136,10 +136,6 @@ def file_type(filename):
 
 	return Type.from_string(types[parts[1]])
 
-# Cached constructors.
-type_from_string = functools.lru_cache(32)(Type.from_string)
-range_from_string = functools.lru_cache(32)(Range.from_string)
-
 class Type(tuple):
 	"""
 	The Content-Type, Subtype, Options triple describing the type of data.
@@ -435,3 +431,7 @@ class Range(tuple):
 
 any_type = Type(('*', '*', frozenset()))
 any_range = Range([(100, any_type)])
+
+# Cached constructors.
+type_from_string = functools.lru_cache(32)(Type.from_string)
+range_from_string = functools.lru_cache(32)(Range.from_string)
