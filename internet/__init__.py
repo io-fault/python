@@ -1,6 +1,4 @@
 """
-"Oh! The irony!"
-
 📡 About
 --------
 
@@ -16,7 +14,7 @@ Hyper Text Transfer Protocol
 
 HTTP processing is providing by :py:func:`internet.libhttp.Assembler` and
 :py:func:`internet.libhttp.Disassembler`. These generators manage the state of
-an HTTP channel.
+an HTTP 1.1 or 1.0 channel.
 
 Domain Name Service
 -------------------
