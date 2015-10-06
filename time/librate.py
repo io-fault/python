@@ -1,14 +1,13 @@
 """
 Rate specification primitive for managing contraint configuration.
-
-The :py:mod:`.libflow` module provides a Radar for tracking the rate of arbitrary
-flows. This class only performs the tracking and additional configuration is necessary in
-order to manage a rate constraint.
 """
 
 class Specification(tuple):
 	"""
-	Structure used to define the throughtput for enforcing rate requirements
+	Structure used to define the throughtput for enforcing rate requirements.
+
+	Rate constraints define a minimum, maximum, and the duration window that
+	must be maintained in order to justify a violation event.
 	"""
 	_keys = ("minimum", "maximum", "window")
 

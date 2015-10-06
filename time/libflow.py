@@ -3,10 +3,13 @@ libflow provides tools for tracking arbitrary units over a period of time.
 
 The classes and function herein are requisites for time based rate limiting.
 """
+
 import collections
 import weakref
+
 # Use the Chronometer directly for performance reasons.
 from . import kernel
+
 # But some surface functionality can return Measures for typed units
 from . import library as lib
 
@@ -73,10 +76,12 @@ class Radar(object):
 		Given a sequence of (time, units) pairs,
 		return the sums of the columns.
 		"""
+
 		total_units, total_time = 0, 0
 		for units, time in seq:
 			total_units += units
 			total_time += time
+
 		return (total_units, Measure(total_time))
 
 	def __init__(self,
@@ -111,22 +116,27 @@ class Radar(object):
 
 		This removes the subject from the dictionary of tracked objects.
 
-		.. note::	By default, the dictionary is a WeakKeyDictionary.
-						Using `forget` is not necessary unless an
-						override for the dictionary type was given.
+		NOTE:
+			By default, the dictionary is a WeakKeyDictionary.
+			Using `forget` is not necessary unless an
+			override for the dictionary type was given.
 		"""
+
 		return self.tracking.pop(subject, None)
 
 	def track(self, subject, units):
 		"""
 		Given an object, track the units.
 		"""
+
 		if subject not in self.tracking:
 			pair = self.tracking[subject] = (self.Chronometer(), self.Queue())
 		else:
 			pair = self.tracking[subject]
+
 		d, q = pair
 		q.append((units, next(d)))
+
 		return pair
 
 	def reset(self, next = next):
@@ -140,6 +150,7 @@ class Radar(object):
 
 		For individual objects, see :py:meth:`skip`.
 		"""
+
 		for pair in self.tracking.values():
 			next(pair[0])
 
@@ -152,6 +163,7 @@ class Radar(object):
 
 		Skip the elapsed time for the given subject.
 		"""
+
 		return next(self.tracking[subject][0])
 
 	def zero(self, subject, Measure = lib.Measure, next = next):
@@ -171,14 +183,17 @@ class Radar(object):
 
 		Notably, zero is useful in cases where flow can be paused and unpaused.
 		"""
+
 		pair = self.tracking.get(subject)
+
 		if pair is not None:
 			r = next(pair[0])
 		else:
 			r = 0
+
 		return Measure(r)
 
-	def collapse(self, subject, window = 0, range = range):
+	def collapse(self, subject, window=0, range=range):
 		"""
 		collapse(subject, window = 0)
 
@@ -198,6 +213,7 @@ class Radar(object):
 		This offers an alternative to truncate given cases where overall
 		data is still needed.
 		"""
+
 		# Make sure there is an element within the window.
 		d, q = self.track(subject, 0)
 
@@ -209,6 +225,7 @@ class Radar(object):
 		q.extendleft(reversed(b)) # maintain window
 		collapsed_to = self.sums(a) # aggregate suffix
 		q.appendleft(collapsed_to) # prefix totals
+
 		return collapsed_to
 
 	def truncate(self, subject, window):
@@ -224,6 +241,7 @@ class Radar(object):
 		window of time units. All record data prior to the window will be
 		discarded.
 		"""
+
 		# Make sure there is an element within the window and used up-to-date info
 		d, q = self.track(subject, 0)
 
@@ -248,6 +266,7 @@ class Radar(object):
 
 		Uses the :py:meth:`sums` method to construct the product.
 		"""
+
 		if subject in self.tracking:
 			seq = self.tracking[subject][-1]
 			if window is not None:
@@ -267,6 +286,7 @@ class Radar(object):
 		             for all tracked flows, overall may not ever be able to give
 		             an accurate answer.
 		"""
+
 		keys = list(self.tracking.keys())
 		total_u = 0
 		total_t = lib.Measure(0)
@@ -274,10 +294,12 @@ class Radar(object):
 		split = self.split
 		sums = self.sums
 		count = 0
+
 		for x in keys:
 			count += 1
 			u, t = sums(split(reversed(track(x, 0)[1]), window)[0])
 			total_u += u
 			total_t += t
+
 		# limit the amount to the given window
 		return (total_u, (Measure(total_t), count))
