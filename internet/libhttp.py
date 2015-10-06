@@ -16,38 +16,40 @@ class Event(int):
 
 	Event Structure:
 
-	 BYPASS
-	  (&Event.bypass, &bytes)
+	/BYPASS
+		(&Event.bypass, &bytes)
 
-	 RLINE
-	  For requests: (&Event.rline, (method, uri, version))
-	  For responses: (&Event.rline, (version, response_code, description))
+	/RLINE
+		For requests: (&Event.rline, (method, uri, version))
+		For responses: (&Event.rline, (version, response_code, description))
 
-    CHUNK
-	  (&Event.chunk, &bytearray)
+	/CHUNK
+		(&Event.chunk, &bytearray)
 
-	 CONTENT
-	  (&Event.content, &bytearray)
+	/CONTENT
+		(&Event.content, &bytearray)
 
-	 HEADERS
-	  (&Event.headers, [(&bytes, &bytes),...])
+	/HEADERS
+		(&Event.headers, [(&bytes, &bytes),...])
 
-	 TRAILERS
-	  (&Event.trailers, [(&bytes, &bytes),...])
+	/TRAILERS
+		(&Event.trailers, [(&bytes, &bytes),...])
 
-	 MESSAGE
-	  (&Event.message, &None)
+	/MESSAGE
+		(&Event.message, &None)
 
-	 VIOLATION
-	  (&Event.trailers, (type, ...))
-	  Where `type` is:
+	/VIOLATION
+		(&Event.trailers, (type, ...))
 
-	   :py:obj:`'limit'`
-		 A configured limit was exceeded.
+		Where `type` is:
 
-	   :py:obj:`'protocol'`
-		 A protocol error occurred.
+		/'limit'
+			A configured limit was exceeded.
+
+		/'protocol'
+			A protocol error occurred.
 	"""
+
 	__slots__ = ()
 
 	names = (
@@ -63,11 +65,11 @@ class Event(int):
 
 	codes = {
 		'RLINE': 0,
-		'HEADERS': 1,
+		'HEADERS': 1, # Terminated by a HEADERS event with an empty sequence.
 		'CONTENT': 2,
 		'CHUNK': 3,
 		'TRAILERS': 4,
-		'MESSAGE': 5,
+		'MESSAGE': 5, # EOM: End of Message
 		'VIOLATION': 6,
 		'BYPASS': -1,
 	}
@@ -387,18 +389,33 @@ def Disassembler(
 					del chunk_field
 					size = chunk_size
 
+			# yield content with known body size
 			n = len(req)
-			while n < size:
-				if req:
-					# len(req) < size == True
-					events.append((body_ev, req))
-					req = bytearray()
+			if n < size:
+				# initial edge from headers
 				size = size - n
-				# get new data; all of req emitted prior
-				# so complete replacement here.
-				req += (yield events)
-				events = []
+				events.append((body_ev, req))
+				req = (yield events)
+
+				# act nearly as a passthrough here when the size is known.
 				n = len(req)
+				while n < size:
+					# len(req) < size == True
+					size = size - n
+					events = ((body_ev, req),)
+					# get new data; all of req emitted prior
+					# so complete replacement here.
+					req = (yield events)
+					n = len(req)
+				else:
+					# req exceeded the remaining size, so its on the edge
+					events = []
+					t = req
+					req = bytearray()
+					req += t
+					del t
+
+			# end content with known body size
 
 			# req is now larger than the remaining size.
 			# There is enough data to complete the body.
