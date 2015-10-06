@@ -77,6 +77,7 @@ types = {
 
 	'tgz': 'application/x-tar+gzip',
 	'txz': 'application/x-tar+x-xz',
+	'torrent': 'application/x-bittorrent',
 
 	# images
 	'svg': 'image/svg+xml',
@@ -355,7 +356,7 @@ class Range(tuple):
 	Querying the range for a set of type will return the types with the
 	highest precedence for each content type.
 
-	:py:obj:`None` is used to represent '*' types.
+	&None is used to represent '*' types.
 	"""
 	__slots__ = ()
 
