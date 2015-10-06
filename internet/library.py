@@ -25,6 +25,32 @@ class Service(int):
 
 		return self >= 49152 and self < 0xFFFF
 
+	@classmethod
+	def from_name(Class, name):
+		global common_services
+		return common_services[name]
+
+# A subset of IANA's list to the primary services used by the Internet.
+common_services = {
+	'domain': Service(53),
+
+	'http': Service(80),
+	'https': Service(443),
+	'ftp': Service(21),
+	'ftps': Service(990),
+
+	'ssh': Service(22),
+	'telnet': Service(23),
+
+	'smtp': Service(25),
+	'kerberos': Service(88),
+	'ntp': Service(123),
+	'bgp': Service(179),
+	'irc': Service(194),
+	'ldap': Service(389),
+}
+common_services['dns'] = common_services['domain']
+
 class Endpoint(tuple):
 	"""
 	Endpoint type for internet addresses.
@@ -94,3 +120,56 @@ class Endpoint(tuple):
 		The &ipaddress type will be selected by the &ipaddress.ip_address function.
 		"""
 		return Class((construct(interface), Service(port)))
+
+class Reference(tuple):
+	"""
+	A domain name referencing a set of endpoints.
+
+	References are actually service references for a specific domain. They
+	consist of protocol, address, port, and service fields that define
+	the reference. Normally, protocol is "dns" and implies system DNS.
+
+	Protocol variations can be used to describe more complicated name resolutions.
+	"""
+	__slots__ = ()
+
+	@property
+	def protocol(self):
+		"Resolution protocol. Usually, DNS."
+		return self[0]
+
+	@property
+	def address(self):
+		"The unencoded domain name."
+		return self[1]
+
+	@property
+	def port(self):
+		"The resolved or overridden port for the service."
+		return self[2]
+
+	@property
+	def service(self):
+		"The actual service name being referred to."
+		return self[3]
+
+	def __str__(self):
+		"""
+		Formatted reference for canonical printing.
+		Return "<service>:[<protocol>]<name>:<port>".
+		"""
+
+		return "%s:[%s]%s:%s" %(self.service, self.protocol, self.address, self.port)
+
+	def __repr__(self):
+		m = __name__
+		n = self.__class__.__name__
+
+		return "%s.%s((%r, %r, %r, %r))" %((m, n,) + self)
+
+	@classmethod
+	def from_domain(Class, name, service, port = None):
+		if port is None:
+			port = common_services[service]
+
+		return Class(('domain', name, port, service))
