@@ -1,10 +1,6 @@
 import itertools
 from .. import abstract
 
-tests = (
-	abstract.Tests(libmetric),
-)
-
 def test_classification(test, lib):
 	test.fail_if_not_subclass(lib.Unit, abstract.Time)
 	test.fail_if_not_subclass(lib.Point, abstract.Time)
