@@ -49,17 +49,17 @@ Netscape = Organization(('netscape.org', None))
 #: Security
 transport_security = tuple(map(Protocol,[
 	(Netscape, None, "SSL", "1.0"),
-	(RFC, 6176, "SSL", "2.0"),
-	(RFC, 6101, "SSL", "3.0"),
-	(RFC, 2246, "TLS", "1.0"),
-	(RFC, 4346, "TLS", "1.1"),
-	(RFC, 5246, "TLS", "1.2"),
+	(IETF, 6176, "SSL", "2.0"),
+	(IETF, 6101, "SSL", "3.0"),
+	(IETF, 2246, "TLS", "1.0"),
+	(IETF, 4346, "TLS", "1.1"),
+	(IETF, 5246, "TLS", "1.2"),
 ]))
 
 #: Structures used for Public Key Infrastructure
 pki_structs = tuple(map(Protocol,[
-	(RFC, 5280, "X509", None),
+	(IETF, 5280, "X509", None),
 ]))
 
 #: Protocols identified as insecure or not applicable.
-insecure = set(security[:2])
+insecure = set(transport_security[:2])
