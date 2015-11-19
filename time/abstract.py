@@ -43,6 +43,7 @@ class Range(Time):
 		Determines whether or not the given `pit` is completely contained by the
 		Range.
 
+		#!/pl/python
 			assert self.start >= pit and pit < self.stop
 		"""
 
@@ -74,7 +75,7 @@ class Measure(Range):
 	def name(self):
 		"""
 		Name of the unit of time. Normally equal to
-		:py:attr:`.Time.unit`, but potentially different in cases
+		&Time.unit, but potentially different in cases
 		where the proper name is not an identifier.
 		"""
 
@@ -83,6 +84,7 @@ class Measure(Range):
 		"""
 		For Measure instances, this property *must* be zero.
 
+		#!/pl/python
 			assert measure.start == 0
 		"""
 
@@ -91,6 +93,7 @@ class Measure(Range):
 		"""
 		For Measure instances, this property *must* be the instance, :py:obj:`self`::
 
+		#!/pl/python
 			assert measure.stop is measure
 		"""
 
@@ -99,6 +102,7 @@ class Measure(Range):
 		"""
 		The magnitude of the Time instance. For Measures, this is their integer value::
 
+		#!/pl/python
 			assert int(measure) == measure.magnitude
 		"""
 
@@ -113,6 +117,7 @@ class Measure(Range):
 		Create an instance of the type from the sum of the quantities
 		specified by `units` and `parts`::
 
+		#!/pl/python
 			measure = chronometry.lib.Measure.of(hour = 33, microsecond = 44)
 		"""
 
@@ -127,8 +132,8 @@ class Measure(Range):
 		Returns a new Measure instance whose value is `self` increased by
 		the given parameters.
 
-		This is equivalent to::
-
+		This is equivalent to:
+		#!/pl/python
 			assert self.increase(*units, **parts) == self.of(self, *units, **parts)
 		"""
 
@@ -143,8 +148,9 @@ class Measure(Range):
 		Returns a new Measure instance whose value is `self` decreased by
 		the given parameters.
 
-		This is equivalent to::
+		This is equivalent to:
 
+		#!/pl/python
 			neg_units = [-unit for unit in units]
 			neg_parts = {k:-v for (k,v) in parts}
 
@@ -169,6 +175,7 @@ class Measure(Range):
 
 		Common cases::
 
+		#!/pl/python
 			h = x.select('hour', 'day')
 			m = x.select('minute', 'hour')
 			s = x.select('second', 'minute')
@@ -192,8 +199,9 @@ class Measure(Range):
 		Construct and return a new instance adjusted by the difference between the
 		selected part and the given value with respect to the specified alignment.
 
-		The following holds true::
+		The following holds true:
 
+		#!/pl/python
 			updated = pit.update(part, replacement, of, align)
 			adjusted = this.adjust(**{part: replacement - pit.select(part, of, align)})
 			assert updated == adjusted
@@ -279,7 +287,7 @@ class Point(Range):
 		Essentially, this is a call to the :py:meth:`.Measure.of`
 		method with the instance as the first parameter.
 
-		This is shorthand for ``T.of(T, *units, **parts)``.
+		This is shorthand for `T.of(T, *units, **parts)`.
 		"""
 
 	@abc.abstractmethod
@@ -289,25 +297,25 @@ class Point(Range):
 		point. The functionality is like :py:meth:`Scalar.adjust`, but negates
 		the parameters.
 
-		The method's implementation must hold the following properties::
-
+		The method's implementation must hold the following properties:
+		#!/pl/python
 			pit == (pit.ago(*measures, **units)).elapse(*measures, **units)
 
-		Where :py:obj:`pit` is an arbitrary :py:class:`Point`, :py:obj:`measures`
-		is a sequence of *compatible* :py:class:`Scalar` instances, and
-		:py:obj:`units` is a mapping of unit names to values.
+		Where :py:obj:`pit` is an arbitrary &Point, &measures
+		is a sequence of *compatible* &Scalar instances, and
+		&units is a mapping of unit names to values.
 		"""
 
 	@abc.abstractmethod
 	def leads(self, pit):
 		"""
-		Returns whether or not the Point in Time, self, comes *before* the given argument, `pit`.
+		Returns whether or not the Point in Time, self, comes *before* the given argument, &pit.
 		"""
 
 	@abc.abstractmethod
 	def follows(self, *units, **parts):
 		"""
-		Returns whether or not the Point in Time, self, comes *after* the given argument, `pit`.
+		Returns whether or not the Point in Time, self, comes *after* the given argument, &pit.
 		"""
 
 class Clock(metaclass=abc.ABCMeta):

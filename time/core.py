@@ -598,6 +598,7 @@ class Context(object):
 			liketerm = self.terms[Measure.unit]
 
 		Point.Measure = Measure
+		Point.__name__ = qname
 		return Point
 
 	def measure_factory(self, id, qname, kind = 'definite', Class = Measure, name = None, address = None):
@@ -618,6 +619,7 @@ class Context(object):
 			context = self
 			liketerm = self.terms[id]
 
+		Measure.__name__ = qname
 		return Measure
 
 def standard_context(qname):

@@ -1,56 +1,56 @@
 """
-Primary module for using the datetime types and functions in the chronometry package.
+Primary public module for using the datetime types and functions in the chronometry package.
 
-Unit Knowledge
---------------
+[ Unit Knowledge ]
+------------------
 
 All of the following units are defined in the default Time Context. However, the
 emphasized units are the only units with designated classes by default.
 
 /earth
-  - second
-  - minute
-  - hour
-  - *day*
-  - *week*
-  - annum (Julian Year)
+	- second
+	- minute
+	- hour
+	- *day*
+	- *week*
+	- annum (Julian Year)
 
 /gregorian
-  - *month*
-  - year
-  - decade
-  - century
-  - millennium
+	- *month*
+	- year
+	- decade
+	- century
+	- millennium
 
 /metric subseconds
-  - decisecond
-  - centisecond
-  - millisecond
-  - microsecond
-  - *nanosecond*
-  - picosecond
-  - femtosecond
-  - attosecond
-  - zeptosecond
-  - yoctosecond
+	- decisecond
+	- centisecond
+	- millisecond
+	- microsecond
+	- *nanosecond*
+	- picosecond
+	- femtosecond
+	- attosecond
+	- zeptosecond
+	- yoctosecond
 
 /metric seconds
-  - decasecond
-  - hectosecond
-  - kilosecond
-  - megasecond
-  - gigasecond
-  - terasecond
-  - petasecond
-  - exasecond
-  - zettasecond
-  - yottasecond
+	- decasecond
+	- hectosecond
+	- kilosecond
+	- megasecond
+	- gigasecond
+	- terasecond
+	- petasecond
+	- exasecond
+	- zettasecond
+	- yottasecond
 
 The emphasized units are the units associated with actual Python types. All other units
 are expressed in terms of those units unless the time context is explicitly extended.
 
-Indefinite Units
-----------------
+[ Indefinite Units ]
+--------------------
 
 Units of unbound quantities of time are called "eternals". They are a special Measure and
 Point type that have only three values: zero, infinity, and negative infinity.
@@ -167,20 +167,20 @@ del sys
 
 def unix(unix_timestamp, Timestamp = Timestamp.of):
 	"""
-	unix(unix_timestamp)
-
 	Create a &Timestamp instance *from seconds since the unix epoch*.
 
-	>>> chronometry.library.unix(0)
-	... chronometry.library.Timestamp.of(iso='1970-01-01T00:00:00.0')
+	#!/pl/python
+		chronometry.library.unix(0)
+		chronometry.library.Timestamp.of(iso='1970-01-01T00:00:00.0')
 
 	For precision beyond seconds, a subsequent elapse can be used.
 
-	>>> float_ts = time.time()
-	>>> nsecs = int(float_ts)
-	>>> us = int((float_ts - nsecs) * 1000000)
-	>>> x = chronometry.library.unix(nsecs)
-	>>> x = x.elapse(microsecond=us)
+	#!/pl/python
+		float_ts = time.time()
+		nsecs = int(float_ts)
+		us = int((float_ts - nsecs) * 1000000)
+		x = chronometry.library.unix(nsecs)
+		x = x.elapse(microsecond=us)
 	"""
 	return Timestamp(unix=unix_timestamp)
 
@@ -193,6 +193,7 @@ class PartialAttributes(object):
 	Chronometry internal use only.
 	"""
 	__slots__ = ('__construct', '__names')
+
 	def __init__(self, construct, names = ()):
 		self.__construct = construct
 		self.__names = names
@@ -226,11 +227,11 @@ def construct_open(names, args, kw, mc = operator.methodcaller):
 del operator
 
 #: Composition constructor for selecting parts from [time] Unit Objects.
-#: For instance, ``select.day.week()``.
+#: For instance, `select.day.week()`.
 select = PartialAttributes(construct_select)
 
 #: Composition constructor for updating Time Objects.
-#: For instance, ``update.day.week(0)``.
+#: For instance, `update.day.week(0)`.
 update = PartialAttributes(construct_update)
 
 #: Composition constructor for instantiating [time] Unit Objects from Container types.
@@ -263,20 +264,21 @@ def range(start, stop, step = None, Segment = Segment):
 	will be a day, but for timestamps, the magnitude is a nanosecond and will not
 	be ideal for most uses. Usually, a &step should be provided.
 
-	>>> pit = chronometry.library.now()
-	>>> week_start = pit.update('day', 1, 'week')
-	>>> week_end = begin.elapse(day=7)
-	>>> this_week = chronometry.library.range(week_start, week_end, library.Days(1))
+	#!/pl/python
+		pit = chronometry.library.now()
+		week_start = pit.update('day', 1, 'week')
+		week_end = begin.elapse(day=7)
+		this_week = chronometry.library.range(week_start, week_end, library.Days(1))
 	"""
 	return Segment((start, stop)).points(step)
 
 def field_delta(field, start, stop):
 	"""
-	/ &field
+	/&field
 		The name of the unit whose changes will be represented.
-	/ &start
+	/&start
 		The beginning of the range.
-	/ &stop
+	/&stop
 		The end of the range.
 
 	Return the range components for identifying the exact field changes that occurred between two
@@ -304,14 +306,14 @@ def business_week(pit, five = Days(5), one = Days(1), list = list):
 	stop = start.elapse(five)
 	return list(range(start, stop, one))
 
-def zone(
-	name = None,
-	construct = unix,
-	zone_open = functools.lru_cache()(libzone.Zone.open),
-):
+def zone(name:str=None,
+		construct=unix,
+		zone_open=functools.lru_cache()(libzone.Zone.open),
+	) -> libzone.Zone:
 	"""
 	Return a Zone object for localizing UTC timestamps and normalizing local timestamps.
 	"""
+
 	return zone_open(construct, name)
 
 class Scheduler(object):
@@ -367,16 +369,14 @@ class Scheduler(object):
 		# This set is used as a filter by Defer cycles.
 		self.cancellations.update(events)
 
-	def put(self, *schedules, push = heapq.heappush):
+	def put(self, *schedules, push=heapq.heappush) -> int:
 		"""
-		put(*schedules)
-
-		:param schedules: The Measure, Event pairs.
-		:type schedules: (:py:class:`.lib.Measure`, :py:class:`object`)
-		:returns: A sequence of event identifiers that can be used for cancellation.
-		:rtype: [:py:class:`int`]
-
 		Schedules the given events for execution.
+
+		[ Parameters ]
+
+		/schedules
+			The Measure, Event pairs: (&Measure, &object), ...
 		"""
 		snapshot = self.meter.snapshot()
 		events = []
@@ -394,10 +394,8 @@ class Scheduler(object):
 
 		return events
 
-	def get(self, pop = heapq.heappop, push = heapq.heappush):
+	def get(self, pop=heapq.heappop, push=heapq.heappush):
 		"""
-		:rtype: [(:py:class:`.library.Measure`, :py:class:`object`), ...]
-
 		Return all events whose sheduled delay has elapsed according to the Chronometer.
 
 		The pairs within the returned sequence consist of a Measure and the Event. The
