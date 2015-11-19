@@ -17,8 +17,8 @@ Interfaces here work exclusively with character-strings; wire data must be decod
 
 	Construct a &Type instance from a MIME type string.
 
-	Code:[python]
-
+	Code:
+	#!/pl/python
 		mt = libmedia.type_from_string("text/xml")
 
 	Equivalent to &Type.from_string, but cached.
@@ -144,12 +144,12 @@ class Type(tuple):
 	An IANA Media Type.
 
 	A container interface (`in`) is provided in order to identify if a given
-	type is considered to be within another::
+	type is considered to be within another:
 
-	 text/html in */*
-	 text/html in text/*
-	 text/html;level=1 in text/html
-	 text/html not in text/html;level=1
+		- text/html in */*
+		- text/html in text/*
+		- text/html;level=1 in text/html
+		- text/html not in text/html;level=1
 	"""
 	__slots__ = ()
 
@@ -245,14 +245,13 @@ def parse(header,
 	"""
 	Generate the media range from the contents of an Accept header.
 
-	Yields:
-
-		[(:py:class:`internet.libmedia.Type`, None or [(k,v),...]),...]
+	Yields: `[(internet.libmedia.Type, None or [(k,v),...]),...]`
 
 	Where the second item in the yielded tuples is a list of media type options.
 
-	.. note:: This function must be used explicitly by the receiver
-				 of the disassembler as parsing this information has costs.
+	! NOTE:
+		This function must be used explicitly by the receiver
+		of the disassembler as parsing this information has costs.
 	"""
 	# fuck parser generators! we like the pain
 	current_type = None
@@ -363,8 +362,6 @@ class Range(tuple):
 	@staticmethod
 	def parse_options(options, strip = str.strip, tuple = tuple):
 		"""
-		parse_options(options)
-
 		:param options: Iterator of equality delimited fields.
 		:type options: :py:class:`collections.Iterable`
 

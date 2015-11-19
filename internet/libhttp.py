@@ -99,40 +99,40 @@ EOM = (Event.message, None)
 # Some notably relevant portions are:
 #  4.4 Message Length (chunked vs Content-Length)
 def Disassembler(
-	max_line_size = 0xFFFF*3, # maximum length of the Request-Line or Response-Line
-	max_headers = 1024, # maximum number of headers to accept
-	max_trailers = 32, # maximum number of trailers to accept
-	max_header_size = 0xFFFF*2, # len(field-name) + len(field-value)
-	max_trailer_size = 0xFFFF*2, # len(field-name) + len(field-value)
-	max_chunk_line_size = 0xFFF, # chunk size portion, not the chunk data size
+		max_line_size : int = 0xFFFF*3, # maximum length of the Request-Line or Response-Line
+		max_headers : int = 1024, # maximum number of headers to accept
+		max_trailers : int = 32, # maximum number of trailers to accept
+		max_header_size : int = 0xFFFF*2, # len(field-name) + len(field-value)
+		max_trailer_size : int = 0xFFFF*2, # len(field-name) + len(field-value)
+		max_chunk_line_size : int = 0xFFF, # chunk size portion, not the chunk data size
 
-	# local()-izations
-	len = len, tuple = tuple,
-	bytes = bytes, int = int,
-	bastrip = bytearray.strip,
-	bytearray = bytearray,
-	map = map, range = range,
-	max = max,
+		# local()-izations
+		len = len, tuple = tuple,
+		bytes = bytes, int = int,
+		bastrip = bytearray.strip,
+		bytearray = bytearray,
+		map = map, range = range,
+		max = max,
 
-	CRLF = http.CRLF, SP = http.SP,
-	PROTOCOLS = http.VERSIONS,
+		CRLF = http.CRLF, SP = http.SP,
+		PROTOCOLS = http.VERSIONS,
 
-	NO_BODY_RESPONSE_CODES = frozenset((
-		http.codes['NOT_MODIFIED'], http.codes['NO_CONTENT']
-	)),
+		NO_BODY_RESPONSE_CODES = frozenset((
+			http.codes['NOT_MODIFIED'], http.codes['NO_CONTENT']
+		)),
 
-	SIZE_DESIGNATION = frozenset((
-		b'content-length', b'transfer-encoding',
-	)),
+		SIZE_DESIGNATION = frozenset((
+			b'content-length', b'transfer-encoding',
+		)),
 
-	bypass_ev = Event.bypass,
-	rline_ev = Event.rline,
-	headers_ev = Event.headers,
-	content_ev = Event.content,
-	chunk_ev = Event.chunk,
-	trailers_ev = Event.trailers,
-	violation_ev = Event.violation,
-):
+		bypass_ev = Event.bypass,
+		rline_ev = Event.rline,
+		headers_ev = Event.headers,
+		content_ev = Event.content,
+		chunk_ev = Event.chunk,
+		trailers_ev = Event.trailers,
+		violation_ev = Event.violation,
+	):
 	"""
 	An HTTP message parser. Emits HTTP events from the given binary data.
 
