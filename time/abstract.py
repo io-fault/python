@@ -28,13 +28,13 @@ class Range(Time):
 	@abc.abstractproperty
 	def stop(self):
 		"""
-		The end of the range. Normally, `stop` is treated in a non-inclusive manner.
+		The end of the range. Normally, &stop is treated in a non-inclusive manner.
 		"""
 
 	@abc.abstractproperty
 	def magnitude(self):
 		"""
-		The size of the Range in terms of the :py:attr:`start`.
+		The size of the Range in terms of the &start.
 		"""
 
 	@abc.abstractmethod
@@ -91,7 +91,7 @@ class Measure(Range):
 	@abc.abstractproperty
 	def stop(self):
 		"""
-		For Measure instances, this property *must* be the instance, :py:obj:`self`::
+		For Measure instances, this property *must* be the instance, &self:
 
 		#!/pl/python
 			assert measure.stop is measure
@@ -100,50 +100,59 @@ class Measure(Range):
 	@abc.abstractproperty
 	def magnitude(self):
 		"""
-		The magnitude of the Time instance. For Measures, this is their integer value::
+		The magnitude of the Time instance. For Measures, this is their integer value:
 
 		#!/pl/python
 			assert int(measure) == measure.magnitude
 		"""
 
 	@abc.abstractclassmethod
-	def of(type, *times, **parts):
+	def of(Class, *times, **parts):
 		"""
-		:param times: A sequence of time instances.
-		:type times: :py:class:`.Time`
-		:param parts: Keyword names designate the unit of the corresponding value. The time context dictates what that is.
-		:type parts: :py:class:`int`
-
 		Create an instance of the type from the sum of the quantities
-		specified by `units` and `parts`::
+		specified by &times and &parts:
 
 		#!/pl/python
-			measure = chronometry.lib.Measure.of(hour = 33, microsecond = 44)
+			measure = Measure.of(hour = 33, microsecond = 44)
+
+		The above example only shows keyword use that is specific to the standard
+		time context used by Chronometry. Variable position arguments, &times,
+		are pre-existing &Measure instances.
+
+		[ Parameters ]
+
+		/&times
+			A sequence of &Time instances.
+		/&parts
+			Keyword names designate the unit of the corresponding value.
+			The time context dictates what that is.
 		"""
 
 	@abc.abstractmethod
 	def increase(self, *units, **parts):
 		"""
-		:param units: Variable number of :py:class:`Measure` instances.
-		:param parts: Variable keywords whose keys designate the unit.
-
-		Increase the measurement, repositioning the :py:attr:`stop`.
+		Increase the measurement, repositioning the &stop.
 
 		Returns a new Measure instance whose value is `self` increased by
 		the given parameters.
 
 		This is equivalent to:
+
 		#!/pl/python
 			assert self.increase(*units, **parts) == self.of(self, *units, **parts)
+
+		[ Parameters ]
+
+		/&units
+			Variable number of &Measure instances.
+		/&parts
+			Variable keywords whose keys designate the unit.
 		"""
 
 	@abc.abstractmethod
 	def decrease(self, *units, **parts):
 		"""
-		:param units: Variable number of :py:class:`Measure` instances.
-		:param parts: Variable keywords whose keys designate the unit.
-
-		Decrease the measurement, repositioning the :py:attr:`stop`.
+		Decrease the measurement, repositioning the &stop.
 
 		Returns a new Measure instance whose value is `self` decreased by
 		the given parameters.
@@ -155,47 +164,48 @@ class Measure(Range):
 			neg_parts = {k:-v for (k,v) in parts}
 
 			assert self.decrease(*units, **parts) == self.of(self, *neg_units, **neg_parts)
+
+		[ Parameters ]
+
+		/&units
+			Variable number of &Measure instances.
+		/&parts
+			Variable keywords whose keys designate the unit.
 		"""
 
 	@abc.abstractmethod
 	def select(self, part, of = None, align = 0):
 		"""
-		:param part: The unit whose count is to be returned.
-		:type part: :py:class:`str`
-		:param of: The unit whose total wholes are subtracted from `self` in order to find the correct total parts.
-		:type of: :py:class:`str`
-		:param align: How to align the given part. Trivially, this is a difference that is applied prior to removing wholes: `value = self - align`.
-		:type align: :py:class:`int`
-
 		Extract the number of complete parts designated by `part` after the last
 		complete whole, `of`, with respect to the alignment, `align`.
 
-		The result is a Python :py:class:`int` or an arbitrary object given that
+		The result is an &int or an arbitrary object given that
 		a Container part is referenced.
 
-		Common cases::
+		Common cases:
 
 		#!/pl/python
 			h = x.select('hour', 'day')
 			m = x.select('minute', 'hour')
 			s = x.select('second', 'minute')
 			u = x.select('microsecond', 'second')
+
+		[ Parameters ]
+
+		/&part
+			The unit whose count is to be returned.
+		/&of
+			The unit whose total wholes are subtracted
+			from `self` in order to find the correct total parts.
+		/&align
+			How to align the given part.
+			Trivially, this is a difference that is applied
+			prior to removing wholes: `value = self - align`.
 		"""
 
 	@abc.abstractmethod
 	def update(self, part, replacement, of = None, align = 0):
 		"""
-		:param part: The name of the Part unit to set.
-		:type part: :py:class:`str`
-		:param replacement: The new value to set.
-		:type replacement: :py:class:`int`
-		:param of: The name of the Whole unit that defines the boundary of the part.
-		:type of: :py:class:`str`
-		:param align: Defaults to zero; the adjustment applied to the boundary.
-		:type align: :py:class:`int`
-		:returns: The adjusted time instance.
-		:rtype: :py:class:`Time`
-
 		Construct and return a new instance adjusted by the difference between the
 		selected part and the given value with respect to the specified alignment.
 
@@ -207,18 +217,29 @@ class Measure(Range):
 			assert updated == adjusted
 
 		It's existence as an interface is due to its utility.
+
+		[ Parameters ]
+
+		/&part
+			The name of the Part unit to set.
+		/&replacement
+			The new value to set.
+		/&of
+			The name of the Whole unit that defines the boundary of the part.
+		/&align
+			Defaults to zero; the adjustment applied to the boundary.
 		"""
 
 	@abc.abstractmethod
 	def truncate(self, unit):
 		"""
-		:param unit: The minimum unit size to allow in the new time instance.
-		:type unit: :py:class:`str`
-		:returns: The adjust time instance.
-		:rtype: :py:class:`Time`
+		Truncates the time instance to the specified boundary: remove units smaller
+		than the given &unit.
 
-		Truncates the time instance to the specified boundary: remove units smaller than the
-		specified `unit`.
+		[ Parameters ]
+
+		/&unit
+			The minimum unit size to allow in the new time instance.
 		"""
 
 class Point(Range):
@@ -251,16 +272,18 @@ class Point(Range):
 	@abc.abstractproperty
 	def start(self):
 		"""
-		Points *must* return the instance; :py:obj:`self`::
+		Points *must* return the instance, &self:
 
+		#!/pl/python
 			assert pit.start is pit
 		"""
 
 	@abc.abstractproperty
 	def stop(self):
 		"""
-		The next Point according to the unit::
+		The next Point according to the unit:
 
+		#!/pl/python
 			assert point.stop == point.elapse(point.Measure(1))
 		"""
 
@@ -269,14 +292,15 @@ class Point(Range):
 		"""
 		The magnitude of the Point. For Points, this *must* be one::
 
+		#!/pl/python
 			assert pit.magnitude == 1
 		"""
 
 	@abc.abstractmethod
 	def measure(self, pit):
 		"""
-		Return the measurement, :py:attr:`Measure` instance, between `self` and
-		the given point in time. The delta between the two points.
+		Return the measurement, &Measure instance, between &self and
+		the given point in time, &pit. The delta between the two points.
 		"""
 
 	@abc.abstractmethod
@@ -284,7 +308,7 @@ class Point(Range):
 		"""
 		Returns an adjusted measure in time by the given arguments and keywords.
 
-		Essentially, this is a call to the :py:meth:`.Measure.of`
+		Essentially, this is a call to the &of
 		method with the instance as the first parameter.
 
 		This is shorthand for `T.of(T, *units, **parts)`.
@@ -294,28 +318,31 @@ class Point(Range):
 	def rollback(self, *units, **parts):
 		"""
 		The point in time that occurred the given number of units before this
-		point. The functionality is like :py:meth:`Scalar.adjust`, but negates
+		point. The functionality is like &Measure.elapse, but negates
 		the parameters.
 
 		The method's implementation must hold the following properties:
-		#!/pl/python
-			pit == (pit.ago(*measures, **units)).elapse(*measures, **units)
 
-		Where :py:obj:`pit` is an arbitrary &Point, &measures
-		is a sequence of *compatible* &Scalar instances, and
-		&units is a mapping of unit names to values.
+		#!/pl/python
+			pit == (pit.rollback(*measures, **units)).elapse(*measures, **units)
+
+		Where `pit` is an arbitrary &Point, `measures`
+		is a sequence of *compatible* &Measure instances, and
+		`units` is a mapping of unit names to values.
 		"""
 
 	@abc.abstractmethod
 	def leads(self, pit):
 		"""
-		Returns whether or not the Point in Time, self, comes *before* the given argument, &pit.
+		Returns whether or not the Point in Time, self,
+		comes *before* the given argument, &pit.
 		"""
 
 	@abc.abstractmethod
 	def follows(self, *units, **parts):
 		"""
-		Returns whether or not the Point in Time, self, comes *after* the given argument, &pit.
+		Returns whether or not the Point in Time, self,
+		comes *after* the given argument, &pit.
 		"""
 
 class Clock(metaclass=abc.ABCMeta):
@@ -364,7 +391,7 @@ class Clock(metaclass=abc.ABCMeta):
 		until another has elapsed.
 
 		Period iterators are primarily used to poll for chunks of elapsed
-		time. Whereas, :py:meth:`delta` iterators only offer the finest
+		time. Whereas, &delta iterators only offer the finest
 		grain available.
 		"""
 
@@ -372,11 +399,11 @@ class Clock(metaclass=abc.ABCMeta):
 	def stopwatch(self):
 		"""
 		Return a context manager that measures the amount of time that has
-		elapsed since the invocation of :py:meth:`__enter__`. The yielded
+		elapsed since the invocation of &__enter__. The yielded
 		object is a reference to the elapsed time and can be referenced prior
 		to the exit of the context manager.
 
-		Once :py:meth:`__exit__` is called, the elapsed time must no longer
+		Once &__exit__ is called, the elapsed time must no longer
 		be measured and the result is subsequently consistent.
 		"""
 

@@ -274,18 +274,20 @@ def range(start, stop, step = None, Segment = Segment):
 
 def field_delta(field, start, stop):
 	"""
+	Return the range components for identifying the exact field changes that occurred between two
+	&.abstract.Time instances. This function returns components suitable as input to &range.
+
+	This function can be used to identify the changes that occurred to a particular field
+	within the given range designated by &start and &stop.
+
+	[ Parameters ]
+
 	/&field
 		The name of the unit whose changes will be represented.
 	/&start
 		The beginning of the range.
 	/&stop
 		The end of the range.
-
-	Return the range components for identifying the exact field changes that occurred between two
-	&.abstract.Time instances. This function returns components suitable as input to &range.
-
-	This function can be used to identify the changes that occurred to a particular field
-	within the given range designated by &start and &stop.
 	"""
 	start = start.truncate(field)
 	stop = stop.truncate(field)

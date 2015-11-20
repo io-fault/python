@@ -1,8 +1,9 @@
 """
-⌛ About
---------
+[ About ]
+---------
 
-.. warning:: chronometry is a work in progress.
+! WARNING:
+	Chronometry is a work in progress.
 
 chronometry is a date and time package based on the built-in Python `int`.
 By default, timestamps have nanosecond precision granting common applications
@@ -16,26 +17,30 @@ Calendar Support:
 
  * Proleptic Gregorian
 
-chronometry's APIs are *not* compatible with the standard library's datetime module. *On purpose.*
+chronometry's APIs are *not* compatible with the standard library's datetime module.
 
-The surface functionality is provided library @:package.library.
+The surface functionality is provided library @:package.library:
 
+#!/pl/python
 	import chronometry.library
 
 Current date and time as a @:package.library.Timestamp.
 
+#!/pl/python
 	now = chronometry.library.now() # UTC
 
-Calendar Representation
------------------------
+[ Calendar Representation ]
+---------------------------
 
 A Date can be used to represent the span of the entire day.
 
+#!/pl/python
 	date = chronometry.library.Date.of(year=1982, month=4, day=17)
 	assert date.select('day', 'month') == 17
 
 However, the above actually represents.
 
+#!/pl/python
 	assert date.select('date') == (1982, 5, 18)
 
 Usually, using the `date` keyword is best way to to work with
@@ -46,12 +51,14 @@ literal dates.
 The calendrical **representation** only takes effect through certain
 interfaces.
 
+#!/pl/python
 	ts = chronometry.library.Timestamp.of(iso="2001-01-01T05:30:01")
 	print(repr(ts))
 	chronometry.library.Timestamp.of(iso='2001-01-01T05:30:01.000000')
 
 And from a datetime tuple.
 
+#!/pl/python
 	ts2 = chronometry.library.Timestamp.of(datetime = (2001, 1, 1, 5, 30, 1, 0))
 	assert ts == ts2
 
@@ -60,18 +67,20 @@ values overflow onto larger units. This is similar to how MySQL handles
 overflow. For chronometry, this choice is deliberate and the user is expected to
 perform any desired validation.
 
+#!/pl/python
 	pit = chronometry.library.Date.of(date=(1982,5,0))
 
 The assigned `pit` now points to the last day of the month preceding the fifth
 month in the year 1982. This kind of wrapping allows chronometry users to *quickly*
 perform some of the most difficult datetime math.
 
-Datetime Math
--------------
+[ Datetime Math ]
+-----------------
 
 chronometry can easily answer questions like, "What was third weekend of the fifth
 month of last year?".
 
+#!/pl/python
 	pit = chronometry.library.now()
 	pit = pit.update('day', 0, 'month') # set to the first day to avoid overflow
 	pit = pit.rollback(year=1) # subtract one gregorian year
@@ -82,6 +91,7 @@ month of last year?".
 Things can get a little more interesting when asking, "What is the
 last weekend of the month?". It's not a problem::
 
+#!/pl/python
 	# move the beginning of month (to avoid possible day overflow)
 	pit = chronometry.library.now().update('day', 0, 'month')
 	# to the next month and then to the end of the previous
@@ -91,6 +101,7 @@ last weekend of the month?". It's not a problem::
 
 On day overflow, the following illustrates the effect::
 
+#!/pl/python
 	# working with a leap year
 	pit = chronometry.library.Timestamp.of(iso='2012-01-31T18:55:33.946259')
 	pit.elapse(month=1)
@@ -104,6 +115,7 @@ Things can get even more interesting when asking,
 "What is the second to last Thursday of the month". Questions like this require
 alignment in order to be answered::
 
+#!/pl/python
 	pit = chronometry.library.now()
 	pit = pit.update('day', 0, 'month') # let's say this month
 	# but we need the end of the month
@@ -120,16 +132,17 @@ set to zero. This is why the day is set to the last day of the month, in case
 the Thursday is the last day of the month, and with proper alignment the first
 day of the re-aligned week.
 
-Clocks
-------
+[ Clocks ]
+----------
 
-:py:func:`.chronometry.library.now` provides quick and easy access to "demotic time", UTC
+&.library.now provides quick and easy access to "demotic time", UTC
 wall clock. However, chronometry provides clock based devices for processes with
 monotonic requirements for things like rate limiting, polling timeouts, and
 simple execution-time measures.
 
 Measuring the execution time of a code block is easy with a chronometry stopwatch::
 
+#!/pl/python
 	def work():
 		pass
 
@@ -139,32 +152,34 @@ Measuring the execution time of a code block is easy with a chronometry stopwatc
 	print(snapshot())
 	print(snapshot())
 
-
-.. note:: Considering the overhead involved with instantiating a
-          :py:class:`.chronometry.library.Timestamp` instance, measuring
-          execution with the high-level clock interfaces may
-          not be appropriate or may require some adjustments
-          accounting for the overhead.
-
+! NOTE:
+	Considering the overhead involved with instantiating a
+	&.library.Timestamp instance, measuring
+	execution with the high-level clock interfaces may
+	not be appropriate or may require some adjustments
+	accounting for the overhead.
 
 The current runtime of a stopwatch can be accessed within the block as well.
 However, once the block exits, the stopwatch will stop tracking elapsed time.
 
-Deltas and meters provide a means to track the change in, monotonic, time::
+Deltas and meters provide a means to track the change in, monotonic, time:
 
+#!/pl/python
 	for measure_since_last_iteration in chronometry.library.clock.delta():
 		pass
 
-Meters are like deltas, but provide the *total* measurement::
+Meters are like deltas, but provide the *total* measurement:
 
+#!/pl/python
 	for measure_since_first_iteration in chronometry.library.clock.meter():
 		pass
 
-Time Zones
-----------
+[ Time Zones ]
+--------------
 
-Time zone adjustments are supported by zone objects::
+Time zone adjustments are supported by zone objects:
 
+#!/pl/python
 	pit = chronometry.library.now()
 	tz = chronometry.library.zone('America/Los_Angeles')
 	local_pit = tz.localize(pit)
