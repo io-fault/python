@@ -7,17 +7,17 @@ lists are the time classes created by that context.
 
 Point In Time types:
 
- - &.library.Timestamp
- - &.library.Date
- - &.library.Week
- - &.library.GregorianMonth
+	- &.library.Timestamp
+	- &.library.Date
+	- &.library.Week
+	- &.library.GregorianMonth
 
 Measure types:
 
- - &.library.Measure
- - &.library.Days
- - &.library.Weeks
- - &.library.Months
+	- &.library.Measure
+	- &.library.Days
+	- &.library.Weeks
+	- &.library.Months
 
 The interfaces are described by the abstract base classes in
 &.abstract. Primarily:
@@ -74,11 +74,11 @@ a homogenous pair.
 		d[library.Timestamp][library.Timestamp(0))] = 'Hello, Timestamp!'
 
 /Datetime Math
-	chronometry is heavily based on direct Python `int` subclasses. This offers many
+	chronometry is heavily based on direct Python &int subclasses. This offers many
 	benefits, but it also avoids overriding the integer's operators leaving a,
 	contextually, low-level operation that should normally be avoided. This likely
 	offers a suprise as the usual `+` and `-` operators do not perform as they would
-	with the standard library's `datetime.datetime` or many other datetime packages.
+	with the standard library's &datetime.datetime or many other datetime packages.
 
 	Instead, chronometry relies on the higher-level methods to perform delta
 	calculation and point positioning.
@@ -383,14 +383,14 @@ By extension, to get the following Monday, just add seven:
 Or, to get the preceding Monday, just substract seven:
 
 #!/pl/python
-	ts = chronometry.library.Timestamp.of(iso="2000-01-01T3:30:00")
-	ts = ts.update('day', 1-7, 'week')
-	print(ts)
-	# '1999-12-20T03:30:00.000000'
-	print(ts.select('weekday'))
-	# 'monday'
+	>>> ts = chronometry.library.Timestamp.of(iso="2000-01-01T3:30:00")
+	>>> ts = ts.update('day', 1-7, 'week')
+	>>> print(ts)
+	1999-12-20T03:30:00.000000
+	>>> print(ts.select('weekday'))
+	monday
 
-And so on: 1+|-14, 1+|-21...
+And so on: `1+|-14`, `1+|-21`, ...
 
 Getting a Particular Weekday of a Month
 ---------------------------------------
@@ -425,9 +425,9 @@ Subsequently, allowing quick identification:
 [ Eternal Measures and Points ]
 ===============================
 
-`chronometry` defines eternal units of time that are of Indefinite non-zero periods. These units are used to
+Chronometry defines eternal units of time that are of Indefinite non-zero periods. These units are used to
 define the very beginning, the current, and the very end of time: &.library.Genesis,
-&.library.Present`, &.library.Never`. These points in time are ambiguous and have simple rules
+&.library.Present, &.library.Never. These points in time are ambiguous and have simple rules
 when used with finite points in time. Never is a point in the future that is greater than
 all other points, Genesis is a point in the past before all other points, and Present
 is a continually moving point representing the current point in time, which is a subjective concept normally
@@ -436,7 +436,7 @@ Like other Points in Time, there are corresponding measures: positive and negati
 not commonly referred to or used.
 
 Eternals also allow for the creation of indefinite segments. There are three built-in
-segments: &.library.Time`, &.library.Past`, &.library.Future`. These segments
+segments: &.library.Time, &.library.Past, &.library.Future. These segments
 represent common concepts that can be used to identify whether or not a given point has
 already occurred or will occur as Present, the start or stop of the segments, is a
 continually moving point in time.
@@ -445,16 +445,16 @@ Indefinite points such as Never and Genesis are also useful for creating unbound
 segments from a particular point in time:
 
 #!/pl/python
-   pit = chronometry.library.now().rollback(hour=1)
-   rfuture = chronometry.library.Segment((pit, chronometry.library.Never))
+	pit = chronometry.library.now().rollback(hour=1)
+	rfuture = chronometry.library.Segment((pit, chronometry.library.Never))
 
 The `rfuture` segment starts an hour in the past and never ends. Notably, iterators
 created by the segment are continuous in the future:
 
 #!/pl/python
-   hourly = rfuture.points(chronometry.library.Measure.of(hour=1))
-   for x, ts in zip(range(3), hourly):
-      print(x, ts)
+	hourly = rfuture.points(chronometry.library.Measure.of(hour=1))
+	for x, ts in zip(range(3), hourly):
+		print(x, ts)
 
 Managing sets of unbounded segments are the recommended way to manage recurring jobs.
 
@@ -468,9 +468,9 @@ individual PiT or scalar, but often an operation needs to be applied
 The &.library module has a few tools for
 constructing--FP'ish--compositions for extraction, manipulation, and creation.
 
- * &.library.select
- * &.library.update
- * &.library.open
+	- &.library.select
+	- &.library.update
+	- &.library.open
 
 Using these objects to construct selectors and manipulations is often desirable
 over `generator expressions` as it allows a reference to the desired transformation.
@@ -523,24 +523,24 @@ parameter to the constructor.
 
 Common forms:
 
- `chronometry.library.open.unix(chronometry.library.Timestamp)`
-  Given an integer relative to the UNIX epoch, return a
-  corresponding &.library.Timestamp instance.
+/`chronometry.library.open.unix(chronometry.library.Timestamp)`
+	Given an integer relative to the UNIX epoch, return a
+	corresponding &.library.Timestamp instance.
 
- `chronometry.library.open.iso(chronometry.library.Timestamp)`
-  Given an ISO formatted string, return a
-  corresponding &.library.Timestamp instance.
+/`chronometry.library.open.iso(chronometry.library.Timestamp)`
+	Given an ISO formatted string, return a
+	corresponding &.library.Timestamp instance.
 
- `chronometry.library.open.iso(chronometry.library.Date)`
-  Same as the varient taking the timestamp, but align the Point to the date.
+/`chronometry.library.open.iso(chronometry.library.Date)`
+	Same as the varient taking the timestamp, but align the Point to the date.
 
- `chronometry.library.open.rfc(chronometry.library.Timestamp)`
-  Like the ISO variant, but take an RFC complient string.
-  This is notably useful when working with HTTP.
+/`chronometry.library.open.rfc(chronometry.library.Timestamp)`
+	Like the ISO variant, but take an RFC complient string.
+	This is notably useful when working with HTTP.
 
- `chronometry.library.open.datetime(chronometry.library.Timestamp)`
-  Build a constructor that takes seconds from the UNIX epoch and returns a
-  &.library.Timestamp instance.
+/`chronometry.library.open.datetime(chronometry.library.Timestamp)`
+	Build a constructor that takes seconds from the UNIX epoch and returns a
+	&.library.Timestamp instance.
 
 [ Working with the Clock ]
 ==========================
@@ -679,7 +679,7 @@ consistency is maintained.
 [ Working with Time Zones ]
 ===========================
 
-**Time zones are difficult**. In the best situations, use is not necessary, but that is,
+Time zones are *difficult* to work with. In the best situations, use is not necessary, but that is,
 unfortunately, not often. Time zones offer a rather unique problem as programmers are
 indirectly forced into supporting designations often defined by local government. This
 imposition complicates the situation dramatically. Even in the case where the right
@@ -696,8 +696,8 @@ The difficulty of time zones stems from the need to transition to and from an
 offset for appropriating the representation of a Point in Time. This is referring to
 a couple tasks:
 
- * Representing a UTC Point in Time in a local form.
- * Converting a local form to a UTC Point in Time.
+	- Representing a UTC Point in Time in a local form.
+	- Converting a local form to a UTC Point in Time.
 
 While this is trivial on the face, the local form is actually a moving target. A
 time zone database is maintained by a standards body in order to keep
@@ -712,8 +712,8 @@ is often dependent on the context in which a given local form is being used.
 
 When working with zoned PiTs, there are two situations:
 
- 1. A canonical PiT, normally a PiT in UTC associated with a zone.
- 2. A local PiT where the local form is being represented
+	# A canonical PiT, normally a PiT in UTC associated with a zone.
+	# A local PiT where the local form is being represented
 
 Each situation has its own requirements for proper zone handling.
 
@@ -734,15 +734,15 @@ While &.libzone provides the implementation of Zone objects, high level
 access is provided via the &.library.zone function:
 
 #!/pl/python
-   tz = chronometry.library.zone('America/Los_Angeles')
-   pit = chronometry.library.now()
-   offset = tz.find(pit)
+	tz = chronometry.library.zone('America/Los_Angeles')
+	pit = chronometry.library.now()
+	offset = tz.find(pit)
 
 Once the &.libzone.Offset object has been found for a given point in
 time, the UTC point can be adjusted:
 
 #!/pl/python
-   la_pit = pit.elapse(offset)
+	la_pit = pit.elapse(offset)
 
 Localizing a UTC Point in Time
 ------------------------------
@@ -758,8 +758,8 @@ The offset applied to the point in time is returned with the adjusted point as i
 often necessary in order to properly represent the timestamp:
 
 #!/pl/python
-   offset.iso(pit)
-   "2013-01-17T15:36:35.834813000 PST-28800"
+	offset.iso(pit)
+	"2013-01-17T15:36:35.834813000 PST-28800"
 
 Normalizing a Local Point in Time
 ---------------------------------
@@ -769,8 +769,8 @@ a UTC timestamp and then localizing it. The &.libzone.Zone.normalize
 method has this functionality:
 
 #!/pl/python
-   pit, offset = chronometry.library.zone().localize(chronometry.library.now())
-   normalized_pit, new_offset = chronometry.library.zone().normalize(offset, pit)
+	pit, offset = chronometry.library.zone().localize(chronometry.library.now())
+	normalized_pit, new_offset = chronometry.library.zone().normalize(offset, pit)
 
 Where `normalized_pit` and `new_offset` are the *exact* same objects if no change was
 necessary.
