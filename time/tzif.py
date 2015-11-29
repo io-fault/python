@@ -1,7 +1,9 @@
 """
 Read TZif, time zone information, files(zic output).
 
-.. warning:: This module is intended for internal use only. The protocol is subject to change without warning.
+! WARNING:
+	This module is intended for internal use only.
+	The APIs are subject to change without notice.
 """
 import os
 import os.path
@@ -52,7 +54,7 @@ def parse_version_1(data):
 	parse the raw data from a TZif file. 4-byte longs.
 
 	Returns tuple of: (transtimes, types, timetypinfo, leaps, isstd, isgmt, abbr)
-	See tzfile(5) for information about the fields(it's cryptically fun).
+	See &tzfile(5) for information about the fields.
 	"""
 	x = data[:header_struct_v1.size]
 	y = data[header_struct_v1.size:]
@@ -109,7 +111,7 @@ def parse_version_2(data):
 	parse the raw data from a version 2 TZif file. 8-byte longs.
 
 	Returns tuple of: (transtimes, types, timetypinfo, leaps, isstd, isgmt, abbr)
-	See tzfile(5) for information about the fields(it's cryptically fun).
+	See &tzfile(5) for information about the fields(it's cryptically fun).
 	"""
 	x = data[:header_struct_v2.size]
 	y = data[header_struct_v2.size:]
@@ -215,10 +217,8 @@ def get_timezone_data(filepath):
 			return None
 		return structure(d)
 
-def abbreviations(tzdir, _join = os.path.join, bytes = bytes, bool = bool, int = int):
+def abbreviations(tzdir:str, _join=os.path.join, bytes=bytes, bool=bool, int=int):
 	"""
-	abbreviations(tzdir)
-
 	Yield all abbreviations in the TZif files in the tzdir(/usr/share/zoneinfo).
 	"""
 	prefixlen = len(libtzif.tzdir) + 1
@@ -231,7 +231,7 @@ def abbreviations(tzdir, _join = os.path.join, bytes = bytes, bool = bool, int =
 				for tz in zones:
 					yield (tz.tz_abbrev.decode('ascii'), tzname, tz.tz_offset, tz.tz_isdst)
 
-def abbreviation_map(tzdir = tzdir):
+def abbreviation_map(tzdir=tzdir):
 	"""
 	Generate and return a mapping of zone abbreviations to their particular offsets.
 

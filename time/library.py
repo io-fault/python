@@ -1,56 +1,8 @@
 """
-Primary public module for using the datetime types and functions in the chronometry package.
+Public APIs
 
-[ Unit Knowledge ]
-------------------
-
-All of the following units are defined in the default Time Context. However, the
-emphasized units are the only units with designated classes by default.
-
-/earth
-	- second
-	- minute
-	- hour
-	- *day*
-	- *week*
-	- annum (Julian Year)
-
-/gregorian
-	- *month*
-	- year
-	- decade
-	- century
-	- millennium
-
-/metric subseconds
-	- decisecond
-	- centisecond
-	- millisecond
-	- microsecond
-	- *nanosecond*
-	- picosecond
-	- femtosecond
-	- attosecond
-	- zeptosecond
-	- yoctosecond
-
-/metric seconds
-	- decasecond
-	- hectosecond
-	- kilosecond
-	- megasecond
-	- gigasecond
-	- terasecond
-	- petasecond
-	- exasecond
-	- zettasecond
-	- yottasecond
-
-The emphasized units are the units associated with actual Python types. All other units
-are expressed in terms of those units unless the time context is explicitly extended.
-
-[ Indefinite Units ]
---------------------
+[ Properties ]
+--------------
 
 Units of unbound quantities of time are called "eternals". They are a special Measure and
 Point type that have only three values: zero, infinity, and negative infinity.
@@ -58,22 +10,22 @@ Point type that have only three values: zero, infinity, and negative infinity.
 The set of possible Measures and Points dealing with eternals are immediately created and
 set to the following names:
 
-/&genesis
+/genesis
 	The earliest Point in time.
 
-/&never
+/never
 	The latest Point in time.
 
-/&present
+/present
 	The current Point in time--always moving.
 
-/&future
+/future
 	A &Segment whose start is &present and end is &never.
 
-/&past
+/past
 	A segment whose start is &genesis and end is &present.
 
-/&continuum
+/continuum
 	A segment whose start is &genesis and end is &never; essentially, this is intended to
 	be a type check and determines if the given object is representing a Point in Time.
 """

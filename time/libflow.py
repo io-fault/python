@@ -1,5 +1,5 @@
 """
-libflow provides tools for tracking arbitrary units over a period of time.
+Tools for tracking arbitrary units over a period of time, rates.
 
 The classes and function herein are requisites for time based rate limiting.
 """
@@ -11,36 +11,48 @@ import weakref
 from . import kernel
 
 # But some surface functionality can return Measures for typed units
-from . import library as lib
+from . import library
 
 class Radar(object):
 	"""
 	Radars track the rate of arbitrary flows across units of time.
 	By default, objects are tracked using a
-	:py:class:`weakref.WeakKeyDictionary`. This allows for casual tracking
+	&weakref.WeakKeyDictionary. This allows for casual tracking
 	to take place such that explicit disposal is not necessary.
-	However, it is possible to use a regular dictionary by providing a type via
-	the ``Dictionary`` keyword argument.
 
-	**Radars are not thread safe with respect to particular subjects.**
+	! WARNING:
+		&Radars are not thread safe with respect to particular subjects.
 	"""
 	__slots__ = ('tracking', 'unit', 'Chronometer', 'Queue')
 
+	def __init__(self,
+			Chronometer=kernel.Chronometer,
+			Dictionary=weakref.WeakKeyDictionary,
+			Queue=collections.deque
+		):
+		"""
+		Create a new Radar instance for tracking a set of flows.
+		"""
+
+		self.tracking = Dictionary()
+		self.Chronometer = Chronometer
+		self.Queue = Queue
+		self.unit = 'nanosecond'
+
 	@staticmethod
-	def split(seq, pit, int = int, iter = iter):
+	def split(seq:collections.Iterable, pit:int, int=int, iter=iter):
 		"""
-		split(seq, pit)
+		Split the given sequence, &seq, at the relative point in time, &pit.
 
-		:param seq: A sequence of `(units, time)` pairs.
-		:type seq: :py:class:`collections.Iterable`
-		:param pit: A point in time relative to the beginning of the sequence.
-		:type seq: :py:class:`int`
-		:returns: A pair of sequences split at the given `pit`.
-		:rtype: :py:class:`list`
+		Returns a pair of sequences split at the given &pit.
 
-		Split the given sequence at the relative point in time within the given
-		sequence, `seq`.
+		[Parameters]
+		/seq
+			A sequence of `(units, time)` pairs.
+		/pit
+			A point in time relative to the beginning of the sequence.
 		"""
+
 		# if the times weren't relative, we could bisect.
 		count = 0
 		replacement = None
@@ -69,10 +81,8 @@ class Radar(object):
 		return prefix, suffix
 
 	@staticmethod
-	def sums(seq, Measure = lib.Measure):
+	def sums(seq, Measure = library.Measure):
 		"""
-		sums(seq)
-
 		Given a sequence of (time, units) pairs,
 		return the sums of the columns.
 		"""
@@ -84,42 +94,23 @@ class Radar(object):
 
 		return (total_units, Measure(total_time))
 
-	def __init__(self,
-		Chronometer = kernel.Chronometer,
-		Dictionary = weakref.WeakKeyDictionary,
-		Queue = collections.deque
-	):
-		"""
-		Radar()
-
-		Create a new Radar instance for tracking a set of flows.
-		"""
-		self.tracking = Dictionary()
-		self.Chronometer = Chronometer
-		self.Queue = Queue
-		self.unit = 'nanosecond'
-
-	def __len__(self):
-		"""
-		Return the number of flows being tracked.
-		"""
-		return len(self.tracking)
-
 	def forget(self, subject):
 		"""
-		:param subject: The tracked object to be removed.
-		:type subject: :py:class:`object`
-		:returns: The value of the forgotten key, `subject`.
-		:rtype: :py:class:`object`
-
-		Forget all tracking information about the given object, `subject`.
+		Forget all tracking information about the given object, &subject.
 
 		This removes the subject from the dictionary of tracked objects.
 
-		NOTE:
+		Returns the value of the forgotten key, &subject.
+
+		! NOTE:
 			By default, the dictionary is a WeakKeyDictionary.
-			Using `forget` is not necessary unless an
+			Using &forget is not necessary unless an
 			override for the dictionary type was given.
+
+		[Parameters]
+
+		/subject
+			The tracked object to be removed.
 		"""
 
 		return self.tracking.pop(subject, None)
@@ -139,42 +130,31 @@ class Radar(object):
 
 		return pair
 
-	def reset(self, next = next):
+	def reset(self, next=next):
 		"""
-		reset()
+		During cases where a process is suspended, SIGSTOP and SIGCONT,
+		the reset method can be used to ignore the elapsed time for *all*
+		tracked objects.
 
-		:returns: :py:obj:`None`
+		For individual objects, see &skip.
 
-		During cases where a process is suspended, SIGSTOP and SIGCONT, the reset method can
-		be used to ignore the elapsed time for *all* tracked objects.
-
-		For individual objects, see :py:meth:`skip`.
+		Returns &None.
 		"""
 
 		for pair in self.tracking.values():
 			next(pair[0])
 
-	def skip(self, subject, next = next):
+	def skip(self, subject, next=next):
 		"""
-		skip(subject)
-
-		:returns: Amount of time skipped.
-		:rtype: :py:class:`int`
-
 		Skip the elapsed time for the given subject.
+
+		Returns amount of time skipped as an &int.
 		"""
 
 		return next(self.tracking[subject][0])
 
-	def zero(self, subject, Measure = lib.Measure, next = next):
+	def zero(self, subject, Measure = library.Measure, next = next):
 		"""
-		zero(subject)
-
-		:param subject: The object whose flow-time is to be zeroed.
-		:type subject: :py:class:`object`
-		:returns: The amount of time dropped.
-		:rtype: :py:class:`.lib.Measure`
-
 		Zero out the Chronometer for the given subject.
 
 		In cases where consumed time should be skipped for the subsequent track operation,
@@ -182,6 +162,13 @@ class Radar(object):
 		time.
 
 		Notably, zero is useful in cases where flow can be paused and unpaused.
+
+		Returns the amount of time dropped as a &.library.Measure instance.
+
+		[Parameters]
+
+		/subject
+			The object whose flow-time is to be zeroed.
 		"""
 
 		pair = self.tracking.get(subject)
@@ -193,17 +180,8 @@ class Radar(object):
 
 		return Measure(r)
 
-	def collapse(self, subject, window=0, range=range):
+	def collapse(self, subject:object, window:int=0, range=range):
 		"""
-		collapse(subject, window = 0)
-
-		:param subject: The object whose flow is to be collapsed.
-		:type subject: :py:class:`object`
-		:param window: The window of the flow to maintain.
-		:type window: :py:class:`int`
-		:returns: The number of records collapsed.
-		:rtype: :py:class:`int`
-
 		Collapse calculates the tracked units and time of a given flow and replaces
 		the set of records with a single record containing the totals. If a window
 		is given, the consistency of the specified time frame will remain intact,
@@ -212,6 +190,14 @@ class Radar(object):
 
 		This offers an alternative to truncate given cases where overall
 		data is still needed.
+
+		Returns the number of records collapsed.
+
+		[Parameters]
+		/subject
+			The object whose flow is to be collapsed.
+		/window
+			The window of the flow to maintain.
 		"""
 
 		# Make sure there is an element within the window.
@@ -228,18 +214,19 @@ class Radar(object):
 
 		return collapsed_to
 
-	def truncate(self, subject, window):
+	def truncate(self, subject:object, window:library.Measure):
 		"""
-		:param subject: The tracked object.
-		:type subject: :py:class:`object`
-		:param window: The amount of time in the past to retain.
-		:type window: :py:class:`.lib.Measure`
-		:returns: The number of records removed.
-		:rtype: :py:class:`int`
-
 		For the given object, truncate the tracked data according to the specified
 		window of time units. All record data prior to the window will be
 		discarded.
+
+		Returns the number of records removed.
+
+		[Parameters]
+		/subject
+			The tracked object.
+		/window
+			The amount of time in the past to retain.
 		"""
 
 		# Make sure there is an element within the window and used up-to-date info
@@ -254,17 +241,18 @@ class Radar(object):
 
 	def rate(self, subject, window = None):
 		"""
-		:param subject: The tracked object.
-		:type subject: :py:class:`object`
-		:param window: The limit of view of the rate.
-		:type window: :py:class:`int` | :py:class:`NoneType`
-
 		Construct a tuple of the (total units, total time) for
 		the given subject and within the specified window.
 
 		If no window is provided, the overall units over time will be returned.
 
-		Uses the :py:meth:`sums` method to construct the product.
+		Uses the &sums method to construct the product.
+
+		[Parameters]
+		/subject
+			The tracked object.
+		/window
+			The limit of view of the rate.
 		"""
 
 		if subject in self.tracking:
@@ -274,22 +262,25 @@ class Radar(object):
 				seq = self.split(reversed(seq), window)[0]
 			return self.sums(seq)
 
-	def all(self, window, Measure = lib.Measure):
+	def all(self, window, Measure=library.Measure):
 		"""
-		all(window)
-
 		Scan the entire set of tracked objects updating their rate according to
 		a zero-units in order to get an up-to-date snapshot of the rate of all
 		tracked objects for the given window.
 
-		.. warning:: Given the processing time necessary to calculate the totals
-		             for all tracked flows, overall may not ever be able to give
-		             an accurate answer.
+		! WARNING:
+			Given the processing time necessary to calculate the totals
+			for all tracked flows, overall may not ever be able to give
+			an accurate answer.
+
+		[Parameters]
+		/window
+			The size of the window to view.
 		"""
 
 		keys = list(self.tracking.keys())
 		total_u = 0
-		total_t = lib.Measure(0)
+		total_t = library.Measure(0)
 		track = self.track
 		split = self.split
 		sums = self.sums

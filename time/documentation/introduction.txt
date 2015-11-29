@@ -1,0 +1,81 @@
+[ Overview ]
+------------
+
+Chronometry is a time library based on the built-in Python &int.
+By default, timestamps have nanosecond precision granting common applications
+more than enough detail about a point in time. For specialized purposes, the
+units handled by chronometry can be arbitrarily extended--the &int subclasses
+represent a designated unit and a common Time Context, group of unit classes,
+provides the necessary linkage and transformations for conversion across
+classes.
+
+Calendar Support:
+
+	- Proleptic Gregorian
+
+chronometry's APIs are *not* compatible with the standard library's datetime module.
+
+&.library will be referred to as `libtime` throughout the examples in this documentation.
+
+The surface functionality is provided &.library:
+
+#!/pl/python
+	import fault.chronometry.library as libtime
+
+Current date and time as a &.library.Timestamp.
+
+#!/pl/python
+	now = libtime.now() # UTC
+
+[ Structure ]
+
+Chronometry exposes most common time interfaces in the &.library module. There are a few
+other public modules available that deal with time related concepts.
+
+[ Unit Knowledge ]
+------------------
+
+All of the following units are defined in the default Time Context. However, the
+emphasized units are the only units with designated classes by default.
+
+/earth
+	- second
+	- minute
+	- hour
+	- *day*
+	- *week*
+	- annum (Julian Year)
+
+/gregorian
+	- *month*
+	- year
+	- decade
+	- century
+	- millennium
+
+/metric subseconds
+	- decisecond
+	- centisecond
+	- millisecond
+	- microsecond
+	- *nanosecond*
+	- picosecond
+	- femtosecond
+	- attosecond
+	- zeptosecond
+	- yoctosecond
+
+/metric seconds
+	- decasecond
+	- hectosecond
+	- kilosecond
+	- megasecond
+	- gigasecond
+	- terasecond
+	- petasecond
+	- exasecond
+	- zettasecond
+	- yottasecond
+
+The emphasized units are the units associated with actual Python types. All other units
+are expressed in terms of those units unless the time context is explicitly extended.

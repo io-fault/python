@@ -53,9 +53,9 @@ a homogenous pair.
 	key in dictionaries:
 
 	#!/pl/python
-		>>> from chronometry import library
+		>>> from fault.chronometry import library as libtime
 		>>> d = {}
-		>>> d[library.Date(0)] = 'Hello, World!'
+		>>> d[libtime.Date(0)] = 'Hello, World!'
 		>>> print d[0]
 		Hello, World!
 
@@ -63,15 +63,15 @@ a homogenous pair.
 
 	#!/pl/python
 		d = {}
-		d[(library.Date, library.Date(0))] = 'Hello, Date!'
-		d[(library.Timestamp, library.Timestamp(0))] = 'Hello, Timestamp!'
+		d[(libtime.Date, libtime.Date(0))] = 'Hello, Date!'
+		d[(libtime.Timestamp, libtime.Timestamp(0))] = 'Hello, Timestamp!'
 
 	Or, nested dictionaries could be used:
 
 	#!/pl/python
-		d = {library.Date: {}, library.Timestamp: {}}
-		d[library.Date][library.Date(0))] = 'Hello, Date!'
-		d[library.Timestamp][library.Timestamp(0))] = 'Hello, Timestamp!'
+		d = {libtime.Date: {}, libtime.Timestamp: {}}
+		d[libtime.Date][libtime.Date(0))] = 'Hello, Date!'
+		d[libtime.Timestamp][libtime.Timestamp(0))] = 'Hello, Timestamp!'
 
 /Datetime Math
 	chronometry is heavily based on direct Python &int subclasses. This offers many
@@ -92,7 +92,7 @@ a homogenous pair.
 	More clearly:
 
 	#!/pl/python
-		pit = chronometry.library.Timestamp.of(iso="2002-01-01T00:00:00")
+		pit = libtime.Timestamp.of(iso="2002-01-01T00:00:00")
 		assert pit.select('day', 'month') == 0
 		assert pit.select('month', 'year') == 0
 
@@ -104,9 +104,9 @@ a homogenous pair.
 
 	#!/pl/python
 		# working with a leap year
-		pit = library.Timestamp.of(iso='2012-01-31T18:55:33.946259')
+		pit = libtime.Timestamp.of(iso='2012-01-31T18:55:33.946259')
 		pit.elapse(month=1)
-		chronometry.library.Timestamp.of(iso='2012-03-02T18:55:33.946259')
+		libtime.Timestamp.of(iso='2012-03-02T18:55:33.946259')
 
 	The issue can be avoided by adjusting the PiT to the beginning of the month:
 
@@ -150,24 +150,24 @@ Points *are* timestamps, datetimes,. Measures *are* intervals, timedeltas.
 	&.abstract.Measure.increase:
 
 	#!/pl/python
-		m1 = chronometry.library.Measure(second=0)
-		m2 = chronometry.library.Measure(second=1)
+		m1 = libtime.Measure(second=0)
+		m2 = libtime.Measure(second=1)
 		m1.increase(m2)
 
 /`timedelta() - timedelta()`
 	&.abstract.Measure.decrease:
 
 	#!/pl/python
-		m1 = chronometry.library.Measure(second=2)
-		m2 = chronometry.library.Measure(second=1)
+		m1 = libtime.Measure(second=2)
+		m2 = libtime.Measure(second=1)
 		m1.decrease(m2)
 
 /`datetime() + timedelta()`
 	&.abstract.Point.elapse:
 
 	#!/pl/python
-		ts = chronometry.library.Timestamp.of(...)
-		measure = chronometry.library.Measure(second=1)
+		ts = libtime.Timestamp.of(...)
+		measure = libtime.Measure(second=1)
 		ts.elapse(measure)
 
 /`datetime() - timedelta()`
@@ -175,17 +175,175 @@ Points *are* timestamps, datetimes,. Measures *are* intervals, timedeltas.
 	&.abstract.Point.rollback:
 
 	#!/pl/python
-		ts = chronometry.library.Timestamp.of()
-		measure = chronometry.library.Measure(second=1)
+		ts = libtime.Timestamp.of()
+		measure = libtime.Measure(second=1)
 		ts.rollback(measure)
 
 /`datetime() - datetime()`
 	&.abstract.Point.measure:
 
 	#!/pl/python
-		ts1 = chronometry.library.Timestamp.of(...)
-		ts2 = chronometry.library.Timestamp.of(...)
+		ts1 = libtime.Timestamp.of(...)
+		ts2 = libtime.Timestamp.of(...)
 		ts1.measure(ts2) # measure the distance between
+
+[ Calendar Representation ]
+---------------------------
+
+A Date can be used to represent the span of the entire day.
+
+#!/pl/python
+	date = libtime.Date.of(year=1982, month=4, day=17)
+	assert date.select('day', 'month') == 17
+
+However, the above actually represents.
+
+#!/pl/python
+	assert date.select('date') == (1982, 5, 18)
+
+Usually, using the `date` keyword is best way to to work with
+literal dates.
+
+#!/pl/python
+	assert libtime.Date.of(date=(1982,5,18)) == date
+
+The calendrical **representation** only takes effect through certain
+interfaces.
+
+#!/pl/python
+	ts = libtime.Timestamp.of(iso="2001-01-01T05:30:01")
+	print(repr(ts))
+	libtime.Timestamp.of(iso='2001-01-01T05:30:01.000000')
+
+And from a datetime tuple.
+
+#!/pl/python
+	ts2 = libtime.Timestamp.of(datetime = (2001, 1, 1, 5, 30, 1, 0))
+	assert ts == ts2
+
+chronometry PiTs do not perform calendrical validation; rather, fields with excess
+values overflow onto larger units. This is similar to how MySQL handles
+overflow. For chronometry, this choice is deliberate and the user is expected to
+perform any desired validation.
+
+#!/pl/python
+	pit = libtime.Date.of(date=(1982,5,0))
+
+The assigned `pit` now points to the last day of the month preceding the fifth
+month in the year 1982. This kind of wrapping allows chronometry users to *quickly*
+perform some of the most difficult datetime math.
+
+[ Datetime Math ]
+-----------------
+
+chronometry can easily answer questions like, "What was third weekend of the fifth
+month of last year?".
+
+#!/pl/python
+	pit = libtime.now()
+	pit = pit.update('day', 0, 'month') # set to the first day to avoid overflow
+	pit = pit.rollback(year=1) # subtract one gregorian year
+	pit = pit.update('month', 5-1, 'year') # set to the fifth month
+	pit = pit.update('day', 6, 'week') # set to the weekend of the week
+	pit = pit.elapse(week = 2)
+
+Things can get a little more interesting when asking, "What is the
+last weekend of the month?". It's not a problem::
+
+#!/pl/python
+	# move the beginning of month (to avoid possible day overflow)
+	pit = libtime.now().update('day', 0, 'month')
+	# to the next month and then to the end of the previous
+	pit = pit.elapse(month = 1).update('day', -1, 'month') # move to the end of the month.
+	# 0 is the beginning of the week, so -1 is the end of the prior week.
+	pit = pit.update('day', -1, 'week')
+
+On day overflow, the following illustrates the effect::
+
+#!/pl/python
+	# working with a leap year
+	pit = libtime.Timestamp.of(iso='2012-01-31T18:55:33.946259')
+	pit.elapse(month=1)
+	libtime.Timestamp.of(iso='2012-03-02T18:55:33.946259')
+
+Month arithmetic does not lose days in order to align the edge of a month.
+In order to keep overflow from causing invalid calculations, adjust to the
+beginning of the month.
+
+Things can get even more interesting when asking,
+"What is the second to last Thursday of the month". Questions like this require
+alignment in order to be answered::
+
+#!/pl/python
+	pit = libtime.now()
+	pit = pit.update('day', 0, 'month') # let's say this month
+	# but we need the end of the month
+	pit = pit.elapse(month=1)
+	pit = pit.update('day', -1, 'month') # set to the first day
+	# And now something that will appear almost magical if
+	# you haven't used a datetime package with a similar feature.
+	pit = pit.update('day', 0, 'week', align=-4) # last thursday of month
+	pit = pit.rollback(week=1) # second to last
+
+Essentially, alignment allows Thursdays to be seen as the first day of the
+week, warranting that the day field will stay the same or be subtracted when
+set to zero. This is why the day is set to the last day of the month, in case
+the Thursday is the last day of the month, and with proper alignment the first
+day of the re-aligned week.
+
+[ Clocks ]
+----------
+
+&.library.now provides quick and easy access to "demotic time", UTC
+wall clock. However, chronometry provides clock based devices for processes with
+monotonic requirements for things like rate limiting, polling timeouts, and
+simple execution-time measures.
+
+Measuring the execution time of a code block is easy with a chronometry stopwatch::
+
+#!/pl/python
+	def work():
+		pass
+
+	with libtime.clock.stopwatch() as snapshot:
+		work()
+
+	print(snapshot())
+	print(snapshot())
+
+! NOTE:
+	Considering the overhead involved with instantiating a
+	&.library.Timestamp instance, measuring
+	execution with the high-level clock interfaces may
+	not be appropriate or may require some adjustments
+	accounting for the overhead.
+
+The current runtime of a stopwatch can be accessed within the block as well.
+However, once the block exits, the stopwatch will stop tracking elapsed time.
+
+Deltas and meters provide a means to track the change in, monotonic, time:
+
+#!/pl/python
+	for measure_since_last_iteration in libtime.clock.delta():
+		pass
+
+Meters are like deltas, but provide the *total* measurement:
+
+#!/pl/python
+	for measure_since_first_iteration in libtime.clock.meter():
+		pass
+
+[ Time Zones ]
+--------------
+
+Time zone adjustments are supported by zone objects:
+
+#!/pl/python
+	pit = libtime.now()
+	tz = libtime.zone('America/Los_Angeles')
+	local_pit = tz.localize(pit)
+	print(local_pit.select('iso'))
+
 
 [ Constructing Points and Measures ]
 ====================================
@@ -203,8 +361,8 @@ Constructing instances is usually performed with the class method
 &.library.Measure.of.
 Or, &.library.Timestamp.of for Points.
 
-Creating a Timestamp
---------------------
+[ Constructing Points and Measures >> Creating a Timestamp ]
+-------------------------------
 
 The &.library.Timestamp type is the Point In Time Representation
 Type with the finest precision available *by default*:
@@ -221,8 +379,8 @@ use nanosecond precision.
 	The project *may* increase the precision of Timestamp and Measure in
 	the future so it is important to avoid presumptuous code when possible.
 
-Creating a Date
----------------
+[ Constructing Points and Measures >> Creating a Date ]
+-------------------------------
 
 A Date is also considered a Point In Time type. The Date type exists for the
 purpose of representing the point in which the specified day starts, *and* the
@@ -243,8 +401,9 @@ appropriate:
 	>>> chronometry.library.Date.of(date=(1982,5,18))
 	chronometry.library.Date.of(iso='1982-05-18')
 
-Getting the Current Point in Time
----------------------------------
+
+[ Constructing Points and Measures >> Getting the Current Point in Time ]
+-------------------------------
 
 The primary interface for accessing the system clock is using the
 &.library.now callable:
@@ -258,8 +417,8 @@ The returned timestamp is a UTC timestamp.
 	Using the system time for managing timeouts is discouraged.
 	chronometry's clock interface has monotonic devices for managing timeouts.
 
-Creating a Timestamp from an ISO-9660 String
---------------------------------------------
+[ Constructing Points and Measures >> Creating a Timestamp from an ISO-9660 String ]
+-------------------------------
 
 While the &.libformat module manages the details, the
 &.library module provides access to the functionality:
@@ -281,7 +440,7 @@ should be used:
 	parse_iso_to_ts = chronometry.library.open.iso(chronometry.library.Timestamp)
 	ts = parse_iso_to_ts('2009-02-01T3:33:45.123321')
 
-Formatting a Standard Timestamp
+[ Constructing Points and Measures >> Formatting a Standard Timestamp ]
 -------------------------------
 
 Likewise, instances can be formatted by the standards:
@@ -295,7 +454,7 @@ And RFC as well:
 #!/pl/python
 	assert "Sat, 01 Jan 2000 00:00:00" == chronometry.library.Timestamp(date=(2000,1,1)).select('rfc')
 
-Constructing a Timestamp from Parts
+[ Constructing Points and Measures >> Constructing a Timestamp from Parts ]
 -----------------------------------
 
 A &.library.Timestamp can be constructed from time parts using the
@@ -316,8 +475,8 @@ Notably, the above is not particularly useful without a date:
 		microsecond = 324159
 	)
 
-Constructing a Timestamp from a UNIX Timestamp
------------------------------------------------
+[ Constructing Points and Measures >> Constructing a Timestamp from a UNIX Timestamp ]
+-------------------------------------
 
 The `unix` container keyword provides an interface from seconds since the
 UNIX-epoch, "January 1, 1970". A timestamp can be made using the
@@ -353,7 +512,7 @@ The usual arithmetic operators are essentially low-level operations that can be
 used in certain cases, but they should be restricted to performance critical
 situations where the higher-level methods cannot be used.
 
-Getting a Particular Day of the Week
+[ Arithmetic of Points and Measures >> Getting a Particular Day of the Week ]
 ------------------------------------
 
 Points and scalars can both update arbitrary fields according to a boundary.
@@ -392,8 +551,8 @@ Or, to get the preceding Monday, just substract seven:
 
 And so on: `1+|-14`, `1+|-21`, ...
 
-Getting a Particular Weekday of a Month
----------------------------------------
+[ Arithmetic of Points and Measures >> Getting a Particular Weekday of a Month ]
+--------------------------------------
 
 Occasionally, the need may arise to fetch the N-th weekday of the month. This is
 trickier than getting an arbitrary weekday as it requires the part to be aligned
