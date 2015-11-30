@@ -91,7 +91,8 @@ class IntegrityError(FormatError):
 
 class Unit(int):
 	"""
-	The base class for *finite* Measures and Points subclasses across all Time Contexts.
+	The base class for *finite* &.abstract.Measure and &.abstract.Point
+	subclasses across all &Context instances.
 	"""
 	__slots__ = ()
 

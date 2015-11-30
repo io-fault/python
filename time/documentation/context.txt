@@ -1,42 +1,5 @@
-[ Introduction ]
-================
-
-chronometry exists to provide a pure-Python, nanosecond precision time package. It
-features support for the proleptic gregorian calendar, and points and deltas of
-configurable precision.
-
-[ Structure ]
-=============
-
-chronometry exposes most functionality via the &.library module. The underlying
-unit modules are rarely accessed directly and are primarily used by the
-&.core module which provides &.library with most of its
-functionality.
-
-&.core is a module that defines unit base classes and defines the
-standard time context that creates classes for common units--Measures and Points In Time.
-The Time Context is the center of chronometry as it provides the
-necessary mappings for converting unlike units. All unit-qualified Time objects have a
-reference to this context.
-
-Primarily, chronometry works with two classes that store units defined in a context: Measures
-and Points. Measures are measurements of time, and Points are points in time.
-
-[ Requirements ]
-================
-
-A functioning Python interpreter and a C compiler capable of compiling Python
-extension modules, clock and sleep access.
-
-[ Conventions ]
-===============
-
-Often, capitalization will be used in the documentation in order to convey that
-the word or phrase is being used with regards to its meaning in the context
-of the project.
-
-[ Terminology ]
-===============
+[ *Glossary* ]
+==============
 
 /Horology
 	The study of and measurement of time. (definition)
@@ -103,23 +66,8 @@ of the project.
 	A particular unit of time in a Time Context. second, day, month are
 	all types.
 
-
-[ Defense ]
-===========
-
-This section details arguments for chronometry's existence.
-
-[ Development ]
-===============
-
-chronometry strives to isolate functionality as much as possible. However, in early
-implementations, difficulty came when managing distinct units as separate
-classes. Even with a common superclass, greater integration was necessary to
-provide a cohesive programmer interface. Notably, when using time classes
-interchangeably.
-
-[ References ]
-==============
+[ *References* ]
+================
 
 The functionality and API choices of a number of datetime implementations were
 analyzed during the development of chronometry:
@@ -133,7 +81,7 @@ analyzed during the development of chronometry:
 
 In addition to various packages for other languages such as ruby and java.
 
-Wikipedia was, naturally, heavily referenced during the development of chronometry.
+Wikipedia was, naturally, heavily referenced during the development of Chronometry.
 Here are many of the links:
 
  * http://en.wikipedia.org/wiki/Second

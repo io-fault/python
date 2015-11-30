@@ -1,6 +1,9 @@
 [ Overview ]
 ============
 
+Units of unbound quantities of time are called "eternals". They are a special Measure and
+Point type that have only three values: zero, infinity, and negative infinity.
+
 Time classes in chronometry are created by Time Contexts. The default context is
 initialized and provided by the &.library module. The following
 lists are the time classes created by that context.
@@ -476,8 +479,8 @@ Notably, the above is not particularly useful without a date:
 	)
 
 [ Constructing Points and Measures >> Constructing a Timestamp from a UNIX Timestamp ]
--------------------------------------
-
+--------------------------------------------------------------------------
+ 
 The `unix` container keyword provides an interface from seconds since the
 UNIX-epoch, "January 1, 1970". A timestamp can be made using the
 &.abstract.Time.of method:
@@ -639,7 +642,7 @@ over `generator expressions` as it allows a reference to the desired transformat
 	so the implementation only offers syntactic convenience. Future versions will
 	provide implementations that offer greater efficiency.
 
-Selectors
+[ Working with Sets and Sequences >> Selectors ]
 ---------
 
 The &.library.select constructor provides a syntactically convenient
@@ -655,7 +658,7 @@ given:
 	hour_of_day = chronometry.library.select.hour.day()
 	>>> print(hour_of_day(chronometry.library.Timestamp.of(datetime=(2001,1,1,4,30,2))))
 
-Updaters
+[ Working with Sets and Sequences >> Updaters ]
 --------
 
 The &.library.update constructor provides a syntactically convenient
@@ -667,7 +670,7 @@ operation consistent to: `(x.update('day', 0, 'week') for x in iter(obj))`
 Field updates can provide a concise means to simplify some rather tricky
 date-time math.
 
-Openers
+[ Working with Sets and Sequences >> Openers ]
 -------
 
 There is often a need to construct an opener. Instantiating timestamps from
@@ -713,7 +716,7 @@ The &.libclock module provides the implementation of the
 The &.system module uses whatever facilities it was able
 to find at compile time in order to provide maximum precision.
 
-Demotic and Monotonic Time
+[ Working with the Clock >> Demotic and Monotonic Time ]
 --------------------------
 
 Clocks have two concepts of time, the demotic and monotonic. The rate of change
@@ -734,7 +737,7 @@ Direct use of the &.clock.monotonic method is not
 recommended for most cases. Rather, chronometry provides some iterators and
 context managers that cover the common use-cases of monotonic time.
 
-Time Meters
+[ Working with the Clock >> Time Meters ]
 -----------
 
 Time meters, &.library.clock.meter, are iterators provided by
@@ -749,7 +752,7 @@ that has elapsed since the *first* iteration:
 
 Meters are perfect for polling situations with timeouts.
 
-Delta Meters
+[ Working with the Clock >> Delta Meters ]
 ------------
 
 In other cases, the total time is not particularly interesting or needs be

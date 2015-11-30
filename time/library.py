@@ -4,12 +4,6 @@ Public APIs
 [ Properties ]
 --------------
 
-Units of unbound quantities of time are called "eternals". They are a special Measure and
-Point type that have only three values: zero, infinity, and negative infinity.
-
-The set of possible Measures and Points dealing with eternals are immediately created and
-set to the following names:
-
 /genesis
 	The earliest Point in time.
 

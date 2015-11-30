@@ -27,13 +27,46 @@ Current date and time as a &.library.Timestamp.
 #!/pl/python
 	now = libtime.now() # UTC
 
-[ Structure ]
 
-Chronometry exposes most common time interfaces in the &.library module. There are a few
-other public modules available that deal with time related concepts.
+[ Defense ]
+===========
+
+This section details arguments for chronometry's existence.
+
+[ Development ]
+===============
+
+chronometry strives to isolate functionality as much as possible. However, in early
+implementations, difficulty came when managing distinct units as separate
+classes. Even with a common superclass, greater integration was necessary to
+provide a cohesive programmer interface. Notably, when using time classes
+interchangeably.
+
+[ Structure ]
+=============
+
+chronometry exposes most functionality via the &.library module. The underlying
+unit modules are rarely accessed directly and are primarily used by the
+&.core module which provides &.library with most of its
+functionality.
+
+&.core is a module that defines unit base classes and defines the
+standard time context that creates classes for common units--Measures and Points In Time.
+The Time Context is the center of chronometry as it provides the
+necessary mappings for converting unlike units. All unit-qualified Time objects have a
+reference to this context.
+
+Primarily, chronometry works with two classes that store units defined in a context: Measures
+and Points. Measures are measurements of time, and Points are points in time.
+
+[ Requirements ]
+================
+
+A functioning Python interpreter and a C compiler capable of compiling Python
+extension modules, clock and sleep access.
 
 [ Unit Knowledge ]
-------------------
+==================
 
 All of the following units are defined in the default Time Context. However, the
 emphasized units are the only units with designated classes by default.
