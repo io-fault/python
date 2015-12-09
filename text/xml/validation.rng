@@ -44,8 +44,18 @@
   <choice>
    <ref name="chapter"/>
    <ref name="book"/>
+   <ref name="section"/>
   </choice>
  </start>
+
+ <define name="structure.attributes">
+  <!-- natural identifier for the structure -->
+  <optional>
+   <attribute name="identifier">
+    <text/>
+   </attribute>
+  </optional>
+ </define>
 
  <define name="text">
   <zeroOrMore>
@@ -116,6 +126,9 @@
   <element name="dictionary">
    <zeroOrMore>
     <element name="item">
+     <ref name="structure.attributes"/>
+
+     <!-- require key before value -->
      <element name="key">
       <ref name="text"/>
      </element>
@@ -129,10 +142,13 @@
 
  <define name="matrix">
   <element name="matrix">
+   <optional>
+    <ref name="sequence"/>
+   </optional>
    <choice>
     <zeroOrMore>
      <element name="cell">
-      <text/>
+      <ref name="text"/>
      </element>
     </zeroOrMore>
    </choice>
@@ -149,7 +165,8 @@
  <define name="section">
   <element name="section">
    <a:documentation>A titled section within the text document.</a:documentation>
-   <attribute name="title"><text/></attribute>
+   <attribute name="identifier"><text/></attribute>
+   <ref name="structure.attributes"/>
    <ref name="content"/>
   </element>
  </define>
@@ -239,7 +256,8 @@
    <zeroOrMore>
     <choice>
      <ref name="any"/>
-     <text/>
+     <!-- The styled text to display. -->
+     <ref name="text"/>
     </choice>
    </zeroOrMore>
   </element>
