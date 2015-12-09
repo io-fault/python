@@ -1,53 +1,22 @@
 #!/usr/bin/env eclectic
 
-================
-[ Introduction ]
-================
-
-Eclectic text is a structured text language designed from the syntactic notations
-of other popular programming languages, configuration formats, and other markdown
-implementations. The rationale for the design is to borrow from one's existing
-memory of the notations in order to support new memories with respect to the structured
-text.
-
-This document is an authoritative specification for the format. Every notation
-is exercised and the document should be used as a conformance test for
-new implementations.
-
-===========
-[ Defense ]
-===========
-
-Eclectic text exists in an effort to create a structured text implementation that
-specifically targets developer APIs for customization of contextual cross-references,
-and to focus XML serialization for machine processable data structures.
-
-fault's documentation extractor needed extensive customization in order to support
-(relatively) intelligent cross-references and contextual styling of references. While
-many, if not all, structured text implementations can support this, most have little or no
-documentation on the matter. This makes it difficult for most structured text solutions
-to fulfill fault's requirements without extensive modifications that would essentially
-be a new implementation.
-
-The name "eclectic text" was chosen as it was indirectly suggested numerous
-times over the years.
-
-=========
-[ Goals ]
-=========
-
-The goal of eclectic text is to create a plaintext format that allows the storage
-of structured document data that can be interpreted as structured data for configuration files,
-string template storage, and styled, interlinked documentation.
-
-========================
-[ Eclectic Text Format ]
-========================
+======================
+[ Eclectic Text File ]
+======================
 
 The `.txt` extension should be used for eclectic text. It is strictly
 a format layered on top of raw text files. Whether or not a given text file
 is actually eclectic text should be determined by the context or by
 the initial `#!` line used to identify a corresponding binary.
+
+===============
+[ Declaration ]
+===============
+
+Eclectic text formatting is explicitly declared by the initial line in the document
+being: `#!/usr/bin/env eclectic`. This is a special case of the notation used by
+&[Literal Blocks]; if the first line of a given document starts with `#!`, it is perceived
+as a declaration instead of a literal block.
 
 ===============
 [ Decorations ]
@@ -101,15 +70,44 @@ emphasis of their presence.
 [ Sections ]
 ============
 
-Sections make up the primary hierarchical structure in eclectic documents and are notated
-in the fashion that ".ini" configuration files notate sections: lines starting with `[`
-and ending with `]` identify a new section.
+Sections make up the primary hierarchical structure in eclectic text formatted documents
+and are notated in the fashion that ".ini" configuration files notate sections: lines
+starting with (character)`[` and ending with (character)`]` select the section context.
 
-Sections *should* be addressable by their title name; implicit addresses should be
-created and conflicts *should* be managed by append an enumeration to the address.
+Sections *must* be addressable by their title name. References have syntax to disambiguate
+section references from regular references in order to accommodate local references.
 
-Section addresses should be given their own namespace in order to avoid conflicts with
-the context's resolution mechanisms.
+Subsections are managed by the use of a double greater-than, `>>`, separator in the
+section's title text. A section with `>>` in the title identifies the section as being
+contained by another; (character)`>>` being used as a path delimiter. In order to allow
+interleaving section content with subsection content, the section may be chosen by repeating
+the creation of a section with the same title.
+
+In addition to providing support for subsections, allowing a section to be re-entered at
+arbitrary points provides a mechanism to avoid title conflicts. Sections are selected or
+created by the Section Notation.
+
+When the section context is switched, a new section is created or an existing is selected
+for new content to be added.
+
+[ Sections >> Example ]
+
+#!/text/eclectic
+	[ Containing Section ]
+
+	Root Section content.
+
+	[ Containing Section >> Subsection ]
+
+	Subsection Content
+
+	[ Containing Section ]
+
+	Continuation of &[Containing Section].
+
+	[ Containing Section >> Subsequent Subsection ]
+
+	Second subsection
 
 =====================
 [ Paragraph Context ]
@@ -131,43 +129,37 @@ binary that should be used to "execute" the given file.
 [ Inline Literals ]
 ===================
 
-Inline literals are literal text ranges are literal text areas of lines delimited using
+Inline literals are literal text ranges existing in paragraph lines delimited using
 the grave accent, also known as a "backtick". Its syntax is borrowed from one of the
 Bourne Shell's notations for command substitution. It was also chosen for its
 similarity to quotations which are often used in programming languages to refer to literal
 text.
 
-#!/doc/eclectic
+#!/text/eclectic
 	`Inline Literal`
 
 Inline literals are the first parts of a paragraph line to be extracted; all other notations
 have lower precedence and cannot contain grave accents themselves. Literal accents can
 be interpolated using &References, `&~grave-accent`.
 
-=======================
-[ Address Designation ]
-=======================
+==============
+[ Directives ]
+==============
 
-@Address Name
-@Address Pointing Elsewhere <...>
+Directives are identified using the at-sign, (character)`@`, at the beginning of the line
+containing the details of the directive.
 
-Addresses are defined by being specified after the end of the object being indexed.
-The one exception is that section addresses must be defined directly after the section command,
-the address follows the command which is the beginning of the section.
+Directives are primarily used to define alternate identifiers for document structures, but
+can also be used to send messages to the processing context to control presentation of the
+associated structure.
 
-#!/doc/eclectic
-	[ Section ]
+#!/text/eclectic
 	@custom_section_address
+	[ Section ]
 
-Explicit addresses are not allowed to contain dashes (`-`) as that character is used
-to refer to spaces in section references.
-
-An address command will cause a paragraph break to occur regardless of surrounding empty lines
-or decorations.
-
-#!/doc/eclectic
-	First Paragraph
+#!/text/eclectic
 	@paragraph_address
+	First Paragraph
 
 	Second Paragraph
 
@@ -182,19 +174,28 @@ to that section unless explicitly declared as global.
 
 References are paragraph elements whose notation is borrowed from the C programming
 language's address-of operator, the ampersand `&`. The endpoint of a reference is
-wholly determined by the context; while, IRIs and section references are usually
+wholly determined by the processing context; while, IRIs and section references are usually
 mapped consistently across implementations, the processing context ultimately
-determines the actual meaning.
+determines the actual meaning of *all* references.
 
-References begin with a (text)`&` character and end with whitespace, `,`, `;`, ````,
-`"`, or `'`. Periods, colons, forward slashes must be included in a reference with the
-exception of the trailing period in order to support references at the end of a sentence.
+References begin with an ampersand, (text)`&`, and usually end with whitespace.
+Punctuation characters may exist inside references, but trailing punctuation *must*
+be perceived as regular text in order to accommodate for the default purpose of the
+punctuation.
 
-#!/doc/eclectic
+However, Section References are enclosed in brackets in order to allow whitespace.
 
-	A sentence containing a reference at the end of the sentence &Reference.
+#!/text/eclectic
 
-Casts influence the resolution of a reference.
+	A sentence containing a reference at the end, &Reference.
+
+Like inline literals, references may be casted in order to select the namespace set that
+the reference is pertaining to: `(cast)&Reference`. Whitespace may not be present between
+the parenthesis and the reference's ampersand. Rather, the adjacency of the closing
+parenthesis identifies the reference as being modified by a cast.
+
+
+A Hyperlink: &<Substitution Text URL>
 
 =============
 [ Citations ]
@@ -204,13 +205,14 @@ Citations are managed using &References to locally defined addresses.
 Most addresses are defined as pointers to specific document nodes, but citations
 allow reuse of a given address.
 
-#!/doc/eclectic
+#!/text/eclectic
 
 	A citation[&Address-Name] is a reference to a defined address that can
 	be found in a specially not citations section.
 
-	[<Citatioins>]
-	@Name<http://docs.fault.io/>
+	[#References]
+	/ReferenceName
+		&<http://docs.fault.io/>
 
 ==================
 [ Literal Blocks ]
@@ -292,8 +294,9 @@ lists.
 
 Variable lists (finite mappings or dictionaries) are supported using the forward slash:
 (quote)`/`. The notation is borrowed from UNIX filesystem paths where the forword slash
-often delimits directory names. Directory entries point to file content in the same way
-that variable list items point to eclectic content.
+delimits directory names in a path to a particular file. Directory entries point to file
+content in the same way that variable list items point to eclectic content. Structurally,
+the XML schema identify &[Variable Lists] as &.schema.dictionary.
 
 #!/text/eclectic
 
@@ -314,7 +317,7 @@ be referenced.
 Tables are called matrices in eclectic text regardless of the content type.
 Matrices are supported using unicode's box characters:
 
-#!text
+#!/text
 
 	┌─┬─┬─┐
 	│ │ │ │
@@ -326,7 +329,7 @@ Matrices are supported using unicode's box characters:
 
 Bold box frames are used to denote column headers:
 
-#!text
+#!/text
 
 	┏━┳━┳━┓
 	┃ ┃ ┃ ┃
@@ -353,14 +356,22 @@ indented on the lines following:
 	! WARNING:
 		Warning Contents.
 
-The severity (word following the (syntax)`!`) is an arbitrary word usually one of: `WARNING`, `NOTE`, `DANGER`,
-and `RECOMMENDATION`.
+The severity (word following the (syntax)`!`) is an arbitrary word usually one
+of: `WARNING`, `NOTE`, `ERROR`, `DANGER`, `DEVELOPER`, and `RECOMMENDATION`.
+
+Admonitions consist of arbitrary section content. This means that
+lists, blocks, and even inner admonitions may appear.
 
 ! NOTE:
-	Admonitions consist of arbitrary section content. This means that
-	lists, blocks, and even inner admonitions may appear.
-
-	They are essentially sections themselves, but not given implicit addresses.
+	Note admonition.
+! WARNING:
+	Warning admonition.
+! DEVELOPER:
+	Admonition intended for developers.
+! RECOMMENDATION:
+	Recommendation.
+! ERROR:
+	Admonition noting an error.
 
 =========
 [ Casts ]
@@ -436,24 +447,55 @@ to package them together provides convenience for the user and the developer.
 
 This section defines the normative grammar for eclectic markdown.
 
-#!text
+#!/text/grammar
 
-	newline = "\\n"
-	whitespace = (" " | "\\t" | newline)*
+	newline := "\\n"
+	whitespace := (" " | "\\t" | newline)*
 
-	root = head (title section)*
-	head = section
-	section = (paragraph | list | block)*
-	title = ("[")* text ("]")*
-	inline-literal = ("`" text "`", cast)
-	reference = (cast?, "&" text)
-	paragraph = (text | reference | inline-literal)*
-	set = ((newline whitespace "-" whitespace, paragraph))
-	enumeration = ((newline whitespace "#" whitespace, paragraph))
-	variable-identity = (newline whitespace "/" paragraph
-	variable-data = paragraph
-	variables = ((variable-identity, variable-data))*
-	list = (enumeration* | set* | variables*)
+	section-title := paragraph-content
+	section-titles := section-title (">>" section-title)*
+	section-select := ("[")* section-titles ("]")*
+	section-content := (paragraph | list | block)*
 
-	declaration = text
-	block = (declaration, (literal-lines)*)
+	root := head (title section)*
+	head := section
+	inline-literal := ("`" text "`", cast)
+	reference := (cast?, "&" text)
+	paragraph := (text | reference | inline-literal)*
+	set := ((newline whitespace "-" whitespace, paragraph))
+	enumeration := ((newline whitespace "#" whitespace, paragraph))
+	variable-identity := (newline whitespace "/" paragraph
+	variable-data := paragraph
+	variables := ((variable-identity, variable-data))*
+	list := (enumeration* | set* | variables*)
+
+	declaration := text
+	block := (declaration, (literal-lines)*)
+
+[ Queries ]
+
+@=Ref
+	# String-1
+	# String-2
+	# String-3
+
+@=SetRef
+	- String-1
+	- String-2
+	- String-3
+
+@=identifier
+@query
+@matrix
+@context pq://db.ltld/dbname/ns/table
+
+/column-1
+	&func
+		# &param-1
+		# &param-2
+
+/column-2
+	Expression.
+
+/column-3
+	Expression.

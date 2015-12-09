@@ -8,8 +8,7 @@ def main(src, args):
 	data = src.read()
 	encoding = args[0] if args else 'utf-8'
 
-	ctx = library.Context()
-	s = library.XML.transform(ctx, '', data, encoding=encoding)
+	s = library.XML.transform('', data, encoding=encoding)
 
 	sys.stdout.buffer.write(b'<chapter xmlns="https://fault.io/xml/eclectic">')
 	for x in s:

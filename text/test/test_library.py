@@ -1,8 +1,9 @@
 import sys
 from .. import library
+from .. import core
 
 def test_Parser_emphasis(test):
-	function = library.Parser.emphasis
+	function = core.Parser.emphasis
 	test/list(function("No emphasis")) == [('text', "No emphasis")]
 
 	expect = [('text', "Some "), ('emphasis', 'emphasis!', 1)]
@@ -28,34 +29,6 @@ def test_Parser_emphasis(test):
 		('emphasis', 'twice', 2), ('text', ', but '),
 		('emphasis', 'thrice', 1), ('text', '!')]
 	test/list(function("Some *emphasis!*, not **twice**, but *thrice*!")) == expect
-
-def test_PythonNamespace(test):
-	import builtins
-	pn = library.PythonNamespace()
-	x = library.__name__
-	test/pn.select(x) == (x, None, [(x, library)])
-
-	test/pn.select(x + '.Context') == (x, 'Context', [(x, library), ('Context', library.Context)])
-	test/pn.select(x + '.Context.__init__') == (x, 'Context.__init__', [
-		(x, library),
-		('Context', library.Context),
-		('__init__', library.Context.__init__),
-	])
-
-	# builtins reference
-	test/pn.select('str') == ('builtins', 'str', [('builtins', builtins), ('str', str)])
-	test/pn.select('int') == ('builtins', 'int', [('builtins', builtins), ('int', int)])
-
-	# standard library module
-	import collections
-	test/pn.select('collections.deque') == ('collections', 'deque', [
-		('collections', collections), ('deque', collections.deque)
-	])
-
-def test_PythonRelativeNamespace(test):
-	# usually a per-project namespace
-	pn = library.PythonRelativeNamespace(library.__package__)
-	test/pn.select('.libeclectic.Context') == pn.select(library.__name__ + '.Context')
 
 if __name__ == '__main__':
 	import sys

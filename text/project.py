@@ -1,20 +1,6 @@
-"""
-[ Structure ]
-
-...
-
-[ Requirements ]
-
-...
-
-[ Defense ]
-
-...
-"""
-
 identity = 'https://fault.io/project/python/eclectic'
 name = 'eclectic'
-abstract = 'Structured text processing software'
+abstract = 'Structured text format for developer documentation'
 
 fork = 'void' # Explicit branch name and a codename for the major version of the project.
 release = None # A number indicating its position in the releases of a branch. (fork)
