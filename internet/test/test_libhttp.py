@@ -18,7 +18,6 @@ Host: host\r
 		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
 		(libhttp.Event.headers, [(b'Host', b'host')]),
 		libhttp.EOH,
-		(libhttp.Event.content, b''),
 		libhttp.EOM,
 	]
 	test/x == events
@@ -190,10 +189,10 @@ Host: host\r
 	test/[] == g.send(data2)
 	test/[] == g.send(data3)
 	test/[] == g.send(data4)
-	test/[] == g.send(data5)
+	test/[(libhttp.Event.chunk, b'')] == g.send(data5)
 
 	x2 = [(libhttp.Event.chunk, b'X' * (0x10 - 5))]
-	test/x2 == g.send(data6)
+	test/x2 == list(g.send(data6))
 
 	x3 = [(libhttp.Event.chunk, b'Y' * (0x10 - (0x10 - 5)))]
 	test/x3 == g.send(data7)
@@ -373,21 +372,6 @@ ffffffds"""
 		(libhttp.Event.violation, ('limit', 'max_chunk_line_size', 11, 1)),
 		(libhttp.Event.bypass, bytearray(b'5\r\nffffffds')),
 	]
-
-def test_dis_limit_too_many_messages(test):
-	output = []
-	g = libhttp.disassembly(max_messages = 0)
-	r = g.send(b'GET')
-	test/r[-2] == (libhttp.Event.violation, ('limit', 'max_messages', 0))
-
-	data = b"""GET / HTTP/1.1\r
-\r
-GET /foo HTTP/1.1\r
-\r"""
-	# feed it two while expecting one
-	g = libhttp.disassembly(max_messages = 1)
-	r = g.send(data)
-	test/r[-2] == (libhttp.Event.violation, ('limit', 'max_messages', 1))
 
 def test_dis_limit_header_too_large(test):
 	output = []

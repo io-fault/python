@@ -318,7 +318,7 @@ expectation_samples = (
 	),
 )
 
-sample_unsplit_netlocs = (
+sample_join_netlocs = (
 	'sample.com',
 	'host',
 	'host:port',
@@ -355,7 +355,7 @@ sample_split_netlocs = (
 	('', '', '', ''),
 )
 
-sample_unsplit_paths = (
+sample_join_paths = (
 	None,
 	'',
 	'/',
@@ -460,7 +460,7 @@ def test_expectations(test):
 		text_split = libri.split(text)
 		text_parsed = libri.parse(text)
 
-		split_unsplit = libri.unsplit(split)
+		split_join = libri.join(split)
 		split_structure = libri.structure(split)
 
 		parsed_construct = libri.construct(parsed)
@@ -469,33 +469,33 @@ def test_expectations(test):
 		test/text_parsed == parsed
 		test/parsed_serialize == text
 		test/parsed_construct == split
-		test/split_unsplit == text
+		test/split_join == text
 		test/split_structure == parsed
 		test/text_split == split
 
-def test_split_unsplit_netloc(test):
-	for x in sample_unsplit_netlocs:
+def test_split_join_netloc(test):
+	for x in sample_join_netlocs:
 		sn = libri.split_netloc(x)
-		usn = libri.unsplit_netloc(sn)
+		usn = libri.join_netloc(sn)
 		test/usn == x
 
-def test_unsplit_split_netloc(test):
+def test_join_split_netloc(test):
 	for xx in sample_split_netlocs:
 		for x in cmbx(xx):
 			x = tuple(x)
-			un = libri.unsplit_netloc(x)
+			un = libri.join_netloc(x)
 			sn = tuple(libri.split_netloc(un))
 			test/sn == x
 
-def test_split_unsplit_path(test):
-	for x in sample_unsplit_paths:
+def test_split_join_path(test):
+	for x in sample_join_paths:
 		s = libri.split_path(x)
-		us = libri.unsplit_path(s)
+		us = libri.join_path(s)
 		test/us == x
 
-def testUnsplitSplitPath(test):
+def test_join_split_path(test):
 	for x in sample_paths:
-		us = libri.unsplit_path(x)
+		us = libri.join_path(x)
 		s = libri.split_path(us)
 		test/s == x
 
