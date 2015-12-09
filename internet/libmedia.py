@@ -31,6 +31,7 @@ Interfaces here work exclusively with character-strings; wire data must be decod
 """
 import operator
 import functools
+import typing
 
 types = {
 	'data': 'application/octet-stream', # browsers interpret this as a file download
@@ -360,12 +361,14 @@ class Range(tuple):
 	__slots__ = ()
 
 	@staticmethod
-	def parse_options(options, strip = str.strip, tuple = tuple):
+	def parse_options(options:typing.Iterable, strip = str.strip, tuple = tuple):
 		"""
-		:param options: Iterator of equality delimited fields.
-		:type options: :py:class:`collections.Iterable`
-
 		Parse and strip equality, b'=', delimited key-values.
+
+		[ Parameters ]
+
+		/options
+			Iterator of equality delimited fields.
 		"""
 
 		return [tuple(map(strip, f.split('=', 1))) for f in options]

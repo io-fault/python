@@ -1,5 +1,3 @@
-'project information'
-
 abstract = 'internet protocol implementation project'
 
 name = 'internet'
