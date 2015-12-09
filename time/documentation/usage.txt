@@ -371,9 +371,9 @@ The &.library.Timestamp type is the Point In Time Representation
 Type with the finest precision available *by default*:
 
 #!/pl/python
-	near_y2k = chronometry.library.Timestamp.of(date=(2000,1,1), hour=8, minute=24, second=15)
+	near_y2k = libtime.Timestamp.of(date=(2000,1,1), hour=8, minute=24, second=15)
 	>>> near_y2k
-	chronometry.library.Timestamp.of(iso='2000-01-01T08:24:15.000000')
+	libtime.Timestamp.of(iso='2000-01-01T08:24:15.000000')
 
 Currently, The &.library.Timestamp and &.library.Measure types
 use nanosecond precision.
@@ -383,15 +383,15 @@ use nanosecond precision.
 	the future so it is important to avoid presumptuous code when possible.
 
 [ Constructing Points and Measures >> Creating a Date ]
--------------------------------
+-------------------------------------------------------
 
 A Date is also considered a Point In Time type. The Date type exists for the
 purpose of representing the point in which the specified day starts, *and* the
 period between that point and the start of the next day; non-inclusive:
 
 #!/pl/python
-	chronometry.library.Date.of(year=1982, month=4, day=17) # month and day are offsets.
-	chronometry.library.Date.of(iso='1982-05-18')
+	libtime.Date.of(year=1982, month=4, day=17) # month and day are offsets.
+	libtime.Date.of(iso='1982-05-18')
 
 While a little suprising, the above reveals an apparent inconsistency: the
 `month` keyword parameter acts as a month offset. To compensate,
@@ -401,18 +401,18 @@ increments of units. Subsequently, using the `date` container can more
 appropriate:
 
 #!/pl/python
-	>>> chronometry.library.Date.of(date=(1982,5,18))
+	>>> libtime.Date.of(date=(1982,5,18))
 	chronometry.library.Date.of(iso='1982-05-18')
 
 
 [ Constructing Points and Measures >> Getting the Current Point in Time ]
--------------------------------
+-------------------------------------------------------------------------
 
 The primary interface for accessing the system clock is using the
 &.library.now callable:
 
 #!/pl/python
-	current_time = chronometry.library.now()
+	current_time = libtime.now()
 
 The returned timestamp is a UTC timestamp.
 
@@ -427,38 +427,38 @@ While the &.libformat module manages the details, the
 &.library module provides access to the functionality:
 
 #!/pl/python
-	ts = chronometry.library.Timestamp.of(iso='2009-02-01T3:33:45.123321')
+	ts = libtime.Timestamp.of(iso='2009-02-01T3:33:45.123321')
 
 chronometry provides parsers for both ISO-9660 and RFC-1123 datetime formats. The
 above example shows how to construct a Point in Time from an ISO-9660 string.
 The following shows RFC-1123, the format used by HTTP:
 
 #!/pl/python
-	ts = chronometry.library.Timestamp.of(rfc='Sun, 19 Mar 2012 07:27:58')
+	ts = libtime.Timestamp.of(rfc='Sun, 19 Mar 2012 07:27:58')
 
 For direct callable access to this functionality, the &Openers functionality
 should be used:
 
 #!/pl/python
-	parse_iso_to_ts = chronometry.library.open.iso(chronometry.library.Timestamp)
+	parse_iso_to_ts = libtime.open.iso(libtime.Timestamp)
 	ts = parse_iso_to_ts('2009-02-01T3:33:45.123321')
 
 [ Constructing Points and Measures >> Formatting a Standard Timestamp ]
--------------------------------
+-----------------------------------------------------------------------
 
 Likewise, instances can be formatted by the standards:
 
 #!/pl/python
-	ts = chronometry.library.Timestamp.of(iso='2009-01-01T7:30:0')
+	ts = libtime.Timestamp.of(iso='2009-01-01T7:30:0')
 	print(ts.select('iso'))
 
 And RFC as well:
 
 #!/pl/python
-	assert "Sat, 01 Jan 2000 00:00:00" == chronometry.library.Timestamp(date=(2000,1,1)).select('rfc')
+	assert "Sat, 01 Jan 2000 00:00:00" == libtime.Timestamp(date=(2000,1,1)).select('rfc')
 
 [ Constructing Points and Measures >> Constructing a Timestamp from Parts ]
------------------------------------
+---------------------------------------------------------------------------
 
 A &.library.Timestamp can be constructed from time parts using the
 &.abstract.Time.of class method. This method takes
@@ -466,12 +466,12 @@ arbitrary positional parameters and keyword parameters whose keys are the name
 of a unit of time known by the time context:
 
 #!/pl/python
-	ts = chronometry.library.Timestamp.of(hour = 55, second = 78)
+	ts = libtime.Timestamp.of(hour = 55, second = 78)
 
 Notably, the above is not particularly useful without a date:
 
 #!/pl/python
-	chronometry.library.Timestamp.of(
+	libtime.Timestamp.of(
 		date = (2015, 1, 1),
 		hour = 13, minute = 7,
 		second = 4,
@@ -479,27 +479,27 @@ Notably, the above is not particularly useful without a date:
 	)
 
 [ Constructing Points and Measures >> Constructing a Timestamp from a UNIX Timestamp ]
---------------------------------------------------------------------------
+--------------------------------------------------------------------------------------
  
 The `unix` container keyword provides an interface from seconds since the
 UNIX-epoch, "January 1, 1970". A timestamp can be made using the
 &.abstract.Time.of method:
 
 #!/pl/python
-	epoch = chronometry.library.Timestamp.of(unix=0)
+	epoch = libtime.Timestamp.of(unix=0)
 
 Subseqently, a given PiT can yield a UNIX timestamp using the
 &.abstract.Time.select method:
 
 #!/pl/python
-	now = chronometry.library.now()
+	now = libtime.now()
 	unix = now.select('unix')
 
 Alternatively, the &.library.open composition constructor can be used
 to build a callable that returns &.library.Timestamp instances:
 
 #!/pl/python
-	from_unix = chronometry.library.open.unix(chronometry.library.Timestamp)
+	from_unix = libtime.open.unix(libtime.Timestamp)
 
 And a contrived use-case where the file `f` contains lines containing unix timestamps:
 
@@ -516,14 +516,14 @@ used in certain cases, but they should be restricted to performance critical
 situations where the higher-level methods cannot be used.
 
 [ Arithmetic of Points and Measures >> Getting a Particular Day of the Week ]
-------------------------------------
+-----------------------------------------------------------------------------
 
 Points and scalars can both update arbitrary fields according to a boundary.
 With Timestamps and Dates aligned on the beginning of a week, an arbitrary
 day of week can be found by field modification:
 
 #!/pl/python
-	ts = chronometry.library.Timestamp.of(iso="2000-01-01T3:30:00")
+	ts = libtime.Timestamp.of(iso="2000-01-01T3:30:00")
 	>>> print(ts.select('day', 'week'))
 	6
 	ts = ts.update('day', 1, 'week') # 0-6, Sun-Sat.
@@ -535,7 +535,7 @@ day of week can be found by field modification:
 By extension, to get the following Monday, just add seven:
 
 #!/pl/python
-	ts = chronometry.library.Timestamp.of(iso="2000-01-01T3:30:00")
+	ts = libtime.Timestamp.of(iso="2000-01-01T3:30:00")
 	ts = ts.update('day', 8, 'week')
 	>>> print(ts)
 	'2000-01-03T03:30:00.000000'
@@ -545,7 +545,7 @@ By extension, to get the following Monday, just add seven:
 Or, to get the preceding Monday, just substract seven:
 
 #!/pl/python
-	>>> ts = chronometry.library.Timestamp.of(iso="2000-01-01T3:30:00")
+	>>> ts = libtime.Timestamp.of(iso="2000-01-01T3:30:00")
 	>>> ts = ts.update('day', 1-7, 'week')
 	>>> print(ts)
 	1999-12-20T03:30:00.000000
@@ -555,7 +555,7 @@ Or, to get the preceding Monday, just substract seven:
 And so on: `1+|-14`, `1+|-21`, ...
 
 [ Arithmetic of Points and Measures >> Getting a Particular Weekday of a Month ]
---------------------------------------
+--------------------------------------------------------------------------------
 
 Occasionally, the need may arise to fetch the N-th weekday of the month. This is
 trickier than getting an arbitrary weekday as it requires the part to be aligned
@@ -564,7 +564,7 @@ month must first be adjusted to the beginning of the month:
 
 #!/pl/python
 	# Find the third Saturday of the month.
-	ts = chronometry.library.Timestamp.of(...)
+	ts = libtime.Timestamp.of(...)
 
 	# Get the first of the month.
 	ts = ts.update('day', 0, 'month')
@@ -579,7 +579,7 @@ to designate that a particular weekday be the beginning or end of the week.
 Subsequently, allowing quick identification:
 
 #!/pl/python
-	ts = chronometry.library.Timestamp.of(...)
+	ts = libtime.Timestamp.of(...)
 	# Get the last day of the Month.
 	ts = ts.elapse(month=1).update('day', -1, 'month')
 	ts.update('day', 0, 'week', align=-2)
@@ -607,14 +607,14 @@ Indefinite points such as Never and Genesis are also useful for creating unbound
 segments from a particular point in time:
 
 #!/pl/python
-	pit = chronometry.library.now().rollback(hour=1)
-	rfuture = chronometry.library.Segment((pit, chronometry.library.Never))
+	pit = libtime.now().rollback(hour=1)
+	rfuture = libtime.Segment((pit, libtime.Never))
 
 The `rfuture` segment starts an hour in the past and never ends. Notably, iterators
 created by the segment are continuous in the future:
 
 #!/pl/python
-	hourly = rfuture.points(chronometry.library.Measure.of(hour=1))
+	hourly = rfuture.points(libtime.Measure.of(hour=1))
 	for x, ts in zip(range(3), hourly):
 		print(x, ts)
 
@@ -643,35 +643,35 @@ over `generator expressions` as it allows a reference to the desired transformat
 	provide implementations that offer greater efficiency.
 
 [ Working with Sets and Sequences >> Selectors ]
----------
+------------------------------------------------
 
 The &.library.select constructor provides a syntactically convenient
 means to select fields from an arbitrary Time Object.
 
-For instance, `map(chronometry.library.select.timeofday(), iter(obj))`, will perform an
+For instance, `map(libtime.select.timeofday(), iter(obj))`, will perform an
 operation consistent to: `(x.select('timeofday') for x in iter(obj))`.
 
 In the case where the `whole` needs to be specified, a second attribute may be
 given:
 
 #!/pl/python
-	hour_of_day = chronometry.library.select.hour.day()
-	>>> print(hour_of_day(chronometry.library.Timestamp.of(datetime=(2001,1,1,4,30,2))))
+	hour_of_day = libtime.select.hour.day()
+	>>> print(hour_of_day(libtime.Timestamp.of(datetime=(2001,1,1,4,30,2))))
 
 [ Working with Sets and Sequences >> Updaters ]
---------
+-----------------------------------------------
 
 The &.library.update constructor provides a syntactically convenient
 means to update *a* field of an arbitrary Time Object.
 
-For instance, `map(chronometry.library.update.day.week(0), iter(obj))`, will perform an
+For instance, `map(libtime.update.day.week(0), iter(obj))`, will perform an
 operation consistent to: `(x.update('day', 0, 'week') for x in iter(obj))`
 
 Field updates can provide a concise means to simplify some rather tricky
 date-time math.
 
 [ Working with Sets and Sequences >> Openers ]
--------
+----------------------------------------------
 
 There is often a need to construct an opener. Instantiating timestamps from
 date-time tuples, ISO formatted timestamps, and UNIX timestamps is common.
@@ -685,22 +685,22 @@ parameter to the constructor.
 
 Common forms:
 
-/`chronometry.library.open.unix(chronometry.library.Timestamp)`
+/`libtime.open.unix(libtime.Timestamp)`
 	Given an integer relative to the UNIX epoch, return a
 	corresponding &.library.Timestamp instance.
 
-/`chronometry.library.open.iso(chronometry.library.Timestamp)`
+/`libtime.open.iso(libtime.Timestamp)`
 	Given an ISO formatted string, return a
 	corresponding &.library.Timestamp instance.
 
-/`chronometry.library.open.iso(chronometry.library.Date)`
+/`libtime.open.iso(libtime.Date)`
 	Same as the varient taking the timestamp, but align the Point to the date.
 
-/`chronometry.library.open.rfc(chronometry.library.Timestamp)`
+/`libtime.open.rfc(libtime.Timestamp)`
 	Like the ISO variant, but take an RFC complient string.
 	This is notably useful when working with HTTP.
 
-/`chronometry.library.open.datetime(chronometry.library.Timestamp)`
+/`libtime.open.datetime(libtime.Timestamp)`
 	Build a constructor that takes seconds from the UNIX epoch and returns a
 	&.library.Timestamp instance.
 
@@ -717,7 +717,7 @@ The &.system module uses whatever facilities it was able
 to find at compile time in order to provide maximum precision.
 
 [ Working with the Clock >> Demotic and Monotonic Time ]
---------------------------
+--------------------------------------------------------
 
 Clocks have two concepts of time, the demotic and monotonic. The rate of change
 of demotic time is mutable and the monotonic time is, ideally, immutable.
@@ -738,14 +738,14 @@ recommended for most cases. Rather, chronometry provides some iterators and
 context managers that cover the common use-cases of monotonic time.
 
 [ Working with the Clock >> Time Meters ]
------------
+-----------------------------------------
 
 Time meters, &.library.clock.meter, are iterators provided by
 &.abstract.Clock implementations that track the amount of time
 that has elapsed since the *first* iteration:
 
 #!/pl/python
-	for x in chronometry.library.clock.meter():
+	for x in libtime.clock.meter():
 		print(repr(x))
 		if x.select('second') > 1:
 			break
@@ -753,7 +753,7 @@ that has elapsed since the *first* iteration:
 Meters are perfect for polling situations with timeouts.
 
 [ Working with the Clock >> Delta Meters ]
-------------
+------------------------------------------
 
 In other cases, the total time is not particularly interesting or needs be
 calculated by another component of the process. Delta meters,
@@ -763,8 +763,8 @@ that has elapsed since the *prior* iteration.
 Delta meters are good for implementing rate limiting:
 
 #!/pl/python
-	total = chronometry.library.Measure()
-	for x in chronometry.library.clock.delta():
+	total = libtime.Measure()
+	for x in libtime.clock.delta():
 		print(repr(x))
 		total = total.elapse(x)
 		if x.__class__(total).select('second') > 1:
@@ -851,8 +851,8 @@ information.
 There is no easy mode when being time zone aware. It's an extra level of detail that
 *must* be managed by the application.
 
-Understanding Time Zones
-------------------------
+[ Working with Time Zones >> Understanding Time Zones ]
+-------------------------------------------------------
 
 The difficulty of time zones stems from the need to transition to and from an
 offset for appropriating the representation of a Point in Time. This is referring to
@@ -889,15 +889,15 @@ zone in UTC.
 In the second, the actual offset *and* zone identifier applied to the zone
 should be associated with the PiT object.
 
-Getting an Offset from a UTC Point in Time
-------------------------------------------
+[ Working with Time Zones >> Getting an Offset from a UTC Point in Time ]
+-------------------------------------------------------------------------
 
 While &.libzone provides the implementation of Zone objects, high level
 access is provided via the &.library.zone function:
 
 #!/pl/python
-	tz = chronometry.library.zone('America/Los_Angeles')
-	pit = chronometry.library.now()
+	tz = libtime.zone('America/Los_Angeles')
+	pit = libtime.now()
 	offset = tz.find(pit)
 
 Once the &.libzone.Offset object has been found for a given point in
@@ -906,33 +906,33 @@ time, the UTC point can be adjusted:
 #!/pl/python
 	la_pit = pit.elapse(offset)
 
-Localizing a UTC Point in Time
-------------------------------
+[ Working with Time Zones >> Localizing a UTC Point in Time ]
+-------------------------------------------------------------
 
 The examples in the previous section show the details of localization.
 &.libzone.Zone instances have the above functionality packed into a
 single method, &.libzone.Zone.localize:
 
 #!/pl/python
-	pit, offset = chronometry.library.zone().localize(chronometry.library.now())
+	pit, offset = libtime.zone().localize(libtime.now())
 
 The offset applied to the point in time is returned with the adjusted point as it is
 often necessary in order to properly represent the timestamp:
 
 #!/pl/python
 	offset.iso(pit)
-	"2013-01-17T15:36:35.834813000 PST-28800"
+	# "2013-01-17T15:36:35.834813000 PST-28800"
 
-Normalizing a Local Point in Time
----------------------------------
+[ Working with Time Zones >> Normalizing a Local Point in Time ]
+----------------------------------------------------------------
 
 Normalization is the process of adjusting a localized timestamp by its *known* offset into
 a UTC timestamp and then localizing it. The &.libzone.Zone.normalize
 method has this functionality:
 
 #!/pl/python
-	pit, offset = chronometry.library.zone().localize(chronometry.library.now())
-	normalized_pit, new_offset = chronometry.library.zone().normalize(offset, pit)
+	pit, offset = libtime.zone().localize(libtime.now())
+	normalized_pit, new_offset = libtime.zone().normalize(offset, pit)
 
 Where `normalized_pit` and `new_offset` are the *exact* same objects if no change was
 necessary.

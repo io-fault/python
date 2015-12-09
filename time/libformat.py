@@ -5,7 +5,8 @@ Primarily this module exposes two functions: &parser,
 &formatter. These functions provide access to datetime formats defined by a
 standard or deemed common enough to merit a builtin implementation.
 
-.. note:: The near future will bring a strptime and strftime implementation.
+! NOTE:
+	The near future will bring a strptime and strftime implementation.
 
 While formatting PiTs can usually occur without error, parsing them from strings
 can result in a variety of errors. The parsers available in

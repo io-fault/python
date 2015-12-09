@@ -1,6 +1,3 @@
-'project information'
-
-#: Project name.
 name = 'chronometry'
 abstract = 'A time package suitable for any application'
 icon = '⌛'

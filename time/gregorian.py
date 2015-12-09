@@ -116,29 +116,24 @@ def year_is_leap(y):
 
 def month_from_days(days, _resolver = resolve_by_days):
 	"""
-	month_from_days(days)
-
 	Convert the given number Earth-days to a month in the Gregorian cycle.
 
-	NOTE: This does not communicate the remainder of days.
+	! NOTE:
+		This does not communicate the remainder of days.
 	"""
 	cycles, months, day, _d = _resolver(days)
 	return ((cycles * 400 * 12) + months)
 
-def days_from_month(months, _resolver = resolve_by_months):
+def days_from_month(months, _resolver=resolve_by_months):
 	"""
-	days_from_month(months)
-
 	Convert the given months to the number of Earth-days leading up to the
 	Gregorian month.
 	"""
 	cycles, day_of_cycle, moy, _d = _resolver(months)
 	return (cycles * days_in_cycle) + day_of_cycle
 
-def date_from_days(days, _resolver = resolve_by_days):
+def date_from_days(days, _resolver=resolve_by_days):
 	"""
-	date_from_days(days)
-
 	Convert the given Earth-days into a Gregorian date in the common form:
 	 (year, month, day).
 	"""
@@ -146,10 +141,8 @@ def date_from_days(days, _resolver = resolve_by_days):
 	year_of_cycle, moy = divmod(months, months_in_year)
 	return ((cycles * 400) + year_of_cycle, moy + 1, day + 1)
 
-def days_from_date(date, _resolver = resolve_by_months):
+def days_from_date(date, _resolver=resolve_by_months):
 	"""
-	days_from_date(date)
-
 	Convert a Gregorian date in the common form, (year, month, day), to the number
 	of days leading up to the date.
 	"""

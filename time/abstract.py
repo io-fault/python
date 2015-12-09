@@ -244,14 +244,11 @@ class Measure(Range):
 
 class Point(Range):
 	"""
-	A Point in Time, PiT; a Measure relative to an understood datum.
-
-	Points are an extension of Measures.
-
-	They isolate a position in time *with* a magnitude of one unit.
-
-	The use of magnitudes on Points is purely practical as leveraging this
-	with Earth-Day units is far to useful to dismiss.
+	A Point in Time; a &Range relative to an understood datum.
+	Points isolate a position in time *with* a mangitude of one unit.
+	The purpose of the &Range superclass is primarily practical as allowing
+	&.library.Date instances to be perceived as the span of
+	the entire day is frequently useful.
 	"""
 
 	@abc.abstractproperty
@@ -263,10 +260,13 @@ class Point(Range):
 	@abc.abstractproperty
 	def Measure(self):
 		"""
-		The Point's corresponding scalar class used to measure deltas. This may
-		*not* be the Point's direct superclass, but the following must hold true::
+		The Point's corresponding scalar class used to measure deltas.
+		This provides access to a &Measure with consistent precision.
 
-			assert isinstance(point, point.Measure)
+		[ Invariants ]
+		#!/pl/python
+			assert point.Measure.unit == point.unit
+			assert issubclass(point.Measure, Measure)
 		"""
 
 	@abc.abstractproperty
@@ -274,8 +274,9 @@ class Point(Range):
 		"""
 		Points *must* return the instance, &self:
 
+		[ Invariants ]
 		#!/pl/python
-			assert pit.start is pit
+			assert point.start is point
 		"""
 
 	@abc.abstractproperty
@@ -283,6 +284,7 @@ class Point(Range):
 		"""
 		The next Point according to the unit:
 
+		[ Invariants ]
 		#!/pl/python
 			assert point.stop == point.elapse(point.Measure(1))
 		"""
@@ -318,17 +320,13 @@ class Point(Range):
 	def rollback(self, *units, **parts):
 		"""
 		The point in time that occurred the given number of units before this
-		point. The functionality is like &Measure.elapse, but negates
-		the parameters.
+		point. The semantics are identical to &Point.elapse, but transforms
+		the parameters into negative values.
 
-		The method's implementation must hold the following properties:
+		[ Invariants ]
 
 		#!/pl/python
 			pit == (pit.rollback(*measures, **units)).elapse(*measures, **units)
-
-		Where `pit` is an arbitrary &Point, `measures`
-		is a sequence of *compatible* &Measure instances, and
-		`units` is a mapping of unit names to values.
 		"""
 
 	@abc.abstractmethod
@@ -336,10 +334,12 @@ class Point(Range):
 		"""
 		Returns whether or not the Point in Time, self,
 		comes *before* the given argument, &pit.
+
+		Essentially, this is a &Unit aware comparison.
 		"""
 
 	@abc.abstractmethod
-	def follows(self, *units, **parts):
+	def follows(self, pit):
 		"""
 		Returns whether or not the Point in Time, self,
 		comes *after* the given argument, &pit.

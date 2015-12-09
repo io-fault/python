@@ -1,16 +1,21 @@
 """
 Data and regarding Earth-based units of time. (The earth day)
+
+[ Properties ]
+
+/seconds_in_minute
+	Number of seconds contained in a minute.
+/minutes_in_hour
+	Number of minutes contained in an hour.
+/hours_in_day
+	Number of hours contained in a day.
+/days_in_four_annum
+	Number of days in four annums.
 """
-#: Number of seconds contained in a `minute`.
+
 seconds_in_minute = 60
-
-#: Number of minutes contained in an `hour`.
 minutes_in_hour = 60
-
-#: Number of hours contained in an earth `day`.
 hours_in_day = 24
-
-#: Number of a days in four Julian years. (365.25 days)
 days_in_four_annum = 1461
 
 def context(context):

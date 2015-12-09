@@ -7,6 +7,8 @@ import fractions
 import functools
 import operator
 
+from . import abstract
+
 # Definite being a finite position.
 # Indefinite referring to the infinite (eternals).
 # Subjective referring to months whose consistency is based on the year.
@@ -97,11 +99,11 @@ class Unit(int):
 	__slots__ = ()
 
 	@classmethod
-	def construct(typ,
-		units, parts, start = 0,
-		op = operator.add,
-		Queue = collections.deque, int = int
-	):
+	def construct(Class,
+			units, parts, start = 0,
+			op = operator.add,
+			Queue = collections.deque, int = int
+		):
 		d = Queue() # for opening containers
 		popleft = d.popleft
 		append = d.append
@@ -111,13 +113,13 @@ class Unit(int):
 		# Keyword processing. First, combine like terms.
 		append(parts.items())
 
-		context = typ.context
+		context = Class.context
 		containers = context.containers
 		convert = context.convert
 		getterm = context.terms.get
 		kinds = context.kinds
 
-		target_unit = typ.unit
+		target_unit = Class.unit
 		target_term = getterm(target_unit)
 		total = start
 
@@ -133,7 +135,7 @@ class Unit(int):
 
 				if term is None:
 					# not a term, assume that it's a container.
-					prepend(containers[unit][1](typ, value)) # open container unit
+					prepend(containers[unit][1](Class, value)) # open container unit
 				elif term == target_term:
 					# simple conversion is needed for like-term units.
 					total = op(total, convert(unit, target_unit, value))
@@ -150,7 +152,7 @@ class Unit(int):
 			else:
 				terms[term] = terms.get(term, 0) + convert(x.unit, term, int(x))
 
-		# All like terms have been combined (op(x,y)). The target term (typ.term) is
+		# All like terms have been combined (op(x,y)). The target term (Class.term) is
 		# stored in total and it's time to apply unlike terms using the context's
 		# bridges.
 		for term, value in terms.items():
@@ -172,11 +174,11 @@ class Unit(int):
 			# convert both back to the target unit and
 			# apply the difference to the actual total
 			total = convert(term, target_unit, local) + dif
-		return typ(int(total) - typ.datum)
+		return Class(int(total) - Class.datum)
 
 	@classmethod
-	def of(typ, *units, **parts):
-		return typ.construct(units, parts)
+	def of(Class, *units, **parts):
+		return Class.construct(units, parts)
 
 	def update(self, part = None, replacement = None, of = None, align = 0):
 		# adjust self by the difference of the new value and the selection.
@@ -586,9 +588,10 @@ class Context(object):
 		"""
 		unit_kind = kind
 
+		path = qname.rsplit('.', 1)
 		class Point(Class):
 			__slots__ = ()
-			__name__ = qname
+			__module__, __name__ = path
 			unit = Measure.unit
 			kind = unit_kind
 			name = Measure.name
@@ -597,9 +600,11 @@ class Context(object):
 			magnitude = point_magnitude # Vector is: Point -> Point+magnitude
 			context = self
 			liketerm = self.terms[Measure.unit]
+		Point.__name__ = path[1]
+		Point.__doc__ = '&.abstract.Point'
 
 		Point.Measure = Measure
-		Point.__name__ = qname
+		abstract.Point.register(Point)
 		return Point
 
 	def measure_factory(self, id, qname, kind = 'definite', Class = Measure, name = None, address = None):
@@ -609,18 +614,22 @@ class Context(object):
 		proper_name = name or id
 		unit_kind = kind
 
+		path = qname.rsplit('.', 1)
+
 		# Build constructors/classes for the parameterized unit.
 		class Measure(Class):
 			__slots__ = ()
-			__name__ = qname
+			__module__, __name__ = path
 			unit = id
 			kind = unit_kind
 			name = proper_name
 			datum = 0
 			context = self
 			liketerm = self.terms[id]
+		Measure.__name__ = path[1]
+		Measure.__doc__ = '&.abstract.Measure'
 
-		Measure.__name__ = qname
+		abstract.Measure.register(Measure)
 		return Measure
 
 def standard_context(qname):
