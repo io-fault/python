@@ -94,7 +94,7 @@ def test_Radar_implicit_forget(test):
 	del a
 	import gc
 	gc.collect()
-	test/len(R) == 0
+	test/len(R.tracking) == 0
 
 def test_Radar_explicit_forget(test):
 	R = libflow.Radar(Chronometer = Chronometer)
@@ -108,7 +108,7 @@ def test_Radar(test):
 	Test most features of the Radar class.
 	"""
 	R = libflow.Radar(Chronometer = Chronometer)
-	test/len(R) == 0
+	test/len(R.tracking) == 0
 	a = SomeObject()
 
 	update = Chronometer.set
@@ -121,7 +121,7 @@ def test_Radar(test):
 	test/next(pair[0]) == 0
 
 	# validates that there is a flow being tracked
-	test/len(R) == 1
+	test/len(R.tracking) == 1
 
 	test/R.rate(a) == (0, lib.Measure(1))
 	update(20)
@@ -175,7 +175,7 @@ def test_Radar_collapse_window(test):
 	R = libflow.Radar(Chronometer = Chronometer)
 	update = Chronometer.set
 
-	test/len(R) == 0
+	test/len(R.tracking) == 0
 	a = SomeObject()
 
 	# couple records
@@ -209,7 +209,7 @@ def test_Radar_zero(test):
 	R = libflow.Radar(Chronometer = Chronometer)
 	update = Chronometer.set
 
-	test/len(R) == 0
+	test/len(R.tracking) == 0
 	a = SomeObject()
 
 	# couple records

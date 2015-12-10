@@ -324,7 +324,9 @@ class Scheduler(object):
 		[ Parameters ]
 
 		/schedules
-			The Measure, Event pairs: (&Measure, &object), ...
+			The Measure, Event pairs: `(Measure, object), ...`
+			First item of the pairs being an &.abstract.Measure,
+			and the second an arbitrary &object.
 		"""
 		snapshot = self.meter.snapshot()
 		events = []
@@ -344,7 +346,8 @@ class Scheduler(object):
 
 	def get(self, pop=heapq.heappop, push=heapq.heappush):
 		"""
-		Return all events whose sheduled delay has elapsed according to the Chronometer.
+		Return all events whose sheduled delay has elapsed according to the
+		configured Chronometer.
 
 		The pairs within the returned sequence consist of a Measure and the Event. The
 		measure is the amount of time that has elapsed since the scheduled time.
@@ -362,7 +365,9 @@ class Scheduler(object):
 				push(self.heap, item)
 				break
 			else:
-				eventq = self.schedule.pop(item)
+				# If an identical item has already been popped,
+				# an empty set can be returned in order to perform a no-op.
+				eventq = self.schedule.pop(item, ())
 				while eventq:
 					x = eventq.popleft()
 					if x in self.cancellations:
