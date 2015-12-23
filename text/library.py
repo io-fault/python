@@ -1,14 +1,12 @@
 """
-Eclectic XML transformation.
-Parse eclectic text into a nested structure primarily intended for XML serialization.
-Eclectic Text is a structured text language that attempts to borrow syntax from
-popular languages in order to create memorable notations. By associating a given notation
-with a familiar origin, the syntax is thought to be more recollectable than most.
+Transform Eclectic Text into XML.
 
-Eclectic is structured as a sequence of commands with style ranges; each line represents
-a command. Whether a new paragraph, a null command (empty line), or new section. Style
-ranges do not cross commands (lines) and must be explicitly continued by finishing the
-style and starting it again.
+The &XML.transform class method provides the high-level interface
+for transforming eclectic text into XML.
+
+#!/pl/python
+	text_iter = libeclectic.XML.transform('eclectic:', text, encoding='utf-8')
+	sys.stdout.buffer.write(b''.join(text_iter))
 """
 import itertools
 

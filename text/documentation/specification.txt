@@ -117,13 +117,20 @@ Paragraph lines are the default effect of a text line inside an eclectic documen
 they are implicitly created which is unlike most other structures that are initiated
 by command codes (operators borrowed from other languages and contexts).
 
-===================
-[ Literal Context ]
-===================
+==================
+[ Literal Blocks ]
+==================
 
 Literal lines are the lines contained within indentation blocks following the block
 command, `#!`. The notation is borrowed from UNIX executable files which define the
-binary that should be used to "execute" the given file.
+binary that should be used to "execute" the given file. In eclectic's context,
+it defines the type of data contained within the block and any transformations performed
+to the content.
+
+#!/pl/javascript|xz|base64
+	...
+	...
+	...
 
 ===================
 [ Inline Literals ]
@@ -391,7 +398,7 @@ having to consider eclectic syntax inside the literal.
 &<http://fault.io>
 
 Paragraph with `anonymous inline code` that defaults the language.
-&<Hyperlink=https://fault.io>
+&<[Hyperlink Title]https://fault.io>
 &<https://fault.io>
 
 ==================
