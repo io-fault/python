@@ -19,7 +19,7 @@ class Parser(object):
 	"""
 	Configuration and state class for parsing eclectic markdown.
 
-	[ Attributes ]
+	[ Properties ]
 
 	/stack
 		...
@@ -142,9 +142,13 @@ class Parser(object):
 
 			for n, e, (start_count, stop_count) in zip(normal, emphasized, pairs):
 				yield ('text', n)
-				yield ('emphasis', e, start_count)
-				if start_count != stop_count:
-					raise ValueError("improperly balanced emphasis")
+				if start_count == stop_count:
+					yield ('emphasis', e, start_count)
+				else:
+					# yield ('warning', 'unbalanced emphasis')
+					yield ('text', start_count*'*')
+					yield ('text', e)
+					yield ('text', stop_count*'*')
 
 			if len(normal) > len(emphasized) and normal[-1]:
 				yield ('text', normal[-1])
