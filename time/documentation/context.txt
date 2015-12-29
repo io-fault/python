@@ -1,5 +1,5 @@
-[ *Glossary* ]
-==============
+[ Glossary ]
+============
 
 /Horology
 	The study of and measurement of time. (definition)
@@ -66,8 +66,8 @@
 	A particular unit of time in a Time Context. second, day, month are
 	all types.
 
-[ *References* ]
-================
+[ References ]
+==============
 
 The functionality and API choices of a number of datetime implementations were
 analyzed during the development of chronometry:
