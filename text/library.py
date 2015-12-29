@@ -27,6 +27,26 @@ class XML(object):
 	provides the hierarchical structure necessary for XML.
 	"""
 
+	@classmethod
+	def transform(Class, prefix:str, source:str, encoding:str='utf-8', identify=lambda x: x):
+		"""
+		Construct an iterator producing XML from the given
+		eclectic documentation &source.
+
+		[ Parameters ]
+
+		/prefix
+			The element name prefix for the rendered XML.
+		/source
+			The eclectic text to transform into XML.
+		/encoding
+			The encoding that should be used for the XML.
+		"""
+		global core
+		p = core.Parser()
+		s = Class(libxml.Serialization(prefix, encoding), identify=identify)
+		return s.serialize(p.parse(source))
+
 	def __init__(self,
 			serialization:libxml.Serialization,
 			identify:object=lambda x: x,
@@ -34,15 +54,20 @@ class XML(object):
 		"""
 		[ Parameters ]
 
-		/&serialization
+		/serialization
 			The serialization instance used to construct the XML.
-		/&identify
+		/identify
 			The function used to prepare an identifier. Normally, a function
-			that prepends some contextual identifier in order to guarantee
-			uniqueness.
+			that prepends on some contextual identifier in order to guarantee
+			uniqueness. For example, `lambda x: 'ContextName' + x`.
 		"""
 		self.serialization = serialization
 		self.identify = identify
+
+	def serialize(self, tree):
+		assert tree[0] == 'document'
+		for section in tree[1]:
+			yield from self.create_section(tree, section)
 
 	def process_paragraph_text(self, tree, text, cast=None):
 		yield from self.serialization.escape(text)
@@ -68,12 +93,12 @@ class XML(object):
 		"""
 		[ Parameters ]
 
-		/&source
+		/source
 			The reference source; the actual string found to be
 			identified as a reference.
-		/&type
+		/type
 			The type of reference, one of: `'hyperlink'`, `'section'`, `None`.
-		/&action
+		/action
 			The effect desired by the reference: `'include'` or &None.
 			&None being a normal reference, and `'include'` being induced
 			with a `'*'` prefixed to the reference
@@ -235,19 +260,3 @@ class XML(object):
 		'break': process_break,
 		'section': create_section,
 	}
-
-	def serialize(self, tree):
-		assert tree[0] == 'document'
-		for section in tree[1]:
-			yield from self.create_section(tree, section)
-
-	@classmethod
-	def transform(Class, prefix:str, source:str, encoding:str='utf-8', identify=lambda x: x):
-		"""
-		Construct an iterator producing XML from the given
-		eclectic documentation &source.
-		"""
-
-		p = core.Parser()
-		s = Class(libxml.Serialization(prefix, encoding), identify=identify)
-		return s.serialize(p.parse(source))
