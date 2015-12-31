@@ -138,17 +138,21 @@ class PartialAttributes(object):
 
 	Chronometry internal use only.
 	"""
-	__slots__ = ('__construct', '__names')
+	__slots__ = ('_construct', '_names')
 
 	def __init__(self, construct, names = ()):
-		self.__construct = construct
-		self.__names = names
+		self._construct = construct
+		self._names = names
 
 	def __call__(self, *args, **kw):
-		return self.__construct(self.__names, args, kw)
+		return self._construct(self._names, args, kw)
+
+	@property
+	def __dict__(self):
+		return {'_construct': self._construct, '_names': self._names}
 
 	def __getattr__(self, name):
-		return self.__class__(self.__construct, self.__names + (name,))
+		return self.__class__(self._construct, self._names + (name,))
 
 def construct_update(names, args, kw, mc = operator.methodcaller):
 	part, of = names
