@@ -44,7 +44,8 @@ class XML(object):
 		"""
 		global core
 		p = core.Parser()
-		s = Class(libxml.Serialization(prefix, encoding), identify=identify)
+		xmlctx = libxml.Serialization(xml_prefix=prefix, xml_encoding=encoding)
+		s = Class(xmlctx, identify=identify)
 		return s.serialize(p.parse(source))
 
 	def __init__(self,
