@@ -1,5 +1,5 @@
 """
-Data and regarding Earth-based units of time. (The earth day)
+Earth-day related unit information.
 
 [ Properties ]
 
