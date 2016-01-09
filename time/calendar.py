@@ -1,19 +1,28 @@
 """
 Arbitrary Calendar Address Resolution
 
-Used internally by .gregorian in order to work with the gregorian calendar pattern.
+Used internally by &.gregorian in order to work with the gregorian calendar pattern.
 """
 import itertools
 import operator
 
 ##
 # Calculate the total days and months needed by resolve().
-def aggregate(node):
+def aggregate(node,
+		chain=itertools.chain,
+		accumulate=itertools.accumulate,
+		isinstance=isinstance, int=int,
+		tuple=tuple, range=range,
+		len=len, sum=sum,
+	):
+	"""
+	Recursively aggregate the data in the node.
+	"""
 	title, repeat, sub = node
 
 	if isinstance(sub[0], int):
 		# leaf
-		day_accum = tuple(itertools.accumulate(itertools.chain((0,), sub)))
+		day_accum = tuple(accumulate(chain((0,), sub)))
 		month_accum = tuple(range(13)) # sub
 		agg = (month_accum, day_accum)
 		month_value = len(sub)
@@ -39,7 +48,10 @@ def aggregate(node):
 #  Remainder is the address quantity not consumed. (day of month)
 #  Difference is the difference between final address part and the next. (days in month)
 
-def resolve(selectors, iaddress, calendar):
+def resolve(selectors, iaddress, calendar,
+		divmod=divmod, isinstance=isinstance,
+		range=range, len=len, int=int,
+	):
 	sipart, sopart = selectors
 	oaddress = 0 # current output address
 
@@ -73,4 +85,5 @@ def resolve(selectors, iaddress, calendar):
 	for i in range(len(iparts)):
 		if iparts[i+1] > iaddress:
 			break
+
 	return (cycles, oaddress + oparts[i], iaddress - iparts[i], oparts[i+1] - oparts[i])
