@@ -69,14 +69,15 @@ Parts = collections.namedtuple("Parts",
 
 def split(iri):
 	"""
-	:param iri: A complete IRI.
-	:type iri: :py:class:`str`
-	:returns: The top-level parts of the IRI as a namedtuple.
-	:rtype: :py:class:`Parts`
-
-	Split an IRI into its base components based on the markers::
+	Split an IRI into its base components based on the markers:
 
 		(: | ://), /, ?, #
+
+	Returns the top-level parts of the IRI as a namedtuple.
+
+	[ Parameters ]
+	/iri
+		A complete IRI or URI.
 	"""
 	type = None
 	scheme = None
@@ -293,13 +294,21 @@ def join_netloc(t):
 
 unsplit_netloc = join_netloc
 
-def structure(t, fieldproc = unescape, tuple = tuple, list = list, map = map):
+def parse_query(query, fieldproc=unescape):
+	return [
+		tuple((list(map(fieldproc, x.split('=', 1))) + [None])[:2])
+		for x in query.split('&')
+	]
+
+def structure(t, fieldproc=unescape, tuple=tuple, list=list, map=map):
 	"""
 	Create a dictionary from a split RI(5-tuple).
 
 	Set `fieldproc` to `str` if the components' percent escapes should not be
 	decoded.
 	"""
+	global parse_query
+	global split_netloc
 
 	d = {}
 
@@ -327,7 +336,7 @@ def structure(t, fieldproc = unescape, tuple = tuple, list = list, map = map):
 
 	if t[4] is not None:
 		if t[4]:
-			d['query'] = [tuple((list(map(fieldproc, x.split('=', 1))) + [None])[:2]) for x in t[4].split('&')]
+			d['query'] = parse_query(t[4], fieldproc=fieldproc)
 		else:
 			# no characters followed the '?'
 			d['query'] = []
