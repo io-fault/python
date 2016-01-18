@@ -105,4 +105,4 @@ codes = dict(
 	NOT_EXTENDED = b'510',
 	NETWORK_AUTHENTICATION_REQUIRED = b'511',
 )
-code_to_names = {v:k for k,v in classes.items()}
+code_to_names = {v:k for k,v in codes.items()}
