@@ -11,7 +11,7 @@ Interfaces here work exclusively with character-strings; wire data must be decod
 /filename_extensions
 	A mapping of filename extensions to type name.
 
-[ Override ]
+[ Functions ]
 
 /type_from_string
 
@@ -35,6 +35,7 @@ import typing
 
 types = {
 	'data': 'application/octet-stream', # browsers interpret this as a file download
+	'fail': 'application/failure+xml',
 
 	'python-pickle': 'application/x-python-object+pickle',
 	'python-marshal': 'application/x-python-object+marshal',
@@ -172,12 +173,24 @@ class Type(tuple):
 
 	@property
 	def cotype(self):
-		'Content Type: application/, text/, model/, \\*/'
+		"""
+		Content Type; usually one of:
+
+			# `application`
+			# `text`
+			# `image`
+			# `video`
+			# `model`
+
+		The initial part of a MIME (media) type.
+		"""
 		return self[0]
 
 	@property
 	def subtype(self):
-		'Subtype: /plain, /xml, /html, /*'
+		"""
+		Subtype; the specific form of the &cotype.
+		"""
 		return self[1]
 
 	@property
@@ -249,10 +262,6 @@ def parse(header,
 	Yields: `[(internet.libmedia.Type, None or [(k,v),...]),...]`
 
 	Where the second item in the yielded tuples is a list of media type options.
-
-	! NOTE:
-		This function must be used explicitly by the receiver
-		of the disassembler as parsing this information has costs.
 	"""
 	# fuck parser generators! we like the pain
 	current_type = None
@@ -353,10 +362,10 @@ class Range(tuple):
 	Ranges are a mapping of content-types to an ordered sequence of subtype sets.
 	The ordering of the subtype sets indicates the relative quality.
 
-	Querying the range for a set of type will return the types with the
+	Querying the range for a set of types will return the types with the
 	highest precedence for each content type.
 
-	&None is used to represent '*' types.
+	&None is used to represent any types, (text)`*`.
 	"""
 	__slots__ = ()
 
@@ -374,17 +383,15 @@ class Range(tuple):
 		return [tuple(map(strip, f.split('=', 1))) for f in options]
 
 	@classmethod
-	def from_bytes(typ, data, encoding='utf-8'):
+	def from_bytes(Class, data, encoding='utf-8'):
 		"""
 		Instantiate the Range from a bytes object; decoded and passed to &from_string.
 		"""
 
-		return typ.from_string(data.decode(encoding))
+		return Class.from_string(data.decode(encoding))
 
 	@classmethod
-	def from_string(typ, string,
-			skey = operator.itemgetter(0),
-		):
+	def from_string(Class, string, skey = operator.itemgetter(0)):
 		"""
 		Instantiate the Range from a Python string.
 		"""
@@ -395,7 +402,21 @@ class Range(tuple):
 			percent = int(float(quality) * 100)
 			l.append((percent,Type((cotype, subtype, frozenset(options.items())))))
 		l.sort(key=skey, reverse=True)
-		return typ(l)
+		return Class(l)
+
+	def quality(self, mimetype):
+		"""
+		Search for a single MIME type in the range.
+		Return identified quality of the type.
+
+		The quality of a particular type is useful in cases where the
+		server wants to give some precedence to another type.
+		Given that the client accepts XML, but it is a lower quality than HTML,
+		the server may want to send XML anyways.
+		"""
+		r =  self.query(mimetype)
+		if r:
+			return r[-1] # quality
 
 	def query(self, *available):
 		"""
