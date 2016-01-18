@@ -11,6 +11,9 @@ Interfaces here work exclusively with character-strings; wire data must be decod
 /filename_extensions
 	A mapping of filename extensions to type name.
 
+/iana_registered_types
+	The set of media types registered with IANA.
+
 [ Functions ]
 
 /type_from_string
@@ -32,6 +35,8 @@ Interfaces here work exclusively with character-strings; wire data must be decod
 import operator
 import functools
 import typing
+
+iana_registered_types = 'https://www.iana.org/assignments/media-types/media-types.xml'
 
 types = {
 	'data': 'application/octet-stream', # browsers interpret this as a file download
