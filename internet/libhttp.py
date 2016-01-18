@@ -160,6 +160,7 @@ def Disassembler(
 	req = bytearray()
 	# initial next(g)
 	req += (yield None)
+	body_size = 0
 
 	while True:
 		body_ev = content_ev # in chunking cases, this get turned into chunk_ev
@@ -394,6 +395,7 @@ def Disassembler(
 			if n < size:
 				# initial edge from headers
 				size = size - n
+				body_size += len(req)
 				events.append((body_ev, req))
 				req = (yield events)
 
@@ -402,6 +404,7 @@ def Disassembler(
 				while n < size:
 					# len(req) < size == True
 					size = size - n
+					body_size += len(req)
 					events = ((body_ev, req),)
 					# get new data; all of req emitted prior
 					# so complete replacement here.
@@ -420,6 +423,7 @@ def Disassembler(
 			# req is now larger than the remaining size.
 			# There is enough data to complete the body.
 			if size:
+				body_size += size
 				events.append((body_ev, req[0:size]))
 				del req[0:size]
 				size = 0
