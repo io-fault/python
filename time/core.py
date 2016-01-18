@@ -23,7 +23,7 @@ class Exception(Exception):
 	Chronometry base exception.
 	"""
 
-class TransformationError(Exception):
+class TransformException(Exception):
 	"""
 	An attempt to transform units failed.
 	"""
@@ -36,7 +36,7 @@ class TransformationError(Exception):
 		self.context = context
 		self.inverse = inverse
 
-class Inconceivable(TransformationError):
+class Inconceivable(TransformException):
 	"""
 	An attempt to represent a unit in like-terms was not possible
 	given the current implementation.
