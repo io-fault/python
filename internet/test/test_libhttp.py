@@ -24,7 +24,7 @@ Host: host\r
 
 def test_dis_chunked_1(test):
 	'test one chunk'
-	data = b"""GET / HTTP/1.0\r
+	data = b"""GET / HTTP/1.1\r
 Transfer-Encoding: chunked\r
 Host: host\r
 \r
@@ -32,12 +32,11 @@ Host: host\r
 fffff\r
 0\r
 \r
-\r
 """
 	state = libhttp.disassembly()
 	output = state.send(data)
 	x = [
-		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
+		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
 		(libhttp.Event.headers, [
 			(b'Transfer-Encoding', b'chunked'),
 			(b'Host', b'host')
@@ -61,7 +60,6 @@ Host: host\r
 fff"""
 	data3 = b"""ff\r
 0\r
-\r
 \r
 """
 	g = libhttp.disassembly()
@@ -100,7 +98,6 @@ Host: host\r
 5\r
 fffff\r
 0\r
-\r
 Trailer: value\r
 \r
 """
@@ -130,7 +127,6 @@ Host: host\r
 5\r
 fffff\r
 0\r
-\r
 Trailer: value\r
 """
 	data2 = b"""Trailer: value2\r
@@ -176,7 +172,7 @@ Host: host\r
 	data6 = b'X' * (0x10 - 5)
 	data7 = b'Y' * (0x10 - (0x10 - 5))
 	data8 = b'\r'
-	data9 = b'\n0\r\n\r\n\r'
+	data9 = b'\n0\r\n\r'
 	data10 = b'\n'
 
 	g = libhttp.disassembly();

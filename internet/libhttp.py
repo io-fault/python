@@ -391,10 +391,10 @@ def Disassembler(
 					del chunk_field
 					size = chunk_size
 
-			# yield content with known body size
+			# yield content with known size
 			n = len(req)
 			if n < size:
-				# initial edge from headers
+				# Consume &size bytes emitting body events.
 				size = size - n
 				body_size += len(req)
 				events.append((body_ev, req))
@@ -419,21 +419,24 @@ def Disassembler(
 					req += t
 					del t
 
-			# end content with known body size
+			# &req is now larger than the remaining &size.
+			# There is enough data to complete the body or chunk.
 
-			# req is now larger than the remaining size.
-			# There is enough data to complete the body.
 			if size:
 				body_size += size
 				events.append((body_ev, req[0:size]))
 				del req[0:size]
 				size = 0
 
+			assert size == 0 # Done with body or chunk *data*.
+
 			# If chunking, expect a CRLF
 			# and continue reading chunks iff chunk_size.
-			if chunk_size is not None and size > 0:
-				# The size > 0 condition is used to filter
-				# the case that it has received the final chunk.
+			if chunk_size is not None:
+				if chunk_size == 0:
+					# Final chunk; don't assume there's
+					# a CRLF as there would be for normal chunks.
+					break
 
 				# Process CRLF on each chunk end.
 				while not req.startswith(CRLF):
@@ -452,7 +455,9 @@ def Disassembler(
 
 					req += (yield events)
 					events = []
+
 				assert req[0:2] == CRLF
+
 				del req[0:2]
 				# end of chunks?
 				if chunk_size != 0:
@@ -488,8 +493,7 @@ def Disassembler(
 			eof = req.find(CRLF, 0, max_header_size)
 			while eof != 0:
 				if eof == -1:
-					# no terminator, need more data
-					##
+					# No terminator, need more data.
 					if trailers:
 						events.append((trailers_ev, trailers))
 						trailers = []
