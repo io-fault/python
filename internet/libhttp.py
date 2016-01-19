@@ -387,6 +387,7 @@ def Disassembler(
 						del events
 						while True:
 							req = (yield [(bypass_ev, req)])
+
 					del chunk_field
 					size = chunk_size
 
@@ -430,8 +431,11 @@ def Disassembler(
 
 			# If chunking, expect a CRLF
 			# and continue reading chunks iff chunk_size.
-			if chunk_size is not None:
-				# eat CRLF on each chunk end.
+			if chunk_size is not None and size > 0:
+				# The size > 0 condition is used to filter
+				# the case that it has received the final chunk.
+
+				# Process CRLF on each chunk end.
 				while not req.startswith(CRLF):
 					# continue until we get a CRLF
 					if len(req) > 2:
@@ -448,6 +452,7 @@ def Disassembler(
 
 					req += (yield events)
 					events = []
+				assert req[0:2] == CRLF
 				del req[0:2]
 				# end of chunks?
 				if chunk_size != 0:
@@ -462,16 +467,21 @@ def Disassembler(
 				# no identified size and connection is close
 				events.append(EOM)
 				while True:
+					# Everything is bypass after this point.
+					# The connection is closed and there's no body.
 					if req:
 						events.append((bypass_ev, req))
 					req = (yield events)
 					events = []
 
-		# terminate body; but there may be trailers to parse
+		# body termination indicator; but there may be trailers to parse
 		if has_body:
+			# Used to signal the stream of EOF;
+			# primarily useful to signal compression
+			# transformations to flush the buffers.
 			events.append((body_ev, b''))
 
-		if chunk_size == 0: # initial value indicating chunking
+		if chunk_size == 0:
 			# chunking occurred, read and emit trailers
 			ntrailers = 0
 			trailers = []
@@ -504,6 +514,7 @@ def Disassembler(
 					trailers.append(trailer)
 
 					if max_trailer_size is not None and eof > max_trailer_size:
+						# Limit Violation
 						events.append((trailers_ev, trailers))
 						del trailers
 						events.append((
@@ -516,6 +527,7 @@ def Disassembler(
 							req = (yield [(bypass_ev, req)])
 
 					if max_trailers is not None and ntrailers > max_trailers:
+						# Limit Violation
 						events.append((trailers_ev, trailers))
 						del trailers
 						events.append((
