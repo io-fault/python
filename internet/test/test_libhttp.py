@@ -473,17 +473,17 @@ Content-Length: 0\r
 	for x in reqs:
 		de = d.send(x)
 		ad = a.send(de)
-		test/ad == x
+		test/b''.join(ad) == x
 
 def test_assemble_ooo(test):
 	"""
-	Validate that we don't validate output state. Assembly presumes the user knows what she
-	is doing.
+	Validate that we don't validate output state.
+	Assembly presumes the user knows what she is doing.
 	"""
 	# out of order assembly
 	g = libhttp.assembly()
-	r = g.send([(libhttp.Event.content, b'foo')])
-	test/r == b'foo'
+	r = g.send([(libhttp.Event.content, b'data')])
+	test/r == [b'data']
 
 if __name__ == '__main__':
 	import sys; from ...development import libtest

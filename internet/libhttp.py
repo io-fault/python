@@ -2,6 +2,7 @@
 Hyper-Text Transfer Protocol Support.
 """
 import itertools
+import functools
 from .data import http
 
 #: Raw binary header indicating chunking should be used.
@@ -571,68 +572,76 @@ def disassembly(**config):
 	"""
 	Returns an already started :py:func:`Disassembler` generator.
 	"""
+	global Disassembler
 	d = Disassembler(**config)
-	next(d)
+	d.__next__()
 	return d
 
 def headers(headers, chain = itertools.chain.from_iterable, CRLF = http.CRLF, HFS = http.HFS):
 	return chain(((x[0], HFS, x[1], CRLF) for x in headers))
 
-def chunk(data, str = str, hex = hex, len = len, CRLF = http.CRLF):
-	"""
-	Returns a tuple of (chunk-size + CRLF, chunk-data, CRLF)
+@functools.lru_cache(16)
+def chunk_size(length, CRLF=http.CRLF, hex=hex):
+	return hex(length).encode('ascii')[2:] + CRLF
 
-	>>> chunk(b'foo')
-	(b'3\n\r', b'foo', b'\n\r')
+def chunk(data, len=len, CRLF=http.CRLF):
 	"""
-	return (
-		str(hex(len(data))).encode('ascii')[2:] + CRLF,
-		data, CRLF,
-	)
+	Returns a tuple of (chunk-size + CRLF, chunk-data, CRLF).
+
+	Joining data into a single buffer is avoided for the express
+	purpose of allowing the data buffer to be passed through.
+	In cases where a shared memory segment is referenced, this
+	can be critical for proper performance.
+
+	#!/pl/python
+		assert chunk(b'data') == (b'4\r\n', b'data', b'\r\n')
+	"""
+	global chunk_size
+	return (chunk_size(len(data)), data, CRLF)
+
+trailers = headers
 
 def Assembler(
-	SP = http.SP, CRLF = http.CRLF,
-	HFS = http.HFS,
-	trailers_ev = Event.trailers,
-	headers_ev = Event.headers,
-	rline_ev = Event.rline,
-	content_ev = Event.content
-):
+		SP = http.SP, CRLF = http.CRLF,
+		HFS = http.HFS,
+		trailers_ev = Event.trailers,
+		headers_ev = Event.headers,
+		rline_ev = Event.rline,
+		content_ev = Event.content
+	):
 	"""
-	Assemble HTTP events back into a sequence of bytes.
+	Assemble HTTP events back into a sequences of bytes.
 	"""
+
 	events = (yield None)
 	while True:
-		buf = bytearray()
+		buf = []
+		append = buf.append
+
 		for x in events:
 			if x[0] == rline_ev:
-				buf += SP.join(x[1])
-				buf += CRLF
-			elif x[0] in (trailers_ev, headers_ev):
+				append(SP.join(x[1]))
+				append(CRLF)
+			elif x[0] in {trailers_ev, headers_ev}:
 				if not x[1]:
 					# end of headers
-					buf += CRLF
+					append(CRLF)
 				else:
-					for y in x[1]:
-						# using str.join is nice, but
-						# let's avoid creating shortlived objects
-						buf += y[0]
-						buf += HFS
-						buf += y[1]
-						buf += CRLF
-			elif x[0] in (content_ev,):
-				buf += x[1]
+					append(CRLF.join([y[0] + HFS + y[1] for y in x[1]]))
+					append(CRLF)
 			elif x == EOM:
 				pass
 			else:
-				# default to mere concatenation of event payload
-				buf += x[1]
+				# Default to concatenation of event payload
+				append(x[1])
+
 		events = (yield buf)
 
 def assembly(**config):
 	"""
-	Return a started :py:func:`Assembler` generator.
+	Return a started &Assembler generator.
 	"""
+	global Assembler
 	g = Assembler()
-	next(g)
+	g.__next__()
 	return g
