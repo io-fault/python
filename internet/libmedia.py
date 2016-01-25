@@ -160,7 +160,7 @@ class Type(tuple):
 	"""
 	__slots__ = ()
 
-	def __str__(self, format = '/'.join):
+	def __str__(self, format='/'.join):
 		if self[2]:
 			optstr = ';'
 			optstr += ';'.join(
@@ -202,6 +202,13 @@ class Type(tuple):
 	def parameters(self):
 		'Parameters such as charset for encoding designation.'
 		return self[2]
+
+	@property
+	def pattern(self) -> bool:
+		"""
+		Whether the &Type is a pattern and can match multiple types.
+		"""
+		return '*' in self[:2]
 
 	def push(self, subtype):
 		"Return a new &Type with the given &subtype appended to the instance's &.subtype"
