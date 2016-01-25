@@ -1,0 +1,9 @@
+abstract = 'fault.io context package'
+identity = 'https://fault.io/project/python/context'
+name = 'context'
+fork = 'shade'
+icon = '𝑓(𝓍)'
+controller = 'fault.io'
+contact = 'mailto:critical@fault.io'
+version_info = (0, 1, 0)
+version = '.'.join(map(str, version_info))
