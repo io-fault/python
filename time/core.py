@@ -589,18 +589,21 @@ class Context(object):
 		unit_kind = kind
 
 		path = qname.rsplit('.', 1)
-		class Point(Class):
-			__slots__ = ()
-			__module__, __name__ = path
-			unit = Measure.unit
-			kind = unit_kind
-			name = Measure.name
-			datum = self.datum_for_point(Measure.unit)
+		d = dict(
+			__slots__ = (),
+			__module__ = path[0],
+			__name__ = path[1],
+			unit = Measure.unit,
+			kind = unit_kind,
+			name = Measure.name,
+			datum = self.datum_for_point(Measure.unit),
 			# vector properties
-			magnitude = point_magnitude # Vector is: Point -> Point+magnitude
-			context = self
+			magnitude = point_magnitude, # Vector is: Point -> Point+magnitude
+			context = self,
 			liketerm = self.terms[Measure.unit]
-		Point.__name__ = path[1]
+		)
+
+		Point = type(path[1], (Class,), d) # Use type constructor in order to support pickling.
 		Point.__doc__ = '&.abstract.Point'
 
 		Point.Measure = Measure
@@ -616,17 +619,19 @@ class Context(object):
 
 		path = qname.rsplit('.', 1)
 
-		# Build constructors/classes for the parameterized unit.
-		class Measure(Class):
-			__slots__ = ()
-			__module__, __name__ = path
-			unit = id
-			kind = unit_kind
-			name = proper_name
-			datum = 0
-			context = self
-			liketerm = self.terms[id]
-		Measure.__name__ = path[1]
+		d = dict(
+			__slots__ = (),
+			__module__ = path[0],
+			__name__ = path[1],
+			unit = id,
+			kind = unit_kind,
+			name = proper_name,
+			datum = 0,
+			context = self,
+			liketerm = self.terms[id],
+		)
+
+		Measure = type(path[1], (Class,), d) # Use type constructor in order to support pickling.
 		Measure.__doc__ = '&.abstract.Measure'
 
 		abstract.Measure.register(Measure)
