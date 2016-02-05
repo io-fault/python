@@ -432,14 +432,16 @@ sample_fragments = (
 )
 
 def samples():
+	global sample_schemes, sample_users, sample_passwords, sample_hosts
+	global sample_ports, sample_paths, sample_queries, sample_fragments
 	for s in sample_schemes:
-		for u in sample_users:
-			for p in sample_passwords:
+		for u in sample_users[4:]:
+			for p in sample_passwords[2:]:
 				for h in sample_hosts:
-					for pt in sample_ports:
-						for path in sample_paths:
-							for q in sample_queries:
-								for f in sample_fragments:
+					for pt in sample_ports[2:]:
+						for path in sample_paths[:3]:
+							for q in sample_queries[2:]:
+								for f in sample_fragments[2:]:
 									r = {
 										'type' : s[0],
 										'scheme' : s[1],
