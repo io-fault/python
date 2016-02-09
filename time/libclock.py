@@ -122,7 +122,7 @@ class IClock(object):
 		return map(self.Measure, self.clockwork.delta())
 
 	def meter(self, *args, **kw):
-		return map(self.Measure, self.clockwork.meter())
+		return map(self.Measure, self.clockwork.meter(*args, **kw))
 
 	def periods(self, period):
 		for count, period in self.clockwork.periods(period.select('nanosecond')):

@@ -1,10 +1,15 @@
+"""
+Repeatedly print the current date and time every 64 milliseconds.
+
+Carriage returns will be used to overwrite previous displays.
+"""
 import sys
 from .. import library
 
-def main(clock = library.clock):
+def print_local_timestamp(clock = library.clock):
 	localtime = library.zone()
 	try:
-		for total in clock.meter(centisecond=4):
+		for total in clock.meter(delay=library.Measure.of(millisecond=64)):
 			ts = clock.demotic()
 			st = localtime.localize(ts)[0].select('iso')
 			sys.stdout.write(("   " + st + "\r"))
@@ -13,4 +18,4 @@ def main(clock = library.clock):
 		sys.exit(0)
 
 if __name__ == '__main__':
-	main()
+	print_local_timestamp()
