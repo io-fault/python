@@ -1,20 +1,20 @@
-#!/usr/bin/env eclectic
+#!/usr/bin/env fault.text
 
-======================
-[ Eclectic Text File ]
-======================
+===================
+[ Fault Text File ]
+===================
 
-The `.txt` extension should be used for eclectic text. It is strictly
+The `.txt` extension should be used for fault.text. It is strictly
 a format layered on top of raw text files. Whether or not a given text file
-is actually eclectic text should be determined by the context or by
+is actually fault.text should be determined by the context or by
 the initial `#!` line used to identify a corresponding binary.
 
 ===============
 [ Declaration ]
 ===============
 
-Eclectic text formatting is explicitly declared by the initial line in the document
-being: `#!/usr/bin/env eclectic`. This is a special case of the notation used by
+fault.text formatting is explicitly declared by the initial line in the document
+being: `#!/usr/bin/env fault.text`. This is a special case of the notation used by
 &[Literal Blocks]; if the first line of a given document starts with `#!`, it is perceived
 as a declaration instead of a literal block.
 
@@ -70,7 +70,7 @@ emphasis of their presence.
 [ Sections ]
 ============
 
-Sections make up the primary hierarchical structure in eclectic text formatted documents
+Sections make up the primary hierarchical structure in formatted documents
 and are notated in the fashion that ".ini" configuration files notate sections: lines
 starting with (character)`[` and ending with (character)`]` select the section context.
 
@@ -92,7 +92,7 @@ for new content to be added.
 
 [ Sections >> Example ]
 
-#!/text/eclectic
+#!/text/fault
 	[ Containing Section ]
 
 	Root Section content.
@@ -113,7 +113,7 @@ for new content to be added.
 [ Paragraph Context ]
 =====================
 
-Paragraph lines are the default effect of a text line inside an eclectic document;
+Paragraph lines are the default effect of a text line inside an fault.text document;
 they are implicitly created which is unlike most other structures that are initiated
 by command codes (operators borrowed from other languages and contexts).
 
@@ -123,7 +123,7 @@ by command codes (operators borrowed from other languages and contexts).
 
 Literal lines are the lines contained within indentation blocks following the block
 command, `#!`. The notation is borrowed from UNIX executable files which define the
-binary that should be used to "execute" the given file. In eclectic's context,
+binary that should be used to "execute" the given file. In fault.text's context,
 it defines the type of data contained within the block and any transformations performed
 to the content.
 
@@ -142,7 +142,7 @@ Bourne Shell's notations for command substitution. It was also chosen for its
 similarity to quotations which are often used in programming languages to refer to literal
 text.
 
-#!/text/eclectic
+#!/text/fault
 	`Inline Literal`
 
 Inline literals are the first parts of a paragraph line to be extracted; all other notations
@@ -160,11 +160,11 @@ Directives are primarily used to define alternate identifiers for document struc
 can also be used to send messages to the processing context to control presentation of the
 associated structure.
 
-#!/text/eclectic
+#!/text/fault
 	@custom_section_address
 	[ Section ]
 
-#!/text/eclectic
+#!/text/fault
 	@paragraph_address
 	First Paragraph
 
@@ -192,7 +192,7 @@ punctuation.
 
 However, Section References are enclosed in brackets in order to allow whitespace.
 
-#!/text/eclectic
+#!/text/fault
 
 	A sentence containing a reference at the end, &Reference.
 
@@ -212,7 +212,7 @@ Citations are managed using &References to locally defined addresses.
 Most addresses are defined as pointers to specific document nodes, but citations
 allow reuse of a given address.
 
-#!/text/eclectic
+#!/text/fault
 
 	A citation[&Address-Name] is a reference to a defined address that can
 	be found in a specially not citations section.
@@ -249,7 +249,7 @@ in the same way that it's started, with another asterisk of the same repetition.
 Processors and serialization should recognize arbitrary levels of emphasis even though
 only two levels are normally used.
 
-#!/text/eclectic
+#!/text/fault
 
 	A paragraph line with *emphasis* around the word emphasis.
 	Greater emphasis is placed with more **asterisks**.
@@ -280,7 +280,7 @@ Like emphasis, the notation is borrowed from other structured text implementatio
 Unlike many other structured text solutions, other notations such as asterisks or periods
 are not supported.
 
-#!/text/eclectic
+#!/text/fault
 
 	...
 		- Simple single item.
@@ -302,10 +302,10 @@ lists.
 Variable lists (finite mappings or dictionaries) are supported using the forward slash:
 (quote)`/`. The notation is borrowed from UNIX filesystem paths where the forword slash
 delimits directory names in a path to a particular file. Directory entries point to file
-content in the same way that variable list items point to eclectic content. Structurally,
+content in the same way that variable list items point to fault.text content. Structurally,
 the XML schema identify &[Variable Lists] as &.schema.dictionary.
 
-#!/text/eclectic
+#!/text/fault
 
 	/Variable Entry
 		Paragraph Content
@@ -321,7 +321,7 @@ be referenced.
 [ Matrices ]
 ============
 
-Tables are called matrices in eclectic text regardless of the content type.
+Tables are called matrices in fault.text regardless of the content type.
 Matrices are supported using unicode's box characters:
 
 #!/text
@@ -347,7 +347,7 @@ Bold box frames are used to denote column headers:
 	└─┴─┴─┘
 
 Box characters are used to avoid overloading other more common ASCII characters.
-Essentially, eclectic is relying on users to find tools to manage
+Essentially, fault.text is relying on users to find tools to manage
 formatting of matrices.
 
 ===============
@@ -358,7 +358,7 @@ Admonition notation is borrowed from math's notation for factorials, (syntax)`!`
 Admonitions consist of a severity and a following sequence of paragraphs
 indented on the lines following:
 
-#!/text/eclectic
+#!/text/fault
 
 	! WARNING:
 		Warning Contents.
@@ -392,7 +392,7 @@ regular parenthesis by the absence of whitespace padding. So,
 
 Casts are primarily useful with &Inline-Literals as they allow the context
 to determine the meaning of the content of the literal without the author
-having to consider eclectic syntax inside the literal.
+having to consider fault.text syntax inside the literal.
 
 (iri)`http://fault.io`
 &<http://fault.io>
@@ -423,7 +423,7 @@ Conceptual type names are reserved for contextually defined purposes.
 [ Structured Data Storage ]
 ===========================
 
-Primarily, eclectic is intended for documentation purposes, but with casts and addressable
+Primarily, fault.text is intended for documentation purposes, but with casts and addressable
 structures, it can also be used as configuration files.
 
 Application configuration without documentation is opaque for most software. Being able
@@ -452,7 +452,7 @@ to package them together provides convenience for the user and the developer.
 [ Grammar ]
 ===========
 
-This section defines the normative grammar for eclectic markdown.
+This section defines the normative grammar for fault.text.
 
 #!/text/grammar
 

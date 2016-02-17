@@ -1,24 +1,18 @@
-#!/usr/bin/env eclectic
+#!/usr/bin/env fault.text
 
-================
 [ Introduction ]
 ================
 
-Eclectic text is a structured text language designed from the syntactic notations
+fault.text is a structured text language designed from the syntactic notations
 of other popular programming languages, configuration formats, and other markdown
 implementations. The rationale for the design is to borrow from one's existing
 memory of the notations in order to support new memories with respect to notations
-used by eclectic text.
+used by fault.text.
 
-This document is an authoritative specification for the format. Every notation
-is used and common exceptions are exercised in order to provide a test suite
-for parsers.
-
-===========
 [ Defense ]
 ===========
 
-Eclectic text exists in an effort to create a structured text format that
+fault.text exists in an effort to create a structured text format that
 specifically targets developer APIs for customization of contextual cross-references,
 and to focus XML serialization for machine processable data structures.
 
@@ -28,18 +22,3 @@ many, if not all, structured text implementations can support this, most have li
 documentation on the matter. This makes it difficult for most structured text solutions
 to fulfill fault's requirements without extensive modifications that would essentially
 be a new implementation.
-
-The name "eclectic text" was chosen as it was indirectly suggested numerous
-times over the years.
-
-=========
-[ Goals ]
-=========
-
-Beyond the basic need of documentation, eclectic text aims to create a text format
-that allows the storage of structured document data that can be interpreted as structured
-data for configuration files and string template storage.
-
-The structures present in documentation have very clear correspondence to common
-data structures. Variable lists being dictionaries, ordered lists being sequences,
-and unordered lists being sets.

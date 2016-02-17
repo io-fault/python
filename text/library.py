@@ -77,7 +77,7 @@ class XML(object):
 		return ()
 
 	def process_paragraph_emphasis(self, tree, data, weight=1):
-		yield from self.serialization.prefixed('emphasis', 
+		yield from self.serialization.prefixed('emphasis',
 			self.serialization.escape(data),
 			('weight', str(weight))
 		)
@@ -97,8 +97,10 @@ class XML(object):
 		/source
 			The reference source; the actual string found to be
 			identified as a reference.
+
 		/type
 			The type of reference, one of: `'hyperlink'`, `'section'`, `None`.
+
 		/action
 			The effect desired by the reference: `'include'` or &None.
 			&None being a normal reference, and `'include'` being induced
