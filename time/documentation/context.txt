@@ -77,12 +77,9 @@ analyzed during the development of chronometry:
 	- Python datetime
 	- dateutils
 	- mxDateTime
-	- <There is another datetime package that largely influenced chronometry's API. Can't find it again...>
-
-In addition to various packages for other languages such as ruby and java.
+	- Datetime packages from java and ruby.
 
 Wikipedia was, naturally, heavily referenced during the development of Chronometry.
-Here are many of the links:
 
- * http://en.wikipedia.org/wiki/Second
- * http://en.wikipedia.org/wiki/Julian_year_(astronomy)
+	- &<http://en.wikipedia.org/wiki/Second>
+	- &<http://en.wikipedia.org/wiki/Julian_year_(astronomy)>

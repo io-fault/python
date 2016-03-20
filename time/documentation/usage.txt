@@ -584,6 +584,7 @@ Subsequently, allowing quick identification:
 	ts = ts.elapse(month=1).update('day', -1, 'month')
 	ts.update('day', 0, 'week', align=-2)
 
+===============================
 [ Eternal Measures and Points ]
 ===============================
 
@@ -620,6 +621,7 @@ created by the segment are continuous in the future:
 
 Managing sets of unbounded segments are the recommended way to manage recurring jobs.
 
+===================================
 [ Working with Sets and Sequences ]
 ===================================
 
@@ -643,7 +645,6 @@ over `generator expressions` as it allows a reference to the desired transformat
 	provide implementations that offer greater efficiency.
 
 [ Working with Sets and Sequences >> Selectors ]
-------------------------------------------------
 
 The &.library.select constructor provides a syntactically convenient
 means to select fields from an arbitrary Time Object.
@@ -658,6 +659,7 @@ given:
 	hour_of_day = libtime.select.hour.day()
 	>>> print(hour_of_day(libtime.Timestamp.of(datetime=(2001,1,1,4,30,2))))
 
+
 [ Working with Sets and Sequences >> Updaters ]
 -----------------------------------------------
 
@@ -671,7 +673,6 @@ Field updates can provide a concise means to simplify some rather tricky
 date-time math.
 
 [ Working with Sets and Sequences >> Openers ]
-----------------------------------------------
 
 There is often a need to construct an opener. Instantiating timestamps from
 date-time tuples, ISO formatted timestamps, and UNIX timestamps is common.
@@ -704,6 +705,8 @@ Common forms:
 	Build a constructor that takes seconds from the UNIX epoch and returns a
 	&.library.Timestamp instance.
 
+
+==========================
 [ Working with the Clock ]
 ==========================
 
@@ -717,7 +720,6 @@ The &.system module uses whatever facilities it was able
 to find at compile time in order to provide maximum precision.
 
 [ Working with the Clock >> Demotic and Monotonic Time ]
---------------------------------------------------------
 
 Clocks have two concepts of time, the demotic and monotonic. The rate of change
 of demotic time is mutable and the monotonic time is, ideally, immutable.
@@ -738,7 +740,6 @@ recommended for most cases. Rather, chronometry provides some iterators and
 context managers that cover the common use-cases of monotonic time.
 
 [ Working with the Clock >> Time Meters ]
------------------------------------------
 
 Time meters, &.library.clock.meter, are iterators provided by
 &.abstract.Clock implementations that track the amount of time
@@ -753,7 +754,6 @@ that has elapsed since the *first* iteration:
 Meters are perfect for polling situations with timeouts.
 
 [ Working with the Clock >> Delta Meters ]
-------------------------------------------
 
 In other cases, the total time is not particularly interesting or needs be
 calculated by another component of the process. Delta meters,
@@ -771,7 +771,6 @@ Delta meters are good for implementing rate limiting:
 			break
 
 [ Tracking Arbitrary Units over Time ]
-======================================
 
 Using the same underlying functionality as &.library.clock.delta,
 the &.libflow module provides tools for tracking units over time
@@ -838,6 +837,7 @@ total resource consumption is entirely recorded while the specified window's
 consistency is maintained.
 
 
+===========================
 [ Working with Time Zones ]
 ===========================
 
