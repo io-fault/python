@@ -25,8 +25,8 @@ test $? -eq 0 || exit 1
 
 compile ()
 {
-	echo "$compiler" $osflags "$@"
 	compiler="$1"; shift 1
+	echo "$compiler" $osflags "$@"
 
 	"$compiler" $osflags "$@"
 }
