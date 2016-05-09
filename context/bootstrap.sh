@@ -25,21 +25,25 @@ test $? -eq 0 || exit 1
 
 compile ()
 {
-	echo "$@"
+	echo "$compiler" $osflags "$@"
 	compiler="$1"; shift 1
 
-	"$compiler" "$@"
+	"$compiler" $osflags "$@"
 }
+
+platsuffix="so" # Following platform switch overrides when necessary.
 
 case "$(uname -s)" in
 	*Darwin*)
 		osflags="-Wl,-bundle,-undefined,dynamic_lookup,-lSystem,-L$prefix/lib,-lpython$pyversion$pyabi -fPIC";
 	;;
+	*FreeBSD*)
+		osflags="-Wl,-lc,-L$prefix/lib,-lpython$pyversion$pyabi -fPIC -shared -pthread"
+	;;
 	*)
 		osflags="-Wl,-shared,--export-all-symbols,--export-dynamic,-lc,-lpthread,-L$prefix/lib,-lpython$pyversion$pyabi -fPIC"
 	;;
 esac
-platsuffix="so"
 
 original="$(pwd)"
 
@@ -83,8 +87,7 @@ do
 		targetname="$(echo "$fullname" | sed 's/.extensions//')"
 		pkgname="$(echo "$fullname" | sed 's/[.][^.]*$//')"
 
-		compile ${CC:-cc} -o "../../${modname}.${platsuffix}" \
-			$osflags \
+		compile ${CC:-cc} -v -o "../../${modname}.${platsuffix}" \
 			-I$fault_dir/development/include/src \
 			-I$prefix/include \
 			-I$prefix/include/python$pyversion$pyabi \
