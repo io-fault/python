@@ -94,6 +94,7 @@ do
 			"-DMODULE_QNAME=$targetname" \
 			"-DMODULE_PACKAGE=$pkgname" \
 			"-DMODULE_BASENAME=$modname" \
+			"-DFACTOR_BASENAME=$modname" \
 			"-DF_ROLE_ID=F_DEBUG_ROLE_ID" \
 			-fwrapv \
 			src/*.c || exit
