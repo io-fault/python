@@ -17,6 +17,55 @@ then
 	exit 1
 fi
 
+if test 1 = 2
+then
+	if test -e ./version:
+	then
+		VERSION="$(cat ./version)"
+	else
+		VERSION=0
+	fi
+
+	FAULT="http://fault.io/projects/python/?version="
+
+	##
+	# fetch, curl, wget.
+	if which fetch >/dev/null 2>/dev/null
+	then
+		FETCH="$(which fetch)"
+		fetch ()
+		{
+			out="$1"
+			shift 1
+
+			"$FETCH" -o "$out" "$@"
+		}
+	elif which curl >/dev/null 2>/dev/null
+	then
+		FETCH="$(which curl)"
+		fetch ()
+		{
+			out="$1"
+			shift 1
+
+			"$FETCH" --insecure -f -L "$@" -o "$out"
+		}
+	elif which wget >/dev/null 2>/dev/null
+	then
+		FETCH="$(which wget)"
+		fetch ()
+		{
+			out="$1"
+			shift 1
+
+			"$FETCH" -o "$out" "$@"
+		}
+	else
+		echo >&2 "no fetch process found: expecting fetch, curl, or wget to be available"
+		exit 3
+	fi
+fi
+
 pyversion="$("$python" -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')"
 pyabi="$("$python" -c 'import sys; print(sys.abiflags)')"
 
