@@ -50,7 +50,6 @@
 
 #include <fault/roles.h>
 #include <fault/python/environ.h>
-#include <fault/python/module.h>
 
 MACH(static clock_serv_t applestuff);
 
@@ -540,19 +539,6 @@ SleeperType = {
 	sleeper_new,						/* tp_new */
 };
 
-/* METH_O, METH_VARARGS, METH_VARKEYWORDS, METH_NOARGS */
-METHODS() = {
-	{"snapshot_us", (PyCFunction) snapshot_us, METH_NOARGS,
-		PyDoc_STR("get the time in microseconds")},
-	{"snapshot_ns", (PyCFunction) snapshot_ns, METH_NOARGS,
-		PyDoc_STR("get the time in microseconds")},
-	{"sleep_us", (PyCFunction) sleep_us, METH_O,
-		PyDoc_STR("sleep for the given number of microseconds")},
-	{"sleep_ns", (PyCFunction) sleep_ns, METH_O,
-		PyDoc_STR("sleep for the given number of nanoseconds")},
-	{NULL}
-};
-
 #ifdef __MACH__
 static void
 INIT_MACH_PORT(void)
@@ -560,6 +546,15 @@ INIT_MACH_PORT(void)
 	host_get_clock_service(mach_host_self(), LOCAL_MONOTONIC_CLOCK_ID, &(applestuff));
 }
 #endif
+
+/* METH_O, METH_VARARGS, METH_VARKEYWORDS, METH_NOARGS */
+#define MODULE_FUNCTIONS() \
+	PYMETHOD(snapshot_us, snapshot_us, METH_NOARGS, "get the time in microseconds") \
+	PYMETHOD(snapshot_ns, snapshot_ns, METH_NOARGS, "get the time in microseconds") \
+	PYMETHOD(sleep_us, sleep_us, METH_O, "sleep for the given number of microseconds") \
+	PYMETHOD(sleep_ns, sleep_ns, METH_O, "sleep for the given number of nanoseconds")
+
+#include <fault/python/module.h>
 
 INIT("clock mechanics using common userland interfaces")
 {
