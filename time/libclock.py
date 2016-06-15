@@ -76,17 +76,18 @@ class KClock(object):
 	@contextlib.contextmanager
 	def stopwatch(self, Measure = int):
 		meter = self.meter().__next__
-		cell = []
-		def inspect(meter=meter,cell=cell):
+		cell = None
+		def inspect(meter=meter):
+			nonlocal cell
 			if cell:
-				return cell[0]
+				return cell
 			else:
 				return Measure(meter())
 		try:
 			meter() # start it
 			yield inspect
 		finally:
-			cell.append(Measure(meter()))
+			cell = Measure(meter())
 
 class IClock(object):
 	"""
