@@ -9,15 +9,14 @@ implementing support for HTTP or DNS.
 [ Hyper Text Transfer Protocol ]
 --------------------------------
 
-HTTP processing is providing by &.libhttp.Assembler and
+HTTP processing is provided by &.libhttp.Assembler and
 &.libhttp.Disassembler. These generators manage the state of
 an HTTP 1.1 or 1.0 channel.
 
 [ Domain Name Service ]
 -----------------------
 
-DNS support does not yet exist. The plan is to provide the tools for packing and
-unpacking DNS record responses and queries.
+DNS support does not yet exist. Like HTTP, it will only perform parsing
+and serialization.
 """
-__pkg_bottom__ = True
-__type__ = 'project'
+__factor_type__ = 'project'
