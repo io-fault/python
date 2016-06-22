@@ -35,7 +35,9 @@ scheme_chars = '-.+0123456789'
 del x
 
 def unescape(x, mkval=chr, len=len, isinstance=isinstance):
-	"Substitute percent escapes with literal characters."
+	"""
+	Substitute percent escapes with literal characters.
+	"""
 
 	nstr = type(x)('')
 	if isinstance(x, str):
@@ -190,7 +192,9 @@ def split_path(p, fieldproc = unescape):
 	return [fieldproc(x) for x in p.split('/')]
 
 def join(t):
-	"Make an RI from a split RI(5-tuple)"
+	"""
+	Make an RI from a split RI(5-tuple)
+	"""
 
 	s = ''
 	if t[0] == 'authority':
@@ -272,7 +276,9 @@ def split_netloc(netloc, fieldproc = unescape):
 	return (user, password, addr, port)
 
 def join_netloc(t):
-	"Create a netloc fragment from the given tuple(user,password,host,port)"
+	"""
+	Create a netloc fragment from the given tuple(user,password,host,port).
+	"""
 
 	if t[0] is None and t[2] is None:
 		return None
@@ -349,7 +355,9 @@ def construct_query(x,
 		key_re = escape_query_key_re,
 		value_re = escape_query_value_re,
 	):
-	"Given a sequence of (key, value) pairs, construct."
+	"""
+	Given a sequence of (key, value) pairs, construct.
+	"""
 
 	return '&'.join([
 		v is not None and \
@@ -362,7 +370,9 @@ def construct_query(x,
 	])
 
 def construct(x):
-	"Construct a RI tuple(5-tuple) from a dictionary object."
+	"""
+	Construct a RI tuple(5-tuple) from a dictionary object.
+	"""
 
 	p = x.get('path')
 	if p is not None:
@@ -395,11 +405,9 @@ def construct(x):
 
 def parse(iri, structure = structure, split = split, fieldproc = unescape):
 	"""
-	parse(iri)
+	Parse an RI into a dictionary object. Synonym for `structure(split(x))`.
 
-	Parse an RI into a dictionary object. Synonym for ``structure(split(x))``.
-
-	Set `fieldproc` to `str` if the components' percent escapes should not be
+	Set &fieldproc to &str if the components' percent escapes should not be
 	decoded.
 	"""
 
@@ -407,9 +415,7 @@ def parse(iri, structure = structure, split = split, fieldproc = unescape):
 
 def serialize(x, join = join, construct = construct):
 	"""
-	serialize(deconstructed)
-
-	Return an RI from a dictionary object. Synonym for ``join(construct(x))``.
+	Return an RI from a dictionary object. Synonym for `join(construct(x))`.
 	"""
 
 	return join(construct(x))
