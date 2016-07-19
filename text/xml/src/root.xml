@@ -4,7 +4,7 @@
  !-->
 <grammar
  xmlns="http://relaxng.org/ns/structure/1.0"
- ns="https://fault.io/xml/eclectic"
+ ns="https://fault.io/xml/text"
  datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes"
  xmlns:a="http://relaxng.org/ns/compatibility/annotations/1.0">
 
@@ -246,7 +246,7 @@
     <attribute>
      <anyName>
       <except>
-       <nsName ns="https://fault.io/xml/eclectic"/>
+       <nsName ns="https://fault.io/xml/text"/>
        <nsName ns=""/>
       </except>
      </anyName>

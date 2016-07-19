@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
- ! Transformation include for eclectic XML to HTML.
+ ! Transformation include for fault text XML to HTML.
  !-->
 <xsl:transform version="1.0"
  xmlns="http://www.w3.org/1999/xhtml"
@@ -9,7 +9,7 @@
  xmlns:set="http://exslt.org/sets"
  xmlns:str="http://exslt.org/strings"
  xmlns:exsl="http://exslt.org/common"
- xmlns:e="https://fault.io/xml/eclectic"
+ xmlns:e="https://fault.io/xml/text"
  xmlns:func="http://exslt.org/functions"
  extension-element-prefixes="func"
  exclude-result-prefixes="set str exsl func xl xsl doc py e">
