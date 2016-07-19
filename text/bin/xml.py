@@ -10,9 +10,8 @@ def main(src, args):
 
 	s = library.XML.transform('', data, encoding=encoding)
 
-	sys.stdout.buffer.write(b'<chapter xmlns="https://fault.io/xml/eclectic">')
-	for x in s:
-		sys.stdout.buffer.write(x)
+	sys.stdout.buffer.write(b'<chapter xmlns="https://fault.io/xml/text">')
+	sys.stdout.buffer.writelines(s)
 	sys.stdout.buffer.write(b'</chapter>')
 
 if __name__ == '__main__':
