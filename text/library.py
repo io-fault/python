@@ -1,11 +1,11 @@
 """
-Transform Eclectic Text into XML.
+Transform fault.text into XML.
 
 The &XML.transform class method provides the high-level interface
 for transforming eclectic text into XML.
 
 #!/pl/python
-	text_iter = libeclectic.XML.transform('eclectic:', text, encoding='utf-8')
+	text_iter = libtext.XML.transform('txt:', text, encoding='utf-8')
 	sys.stdout.buffer.write(b''.join(text_iter))
 """
 import itertools
