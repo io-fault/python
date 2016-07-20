@@ -1,12 +1,9 @@
-identity = 'https://fault.io/project/python/text'
+identity = 'https://fault.io/project/python/fault.text'
 name = 'text'
-abstract = 'Structured text format for developer documentation'
-fork = 'void'
-release = None
-
-study = {}
+abstract = 'Text Formatting Language for developer documentation and structured status.'
 icon = '📜'
+
+fork = 'void'
+
 controller = 'fault.io'
 contact = 'mailto:critical@fault.io'
-version_info = (0, 0, 0)
-version = '.'.join(map(str, version_info))
