@@ -1,21 +1,12 @@
+identity = 'http://fault.io/project/python/fault.chronometry'
 name = 'chronometry'
-abstract = 'A time package suitable for any application'
+abstract = 'An integer based time solution with selectable precision.'
+fork = 'rhythm'
 icon = '⌛'
 study = 'horology'
 
-#: IRI based project identity. (project homepage)
-identity = 'http://fault.io/case/python/chronometry'
-
-#: Responsible Party
 controller = 'fault.io'
-
-#: Contact point for the Responsible Party
 contact = 'mailto:critical@fault.io'
 
-fork = 'rhythm'
-
-#: Version tuple: (major, minor, patch)
-version_info = (0, 7, 0)
-
-#: The version string.
+version_info = (0, 0, 0)
 version = '.'.join(map(str, version_info))
