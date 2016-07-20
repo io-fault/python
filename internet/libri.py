@@ -24,15 +24,16 @@ escape_query_key_re = re.compile('[%s]' %(re.escape(unescaped + '&=#'),))
 escape_query_value_re = re.compile('[%s]' %(re.escape(unescaped + '&#'),))
 
 percent_escapes = {}
+x = k = None
 for x in range(256):
 	k = '%0.2X'.__mod__(x)
 	percent_escapes[k] = x
 	percent_escapes[k.lower()] = x
 	percent_escapes[k[0].lower() + k[1]] = x
 	percent_escapes[k[0] + k[1].lower()] = x
+del x, k
 
 scheme_chars = '-.+0123456789'
-del x
 
 def unescape(x, mkval=chr, len=len, isinstance=isinstance):
 	"""
