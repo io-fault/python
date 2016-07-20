@@ -570,7 +570,7 @@ def Disassembler(
 
 def disassembly(**config):
 	"""
-	Returns an already started :py:func:`Disassembler` generator.
+	Returns an already started &Disassembler generator.
 	"""
 	global Disassembler
 	d = Disassembler(**config)
