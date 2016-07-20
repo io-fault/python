@@ -594,7 +594,7 @@ def chunk(data, len=len, CRLF=http.CRLF):
 	can be critical for proper performance.
 
 	#!/pl/python
-		assert chunk(b'data') == (b'4\r\n', b'data', b'\r\n')
+		assert chunk(b'data') == (b'4\\r\\n', b'data', b'\\r\\n')
 	"""
 	global chunk_size
 	return (chunk_size(len(data)), data, CRLF)
