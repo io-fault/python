@@ -4,6 +4,7 @@ abstract = 'Text Formatting Language for developer documentation and structured 
 icon = '📜'
 
 fork = 'void'
+status = 'flux'
 
 controller = 'fault.io'
 contact = 'mailto:critical@fault.io'
