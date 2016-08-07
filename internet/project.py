@@ -4,6 +4,7 @@ abstract = 'Internet protocol implementations (HTTP, DNS, and SMTP) for Python'
 icon = '📡'
 
 fork = 'darpa'
+status = 'flux'
 
 controller = 'fault.io'
 contact = 'mailto:critical@fault.io'
