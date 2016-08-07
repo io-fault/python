@@ -10,44 +10,42 @@ CHUNKED_TRANSFER = b'Transfer-Encoding: chunked' + http.CRLF
 
 class Event(int):
 	"""
-	An HTTP event.
-
-	This class exists for the purpose of representing the events as a non-magic
-	value and a non-literal string.
+	An HTTP event; essentially an enumeration, but kept as an integer subclass for
+	backwards compatibility.
 
 	Event Structure:
 
-	/BYPASS
+	/(identifier)`BYPASS`
 		(&Event.bypass, &bytes)
 
-	/RLINE
+	/(identifier)`RLINE`
 		For requests: (&Event.rline, (method, uri, version))
 		For responses: (&Event.rline, (version, response_code, description))
 
-	/CHUNK
+	/(identifier)`CHUNK`
 		(&Event.chunk, &bytearray)
 
-	/CONTENT
+	/(identifier)`CONTENT`
 		(&Event.content, &bytearray)
 
-	/HEADERS
+	/(identifier)`HEADERS`
 		(&Event.headers, [(&bytes, &bytes),...])
 
-	/TRAILERS
+	/(identifier)`TRAILERS`
 		(&Event.trailers, [(&bytes, &bytes),...])
 
-	/MESSAGE
+	/(identifier)`MESSAGE`
 		(&Event.message, &None)
 
-	/VIOLATION
+	/(identifier)`VIOLATION`
 		(&Event.trailers, (type, ...))
 
 		Where `type` is:
 
-		/'limit'
+		/`'limit'`
 			A configured limit was exceeded.
 
-		/'protocol'
+		/`'protocol'`
 			A protocol error occurred.
 	"""
 
@@ -135,15 +133,16 @@ def Disassembler(
 		violation_ev = Event.violation,
 	):
 	"""
-	An HTTP message parser. Emits HTTP events from the given binary data.
+	An HTTP 1.0 and 1.1 message parser. Emits HTTP events from the given binary data.
 
-	 One of: (Method, Request-URI, HTTP-Version) | (HTTP-Version, Status-Code, Reason-Phrase)
-	 Zero or more of: [(field-name, field-value), ...]
-	 One of: ()
-	 Zero or more of: message-body-byte-parts
-	 One of: None # body terminator
-	 Zero or more of: [(field-name, field-value), ...] # Trailers
-	 One of: ()
+	#!/matrix
+		One of: (Method, Request-URI, HTTP-Version) | (HTTP-Version, Status-Code, Reason-Phrase)
+		Zero or more of: [(field-name, field-value), ...]
+		One of: ()
+		Zero or more of: message-body-byte-parts
+		One of: None # body terminator
+		Zero or more of: [(field-name, field-value), ...] # Trailers
+		One of: ()
 
 	The generator is configured to loop perpetually in order to handle pipelined
 	requests.
@@ -174,8 +173,7 @@ def Disassembler(
 			req += (yield events)
 			events = []
 
-		##
-		# emit request
+		# Read initial request/response line.
 		eof = fnf
 		pos = 0
 		line = None
@@ -201,17 +199,6 @@ def Disassembler(
 				del req[0:2]
 				eof = fnf
 			else:
-
-				if max_line_size is not None and eof > max_line_size:
-					events.append((
-						violation_ev, ('limit', 'max_line_size', max_line_size)
-					))
-					events.append((bypass_ev, req))
-					req = (yield events)
-					del events
-					while True:
-						req = (yield [(bypass_ev, req)])
-
 				# found it
 				line = bytes(req[:eof])
 				del req[:eof + 2]
@@ -264,15 +251,7 @@ def Disassembler(
 				events = []
 				# continues
 			elif eof:
-				if max_header_size is not None and eof > max_header_size:
-					events.append((
-						violation_ev,
-						('limit', 'max_header_size', max_header_size)
-					))
-					events.append((overflow_ev, req,))
-					yield events
-
-				# got a header within the constraints
+				# got a header within the constraints (max_header_size)
 				header = tuple(map(bytes, map(bastrip, req[:eof].split(b':', 1))))
 				del req[:eof+2]
 
@@ -284,6 +263,7 @@ def Disassembler(
 					connection = header[1]
 				elif has_body is True and field_name in SIZE_DESIGNATION:
 					if size is not None:
+						# Size was already set; likely violation.
 						pass
 					elif field_name == b'content-length':
 						try:
@@ -300,7 +280,7 @@ def Disassembler(
 							events.append((bypass_ev, req))
 							req = (yield events)
 							while True:
-								req = (yield ((bypass_ev, req)))
+								req = (yield [(bypass_ev, req)])
 					elif field_name == b'transfer-encoding' and header[1].lower() == b'chunked':
 						# It's chunked. See section 4.4 of the protocol.
 						chunk_size = -1

@@ -7,11 +7,8 @@ def test_module_protocol(test):
 	'Assembler' in test/dir(libhttp)
 	'assembly' in test/dir(libhttp)
 
-def test_dis_complete_request(test):
-	data = b"""GET / HTTP/1.0\r
-Host: host\r
-\r
-"""
+def test_Disassembler_complete_request(test):
+	data = b"GET / HTTP/1.0\r\nHost: host\r\n\r\n"
 	state = libhttp.disassembly()
 	events = state.send(data)
 	x = [
@@ -22,8 +19,52 @@ Host: host\r
 	]
 	test/x == events
 
-def test_dis_chunked_1(test):
-	'test one chunk'
+def test_Disassembler_complete_response(test):
+	data = b"HTTP/1.0 200 OK\r\nHost: host\r\n\r\n"
+	state = libhttp.disassembly()
+	events = state.send(data)
+	x = [
+		(libhttp.Event.rline, (b'HTTP/1.0', b'200', b'OK')),
+		(libhttp.Event.headers, [(b'Host', b'host')]),
+		libhttp.EOH,
+		libhttp.EOM,
+	]
+	test/x == events
+
+def test_Disassembler_response_nobody(test):
+	data = b"HTTP/1.0 204 OK\r\nHost: host\r\n\r\n"
+	state = libhttp.disassembly()
+	events = state.send(data)
+	x = [
+		(libhttp.Event.rline, (b'HTTP/1.0', b'204', b'OK')),
+		(libhttp.Event.headers, [(b'Host', b'host')]),
+		libhttp.EOH,
+		libhttp.EOM,
+	]
+	test/x == events
+
+def test_Disassembler_bypass(test):
+	"""
+	Check that data received after a connection close message
+	is forwarded inside a bypass event.
+	"""
+	data = b"GET / HTTP/1.0\r\nHost: host\r\nConnection: close\r\n\r\nBYPASS"
+	state = libhttp.disassembly()
+	events = state.send(data)
+	x = [
+		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
+		(libhttp.Event.headers, [(b'Host', b'host'), (b'Connection', b'close')]),
+		libhttp.EOH,
+		libhttp.EOM,
+		(libhttp.Event.bypass, b'BYPASS'),
+	]
+	test/x == events
+	test/state.send(b'More') == [(libhttp.Event.bypass, b'More')]
+
+def test_Disassembler_chunked_1(test):
+	"""
+	Test one chunk.
+	"""
 	data = b"""GET / HTTP/1.1\r
 Transfer-Encoding: chunked\r
 Host: host\r
@@ -49,8 +90,10 @@ fffff\r
 	]
 	test/x == output
 
-def test_dis_chunked_2(test):
-	'test one chunk with fragmented data'
+def test_Disassembler_chunked_2(test):
+	"""
+	Test one chunk with fragmented data.
+	"""
 	data1 = b"""GET / HTTP/1.0\r
 Transfer-Encoding: chunked\r
 Host: host\r
@@ -89,8 +132,10 @@ fff"""
 	test/x2 == eventseq2
 	test/x3 == eventseq3
 
-def test_dis_chunked_trailers_1(test):
-	'test one chunk'
+def test_Disassembler_chunked_trailers_1(test):
+	"""
+	Test one chunk.
+	"""
 	data = b"""GET / HTTP/1.0\r
 Transfer-Encoding: chunked\r
 Host: host\r
@@ -118,8 +163,10 @@ Trailer: value\r
 	]
 	test/x1 == eventseq1
 
-def test_dis_chunked_trailers_2(test):
-	'test one chunk'
+def test_Disassembler_chunked_trailers_2(test):
+	"""
+	Test one chunk.
+	"""
 	data1 = b"""GET / HTTP/1.0\r
 Transfer-Encoding: chunked\r
 Host: host\r
@@ -158,8 +205,85 @@ Trailer: value\r
 	test/x1 == eventseq1
 	test/x2 == eventseq2
 
-def test_dis_chunked_separated_size(test):
-	'test one chunk with fragmented data'
+def test_Disassembler_trailers_limit_bypass(test):
+	"""
+	Test the trailer size limit and the subsequent bypass.
+	"""
+
+	data = b"GET / HTTP/1.0\r\nTransfer-Encoding: chunked\r\nHost: host\r\n\r\n"
+	data += b"5\r\nfffff\r\n0\r\nTrailer: value\r\n\r\n"
+
+	# Case where the trailer EOF is known.
+	g = libhttp.disassembly(max_trailer_size=4)
+	eventseq1 = g.send(data)
+	x1 = [
+		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
+		(libhttp.Event.headers, [
+			(b'Transfer-Encoding', b'chunked'),
+			(b'Host', b'host')
+		]),
+		(libhttp.Event.headers, ()),
+		(libhttp.Event.chunk, b'fffff'),
+		(libhttp.Event.chunk, b''),
+		(libhttp.Event.trailers, [(b'Trailer', b'value')]),
+		(libhttp.Event.violation, ('limit', 'max_trailer_size', 14)),
+		(libhttp.Event.bypass, b'\r\n'),
+	]
+	test/x1 == eventseq1
+	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
+
+	data = b"GET / HTTP/1.0\r\nTransfer-Encoding: chunked\r\nHost: host\r\n\r\n"
+	data += b"5\r\nfffff\r\n0\r\nTrailer: value"
+
+	# Case where the trailer EOF is *not* known.
+	g = libhttp.disassembly(max_trailer_size=4)
+	eventseq1 = g.send(data)
+	x2 = [
+		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
+		(libhttp.Event.headers, [
+			(b'Transfer-Encoding', b'chunked'),
+			(b'Host', b'host')
+		]),
+		(libhttp.Event.headers, ()),
+		(libhttp.Event.chunk, b'fffff'),
+		(libhttp.Event.chunk, b''),
+		(libhttp.Event.violation, ('limit', 'max_trailer_size', 14)),
+		(libhttp.Event.bypass, b'Trailer: value'),
+	]
+	test/x2 == eventseq1
+	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
+
+def test_Disassembler_max_trailers(test):
+	"""
+	Test the trailer size limit and the subsequent bypass.
+	"""
+
+	data = b"GET / HTTP/1.0\r\nTransfer-Encoding: chunked\r\nHost: host\r\n\r\n"
+	data += b"5\r\nfffff\r\n0\r\nTrailer: value\r\n\r\n"
+
+	# Case where the trailer EOF is known.
+	g = libhttp.disassembly(max_trailers=0)
+	eventseq1 = g.send(data)
+	x1 = [
+		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
+		(libhttp.Event.headers, [
+			(b'Transfer-Encoding', b'chunked'),
+			(b'Host', b'host')
+		]),
+		(libhttp.Event.headers, ()),
+		(libhttp.Event.chunk, b'fffff'),
+		(libhttp.Event.chunk, b''),
+		(libhttp.Event.trailers, [(b'Trailer', b'value')]),
+		(libhttp.Event.violation, ('limit', 'max_trailers', 1)),
+		(libhttp.Event.bypass, b'\r\n'),
+	]
+	test/x1 == eventseq1
+	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
+
+def test_Disassembler_chunked_separated_size(test):
+	"""
+	Test one chunk with fragmented data.
+	"""
 	data1 = b"""GET / HTTP/1.0\r
 Transfer-Encoding: chunked\r
 Host: host\r
@@ -200,11 +324,8 @@ Host: host\r
 	x5 = [(libhttp.Event.trailers, ()), libhttp.EOM]
 	test/x5 == g.send(data10)
 
-def test_dis_crlf_prefix_strip(test):
-	data = b"""\r
-\r
-GET / HTTP/1.1\r
-"""
+def test_Disassembler_crlf_prefix_strip(test):
+	data = b"\r\n\r\nGET / HTTP/1.1\r\n"
 	g = libhttp.disassembly()
 	eventseq1 = g.send(data)
 	x1 = [
@@ -212,7 +333,7 @@ GET / HTTP/1.1\r
 	]
 	test/x1 == eventseq1
 
-def test_dis_pipelined(test):
+def test_Disassembler_pipelined(test):
 	mrequest = b'''GET /index.html HTTP/1.1\r
 Host: localhost\r
 Content-Length: 20\r
@@ -243,12 +364,12 @@ Content-Length: 30\r
 	eventseq1 = g.send(mrequest)
 	test/x1 == eventseq1
 
-def test_dis_type_error(test):
+def test_Disassembler_type_error(test):
 	# XXX: moved away from HTTP exceptions in favor of violation events
 	g = libhttp.disassembly()
 	test/TypeError ^ (lambda: g.send(123))
 
-def test_dis_limit_line_too_large(test):
+def test_Disassembler_limit_line_too_large(test):
 	data = b'GET / HTTP/1.1'
 	g = libhttp.disassembly(max_line_size = 8)
 	r = g.send(data)
@@ -256,17 +377,36 @@ def test_dis_limit_line_too_large(test):
 		(libhttp.Event.violation, ('limit', 'max_line_size', 8)),
 		(libhttp.Event.bypass, data),
 	]
+	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
 
-def test_dis_limit_line_too_large_with_eof(test):
-	data = b'GET / HTTP/1.1\r\n'
-	g = libhttp.disassembly(max_line_size = 8)
+def test_Disassembler_limit_line_too_large_with_eof(test):
+	data = b'GET / HTTP/1.1\r\nHost: host\r\n\r\n'
+	g = libhttp.disassembly(max_line_size = 4)
 	r = g.send(data)
 	test/r == [
-		(libhttp.Event.violation, ('limit', 'max_line_size', 8)),
+		(libhttp.Event.violation, ('limit', 'max_line_size', 4)),
 		(libhttp.Event.bypass, data),
 	]
+	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
 
-def test_dis_invalid_chunk_field(test):
+def test_Disassembler_invalid_content_length(test):
+	"""
+	Check that the value error is properly reported.
+	"""
+	data = b"GET / HTTP/1.0\r\nHost: host\r\nContent-Length: vz@\r\nConnection: close\r\n\r\nBYPASS"
+	state = libhttp.disassembly()
+	events = state.send(data)
+	x = [
+		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
+		(libhttp.Event.headers, [(b'Host', b'host')]),
+		(libhttp.Event.violation,
+			('protocol', 'Content-Length', bytearray(b'vz@'))),
+		(libhttp.Event.bypass, b'Connection: close\r\n\r\nBYPASS'),
+	]
+	test/x == events
+	test/state.send(b'More') == [(libhttp.Event.bypass, b'More')]
+
+def test_Disassembler_invalid_chunk_field(test):
 	output = []
 	data = b"""GET / HTTP/1.1\r
 Transfer-Encoding: chunked\r
@@ -287,8 +427,9 @@ fffff\r
 			('protocol', 'chunk-field', bytearray(b'zzz'))),
 		(libhttp.Event.bypass, bytearray(b'fffff\r\n0\r\n\r')),
 	]
+	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
 
-def test_dis_chunk_no_terminator(test):
+def test_Disassembler_chunk_no_terminator(test):
 	output = []
 	data = b"""GET / HTTP/1.1\r
 Transfer-Encoding: chunked\r
@@ -310,8 +451,9 @@ fffff
 			('protocol', 'bad-chunk-terminator', b'\n0')),
 		(libhttp.Event.bypass, bytearray(b'\n0\r\n\r')),
 	]
+	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
 
-def test_dis_limit_max_chunksize(test):
+def test_Disassembler_limit_max_chunksize(test):
 	output = []
 	data = b"""GET / HTTP/1.1\r
 Transfer-Encoding: chunked\r
@@ -331,14 +473,11 @@ fffff\r
 		(libhttp.Event.violation, ('limit', 'max_chunk_line_size', 15, 1)),
 		(libhttp.Event.bypass, bytearray(b'50\r\nfffff\r\n0\r\n\r'))
 	]
+	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
 
-def test_dis_limit_max_chunksize_split(test):
+def test_Disassembler_limit_max_chunksize_split(test):
 	output = []
-	data = b"""GET / HTTP/1.1\r
-Transfer-Encoding: chunked\r
-Host: host\r
-\r
-10"""
+	data = b"GET / HTTP/1.1\r\nTransfer-Encoding: chunked\r\nHost: host\r\n\r10"
 	g = libhttp.disassembly(max_chunk_line_size = 1)
 	r = g.send(data)
 	test/r == [
@@ -349,8 +488,9 @@ Host: host\r
 		(libhttp.Event.violation, ('limit', 'max_chunk_line_size', 15, 1)),
 		(libhttp.Event.bypass, bytearray(b'50\r\nfffff\r\n0\r\n\r'))
 	]
+	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
 
-def test_dis_limit_max_chunksize_split(test):
+def test_Disassembler_limit_max_chunksize_split(test):
 	output = []
 	data = b"""GET / HTTP/1.1\r
 Transfer-Encoding: chunked\r
@@ -368,11 +508,11 @@ ffffffds"""
 		(libhttp.Event.violation, ('limit', 'max_chunk_line_size', 11, 1)),
 		(libhttp.Event.bypass, bytearray(b'5\r\nffffffds')),
 	]
+	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
 
-def test_dis_limit_header_too_large(test):
+def test_Disassembler_limit_header_too_large(test):
 	output = []
-	data = b"""GET / HTTP/1.1\r
-Foo: bar"""
+	data = b"GET / HTTP/1.1\r\nFoo: bar"
 	# feed it two while expecting one
 	g = libhttp.disassembly(max_header_size = 2)
 	r = g.send(data)
@@ -384,12 +524,11 @@ Foo: bar"""
 	test/limit == 2
 	test/byp[0] == libhttp.Event.bypass
 	test/byp[1] == b"""Foo: bar"""
+	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
 
-def test_dis_limit_header_too_large_with_eof(test):
+def test_Disassembler_limit_header_too_large_with_eof(test):
 	output = []
-	data = b"""GET / HTTP/1.1\r
-Foo: bar\r
-\r"""
+	data = b"GET / HTTP/1.1\r\nFirst: value\r\nSecond: value\r\n"
 	# feed it two while expecting one
 	g = libhttp.disassembly(max_header_size = 2)
 	r = g.send(data)
@@ -400,14 +539,12 @@ Foo: bar\r
 	test/limitation == 'max_header_size'
 	test/limit == 2
 	test/byp[0] == libhttp.Event.bypass
-	test/byp[1] == b"""Foo: bar\r
-\r"""
+	test/byp[1] == b"First: value\r\nSecond: value\r\n"
+	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
 
-def test_dis_limit_header_too_many(test):
+def test_Disassembler_limit_header_too_many(test):
 	output = []
-	data = b"""GET / HTTP/1.1\r
-Foo: bar\r
-\r"""
+	data = b"GET / HTTP/1.1\r\nFoo: bar\r\n\r"
 	# feed it two while expecting one
 	g = libhttp.disassembly(max_headers = 0)
 	r = g.send(data)
@@ -420,12 +557,11 @@ Foo: bar\r
 	test/max == 0
 	test/byp[0] == libhttp.Event.bypass
 	test/byp[1] == b"\r"
+	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
 
-def test_dis_exercise_zero_writes(test):
+def test_Disassembler_exercise_zero_writes(test):
 	output = []
-	data = b"""HTTP/1.0 400 Bad Request\r
-Foo: bar\r
-\r"""
+	data = b"HTTP/1.0 400 Bad Request\r\nFoo: bar\r\n\r"
 	g = libhttp.disassembly()
 	test/g.send(b'') == []
 	test/g.send(b'') == []
