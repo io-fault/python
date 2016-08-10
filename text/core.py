@@ -83,21 +83,6 @@ class Parser(object):
 
 		return (('reference', ref, typ, label, action), ('text', string[len(ref):]))
 
-	def references(self,
-			string,
-			chain=itertools.chain.from_iterable,
-		):
-
-		txt, *refs = string.split('&')
-		yield ('text', txt)
-		yield from chain(self.reference(x) for x in refs)
-
-	def styles(self, string):
-		"""
-		Identify the styles for the given string.
-		"""
-		yield from self.references(string)
-
 	@property
 	def processor(self):
 		"""
@@ -153,12 +138,35 @@ class Parser(object):
 			if len(normal) > len(emphasized) and normal[-1]:
 				yield ('text', normal[-1])
 
+	def styles(self, string:str,
+			reference_indicator='&',
+			chain=itertools.chain.from_iterable
+		):
+		"""
+		Identify the styles and references for the given string.
+		"""
+		trail = None
+		rcontent = string
+
+		if string.endswith(')'):
+			cast_open = string.rfind('(')
+			if cast_open > -1:
+				# Skip cast content.
+				rcontent = string[:cast_open]
+				trail = string[cast_open:]
+
+		txt, *refs = rcontent.split('&')
+		yield ('text', txt)
+		yield from chain(self.reference(x) for x in refs)
+		if trail is not None:
+			yield ('text', trail)
+
 	def structure_paragraph_line(self, line, chain=itertools.chain.from_iterable):
 		"""
 		Structure the paragraph line revealing emphasis,
 		references, and inline literals.
 		"""
-		# inline code has the highest precedence, so
+		# inline literals have the highest precedence, so
 		# the initial split is performed on a grave accent.
 		parts = line.split('`')
 
@@ -185,7 +193,7 @@ class Parser(object):
 					start = x[1].rfind('(')
 
 					if start == -1:
-						# not a cast
+						# Might not be a cast, but check preceding tokens.
 						structure.append(x)
 					else:
 						cast = x[1][start+1:-1]
