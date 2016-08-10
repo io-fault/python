@@ -7,7 +7,8 @@
 The `.txt` extension should be used for fault.text. It is strictly
 a format layered on top of raw text files. Whether or not a given text file
 is actually fault.text should be determined by the context or by
-the initial `#!` line used to identify a corresponding binary.
+the initial `#!` line used to identify a corresponding binary that can be used
+for presenting the contents of the file.
 
 ===============
 [ Declaration ]
@@ -75,7 +76,7 @@ and are notated in the fashion that ".ini" configuration files notate sections: 
 starting with (character)`[` and ending with (character)`]` select the section context.
 
 Sections *must* be addressable by their title name. References have syntax to disambiguate
-section references from regular references in order to accommodate local references.
+section references from regular references in order to accommodate chapter-local references.
 
 Subsections are managed by the use of a double greater-than, `>>`, separator in the
 section's title text. A section with `>>` in the title identifies the section as being
@@ -384,8 +385,8 @@ lists, blocks, and even inner admonitions may appear.
 [ Casts ]
 =========
 
-Casting is a concept borrowed from the C programming language along
-with its syntax, a parenthetical prefix. Casts are distinguished from
+Casting is a syntactic format borrowed from the C programming language,
+a parenthetical prefix. Casts are distinguished from
 regular parenthesis by the absence of whitespace padding. So,
 `(parenthetical) words` will not be identified as a cast whereas,
 `(parenthetical)words` will be.
@@ -438,16 +439,6 @@ to package them together provides convenience for the user and the developer.
 	The value here is paragraph text with placeholder references:
 	(reference)&!param-name.
 
-==============
-[ Exceptions ]
-==============
-
-/Unbalanced Title
-	`[[ Section Name]`
-
-/Invalid Reference
-	`&jvisnlw.ndivjkr`
-
 ===========
 [ Grammar ]
 ===========
@@ -478,31 +469,3 @@ This section defines the normative grammar for fault.text.
 
 	declaration := text
 	block := (declaration, (literal-lines)*)
-
-[ Queries ]
-
-@=Ref
-	# String-1
-	# String-2
-	# String-3
-
-@=SetRef
-	- String-1
-	- String-2
-	- String-3
-
-@=identifier
-@query
-@matrix
-@context pq://db.ltld/dbname/ns/table
-
-/column-1
-	&func
-		# &param-1
-		# &param-2
-
-/column-2
-	Expression.
-
-/column-3
-	Expression.

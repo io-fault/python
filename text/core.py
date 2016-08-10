@@ -193,7 +193,7 @@ class Parser(object):
 					start = x[1].rfind('(')
 
 					if start == -1:
-						# Might not be a cast, but check preceding tokens.
+						# Not a cast.
 						structure.append(x)
 					else:
 						cast = x[1][start+1:-1]
