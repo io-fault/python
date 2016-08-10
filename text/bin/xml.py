@@ -10,7 +10,10 @@ def main(src, args):
 
 	s = library.XML.transform('', data, encoding=encoding)
 
-	tag_open = '<chapter xmlns="https://fault.io/xml/text">'.encode(encoding)
+	tag_open = '<chapter xmlns="https://fault.io/xml/text"'
+	tag_open += ' xmlns:xlink="http://www.w3.org/1999/xlink">'
+	tag_open = tag_open.encode(encoding)
+
 	sys.stdout.buffer.write(tag_open)
 	sys.stdout.buffer.writelines(s)
 	sys.stdout.buffer.write('</chapter>'.encode(encoding))

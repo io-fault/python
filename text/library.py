@@ -113,7 +113,7 @@ class XML(object):
 			('type', type),
 			('action', action),
 			('cast', cast), # canonical cast string
-			('xlink:href', source if type == 'hyperlink' else None),
+			('xlink:href', source[1:-1] if type == 'hyperlink' else None),
 		)
 
 	paragraph_index = {
