@@ -146,17 +146,18 @@ def file_type(filename):
 
 class Type(tuple):
 	"""
-	The Content-Type, Subtype, Options triple describing the type of data.
-
-	An IANA Media Type.
+	An IANA Media Type; the Content-Type, Subtype, and options triple describing
+	the type of data.
 
 	A container interface (`in`) is provided in order to identify if a given
 	type is considered to be within another:
 
-		- text/html in */*
-		- text/html in text/*
-		- text/html;level=1 in text/html
-		- text/html not in text/html;level=1
+		- `text/html in */*`
+		- `text/html in text/*`
+		- `text/html;level=1 in text/html`
+		- `text/html not in text/html;level=1`
+
+	The &from_string classmethod is the common constructor.
 	"""
 	__slots__ = ()
 
@@ -200,7 +201,9 @@ class Type(tuple):
 
 	@property
 	def parameters(self):
-		'Parameters such as charset for encoding designation.'
+		"""
+		Parameters such as charset for encoding designation.
+		"""
 		return self[2]
 
 	@property
@@ -211,14 +214,18 @@ class Type(tuple):
 		return '*' in self[:2]
 
 	def push(self, subtype):
-		"Return a new &Type with the given &subtype appended to the instance's &.subtype"
+		"""
+		Return a new &Type with the given &subtype appended to the instance's &.subtype.
+		"""
 
 		cotype, ssubtype, *remainder = self
 
 		return self.__class__((cotype, '+'.join(ssubtype, subtype))+remainder)
 
 	def pop(self):
-		"Return a new &Type with the last '+'-delimited subtype removed. (inverse of push)"
+		"""
+		Return a new &Type with the last '+'-delimited subtype removed. (inverse of push).
+		"""
 
 		cotype, ssubtype, *remainder = self
 		index = ssubtype.rfind('+')
@@ -230,17 +237,15 @@ class Type(tuple):
 		return self.__class__((cotype, ssubtype[:index]) + remainder)
 
 	@classmethod
-	def from_string(typ, string, **parameters):
+	def from_string(Class, string, **parameters):
 		"""
 		Split on the ';' and '/' separators and build an instance.
 		"""
 		mtype, *strparams = string.split(';')
 
-		ct, st = map(str.strip, mtype.split('/', 1))
+		ct, st = [x.strip() for x in mtype.split('/', 1)]
 
-		params = [
-			map(str.strip, x.split('=', 1)) for x in strparams
-		]
+		params = [[x.strip() for x in x.split('=', 1)] for x in strparams]
 		for i in range(len(params)):
 			# handle cases where the parameter had no equal sign with a &None indicator
 			p = params[i]
@@ -250,8 +255,8 @@ class Type(tuple):
 		# allow for keyword overrides for parameters
 		params.extend(parameters.items())
 
-		os = frozenset([tuple(map(str, x)) for x in params])
-		return typ((ct,st,os))
+		os = frozenset(params)
+		return Class((ct,st,os))
 
 	def __contains__(self, mtype):
 		if self.cotype in ('*', mtype[0]):

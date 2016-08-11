@@ -6,22 +6,30 @@ def test_module_protocol(test):
 	'Range' in test/dir(libmedia)
 
 def test_Type(test):
-	# this tests .parse_accept and .parse_options
 	text_xml = libmedia.Type.from_string('text/xml')
 	test/text_xml == libmedia.Type(('text', 'xml', frozenset()))
 	test/text_xml.parameters == frozenset()
 	text_xml in test/text_xml
+	test/str(text_xml) == 'text/xml'
+	test/text_xml.pattern == False
+
+	text_xml_options = libmedia.Type.from_string('text/xml;option1;option2')
+	test/text_xml_options == libmedia.Type(('text', 'xml', frozenset([('option1',None),('option2',None)])))
 
 	text_any = libmedia.Type.from_string('text/*')
 	test/text_any == libmedia.Type(('text', '*', frozenset()))
 	test/text_any.parameters == frozenset()
 	text_xml in test/text_any
+	test/str(text_any) == 'text/*'
+	test/text_any.pattern == True
 
 	any_any = libmedia.Type.from_string('*/*')
 	test/any_any == libmedia.Type(('*', '*', frozenset()))
 	test/any_any.parameters == frozenset()
 	text_any in test/any_any
 	text_xml in test/any_any
+	test/str(any_any) == '*/*'
+	test/any_any.pattern == True
 
 	text_html = libmedia.Type.from_string('text/html')
 	level1_html = libmedia.Type.from_string('text/html', level='1')
@@ -29,6 +37,7 @@ def test_Type(test):
 	test/text_html != level1_html
 	level1_html in test/text_html # text_html is the outermost container
 	level1_html in test/text_html
+	test/str(text_html) == 'text/html'
 
 	# text/html without options is all inclusive,
 	# but with options, the containing type must be a subset
@@ -36,6 +45,11 @@ def test_Type(test):
 	level1_html in test/text_html_giraffe
 	text_html_giraffe in test/text_html
 	level1_html in test/text_html_giraffe
+	txt_set = {'text/html;level=1;giraffe=mr', 'text/html;giraffe=mr;level=1'}
+	test/True == (str(text_html_giraffe) in txt_set)
+
+	# Check bytes method.
+	test/bytes(text_html) == b'text/html'
 
 def test_Range(test):
 	'media range of accept header'
