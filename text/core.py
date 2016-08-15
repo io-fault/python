@@ -6,15 +6,6 @@ from ..computation import libstring
 
 from typing import Sequence
 
-class Error(Exception):
-	pass
-
-class SyntaxError(Error):
-	"""
-	Eclectic syntax error. A tuple consisting of the line and the
-	line number that produced an exception during processing.
-	"""
-
 class Parser(object):
 	"""
 	Configuration and state class for parsing eclectic markdown.
@@ -22,7 +13,7 @@ class Parser(object):
 	[ Properties ]
 
 	/stack
-		...
+		The stack of line processing callbacks for the given context.
 	/paragraph
 		A sequence representing the current working paragraph.
 	/indentation
@@ -31,18 +22,20 @@ class Parser(object):
 
 	def __init__(self):
 		"""
-		Create a new parser instance.
+		Create a new parser instance initializing the &stack with the &default_commands,
+		and &process_paragraph_line as the means to process lines.
 		"""
 		self.stack = [(self.__class__.process_paragraph_line, 0, self.default_commands)]
 		self.indentation = 0
 
 	@property
 	def commands(self):
-		"Return the set of commands for the current working processor."
+		"""
+		Return the set of commands for the current working processor.
+		"""
 		return self.stack[-1][-1]
 
-	def reference(self,
-			string,
+	def reference(self, string,
 			punctuation=',.;:!-+?()[]{}',
 		):
 		"""
@@ -98,7 +91,9 @@ class Parser(object):
 		del self.stack[-1]
 
 	def is_decoration(self, stripped, minimum=4, level=3):
-		"Determine if the line is a decoration."
+		"""
+		Determine if the line is a decoration.
+		"""
 		sl = len(stripped)
 		chars = set(stripped)
 		nc = len(chars)
@@ -138,17 +133,23 @@ class Parser(object):
 			if len(normal) > len(emphasized) and normal[-1]:
 				yield ('text', normal[-1])
 
-	def styles(self, string:str,
+	def styles(self, string:str, edge:bool=True,
 			reference_indicator='&',
 			chain=itertools.chain.from_iterable
 		):
 		"""
 		Identify the styles and references for the given string.
+
+		[ Parameters ]
+		/string
+			The text between a literal area.
+		/edge
+			Whether the &string was on the edge of a literal.
 		"""
 		trail = None
 		rcontent = string
 
-		if string.endswith(')'):
+		if edge and string.endswith(')'):
 			cast_open = string.rfind('(')
 			if cast_open > -1:
 				# Skip cast content.
@@ -171,10 +172,12 @@ class Parser(object):
 		parts = line.split('`')
 
 		styled = list(chain(libc.interlace(
-				map(tuple, map(self.styles, parts[0::2])),
+				map(tuple, map(self.styles, parts[0:-1:2])),
 				[(('literal', x),) for x in parts[1::2]],
 			))
 		)
+		if len(parts) % 2 == 1:
+			styled.append(tuple(self.styles(parts[-1], edge=False)))
 
 		# Extract the casts modifying the following paragraph event.
 		structure = []
