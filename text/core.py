@@ -177,7 +177,7 @@ class Parser(object):
 			))
 		)
 		if len(parts) % 2 == 1:
-			styled.append(tuple(self.styles(parts[-1], edge=False)))
+			styled.extend(self.styles(parts[-1], edge=False))
 
 		# Extract the casts modifying the following paragraph event.
 		structure = []
