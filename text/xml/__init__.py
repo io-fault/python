@@ -1,2 +1,1 @@
-from ...xml import libfactor
-libfactor.load('schema')
+__factor_type__ = 'xml.executable'
