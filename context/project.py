@@ -1,9 +1,10 @@
-identity = 'https://fault.io/project/python/fault.context'
+identity = 'http://fault.io/python/fault.context'
 name = 'context'
-abstract = 'fault.io context package'
-icon = '<https://fault.io>'
+abstract = 'Context package for the fault.io core Python projects'
+icon = '<http://fault.io>'
 
 fork = 'foundation'
+status = 'flux'
 
 controller = 'fault.io'
 contact = 'mailto:critical@fault.io'
