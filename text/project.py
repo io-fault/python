@@ -1,8 +1,9 @@
-identity = 'https://fault.io/project/python/fault.text'
+identity = 'http://fault.io/python/fault.text'
 name = 'text'
 abstract = 'Text Formatting Language for developer documentation and structured status'
 icon = '📜'
 
+versioning = 'continuous'
 fork = 'void'
 status = 'flux'
 
