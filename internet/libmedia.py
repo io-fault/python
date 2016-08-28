@@ -1,7 +1,11 @@
 """
-Mime Type Parser for content types and ranges.
+Mime Type structures and parsers for content types and media ranges.
 
 Interfaces here work exclusively with character-strings; wire data must be decoded.
+
+[ References ]
+
+	- &<http://tools.ietf.org/html/rfc6838>
 
 [ Data ]
 
@@ -12,7 +16,7 @@ Interfaces here work exclusively with character-strings; wire data must be decod
 	A mapping of filename extensions to type name.
 
 /iana_registered_types
-	The set of media types registered with IANA.
+	The IRI of the set of media types registered with IANA.
 
 [ Functions ]
 
