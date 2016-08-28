@@ -349,13 +349,13 @@ def Disassembler(
 				else:
 					# found CRLF of chunk size line
 					pos = 0
-					# got a chunk
+					# new chunk
 					extsep = req.find(b';', 0, eof)
 					if extsep == -1:
 						extsep = eof
 					else:
-						# XXX: Ignoring chunk extensions.. req[extsep:eof]
-						pass
+						# XXX: Ignoring chunk extensions..
+						chunk_extensions = req[extsep:eof]
 					chunk_field = req[:extsep]
 					del req[0:eof+2]
 
@@ -587,7 +587,8 @@ def Assembler(
 		trailers_ev = Event.trailers,
 		headers_ev = Event.headers,
 		rline_ev = Event.rline,
-		content_ev = Event.content
+		content_ev = Event.content,
+		chunk_map = {Event.chunk: chunk, Event.content: lambda x: (x,)}
 	):
 	"""
 	Assemble HTTP events back into a sequences of bytes.
@@ -613,7 +614,7 @@ def Assembler(
 				pass
 			else:
 				# Default to concatenation of event payload
-				append(x[1])
+				buf.extend(chunk_map[x[0]](x[1]))
 
 		events = (yield buf)
 
