@@ -7,7 +7,7 @@ Interfaces here work exclusively with character-strings; wire data must be decod
 
 	- &<http://tools.ietf.org/html/rfc6838>
 
-[ Data ]
+[ Properties ]
 
 /types
 	A mapping of type names and file extensions to MIME type strings.
@@ -39,6 +39,7 @@ Interfaces here work exclusively with character-strings; wire data must be decod
 import operator
 import functools
 import typing
+from . import librife
 
 iana_registered_types = 'https://www.iana.org/assignments/media-types/media-types.xml'
 
@@ -165,21 +166,20 @@ class Type(tuple):
 	"""
 	__slots__ = ()
 
-	def __str__(self, format='/'.join):
-		if self[2]:
-			optstr = ';'
-			optstr += ';'.join(
-				[
-					'='.join((k, v if '"' not in v else '"'+v.replace('"', '\\"')+'"'))
-					for k,v in self[2]
-				]
-			)
-		else:
-			optstr = ''
-		return format(self[:2]) + optstr
+	def __str__(self):
+		return self.__bytes__().decode('ascii', 'surrogateescape')
 
-	def __bytes__(self):
-		return str(self).encode('utf-8')
+	def __bytes__(self, format=b'/'.join):
+		# WARNING: recoding of fields.
+		if self[2]:
+			optjoin = b';'
+			encoded = librife.encode_parameters(self[2])
+			optstr = librife.join_parameter_series(encoded)
+		else:
+			optjoin = b''
+			optstr = b''
+
+		return format(x.encode('utf-8') for x in self[:2]) + optjoin + optstr
 
 	@property
 	def cotype(self):
@@ -241,26 +241,31 @@ class Type(tuple):
 		return self.__class__((cotype, ssubtype[:index]) + remainder)
 
 	@classmethod
-	def from_string(Class, string, **parameters):
+	def from_bytes(Class, string, **parameters):
 		"""
 		Split on the ';' and '/' separators and build an instance.
+
+		Additional parameters or overrides may be given using keywords.
 		"""
-		mtype, *strparams = string.split(';')
+		global librife
 
-		ct, st = [x.strip() for x in mtype.split('/', 1)]
+		start = string.split(b';', 1)
+		ct, st = [x.strip() for x in start[0].split(b'/', 1)]
 
-		params = [[x.strip() for x in x.split('=', 1)] for x in strparams]
-		for i in range(len(params)):
-			# handle cases where the parameter had no equal sign with a &None indicator
-			p = params[i]
-			if len(p) == 1:
-				params[i] = (p[0], None)
-
-		# allow for keyword overrides for parameters
+		params = list(librife.decode_parameters(librife.split_parameter_series((start[1:] or (b'',))[0])))
 		params.extend(parameters.items())
 
 		os = frozenset(params)
-		return Class((ct,st,os))
+		return Class((ct.decode('ascii', 'surrogateescape'), st.decode('ascii', 'surrogateescape'), os))
+
+	@classmethod
+	def from_string(Class, string, **parameters):
+		"""
+		Split on the ';' and '/' separators and build an instance.
+
+		Additional parameters or overrides may be given using keywords.
+		"""
+		return Class.from_bytes(string.encode('ascii', 'surrogateescape'), **parameters)
 
 	def __contains__(self, mtype):
 		if self.cotype in ('*', mtype[0]):
@@ -271,110 +276,6 @@ class Type(tuple):
 					# options match
 					return True
 		return False
-
-def parse(header,
-		typsep = ',', optsep = ';', valsep = '=', quote = '"',
-		escape = '\\',
-		strip=str.strip, map=map, len=len, tuple=tuple,
-	):
-	"""
-	Generate the media range from the contents of an Accept header.
-
-	Yields: `[(internet.libmedia.Type, None or [(k,v),...]),...]`
-
-	Where the second item in the yielded tuples is a list of media type options.
-	"""
-	# fuck parser generators! we like the pain
-	current_type = None
-	current_options = []
-	current_key = None
-
-	state = typsep
-	pos = 0
-	end = len(header)
-
-	while pos < end:
-		# identify the next option boundary.
-		# note: if it's starting at an option value,
-		# the next_delimiter may get adjusted
-		next_opts = header.find(optsep, pos)
-		if next_opts == -1:
-			next_opts = end
-		next_delimiter = next_opts
-		next_type = header.find(typsep, pos, next_delimiter)
-		if next_type >= 0:
-			next_delimiter = next_type
-
-		if state is None:
-			# normally occurs on the edge of a quotation
-			state = header[next_delimiter:next_delimiter+1]
-			pos = next_delimiter+1
-			continue
-
-		if state == typsep:
-			if current_type is not None and current_type.strip():
-				# starting a new type? yield the previous
-				option_dict = dict(current_options)
-				quality = option_dict.pop('q', '1.0')
-				yield tuple(map(strip, current_type.split('/', 1))), option_dict, quality
-				current_options = []
-				current_type = None
-
-			current_type = header[pos:next_delimiter]
-			pos = next_delimiter + 1
-			state = header[next_delimiter:pos]
-		else:
-			if state == optsep:
-				if current_key is not None:
-					current_options.append((current_key, None))
-				next_value = header.find(valsep, pos, next_delimiter)
-				if next_value == -1:
-					# no '=' sign..
-					current_options.append((header[pos:next_delimiter].strip(), None))
-				else:
-					next_delimiter = next_value
-					# pickup the key
-					current_key = header[pos:next_delimiter].strip()
-
-				# next state
-				pos = next_delimiter + 1
-				state = header[next_delimiter:pos]
-			elif state == valsep:
-				# handle cases where there's a quoted value
-				# must come before the next delimiter.
-				next_quote = header.find(quote, pos, next_delimiter)
-				if next_quote == -1:
-					# not quoted, append
-					current_options.append((current_key, header[pos:next_delimiter].strip()))
-					pos = next_delimiter + 1
-					state = header[next_delimiter:pos]
-				else:
-					# quoted string
-					quotation = ""
-					pos = next_quote + 1
-					backslash = pos
-					while backslash >= 0:
-						quotation += header[pos:backslash]
-						# ???: \n \r
-						if header[backslash:backslash+1] == escape:
-							# take the escaped character
-							pos = backslash + 2
-							quotation += header[backslash+1:pos]
-						endquote = header.find(quote, pos)
-						# handle escapes
-						backslash = header.find(escape, pos, endquote)
-					quotation += header[pos:endquote]
-					pos = endquote + 1
-					current_options.append((current_key, quotation)) # no strip
-					state = None
-			else:
-				raise RuntimeError("impossible state")
-
-	# flush out the remainder
-	if current_type is not None:
-		option_dict = dict(current_options)
-		quality = option_dict.pop('q', '1.0')
-		yield tuple(map(strip, current_type.split('/', 1))), option_dict, quality
 
 class Range(tuple):
 	"""
@@ -391,38 +292,59 @@ class Range(tuple):
 	__slots__ = ()
 
 	@staticmethod
-	def parse_options(options:typing.Iterable, strip = str.strip, tuple = tuple):
+	def split(media_range):
 		"""
-		Parse and strip equality, b'=', delimited key-values.
-
-		[ Parameters ]
-
-		/options
-			Iterator of equality delimited fields.
+		Construct triples describing the &media_range.
 		"""
+		parts = librife.split_parameter_series(media_range,
+			normal=librife._normal_mediarange_area
+		)
+		parts = iter(parts)
 
-		return [tuple(map(strip, f.split('=', 1))) for f in options]
+		mtype = next(parts)[0]
+		params = []
+		quality = None
+		for x in parts:
+			if x[1] is None and b'/' in x[0]:
+				# New type in range.
+				yield (mtype.split(b'/'), quality, params or None)
+				mtype = x[0]
+				params = []
+				quality = None
+				continue
+			else:
+				# parameters
+				if x[0] == b'q':
+					quality = x[1]
+				else:
+					params.append(x)
+
+		# Remainder.
+		yield (mtype.split(b'/'), quality, params or None)
 
 	@classmethod
-	def from_bytes(Class, data, encoding='utf-8'):
+	def from_string(Class, string):
+		"""
+		Instantiate the Range from a string.
+		"""
+
+		return Class.from_bytes(string.encode('ascii', 'surrogateescape'))
+
+	@classmethod
+	def from_bytes(Class, data, skey = operator.itemgetter(0)):
 		"""
 		Instantiate the Range from a bytes object; decoded and passed to &from_string.
 		"""
 
-		return Class.from_string(data.decode(encoding))
-
-	@classmethod
-	def from_string(Class, string, skey = operator.itemgetter(0)):
-		"""
-		Instantiate the Range from a Python string.
-		"""
-
 		l = []
-		for tpair, options, quality in parse(string):
-			cotype, subtype = tpair
-			percent = int(float(quality) * 100)
-			l.append((percent,Type((cotype, subtype, frozenset(options.items())))))
+		for tpair, quality, parameters in Class.split(data):
+			cotype, subtype = [x.decode('ascii', 'surrogateescape') for x in tpair]
+			percent = int(float(quality or b'1.0') * 100)
+			parameters = list(librife.decode_parameters(parameters or ()))
+
+			l.append((percent, Type((cotype, subtype, frozenset(parameters)))))
 		l.sort(key=skey, reverse=True)
+
 		return Class(l)
 
 	def quality(self, mimetype):
@@ -449,7 +371,7 @@ class Range(tuple):
 		quality = 0
 
 		for x in available:
-			# PERF: nested loop sadface O(len(available)*len(self))
+			# PERF: nested loop O(len(available)*len(self))
 			for q, mt in self:
 				if x in mt or mt in x:
 					if q > quality:

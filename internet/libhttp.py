@@ -1,11 +1,14 @@
 """
-Hyper-Text Transfer Protocol Support.
+Low-level Hypertext Transfer Protocol tools.
+
+Provides protocol tokenization, field parsers, and protocol serialization for
+implementing a server or a client.
 """
 import itertools
 import functools
 from .data import http
 
-#: Raw binary header indicating chunking should be used.
+# Raw binary header indicating chunking should be used.
 CHUNKED_TRANSFER = b'Transfer-Encoding: chunked' + http.CRLF
 
 class Event(int):
@@ -97,7 +100,7 @@ EOM = (Event.message, None)
 # http://www.faqs.org/rfcs/rfc2616.html
 # Some notably relevant portions are:
 #  4.4 Message Length (chunked vs Content-Length)
-def Disassembler(
+def Tokenization(
 		max_line_size : int = 0xFFFF*3, # maximum length of the Request-Line or Response-Line
 		max_headers : int = 1024, # maximum number of headers to accept
 		max_trailers : int = 32, # maximum number of trailers to accept
@@ -547,6 +550,7 @@ def Disassembler(
 			events.append((bypass_ev, req))
 			req = (yield events)
 			events = []
+Disassembler = Tokenization
 
 def disassembly(**config):
 	"""
@@ -581,7 +585,7 @@ def chunk(data, len=len, CRLF=http.CRLF):
 
 trailers = headers
 
-def Assembler(
+def Serialization(
 		SP = http.SP, CRLF = http.CRLF,
 		HFS = http.HFS,
 		trailers_ev = Event.trailers,
@@ -617,6 +621,7 @@ def Assembler(
 				buf.extend(chunk_map[x[0]](x[1]))
 
 		events = (yield buf)
+Assembler = Serialization
 
 def assembly(**config):
 	"""

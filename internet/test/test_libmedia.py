@@ -52,46 +52,50 @@ def test_Type(test):
 	test/bytes(text_html) == b'text/html'
 
 def test_Range(test):
-	'media range of accept header'
+	"""
+	Media range queries for managing Accept headers.
+	"""
+	emptyset = frozenset()
+
 	range = libmedia.Range.from_bytes(b'application/xml,text/xml')
-	selection = range.query(libmedia.Type(('text','xml',frozenset(('level','1')))))
+	selection = range.query(libmedia.Type(('text','xml',frozenset([('level','1')]))))
 	test/selection == (
-		libmedia.Type(('text','xml',frozenset(('level','1')))),
-		libmedia.Type(('text','xml',frozenset())),
+		libmedia.Type(('text','xml',frozenset([('level','1')]))),
+		libmedia.Type(('text','xml',emptyset)),
 		100
 	)
 
 	# needs to select /xml over /*
 	range = libmedia.Range.from_bytes(b'application/xml,text/*,text/xml')
-	selection = range.query(libmedia.Type(('text','xml',frozenset(('level','1')))))
+	selection = range.query(libmedia.Type(('text','xml',frozenset([('level','1')]))))
 	test/selection == (
-		libmedia.Type(('text','xml',frozenset(('level','1')))),
-		libmedia.Type(('text','xml',frozenset())),
+		libmedia.Type(('text','xml',frozenset([('level','1')]))),
+		libmedia.Type(('text','xml',emptyset)),
 		100
 	)
 
-	selection = range.query(libmedia.Type(('text','xml',frozenset())))
+	selection = range.query(libmedia.Type(('text','xml',emptyset)))
 	test/selection == (
-		libmedia.Type(('text','xml',frozenset())),
-		libmedia.Type(('text','xml',frozenset())),
+		libmedia.Type(('text','xml',emptyset)),
+		libmedia.Type(('text','xml',emptyset)),
 		100
 	)
 
-	selection = range.query(libmedia.Type(('text','plain',frozenset())))
+	selection = range.query(libmedia.Type(('text','plain',emptyset)))
 	test/selection == (
-		libmedia.Type(('text','plain',frozenset())),
-		libmedia.Type(('text','*',frozenset())),
+		libmedia.Type(('text','plain',emptyset)),
+		libmedia.Type(('text','*',emptyset)),
 		100
 	)
 
 	selection = range.query(
-		libmedia.Type(('text','plain',frozenset())),
-		libmedia.Type(('text','xml',frozenset())),
+		libmedia.Type(('text','plain',emptyset)),
+		libmedia.Type(('text','xml',emptyset)),
 	)
 	# text/xml should have precedence over text/*
 	test/selection == (
-		libmedia.Type(('text','xml',frozenset())),
-		libmedia.Type(('text','xml',frozenset())),
+		libmedia.Type(('text','xml',emptyset)),
+		libmedia.Type(('text','xml',emptyset)),
 		100
 	)
 
@@ -99,24 +103,24 @@ def test_Range(test):
 	range = libmedia.Range.from_bytes(b'application/xml,text/*;q = 0.5,text/xml')
 
 	selection = range.query(
-		libmedia.Type(('text','plain',frozenset())),
-		libmedia.Type(('text','xml',frozenset())),
+		libmedia.Type(('text','plain',emptyset)),
+		libmedia.Type(('text','xml',emptyset)),
 	)
 	# text/xml should have precedence over text/*
 	test/selection == (
-		libmedia.Type(('text','xml',frozenset())),
-		libmedia.Type(('text','xml',frozenset())),
+		libmedia.Type(('text','xml',emptyset)),
+		libmedia.Type(('text','xml',emptyset)),
 		100
 	)
 
 	# only query text/plain; should pick up /*
 	selection = range.query(
-		libmedia.Type(('text','plain',frozenset())),
+		libmedia.Type(('text','plain',emptyset)),
 	)
 	# text/xml should have precedence over text/*
 	test/selection == (
-		libmedia.Type(('text','plain',frozenset())),
-		libmedia.Type(('text','*',frozenset())),
+		libmedia.Type(('text','plain',emptyset)),
+		libmedia.Type(('text','*',emptyset)),
 		50
 	)
 
@@ -125,13 +129,13 @@ def test_Range(test):
 		b'application/xml;q=0.4,text/*;q = 0.5,text/xml;q=0.2')
 
 	selection = range.query(
-		libmedia.Type(('application','xml',frozenset())),
-		libmedia.Type(('text','plain',frozenset())),
+		libmedia.Type(('application','xml',emptyset)),
+		libmedia.Type(('text','plain',emptyset)),
 	)
 	# text/xml should have precedence over text/*
 	test/selection == (
-		libmedia.Type(('text','plain',frozenset())),
-		libmedia.Type(('text','*',frozenset())),
+		libmedia.Type(('text','plain',emptyset)),
+		libmedia.Type(('text','*',emptyset)),
 		50
 	)
 
@@ -149,7 +153,7 @@ def test_Range(test):
 		'text/html;foo="me\\h;,\\"",text/xml')
 
 	text_html_foo = libmedia.Type(('text','html',frozenset([('foo','meh;,"')])))
-	text_html = libmedia.Type(('text','html',frozenset()))
+	text_html = libmedia.Type(('text','html',emptyset))
 	selection = range.query(text_html)
 	# text/html;level=1 should have precedence over text/* and text/html
 	test/selection == (text_html, text_html_foo, 100)
