@@ -4,6 +4,7 @@ abstract = 'An integer based time solution with selectable precision'
 icon = '⌛'
 
 fork = 'rhythm'
+status = 'flux'
 
 controller = 'fault.io'
 contact = 'mailto:critical@fault.io'
