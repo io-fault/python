@@ -1,10 +1,10 @@
-identity = 'http://fault.io/python/fault.internet'
+identity = 'http://fault.io/python/internet'
 name = 'internet'
 abstract = 'Internet protocol implementations (HTTP, DNS, and SMTP) for Python'
 icon = '📡'
 
-versioning = 'continuous'
 fork = 'darpa'
+versioning = 'continuous'
 status = 'flux'
 
 controller = 'fault.io'
