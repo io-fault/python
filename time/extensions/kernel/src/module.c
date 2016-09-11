@@ -48,7 +48,7 @@
 #define EPOCH_YEAR 2000
 #endif
 
-#include <fault/roles.h>
+#include <fault/libc.h>
 #include <fault/python/environ.h>
 
 MACH(static clock_serv_t applestuff);
@@ -277,7 +277,7 @@ const char chronometer_doc[] =
 static PyTypeObject
 ChronometerType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-	QPATH("Chronometer"),			/* tp_name */
+	MODULE_QPATH("Chronometer"),	/* tp_name */
 	sizeof(struct Chronometer),	/* tp_basicsize */
 	0,										/* tp_itemsize */
 	NULL,									/* tp_dealloc */
@@ -499,7 +499,7 @@ const char sleeper_doc[] =
 PyTypeObject
 SleeperType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-	QPATH("Sleeper"),					/* tp_name */
+	MODULE_QPATH("Sleeper"),		/* tp_name */
 	sizeof(struct Sleeper),			/* tp_basicsize */
 	0,										/* tp_itemsize */
 	NULL,									/* tp_dealloc */
