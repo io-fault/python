@@ -9,3 +9,29 @@ status = 'flux'
 
 controller = 'fault.io'
 contact = 'mailto:critical@fault.io'
+
+root = 'http://fault.io/python/'
+
+projects = (
+	'routes',
+	'chronometry',
+	'computation',
+	'filesystem',
+	'text',
+
+	'development',
+	'llvm',
+	'factors',
+
+	'cryptography',
+	'traffic',
+	'system',
+	'stack',
+
+	'io',
+	'xml',
+	'web',
+
+	'terminal',
+	'console',
+)
