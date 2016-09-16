@@ -112,6 +112,7 @@ def Tokenization(
 		len = len, tuple = tuple,
 		bytes = bytes, int = int,
 		bastrip = bytearray.strip,
+		bstrip = bytes.strip,
 		bytearray = bytearray,
 		map = map, range = range,
 		max = max,
@@ -163,9 +164,10 @@ def Tokenization(
 
 	req = bytearray()
 	find = req.find
+	extend = req.extend
 
 	# initial next(g)
-	req += (yield None)
+	extend((yield None))
 	body_size = 0
 
 	while True:
@@ -176,7 +178,7 @@ def Tokenization(
 
 		if events and not req:
 			# flush EOM event
-			req += (yield events)
+			extend((yield events))
 			events = []
 
 		# Read initial request/response line.
@@ -200,7 +202,7 @@ def Tokenization(
 
 				# Need more data to complete the initial line.
 				pos = max(len(req) - 1, 0)
-				req += (yield events)
+				extend((yield events))
 				events = []
 			elif eof == 0:
 				# strip a preceding CRLF
@@ -228,9 +230,11 @@ def Tokenization(
 		nheaders = 0
 		chunk_size = None
 		headers = []
+		add_header = headers.append
 		connection = None
 
-		while not req.startswith(CRLF):
+		startswith = req.startswith
+		while not startswith(CRLF):
 			eof = find(CRLF, pos, max_header_size)
 			if eof == -1:
 				# no terminator, need more data
@@ -239,6 +243,7 @@ def Tokenization(
 				if headers:
 					events.append((headers_ev, headers))
 					headers = []
+					add_header = headers.append
 				reqlen = len(req)
 				pos = max(reqlen - 1, 0)
 
@@ -250,17 +255,22 @@ def Tokenization(
 					events.append((bypass_ev, req))
 
 					del find
+					del startswith
 					req = (yield events)
 					del events
 					while True:
 						req = (yield [(bypass_ev, req)])
 
-				req += (yield events)
+				extend((yield events))
 				events = []
-				# continues
+				# continues; no double CRLF yet.
 			elif eof:
-				# got a header within the constraints (max_header_size)
-				header = tuple(map(bytes, map(bastrip, req[:eof].split(b':', 1))))
+				# EOF must be > 0, otherwise it's the end of the headers.
+				# Got a header within the constraints (max_header_size).
+
+				# Spell out header tuple constructor for performance.
+				eoi = find(b':', 0, eof) # Use find rather than split to avoid list().
+				header = (bstrip(bytes(req[:eoi])), bstrip(bytes(req[eoi+1:eof])))
 				del req[:eof+2]
 
 				field_name = header[0].lower()
@@ -288,6 +298,8 @@ def Tokenization(
 							events.append((bypass_ev, req))
 
 							del find
+							del startswith
+							del add_header
 							req = (yield events)
 							while True:
 								req = (yield [(bypass_ev, req)])
@@ -298,7 +310,7 @@ def Tokenization(
 						size = -1
 						body_ev = chunk_ev
 
-				headers.append(header)
+				add_header(header)
 				nheaders += 1
 				pos = 0
 				if max_headers is not None and nheaders > max_headers:
@@ -310,6 +322,9 @@ def Tokenization(
 					events.append((bypass_ev, req))
 
 					del find
+					del startswith
+					del headers
+					del add_header
 					req = (yield events)
 					while True:
 						req = (yield [(bypass_ev, req)])
@@ -318,8 +333,12 @@ def Tokenization(
 		if headers:
 			events.append((headers_ev, headers))
 
-		headers = ()
-		# terminator
+		# Avoid holding old references in case of future subsitution.
+		del headers
+		del add_header
+		del startswith
+
+		# Terminator
 		events.append(EOH)
 
 		# headers processed, redetermine has_body given &size.
@@ -354,10 +373,10 @@ def Tokenization(
 						while True:
 							req = (yield [(bypass_ev, req)])
 
-					# update position to end of buffer minus one so it's not
+					# Update position to the end of buffer minus one so it's not
 					# scanning for CRLF through data that it has already scanned.
 					pos = max(len(req) - 1, 0)
-					req += (yield events)
+					extend((yield events))
 					events = []
 					# continues
 				else:
@@ -420,6 +439,7 @@ def Tokenization(
 					# Make sure it's a bytearray, and update find()
 					req = bytearray(req)
 					find = req.find
+					extend = req.extend
 
 			# &req is now larger than the remaining &size.
 			# There is enough data to complete the body or chunk.
@@ -457,7 +477,7 @@ def Tokenization(
 						while True:
 							req = (yield [(bypass_ev, req)])
 
-					req += (yield events)
+					extend((yield events))
 					events = []
 
 				assert req[0:2] == CRLF
@@ -484,7 +504,7 @@ def Tokenization(
 					req = (yield events)
 					events = []
 
-		# body termination indicator; but there may be trailers to parse
+		# Body termination indicator; but there may be trailers to parse.
 		if has_body:
 			# Used to signal the stream of EOF;
 			# primarily useful to signal compression
@@ -492,7 +512,9 @@ def Tokenization(
 			events.append((body_ev, b''))
 
 		if chunk_size == 0:
-			# chunking occurred, read and emit trailers
+			# Chunking occurred, read and emit trailers.
+			# Trailers are supposed to be declared ahead of time,
+			# so it may be reasonable to thrown a violation.
 			ntrailers = 0
 			trailers = []
 			eof = find(CRLF, 0, max_header_size)
@@ -514,7 +536,7 @@ def Tokenization(
 						while True:
 							req = (yield [(bypass_ev, req)])
 
-					req += (yield events)
+					extend((yield events))
 					events = []
 					# look for eof again
 				elif eof:
