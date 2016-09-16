@@ -111,11 +111,11 @@ types = {
 	'avi': 'video/avi',
 
 	# audio
+	'mp3': 'audio/mpeg',
+	'mid': 'audio/midi',
+	'wav': 'audio/x-wav',
 	'aif': 'audio/x-aiff',
 	'aiff': 'audio/x-aiff',
-	'mp3': 'audio/mpeg',
-	'wav': 'audio/x-wav',
-	'mid': 'audio/midi',
 
 	'ogg': 'audio/ogg',
 	'opus': 'audio/ogg',
@@ -186,11 +186,11 @@ class Type(tuple):
 		"""
 		Content Type; usually one of:
 
-			# `application`
-			# `text`
-			# `image`
-			# `video`
-			# `model`
+			- `application`
+			- `text`
+			- `image`
+			- `video`
+			- `model`
 
 		The initial part of a MIME (media) type.
 		"""
@@ -398,5 +398,6 @@ any_type = Type(('*', '*', frozenset()))
 any_range = Range([(100, any_type)])
 
 # Cached constructors.
+type_from_bytes = functools.lru_cache(32)(Type.from_bytes)
 type_from_string = functools.lru_cache(32)(Type.from_string)
 range_from_string = functools.lru_cache(32)(Range.from_string)
