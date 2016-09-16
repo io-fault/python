@@ -111,9 +111,9 @@ def Tokenization(
 		# local()-izations
 		len = len, tuple = tuple,
 		bytes = bytes, int = int,
-		bastrip = bytearray.strip,
-		bstrip = bytes.strip,
 		bytearray = bytearray,
+		bstrip = bytes.strip,
+		bastrip = bytearray.strip,
 		map = map, range = range,
 		max = max,
 
