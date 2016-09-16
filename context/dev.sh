@@ -30,7 +30,7 @@ igray () {
 }
 
 QUIET=0
-OPTIONS=`getopt qROdtMHW "$@"`; OPTERROR=$?; set -- $OPTIONS
+OPTIONS=`getopt qROgtMHW "$@"`; OPTERROR=$?; set -- $OPTIONS
 if test $OPTERROR -ne 0
 then
 	echo >&2 "Usage: dev [-OMdt] [-HW] $(igray $FAULT_DEVELOPMENT_PREFIX)<command> factors ..."
@@ -60,7 +60,7 @@ do
 			DEV_PURPOSE='optimal'
 			shift
 		;;
-		-d)
+		-g)
 			DEV_PURPOSE='debug'
 			shift
 		;;
