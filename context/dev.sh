@@ -30,13 +30,6 @@ igray () {
 }
 
 QUIET=0
-OPTIONS=`getopt qROgtMHW "$@"`; OPTERROR=$?; set -- $OPTIONS
-if test $OPTERROR -ne 0
-then
-	echo >&2 "Usage: dev [-OMdt] [-HW] $(igray $FAULT_DEVELOPMENT_PREFIX)<command> factors ..."
-	exit 64 # EX_USAGE
-fi
-
 for opt
 do
 	case "$opt"
@@ -45,11 +38,13 @@ do
 			QUIET=1
 			shift
 		;;
+
 		-R)
 			FPI_REBUILD=1
 			export FPI_REBUILD
 			shift
 		;;
+
 		# Explicit purpose
 		-P)
 			shift; DEV_PURPOSE="$1"
@@ -60,14 +55,17 @@ do
 			DEV_PURPOSE='optimal'
 			shift
 		;;
+
 		-g)
 			DEV_PURPOSE='debug'
 			shift
 		;;
+
 		-t)
 			DEV_PURPOSE='test'
 			shift
 		;;
+
 		-M)
 			DEV_PURPOSE='metrics'
 			shift
@@ -82,9 +80,23 @@ do
 			DEV_NAME=host
 			shift
 		;;
+
 		-W)
 			DEV_NAME=web
 			shift
+		;;
+
+		-h)
+			echo >&2 "Usage: dev [-OMdt] [-HW] $(igray $FAULT_DEVELOPMENT_PREFIX)<command> factors ..."
+			exit 64
+		;;
+		-*)
+			echo >&2 "ERROR: unknown option '$opt'"
+			exit 64
+		;;
+
+		*)
+			break
 		;;
 
 		--)
