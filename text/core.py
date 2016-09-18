@@ -1,3 +1,18 @@
+"""
+Parser implementation.
+
+The XML output is the interface that should be used. The contents of this file
+are subject to change by the minute.
+
+The parser is hand rolled in order to easily accommodate for grammar
+violations, and as an attempt to display the format's simplicity. While the
+tokenizer enjoys an easily understood implementation, syntactic analysis
+(&Parser.structure) is hacked and nearly unreadable demanding a replacement.
+
+The assertions here are primarily for testing purposes and should be disabled
+during normal use.
+"""
+
 import itertools
 import collections
 
