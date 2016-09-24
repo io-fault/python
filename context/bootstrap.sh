@@ -17,6 +17,20 @@ then
 	exit 1
 fi
 
+SCD=`pwd`
+if readlink "$python"
+then
+	cd "$(dirname "$python")"
+	pylink="$(readlink "$python")"
+	cd "$(dirname "$pylink")"
+	cd ..
+	prefix="$(pwd)"
+else
+	prefix="$(dirname "$(dirname "$python")")"
+fi
+cd "$SCD"
+unset SCD
+
 if test 1 = 2
 then
 	if test -e ./version:
@@ -69,7 +83,6 @@ fi
 pyversion="$("$python" -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')"
 pyabi="$("$python" -c 'import sys; print(sys.abiflags)')"
 
-prefix="$(dirname "$(dirname "$python")")"
 test $? -eq 0 || exit 1
 
 compile ()
@@ -144,7 +157,7 @@ do
 			"-DMODULE_PACKAGE=$pkgname" \
 			"-DMODULE_BASENAME=$modname" \
 			"-DFACTOR_BASENAME=$modname" \
-			"-DF_PURPOSE_ID=F_DEBUG_PURPOSE_ID" \
+			"-DF_PURPOSE=debug" \
 			-fwrapv \
 			src/*.c || exit
 
