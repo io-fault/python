@@ -40,7 +40,7 @@ then
 		VERSION=0
 	fi
 
-	FAULT="http://fault.io/projects/python/?version="
+	FAULT="http://fault.io/python/?version="
 
 	##
 	# fetch, curl, wget.
@@ -88,7 +88,11 @@ test $? -eq 0 || exit 1
 compile ()
 {
 	compiler="$1"; shift 1
+	echo
+	echo ">>>"
 	echo "$compiler" $osflags "$@"
+	echo "<<<"
+	echo
 
 	"$compiler" $osflags "$@"
 }
@@ -162,6 +166,66 @@ do
 			src/*.c || exit
 
 		cd "$fault_dir/$project"
+	done
+
+	cd "$original"
+done
+
+# Duplicate handling an extra level of depth.
+for project in ./computation
+do
+	cd "$fault_dir/$project"
+	root="$(dirname "$(pwd)")"
+
+	if ! test -d ./extensions
+	then
+		cd "$original"
+		continue
+	fi
+
+	for subdir in ./extensions/*/
+	do
+		cd "$subdir"
+		pkgdir="$(basename "$(pwd)")"
+
+		if test "$pkgdir" = "__pycache__"
+		then
+			cd "$fault_dir/$project"
+			continue
+		fi
+
+		echo "$subdir"
+
+		for module in ./*/
+		do
+			iscache="$(echo "$module" | grep '__pycache__')"
+			if ! test x"$iscache" = x""
+			then
+				continue
+			fi
+
+			cd "$module"
+			modname="$(basename "$(pwd)")"
+
+			fullname="$(module_path "$(pwd)")"
+			targetname="$(echo "$fullname" | sed 's/.extensions//')"
+			pkgname="$(echo "$fullname" | sed 's/[.][^.]*$//')"
+
+			compile ${CC:-cc} -v -o "../../../${pkgdir}/${modname}.${platsuffix}" \
+				-I$fault_dir/development/include/src \
+				-I../../../include/src \
+				-I$prefix/include \
+				-I$prefix/include/python$pyversion$pyabi \
+				"-DMODULE_QNAME=$targetname" \
+				"-DMODULE_PACKAGE=$pkgname" \
+				"-DMODULE_BASENAME=$modname" \
+				"-DFACTOR_BASENAME=$modname" \
+				"-DF_PURPOSE=debug" \
+				-fwrapv \
+				src/*.c || exit
+
+			cd ..
+		done
 	done
 
 	cd "$original"
