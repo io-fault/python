@@ -1,6 +1,7 @@
 #!/bin/sh
 # Command size reduction interface for fault.development.bin.*
-# Provides abstraction for FPI_MECHANISMS.
+# Provides abstraction for FPI_MECHANISMS and higher level commands.
+
 NL='
 '
 FAULT_DIRECTORY="${FAULT_DIRECTORY:-"$HOME/.fault"}"
@@ -21,6 +22,7 @@ FAULT_DEVELOPMENT_PREFIX="${FAULT_DEVELOPMENT_PREFIX:-${FAULT_CONTEXT_NAME}.deve
 DEVCTX="${DEVCTX:-host:optimal}"
 DEV_NAME="${DEVCTX%:*}"
 DEV_PURPOSE="${DEVCTX#*:}"
+DEV_PURPOSE_SELECTED=0
 
 gray () {
 	echo >&2 "[38;5;240m""$@""[0m"
@@ -30,90 +32,151 @@ igray () {
 }
 
 QUIET=0
-for opt
+DONE=0
+while test $DONE -eq 0
 do
-	case "$opt"
-	in
-		-q)
-			QUIET=1
-			shift
-		;;
+	RESTART=0
 
-		-R)
-			FPI_REBUILD=1
-			export FPI_REBUILD
-			shift
-		;;
+	for opt
+	do
+		case "$opt"
+		in
+			-q)
+				QUIET=1
+				shift
+			;;
 
-		# Explicit purpose
-		-P)
-			shift; DEV_PURPOSE="$1"
-			shift
-		;;
+			-R)
+				FPI_REBUILD=1
+				export FPI_REBUILD
+				shift
+			;;
 
-		-O)
-			DEV_PURPOSE='optimal'
-			shift
-		;;
+			# Explicit purpose
+			-P)
+				shift; DEV_PURPOSE="$1"
+				shift
+			;;
 
-		-g)
-			DEV_PURPOSE='debug'
-			shift
-		;;
+			-O)
+				DEV_PURPOSE='optimal'
+				DEV_PURPOSE_SELECTED=1
+				shift
+			;;
 
-		-t)
-			DEV_PURPOSE='test'
-			shift
-		;;
+			-g)
+				DEV_PURPOSE='debug'
+				DEV_PURPOSE_SELECTED=1
+				shift
+			;;
 
-		-M)
-			DEV_PURPOSE='metrics'
-			shift
-		;;
+			-t)
+				DEV_PURPOSE='test'
+				DEV_PURPOSE_SELECTED=1
+				shift
+			;;
 
-		-X)
-			shift; DEV_NAME="$1"
-			shift
-		;;
+			-M)
+				DEV_PURPOSE='metrics'
+				DEV_PURPOSE_SELECTED=1
+				shift
+			;;
 
-		-H)
-			DEV_NAME=host
-			shift
-		;;
+			-X)
+				shift; DEV_NAME="$1"
+				shift
+			;;
 
-		-W)
-			DEV_NAME=web
-			shift
-		;;
+			-H)
+				DEV_NAME=host
+				shift
+			;;
 
-		-h)
-			echo >&2 "Usage: dev [-OMdt] [-HW] $(igray $FAULT_DEVELOPMENT_PREFIX)<command> factors ..."
-			exit 64
-		;;
-		-*)
-			echo >&2 "ERROR: unknown option '$opt'"
-			exit 64
-		;;
+			-I)
+				DEV_NAME=inspect
+				shift
+			;;
 
-		*)
-			break
-		;;
+			-W)
+				DEV_NAME=web
+				shift
+			;;
 
-		--)
-			shift
-			break
-		;;
-	esac
+			-h)
+				echo >&2 "Usage: dev [-OMdt] [-HW] $(igray $FAULT_DEVELOPMENT_PREFIX)<command> factors ..."
+				exit 64
+			;;
+
+			--)
+				shift
+				break
+			;;
+
+			--*)
+				echo >&2 "ERROR: unknown option '$opt'"
+				exit 64
+			;;
+
+			-*)
+				shift
+
+				if test $(echo $opt | wc -c) -gt 3
+				then
+					# Split the options and restart.
+					# Python is expected, so avoid shell variant.
+					# Presume that it will need to refresh the for loop.
+					set -- $("$PYTHON" -c "x='$opt'; z=[print('-'+y) for y in x[1:]]") "$@"
+					RESTART=1
+					break
+				else
+					echo >&2 "ERROR: unknown option '$opt'"
+					exit 64
+				fi
+			;;
+
+			*)
+				break
+			;;
+		esac
+	done
+
+	test $RESTART -eq 0 && DONE=1
 done
 
-main="$FAULT_DIRECTORY/fpi/$DEV_NAME/${DEV_PURPOSE}.xml"
-static="$FAULT_DIRECTORY/fpi/static/${DEV_PURPOSE}.xml"
-FPI_MECHANISMS=$main:$static
-export FPI_MECHANISMS
+if test x"$1" = x'measure'
+then
+	DEV_PURPOSE='measure'
+	if test $DEV_PURPOSE_SELECTED -eq 0
+	then
+		echo >&2 'Ignored selected purpose `'"$DEV_PURPOSE"'` for metrics; `measure` is required.'
+	fi
+elif test x"$1" = x"test"
+then
+	if test $DEV_PURPOSE_SELECTED -eq 0
+	then
+		# Not explicitly selected, so use test for test.
+		DEV_PURPOSE='test'
+	fi
+else
+	:
+fi
 
-# Current setup.
-DEVCTX="${DEV_NAME}:${DEV_PURPOSE}"
-export DEVCTX
+if test x"$1" = x"iterate"
+then
+	unset FPI_MECHANISMS # Subprocess will init this.
+	QUIET=1
+else
+	# Initialize environment for subprocesses.
+
+	main="$FAULT_DIRECTORY/fpi/$DEV_NAME/${DEV_PURPOSE}.xml"
+	static="$FAULT_DIRECTORY/fpi/static/${DEV_PURPOSE}.xml"
+	FPI_MECHANISMS=$main:$static
+	export FPI_MECHANISMS
+
+	# Current config.
+	DEVCTX="${DEV_NAME}:${DEV_PURPOSE}"
+	export DEVCTX
+fi
 
 command="$1"
 shift 1
@@ -155,6 +218,10 @@ export PYTHONPATH
 SF="$FAULT_DIRECTORY/dev/projects.nll"
 case "$command"
 in
+	py)
+		exec "$PYTHON" "$@"
+	;;
+
 	source)
 		. "$@"
 		exit
@@ -202,6 +269,8 @@ in
 	;;
 
 	report)
+		# Read the failures from validate.
+
 		if test $# -eq 0
 		then
 			IFS="$NL"
@@ -264,12 +333,15 @@ in
 
 		printf "{construct && induct}"
 		gray " ""$@"
-		"$PYTHON" -m "${FAULT_DEVELOPMENT_PREFIX}construct" "$@" || exit
-		exec "$PYTHON" -m "${FAULT_DEVELOPMENT_PREFIX}induct" "$@"
+		env time "$PYTHON" -m "${FAULT_DEVELOPMENT_PREFIX}construct" "$@" || exit
+		exec env time "$PYTHON" -m "${FAULT_DEVELOPMENT_PREFIX}induct" "$@"
 	;;
 
 	switch)
-		# Construct and Induct
+		# Construct and Induct (with rebuild for induct)
+		# The last modified times might be off for allowing a induct
+		# to succeed without FPI_REBUILD=1.
+
 		if test $# -eq 0
 		then
 			IFS="$NL"
@@ -278,13 +350,30 @@ in
 
 		printf "{[switch] construct && -R induct}"
 		gray " ""$@"
-		"$PYTHON" -m "${FAULT_DEVELOPMENT_PREFIX}construct" "$@" || exit
+		env time "$PYTHON" -m "${FAULT_DEVELOPMENT_PREFIX}construct" "$@" || exit
 
 		# Switches need to rebuild on induct as modification times may
 		# not be consistent across builds.
 		FPI_REBUILD=1
 		export FPI_REBUILD
-		exec "$PYTHON" -m "${FAULT_DEVELOPMENT_PREFIX}induct" "$@"
+		exec env time "$PYTHON" -m "${FAULT_DEVELOPMENT_PREFIX}induct" "$@"
+	;;
+
+	iterate)
+		state="$1"
+		shift
+
+		# inspect:metrics; Data extracted from ASTs or annotated structure.
+		sh "$0" -MI construct "$@"
+
+		# host:metrics; primary focus
+		sh "$0" -MH switch "$@" # Easy access to binaries for extraction.
+
+		: "$0" -Hi measure target-dir "$@"
+		: "$0" -Hi execute fault.factors.bin.instantiate ...
+
+		sh "$0" -OH switch "$@" && \
+		sh "$0" -OH validate "$@"
 	;;
 
 	void)
@@ -316,6 +405,6 @@ in
 
 		printf "$command"
 		gray " ""$@"
-		exec "$PYTHON" -m "${FAULT_DEVELOPMENT_PREFIX}$command" "$@"
+		exec env time "$PYTHON" -m "${FAULT_DEVELOPMENT_PREFIX}$command" "$@"
 	;;
 esac
