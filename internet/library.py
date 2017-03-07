@@ -10,6 +10,10 @@ class Service(int):
 	"""
 	__slots__ = ()
 
+	valid_range = (0, 0xFFFF)
+	system_range = (0, 1024)
+	epheremal_range = (49152, 0xFFFF)
+
 	def valid(self):
 		"Whether or not the Service port is within the standard range."
 
