@@ -33,5 +33,4 @@ projects = (
 	'web',
 
 	'terminal',
-	'console',
 )

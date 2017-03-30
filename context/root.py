@@ -3,8 +3,7 @@ Python foundation projects.
 
 [Development Tools]
 
-The &..development package provides tools for managing construction of builds, and
-&..console.bin.editor provides a source code editor for terminals.
+The &..development package provides tools for managing construction of builds.
 
 [Application and Server Framework]
 
