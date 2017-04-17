@@ -218,7 +218,7 @@ export PYTHONPATH
 SF="$FAULT_DIRECTORY/dev/projects.nll"
 case "$command"
 in
-	py)
+	py|python)
 		exec "$PYTHON" "$@"
 	;;
 
@@ -241,7 +241,7 @@ in
 		list_projects
 	;;
 
-	# Clear focus/projects.
+	# Clear focus. (project list)
 	clear)
 		echo "" >"$SF"
 	;;
@@ -374,6 +374,26 @@ in
 
 		sh "$0" -OH switch "$@" && \
 		sh "$0" -OH validate "$@"
+	;;
+
+	test)
+		state="$1"
+		shift
+
+		if test $# -eq 0
+		then
+			IFS="$NL"
+			set -- $(cat "$SF")
+			unset IFS
+		fi
+
+		for x in "$@"
+		do
+			echo
+			printf "$command"
+			gray " $x"
+			env time "$PYTHON" -m "${FAULT_DEVELOPMENT_PREFIX}test" "$x" || exit
+		done
 	;;
 
 	void)
