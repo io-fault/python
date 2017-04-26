@@ -345,6 +345,7 @@ class Scheduler(object):
 
 			push(self.heap, pit)
 			self.schedule[pit].append(event)
+			events.append(pit)
 
 		return events
 
