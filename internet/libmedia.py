@@ -66,7 +66,9 @@ types = {
 
 	'json': 'application/json',
 	'javascript': 'application/javascript',
-	'js': 'application/javascript',
+
+	'js': 'text/plain;pl=javascript',
+	'py': 'text/plain;pl=python',
 
 	'xml': 'text/xml',
 	'sgml': 'text/sgml',
