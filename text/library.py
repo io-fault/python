@@ -1,8 +1,8 @@
 """
-Transform fault.text into XML.
+# Transform fault.text into XML.
 
-The &XML.transform class method provides the high-level interface
-for transforming fault.text into XML.
+# The &XML.transform class method provides the high-level interface
+# for transforming fault.text into XML.
 
 #!/pl/python
 	text_iter = libtext.XML.transform('txt:', text, encoding='utf-8')
@@ -21,26 +21,25 @@ from . import core
 
 class XML(object):
 	"""
-	Serialize parsed events into XML.
+	# Serialize parsed events into XML.
 
-	The eclectic parser produces event sequences and the serializer
-	provides the hierarchical structure necessary for XML.
+	# The eclectic parser produces event sequences and the serializer
+	# provides the hierarchical structure necessary for XML.
 	"""
 
 	@classmethod
 	def transform(Class, prefix:str, source:str, encoding:str='utf-8', identify=lambda x: x):
 		"""
-		Construct an iterator producing XML from the given
-		eclectic documentation &source.
+		# Construct an iterator producing XML from the given
+		# eclectic documentation &source.
 
-		[ Parameters ]
-
-		/prefix
-			The element name prefix for the rendered XML.
-		/source
-			The eclectic text to transform into XML.
-		/encoding
-			The encoding that should be used for the XML.
+		# [ Parameters ]
+		# /prefix
+			# The element name prefix for the rendered XML.
+		# /source
+			# The eclectic text to transform into XML.
+		# /encoding
+			# The encoding that should be used for the XML.
 		"""
 		global core
 		p = core.Parser()
@@ -53,14 +52,13 @@ class XML(object):
 			identify:object=lambda x: x,
 		):
 		"""
-		[ Parameters ]
-
-		/serialization
-			The serialization instance used to construct the XML.
-		/identify
-			The function used to prepare an identifier. Normally, a function
-			that prepends on some contextual identifier in order to guarantee
-			uniqueness. For example, `lambda x: 'ContextName' + x`.
+		# [ Parameters ]
+		# /serialization
+			# The serialization instance used to construct the XML.
+		# /identify
+			# The function used to prepare an identifier. Normally, a function
+			# that prepends on some contextual identifier in order to guarantee
+			# uniqueness. For example, `lambda x: 'ContextName' + x`.
 		"""
 		self.serialization = serialization
 		self.identify = identify
@@ -89,19 +87,16 @@ class XML(object):
 			source, type, title, action, cast=None,
 		):
 		"""
-		[ Parameters ]
-
-		/source
-			The reference source; the actual string found to be
-			identified as a reference.
-
-		/type
-			The type of reference, one of: `'hyperlink'`, `'section'`, `None`.
-
-		/action
-			The effect desired by the reference: `'include'` or &None.
-			&None being a normal reference, and `'include'` being induced
-			with a `'*'` prefixed to the reference
+		# [ Parameters ]
+		# /source
+			# The reference source; the actual string found to be
+			# identified as a reference.
+		# /type
+			# The type of reference, one of: `'hyperlink'`, `'section'`, `None`.
+		# /action
+			# The effect desired by the reference: `'include'` or &None.
+			# &None being a normal reference, and `'include'` being induced
+			# with a `'*'` prefixed to the reference
 		"""
 
 		yield from self.serialization.prefixed('reference',
@@ -193,7 +188,7 @@ class XML(object):
 	@staticmethod
 	def empty_paragraph(sequence):
 		"""
-		Whether the paragraph should be considered to be empty.
+		# Whether the paragraph should be considered to be empty.
 		"""
 		for i in sequence:
 			if i == ('init', ''):
@@ -279,8 +274,8 @@ class XML(object):
 
 	def process_exception(self, tree, exception):
 		"""
-		Emit an exception element in order to report warnings or failures
-		regarding syntax that was not entirely comprehensible.
+		# Emit an exception element in order to report warnings or failures
+		# regarding syntax that was not entirely comprehensible.
 		"""
 		node_type, empty_content, msg, event, lineno, ilevel, params = exception
 		yield from self.serialization.prefixed('exception',
@@ -293,8 +288,8 @@ class XML(object):
 
 	def process_break(self, tree, node):
 		"""
-		Break nodes are convenience structures created to
-		cease continuation of building a structure.
+		# Break nodes are convenience structures created to
+		# cease continuation of building a structure.
 		"""
 		return ()
 

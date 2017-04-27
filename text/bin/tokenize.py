@@ -1,5 +1,5 @@
 """
-Transform the eclectic text from standard input into a token stream.
+# Transform the eclectic text from standard input into a token stream.
 """
 
 def main(src, args):

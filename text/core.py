@@ -1,16 +1,16 @@
 """
-Parser implementation.
+# Parser implementation.
 
-The XML output is the interface that should be used. The contents of this file
-are subject to change by the minute.
+# The XML output is the interface that should be used. The contents of this file
+# are subject to change by the minute.
 
-The parser is hand rolled in order to easily accommodate for grammar
-violations, and as an attempt to display the format's simplicity. While the
-tokenizer enjoys an easily understood implementation, syntactic analysis
-(&Parser.structure) is hacked and nearly unreadable demanding a replacement.
+# The parser is hand rolled in order to easily accommodate for grammar
+# violations, and as an attempt to display the format's simplicity. While the
+# tokenizer enjoys an easily understood implementation, syntactic analysis
+# (&Parser.structure) is hacked and nearly unreadable demanding a replacement.
 
-The assertions here are primarily for testing purposes and should be disabled
-during normal use.
+# The assertions here are primarily for testing purposes and should be disabled
+# during normal use.
 """
 
 import itertools
@@ -25,8 +25,8 @@ from typing import Sequence
 # transitions from set/sequence items to another type.
 class Tokens(object):
 	"""
-	Iterator that allows events to be replayed in order for them
-	to be processed by the appropriate context.
+	# Iterator that allows events to be replayed in order for them
+	# to be processed by the appropriate context.
 	"""
 	__slots__ = ('iterators',)
 
@@ -51,22 +51,22 @@ class Tokens(object):
 
 class Parser(object):
 	"""
-	Configuration and state class for parsing eclectic markdown.
+	# Configuration and state class for parsing eclectic markdown.
 
-	[ Properties ]
+	# [ Properties ]
 
-	/stack
-		The stack of line processing callbacks for the given context.
-	/paragraph
-		A sequence representing the current working paragraph.
-	/indentation
-		The current indentation level.
+	# /stack
+		# The stack of line processing callbacks for the given context.
+	# /paragraph
+		# A sequence representing the current working paragraph.
+	# /indentation
+		# The current indentation level.
 	"""
 
 	def __init__(self):
 		"""
-		Create a new parser instance initializing the &stack with the &default_commands,
-		and &process_paragraph_line as the means to process lines.
+		# Create a new parser instance initializing the &stack with the &default_commands,
+		# and &process_paragraph_line as the means to process lines.
 		"""
 		self.stack = [(self.__class__.process_paragraph_line, 0, self.default_commands)]
 		self.indentation = 0
@@ -74,7 +74,7 @@ class Parser(object):
 	@property
 	def commands(self):
 		"""
-		Return the set of commands for the current working processor.
+		# Return the set of commands for the current working processor.
 		"""
 		return self.stack[-1][-1]
 
@@ -82,14 +82,14 @@ class Parser(object):
 			punctuation=',.;:!-+?()[]{}',
 		):
 		"""
-		Split the string at the reference's boundary.
-		The &string is presumed to be the start of a reference with
-		the indicator removed.
+		# Split the string at the reference's boundary.
+		# The &string is presumed to be the start of a reference with
+		# the indicator removed.
 
 		#!text
-			&*<...>
-			&*[Parameters(...)]
-			(int *)`3928+23192-203`
+			# &*<...>
+			# &*[Parameters(...)]
+			# (int *)`3928+23192-203`
 		"""
 		substruct = ()
 
@@ -122,8 +122,8 @@ class Parser(object):
 	@property
 	def processor(self):
 		"""
-		The current processing method, command set, and indentation level.
-		Top of the &stack.
+		# The current processing method, command set, and indentation level.
+		# Top of the &stack.
 		"""
 		return self.stack[-1]
 
@@ -135,7 +135,7 @@ class Parser(object):
 
 	def is_decoration(self, stripped, minimum=4, level=3):
 		"""
-		Determine if the line is a decoration.
+		# Determine if the line is a decoration.
 		"""
 		sl = len(stripped)
 		chars = set(stripped)
@@ -149,8 +149,8 @@ class Parser(object):
 	@staticmethod
 	def emphasis(text, indicator='*', varsplit=libstring.varsplit):
 		"""
-		Return a sequence of paragraph events noting the emphasis areas versus regular
-		text.
+		# Return a sequence of paragraph events noting the emphasis areas versus regular
+		# text.
 		"""
 
 		parts = list(varsplit(indicator, text))
@@ -181,13 +181,13 @@ class Parser(object):
 			chain=itertools.chain.from_iterable
 		):
 		"""
-		Identify the styles and references for the given string.
+		# Identify the styles and references for the given string.
 
-		[ Parameters ]
-		/string
-			The text between a literal area.
-		/edge
-			Whether the &string was on the edge of a literal.
+		# [ Parameters ]
+		# /string
+			# The text between a literal area.
+		# /edge
+			# Whether the &string was on the edge of a literal.
 		"""
 		trail = None
 		rcontent = string
@@ -207,8 +207,8 @@ class Parser(object):
 
 	def structure_paragraph_line(self, line, chain=itertools.chain.from_iterable):
 		"""
-		Structure the paragraph line revealing emphasis,
-		references, and inline literals.
+		# Structure the paragraph line revealing emphasis,
+		# references, and inline literals.
 		"""
 		# inline literals have the highest precedence, so
 		# the initial split is performed on a grave accent.
@@ -257,7 +257,7 @@ class Parser(object):
 
 	def process_paragraph_line(self, lineno, code, il, line):
 		"""
-		Process a paragraph line identifying inline literals, references and emphasis.
+		# Process a paragraph line identifying inline literals, references and emphasis.
 		"""
 		stripped = line.strip()
 
@@ -305,10 +305,10 @@ class Parser(object):
 
 	def create_admonition(self, lineno, code, il, line):
 		"""
-		Lines that begin with "!":
+		# Lines that begin with "!":
 
-		! NOTE:
-			Paragraphs.
+		# ! NOTE:
+			# Paragraphs.
 		"""
 
 		self.indentation = il + 1
@@ -321,7 +321,7 @@ class Parser(object):
 
 	def create_block(self, lineno, code, il, line, commands={None:process_literal_line}):
 		"""
-		Code block of literal lines.
+		# Code block of literal lines.
 		"""
 
 		self.indentation = il + 1
@@ -375,8 +375,8 @@ class Parser(object):
 
 	def tokenize(self, lines:Sequence[str]):
 		"""
-		Tokenize the given source returning an iterator producing eclectic events.
-		&source assumed to be is newline separated string.
+		# Tokenize the given source returning an iterator producing eclectic events.
+		# &source assumed to be is newline separated string.
 		"""
 
 		# essentially, this provides the basic paragraph formatting.
@@ -664,7 +664,7 @@ class Parser(object):
 			set=set,
 		):
 		"""
-		Parse the source source into a tree structure.
+		# Parse the source source into a tree structure.
 		"""
 
 		# Implicit section.
