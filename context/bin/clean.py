@@ -1,5 +1,5 @@
 """
-Clean the package tree of bootstrap built files.
+# Clean the package tree of bootstrap built files.
 """
 import importlib.machinery
 from ...routes import library as libroutes
@@ -22,7 +22,7 @@ def collect_composites(route):
 
 def clear_bootstrap_extensions(route):
 	"""
-	Remove the extensions constructed by the bootstrap process.
+	# Remove the extensions constructed by the bootstrap process.
 	"""
 	# peel until it's outside the first extensions directory.
 	pkg = route
