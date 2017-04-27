@@ -53,7 +53,7 @@ def test_Type(test):
 
 def test_Range(test):
 	"""
-	Media range queries for managing Accept headers.
+	# Media range queries for managing Accept headers.
 	"""
 	emptyset = frozenset()
 

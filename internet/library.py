@@ -1,12 +1,12 @@
 """
-Endpoint and Service type for referencing internet addresses for
-Internet Protocol version 4 and 6.
+# Endpoint and Service type for referencing internet addresses for
+# Internet Protocol version 4 and 6.
 """
 import ipaddress
 
 class Service(int):
 	"""
-	Internet port identifier. Empty subclass for identification purposes.
+	# Internet port identifier. Empty subclass for identification purposes.
 	"""
 	__slots__ = ()
 
@@ -57,7 +57,7 @@ common_services['dns'] = common_services['domain']
 
 class Endpoint(tuple):
 	"""
-	Endpoint type for internet addresses.
+	# Endpoint type for internet addresses.
 	"""
 	__slots__ = ()
 
@@ -96,8 +96,8 @@ class Endpoint(tuple):
 
 	def __str__(self):
 		"""
-		"<address>:<port>" representation suitable for interpolation into
-		an IRI network location.
+		"# <address>:<port>" representation suitable for interpolation into
+		# an IRI network location.
 		"""
 
 		if self.interface.version == 6:
@@ -119,21 +119,21 @@ class Endpoint(tuple):
 	@classmethod
 	def create(Class, interface, port, construct=ipaddress.ip_address):
 		"""
-		Create an IPv4 or IPv6 endpoint based on the type detected from the string.
+		# Create an IPv4 or IPv6 endpoint based on the type detected from the string.
 
-		The &ipaddress type will be selected by the &ipaddress.ip_address function.
+		# The &ipaddress type will be selected by the &ipaddress.ip_address function.
 		"""
 		return Class((construct(interface), Service(port)))
 
 class Reference(tuple):
 	"""
-	A domain name referencing a set of endpoints.
+	# A domain name referencing a set of endpoints.
 
-	References are actually service references for a specific domain. They
-	consist of protocol, address, port, and service fields that define
-	the reference. Normally, protocol is "dns" and implies system DNS.
+	# References are actually service references for a specific domain. They
+	# consist of protocol, address, port, and service fields that define
+	# the reference. Normally, protocol is "dns" and implies system DNS.
 
-	Protocol variations can be used to describe more complicated name resolutions.
+	# Protocol variations can be used to describe more complicated name resolutions.
 	"""
 	__slots__ = ()
 
@@ -159,8 +159,8 @@ class Reference(tuple):
 
 	def __str__(self):
 		"""
-		Formatted reference for canonical printing.
-		Return "<service>:[<protocol>]<name>:<port>".
+		# Formatted reference for canonical printing.
+		# Return "<service>:[<protocol>]<name>:<port>".
 		"""
 
 		return "%s:[%s]%s:%s" %(self.service, self.protocol, self.address, self.port)

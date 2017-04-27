@@ -1,28 +1,28 @@
 """
-Collection of parsers and formatters that apply to multiple protocols.
+# Collection of parsers and formatters that apply to multiple protocols.
 
-Generally, a supplement for &.libhttp, and a dependency of &.libmedia.
-The tokenization that occurs in &.libhttp is intentionally simple, but
-some of the unparsed fields may need to be structured by the downstream of
-a tokenization instance. Notably, cookie headers make use of parameter
-series that can be processed by &split_parameter_series.
+# Generally, a supplement for &.libhttp, and a dependency of &.libmedia.
+# The tokenization that occurs in &.libhttp is intentionally simple, but
+# some of the unparsed fields may need to be structured by the downstream of
+# a tokenization instance. Notably, cookie headers make use of parameter
+# series that can be processed by &split_parameter_series.
 
-[ Terminology ]
+# [ Terminology ]
 
-The term `rife` is common, but not in this context. Alternative names
-for this module would be `libcommon` or `libshared`. Rife was chosen
-for its distinct qualities.
+# The term `rife` is common, but not in this context. Alternative names
+# for this module would be `libcommon` or `libshared`. Rife was chosen
+# for its distinct qualities.
 
-[ References ]
+# [ References ]
 
-/Cookies
-	&<http://www.ietf.org/rfc/rfc2109.txt>
+# /Cookies
+	# &<http://www.ietf.org/rfc/rfc2109.txt>
 """
 import itertools
 
 def resolve_backslashes(field:bytes) -> bytes:
 	"""
-	Properly resolve backslashes inside `quoted-string` areas.
+	# Properly resolve backslashes inside `quoted-string` areas.
 	"""
 	fi = iter(field.split(b'\\'))
 	yield next(fi)
@@ -74,21 +74,21 @@ del tmap, http_separators
 
 def quote(octets):
 	"""
-	Discover whether the octets should be quoted and backslash-escape any octets
-	cited as needing escapes. &quote is fairly expensive and should be avoided
-	when possible. Given the case that it is known ahead of time that a quotation
-	is unnecessary, &join_parameter_series.Parameters.quote provided.
+	# Discover whether the octets should be quoted and backslash-escape any octets
+	# cited as needing escapes. &quote is fairly expensive and should be avoided
+	# when possible. Given the case that it is known ahead of time that a quotation
+	# is unnecessary, &join_parameter_series.Parameters.quote provided.
 	"""
 	global _quote
 	return b''.join(_quote(octets))
 
 def join_parameter_series(fields, quote=quote):
 	"""
-	Given an iterator of key-value pairs, construct a properly escaped
-	parameters series that is commonly used within HTTP headers.
+	# Given an iterator of key-value pairs, construct a properly escaped
+	# parameters series that is commonly used within HTTP headers.
 
-	The &quote parameter is provided in order to override the escape mechanism
-	given the case that it is known that no escaping need happen.
+	# The &quote parameter is provided in order to override the escape mechanism
+	# given the case that it is known that no escaping need happen.
 	"""
 	return b';'.join(
 		b'='.join(
@@ -129,11 +129,11 @@ def split_parameter_series(series,
 		tuple=tuple, map=map,
 	):
 	"""
-	Given a series of `;` separated of key-value pairs, return the sequence
-	of key value pairs parsing (rfc:http)`quoted-string` ranges properly.
+	# Given a series of `;` separated of key-value pairs, return the sequence
+	# of key value pairs parsing (rfc:http)`quoted-string` ranges properly.
 
-	Specification designated invalid character sequences are not checked,
-	and must be handled separately for strict conformance.
+	# Specification designated invalid character sequences are not checked,
+	# and must be handled separately for strict conformance.
 	"""
 	global resolve_backslashes
 

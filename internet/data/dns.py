@@ -1,8 +1,8 @@
 """
-Data for working with DNS.
+# Data for working with DNS.
 
-This module primarily consists of mapping of :py:class:`str` identifiers to
-numeric identifiers for DNS types, classes, and errors.
+# This module primarily consists of mapping of :py:class:`str` identifiers to
+# numeric identifiers for DNS types, classes, and errors.
 """
 
 #: A mapping of Record Types to their numeric identifier.

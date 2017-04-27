@@ -1,8 +1,8 @@
 """
-Low-level Hypertext Transfer Protocol tools.
+# Low-level Hypertext Transfer Protocol tools.
 
-Provides protocol tokenization, field parsers, and protocol serialization for
-implementing a server or a client.
+# Provides protocol tokenization, field parsers, and protocol serialization for
+# implementing a server or a client.
 """
 import itertools
 import functools
@@ -13,43 +13,43 @@ CHUNKED_TRANSFER = b'Transfer-Encoding: chunked' + http.CRLF
 
 class Event(int):
 	"""
-	An HTTP event; essentially an enumeration, but kept as an integer subclass for
-	backwards compatibility.
+	# An HTTP event; essentially an enumeration, but kept as an integer subclass for
+	# backwards compatibility.
 
-	Event Structure:
+	# Event Structure:
 
-	/(identifier)`BYPASS`
-		(&Event.bypass, &bytes)
+	# /(identifier)`BYPASS`
+		# (&Event.bypass, &bytes)
 
-	/(identifier)`RLINE`
-		For requests: (&Event.rline, (method, uri, version))
-		For responses: (&Event.rline, (version, response_code, description))
+	# /(identifier)`RLINE`
+		# For requests: (&Event.rline, (method, uri, version))
+		# For responses: (&Event.rline, (version, response_code, description))
 
-	/(identifier)`CHUNK`
-		(&Event.chunk, &bytearray)
+	# /(identifier)`CHUNK`
+		# (&Event.chunk, &bytearray)
 
-	/(identifier)`CONTENT`
-		(&Event.content, &bytearray)
+	# /(identifier)`CONTENT`
+		# (&Event.content, &bytearray)
 
-	/(identifier)`HEADERS`
-		(&Event.headers, [(&bytes, &bytes),...])
+	# /(identifier)`HEADERS`
+		# (&Event.headers, [(&bytes, &bytes),...])
 
-	/(identifier)`TRAILERS`
-		(&Event.trailers, [(&bytes, &bytes),...])
+	# /(identifier)`TRAILERS`
+		# (&Event.trailers, [(&bytes, &bytes),...])
 
-	/(identifier)`MESSAGE`
-		(&Event.message, &None)
+	# /(identifier)`MESSAGE`
+		# (&Event.message, &None)
 
-	/(identifier)`VIOLATION`
-		(&Event.trailers, (type, ...))
+	# /(identifier)`VIOLATION`
+		# (&Event.trailers, (type, ...))
 
-		Where `type` is:
+		# Where `type` is:
 
-		/`'limit'`
-			A configured limit was exceeded.
+		# /`'limit'`
+			# A configured limit was exceeded.
 
-		/`'protocol'`
-			A protocol error occurred.
+		# /`'protocol'`
+			# A protocol error occurred.
 	"""
 
 	__slots__ = ()
@@ -137,24 +137,24 @@ def Tokenization(
 		violation_ev = Event.violation,
 	):
 	"""
-	An HTTP 1.0 and 1.1 message parser. Emits HTTP events from the given binary data.
+	# An HTTP 1.0 and 1.1 message parser. Emits HTTP events from the given binary data.
 
 	#!/matrix
-		One of: (Method, Request-URI, HTTP-Version) | (HTTP-Version, Status-Code, Reason-Phrase)
-		Zero or more of: [(field-name, field-value), ...]
-		One of: ()
-		Zero or more of: message-body-byte-parts
-		One of: None # body terminator
-		Zero or more of: [(field-name, field-value), ...] # Trailers
-		One of: ()
+		# One of: (Method, Request-URI, HTTP-Version) | (HTTP-Version, Status-Code, Reason-Phrase)
+		# Zero or more of: [(field-name, field-value), ...]
+		# One of: ()
+		# Zero or more of: message-body-byte-parts
+		# One of: None # body terminator
+		# Zero or more of: [(field-name, field-value), ...] # Trailers
+		# One of: ()
 
-	The generator is configured to loop perpetually in order to handle pipelined
-	requests.
+	# The generator is configured to loop perpetually in order to handle pipelined
+	# requests.
 
-	The contents of the above are all bytes() objects. No decoding is performed.
+	# The contents of the above are all bytes() objects. No decoding is performed.
 
-	In addition to giving structure to HTTP line and headers, it will handle the
-	transfer encoding of the message's body. (*Not* at the entity level.)
+	# In addition to giving structure to HTTP line and headers, it will handle the
+	# transfer encoding of the message's body. (*Not* at the entity level.)
 	"""
 
 	# Parse Request and Headers
@@ -604,7 +604,7 @@ Disassembler = Tokenization
 
 def disassembly(**config):
 	"""
-	Returns an already started &Disassembler generator.
+	# Returns an already started &Disassembler generator.
 	"""
 	global Disassembler
 	d = Disassembler(**config)
@@ -620,12 +620,12 @@ def chunk_size(length, CRLF=http.CRLF, hex=hex):
 
 def chunk(data, len=len, CRLF=http.CRLF):
 	"""
-	Returns a tuple of (chunk-size + CRLF, chunk-data, CRLF).
+	# Returns a tuple of (chunk-size + CRLF, chunk-data, CRLF).
 
-	Joining data into a single buffer is avoided for the express
-	purpose of allowing the data buffer to be passed through.
-	In cases where a shared memory segment is referenced, this
-	can be critical for proper performance.
+	# Joining data into a single buffer is avoided for the express
+	# purpose of allowing the data buffer to be passed through.
+	# In cases where a shared memory segment is referenced, this
+	# can be critical for proper performance.
 
 	#!/pl/python
 		assert chunk(b'data') == (b'4\\r\\n', b'data', b'\\r\\n')
@@ -645,7 +645,7 @@ def Serialization(
 		chunk_map = {Event.chunk: chunk, Event.content: lambda x: (x,)}
 	):
 	"""
-	Assemble HTTP events back into a sequences of bytes.
+	# Assemble HTTP events back into a sequences of bytes.
 	"""
 
 	events = (yield None)
@@ -675,7 +675,7 @@ Assembler = Serialization
 
 def assembly(**config):
 	"""
-	Return a started &Assembler generator.
+	# Return a started &Assembler generator.
 	"""
 	global Assembler
 	g = Assembler()

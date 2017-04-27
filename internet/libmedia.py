@@ -1,40 +1,35 @@
 """
-Mime Type structures and parsers for content types and media ranges.
+# Mime Type structures and parsers for content types and media ranges.
 
-Interfaces here work exclusively with character-strings; wire data must be decoded.
+# Interfaces here work exclusively with character-strings; wire data must be decoded.
 
-[ References ]
+# [ References ]
 
-	- &<http://tools.ietf.org/html/rfc6838>
+	# - &<http://tools.ietf.org/html/rfc6838>
 
-[ Properties ]
+# [ Properties ]
 
-/types
-	A mapping of type names and file extensions to MIME type strings.
+# /types
+	# A mapping of type names and file extensions to MIME type strings.
+# /filename_extensions
+	# A mapping of filename extensions to type name.
+# /iana_registered_types
+	# The IRI of the set of media types registered with IANA.
 
-/filename_extensions
-	A mapping of filename extensions to type name.
+# [ Functions ]
 
-/iana_registered_types
-	The IRI of the set of media types registered with IANA.
+# /type_from_string
+	# Construct a &Type instance from a MIME type string.
 
-[ Functions ]
-
-/type_from_string
-
-	Construct a &Type instance from a MIME type string.
-
-	Code:
+	# Code:
 	#!/pl/python
 		mt = libmedia.type_from_string("text/xml")
 
-	Equivalent to &Type.from_string, but cached.
+	# Equivalent to &Type.from_string, but cached.
+# /range_from_string
+	# Construct a &Range instance from a Media Range string like an Accept header.
 
-/range_from_string
-
-	Construct a &Range instance from a Media Range string like an Accept header.
-
-	Equivalent to &Range.from_string, but cached.
+	# Equivalent to &Range.from_string, but cached.
 """
 import operator
 import functools
@@ -138,9 +133,9 @@ types = {
 @functools.lru_cache(32)
 def file_type(filename):
 	"""
-	Identify the MIME type from a filename using common file extensions.
+	# Identify the MIME type from a filename using common file extensions.
 
-	Unidentified extensions will likely return application/octets-stream.
+	# Unidentified extensions will likely return application/octets-stream.
 	"""
 	global types
 
@@ -153,18 +148,18 @@ def file_type(filename):
 
 class Type(tuple):
 	"""
-	An IANA Media Type; the Content-Type, Subtype, and options triple describing
-	the type of data.
+	# An IANA Media Type; the Content-Type, Subtype, and options triple describing
+	# the type of data.
 
-	A container interface (`in`) is provided in order to identify if a given
-	type is considered to be within another:
+	# A container interface (`in`) is provided in order to identify if a given
+	# type is considered to be within another:
 
-		- `text/html in */*`
-		- `text/html in text/*`
-		- `text/html;level=1 in text/html`
-		- `text/html not in text/html;level=1`
+		# - `text/html in */*`
+		# - `text/html in text/*`
+		# - `text/html;level=1 in text/html`
+		# - `text/html not in text/html;level=1`
 
-	The &from_string classmethod is the common constructor.
+	# The &from_string classmethod is the common constructor.
 	"""
 	__slots__ = ()
 
@@ -186,42 +181,42 @@ class Type(tuple):
 	@property
 	def cotype(self):
 		"""
-		Content Type; usually one of:
+		# Content Type; usually one of:
 
-			- `application`
-			- `text`
-			- `image`
-			- `video`
-			- `model`
+			# - `application`
+			# - `text`
+			# - `image`
+			# - `video`
+			# - `model`
 
-		The initial part of a MIME (media) type.
+		# The initial part of a MIME (media) type.
 		"""
 		return self[0]
 
 	@property
 	def subtype(self):
 		"""
-		Subtype; the specific form of the &cotype.
+		# Subtype; the specific form of the &cotype.
 		"""
 		return self[1]
 
 	@property
 	def parameters(self):
 		"""
-		Parameters such as charset for encoding designation.
+		# Parameters such as charset for encoding designation.
 		"""
 		return self[2]
 
 	@property
 	def pattern(self) -> bool:
 		"""
-		Whether the &Type is a pattern and can match multiple types.
+		# Whether the &Type is a pattern and can match multiple types.
 		"""
 		return '*' in self[:2]
 
 	def push(self, subtype):
 		"""
-		Return a new &Type with the given &subtype appended to the instance's &.subtype.
+		# Return a new &Type with the given &subtype appended to the instance's &.subtype.
 		"""
 
 		cotype, ssubtype, *remainder = self
@@ -230,7 +225,7 @@ class Type(tuple):
 
 	def pop(self):
 		"""
-		Return a new &Type with the last '+'-delimited subtype removed. (inverse of push).
+		# Return a new &Type with the last '+'-delimited subtype removed. (inverse of push).
 		"""
 
 		cotype, ssubtype, *remainder = self
@@ -245,9 +240,9 @@ class Type(tuple):
 	@classmethod
 	def from_bytes(Class, string, **parameters):
 		"""
-		Split on the ';' and '/' separators and build an instance.
+		# Split on the ';' and '/' separators and build an instance.
 
-		Additional parameters or overrides may be given using keywords.
+		# Additional parameters or overrides may be given using keywords.
 		"""
 		global librife
 
@@ -263,9 +258,9 @@ class Type(tuple):
 	@classmethod
 	def from_string(Class, string, **parameters):
 		"""
-		Split on the ';' and '/' separators and build an instance.
+		# Split on the ';' and '/' separators and build an instance.
 
-		Additional parameters or overrides may be given using keywords.
+		# Additional parameters or overrides may be given using keywords.
 		"""
 		return Class.from_bytes(string.encode('ascii', 'surrogateescape'), **parameters)
 
@@ -281,22 +276,22 @@ class Type(tuple):
 
 class Range(tuple):
 	"""
-	Media Range class for supporting Accept headers.
+	# Media Range class for supporting Accept headers.
 
-	Ranges are a mapping of content-types to an ordered sequence of subtype sets.
-	The ordering of the subtype sets indicates the relative quality.
+	# Ranges are a mapping of content-types to an ordered sequence of subtype sets.
+	# The ordering of the subtype sets indicates the relative quality.
 
-	Querying the range for a set of types will return the types with the
-	highest precedence for each content type.
+	# Querying the range for a set of types will return the types with the
+	# highest precedence for each content type.
 
-	&None is used to represent any types, (text)`*`.
+	# &None is used to represent any types, (text)`*`.
 	"""
 	__slots__ = ()
 
 	@staticmethod
 	def split(media_range):
 		"""
-		Construct triples describing the &media_range.
+		# Construct triples describing the &media_range.
 		"""
 		parts = librife.split_parameter_series(media_range,
 			normal=librife._normal_mediarange_area
@@ -327,7 +322,7 @@ class Range(tuple):
 	@classmethod
 	def from_string(Class, string):
 		"""
-		Instantiate the Range from a string.
+		# Instantiate the Range from a string.
 		"""
 
 		return Class.from_bytes(string.encode('ascii', 'surrogateescape'))
@@ -335,7 +330,7 @@ class Range(tuple):
 	@classmethod
 	def from_bytes(Class, data, skey = operator.itemgetter(0)):
 		"""
-		Instantiate the Range from a bytes object; decoded and passed to &from_string.
+		# Instantiate the Range from a bytes object; decoded and passed to &from_string.
 		"""
 
 		l = []
@@ -351,13 +346,13 @@ class Range(tuple):
 
 	def quality(self, mimetype):
 		"""
-		Search for a single MIME type in the range.
-		Return identified quality of the type.
+		# Search for a single MIME type in the range.
+		# Return identified quality of the type.
 
-		The quality of a particular type is useful in cases where the
-		server wants to give some precedence to another type.
-		Given that the client accepts XML, but it is a lower quality than HTML,
-		the server may want to send XML anyways.
+		# The quality of a particular type is useful in cases where the
+		# server wants to give some precedence to another type.
+		# Given that the client accepts XML, but it is a lower quality than HTML,
+		# the server may want to send XML anyways.
 		"""
 		r =  self.query(mimetype)
 		if r:
@@ -365,8 +360,8 @@ class Range(tuple):
 
 	def query(self, *available):
 		"""
-		Given a sequence of mime types, return the best match
-		according to the qualities recorded in the range.
+		# Given a sequence of mime types, return the best match
+		# according to the qualities recorded in the range.
 		"""
 		current = None
 		position = None

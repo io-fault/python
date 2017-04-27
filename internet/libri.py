@@ -1,9 +1,9 @@
 """
-Parse and Serialize Structured Resource Indicators
+# Parse and Serialize Structured Resource Indicators
 
-As with many implementations in `internet`, libri is not strict with regards
-to a particular specification. Rather, it seeks to handle all cases with relative
-sanity such that any error checking may be performed by the user.
+# As with many implementations in `internet`, libri is not strict with regards
+# to a particular specification. Rather, it seeks to handle all cases with relative
+# sanity such that any error checking may be performed by the user.
 """
 
 import re
@@ -37,7 +37,7 @@ scheme_chars = '-.+0123456789'
 
 def unescape(x, mkval=chr, len=len, isinstance=isinstance):
 	"""
-	Substitute percent escapes with literal characters.
+	# Substitute percent escapes with literal characters.
 	"""
 
 	nstr = type(x)('')
@@ -72,15 +72,15 @@ Parts = collections.namedtuple("Parts",
 
 def split(iri):
 	"""
-	Split an IRI into its base components based on the markers:
+	# Split an IRI into its base components based on the markers:
 
-		(: | ://), /, ?, #
+		# (: | ://), /, ?, #
 
-	Returns the top-level parts of the IRI as a namedtuple.
+	# Returns the top-level parts of the IRI as a namedtuple.
 
-	[ Parameters ]
-	/iri
-		A complete IRI or URI.
+	# [ Parameters ]
+	# /iri
+		# A complete IRI or URI.
 	"""
 	type = None
 	scheme = None
@@ -171,7 +171,7 @@ def split(iri):
 
 def join_path(p, _re = escape_path_re, _re_pct_encode = re_pct_encode):
 	"""
-	Join a list of paths(strings) on "/" *after* escaping them.
+	# Join a list of paths(strings) on "/" *after* escaping them.
 	"""
 
 	if not p:
@@ -182,10 +182,10 @@ unsplit_path = join_path
 
 def split_path(p, fieldproc = unescape):
 	"""
-	Return a list of unescaped strings split on "/".
+	# Return a list of unescaped strings split on "/".
 
-	Set `fieldproc` to `str` if the components' percent escapes should not be
-	decoded.
+	# Set `fieldproc` to `str` if the components' percent escapes should not be
+	# decoded.
 	"""
 
 	if p is None:
@@ -194,7 +194,7 @@ def split_path(p, fieldproc = unescape):
 
 def join(t):
 	"""
-	Make an RI from a split RI(5-tuple)
+	# Make an RI from a split RI(5-tuple)
 	"""
 
 	s = ''
@@ -224,10 +224,10 @@ unsplit = join
 
 def split_netloc(netloc, fieldproc = unescape):
 	"""
-	Split a net location into a 4-tuple, (user, password, host, port).
+	# Split a net location into a 4-tuple, (user, password, host, port).
 
-	Set `fieldproc` to `str` if the components' percent escapes should not be
-	decoded.
+	# Set `fieldproc` to `str` if the components' percent escapes should not be
+	# decoded.
 	"""
 
 	pos = netloc.find('@')
@@ -278,7 +278,7 @@ def split_netloc(netloc, fieldproc = unescape):
 
 def join_netloc(t):
 	"""
-	Create a netloc fragment from the given tuple(user,password,host,port).
+	# Create a netloc fragment from the given tuple(user,password,host,port).
 	"""
 
 	if t[0] is None and t[2] is None:
@@ -309,10 +309,10 @@ def parse_query(query, fieldproc=unescape):
 
 def structure(t, fieldproc=unescape, tuple=tuple, list=list, map=map):
 	"""
-	Create a dictionary from a split RI(5-tuple).
+	# Create a dictionary from a split RI(5-tuple).
 
-	Set `fieldproc` to `str` if the components' percent escapes should not be
-	decoded.
+	# Set `fieldproc` to `str` if the components' percent escapes should not be
+	# decoded.
 	"""
 	global parse_query
 	global split_netloc
@@ -357,7 +357,7 @@ def construct_query(x,
 		value_re = escape_query_value_re,
 	):
 	"""
-	Given a sequence of (key, value) pairs, construct.
+	# Given a sequence of (key, value) pairs, construct.
 	"""
 
 	return '&'.join([
@@ -372,7 +372,7 @@ def construct_query(x,
 
 def construct(x):
 	"""
-	Construct a RI tuple(5-tuple) from a dictionary object.
+	# Construct a RI tuple(5-tuple) from a dictionary object.
 	"""
 
 	p = x.get('path')
@@ -406,24 +406,24 @@ def construct(x):
 
 def parse(iri, structure = structure, split = split, fieldproc = unescape):
 	"""
-	Parse an RI into a dictionary object. Synonym for `structure(split(x))`.
+	# Parse an RI into a dictionary object. Synonym for `structure(split(x))`.
 
-	Set &fieldproc to &str if the components' percent escapes should not be
-	decoded.
+	# Set &fieldproc to &str if the components' percent escapes should not be
+	# decoded.
 	"""
 
 	return structure(split(iri), fieldproc = fieldproc)
 
 def serialize(x, join = join, construct = construct):
 	"""
-	Return an RI from a dictionary object. Synonym for `join(construct(x))`.
+	# Return an RI from a dictionary object. Synonym for `join(construct(x))`.
 	"""
 
 	return join(construct(x))
 
 def http(struct):
 	"""
-	Return the HTTP Request-URI suitable for submission with an HTTP request.
+	# Return the HTTP Request-URI suitable for submission with an HTTP request.
 	"""
 
 	if "path" in struct:

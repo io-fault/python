@@ -1,5 +1,5 @@
 """
-Information and mappings regarding common ciphers and security related protocols.
+# Information and mappings regarding common ciphers and security related protocols.
 """
 import collections
 
@@ -25,14 +25,14 @@ class Struct(tuple):
 
 class Organization(Struct):
 	"""
-	Information About an Organization
+	# Information About an Organization
 	"""
 	__slots__ = ()
 	_fields = ('domain', 'sector',)
 
 class Protocol(Struct):
 	"""
-	Information about a protocol.
+	# Information about a protocol.
 	"""
 	__slots__ = ()
 	_fields = (
