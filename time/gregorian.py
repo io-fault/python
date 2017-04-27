@@ -1,5 +1,5 @@
 """
-Gregorian calendar functions and data.
+# Gregorian calendar functions and data.
 """
 import operator
 from . import calendar as callib
@@ -108,7 +108,7 @@ days_in_cycle = r[1] + r[-1]
 
 def year_is_leap(y):
 	"""
-	Given a gregorian calendar year, determine whether it is a leap year.
+	# Given a gregorian calendar year, determine whether it is a leap year.
 	"""
 	if y % 4 == 0 and (y % 400 == 0 or not y % 100 == 0):
 		return True
@@ -116,26 +116,26 @@ def year_is_leap(y):
 
 def month_from_days(days, _resolver = resolve_by_days):
 	"""
-	Convert the given number Earth-days to a month in the Gregorian cycle.
+	# Convert the given number Earth-days to a month in the Gregorian cycle.
 
-	! NOTE:
-		This does not communicate the remainder of days.
+	# ! NOTE:
+		# This does not communicate the remainder of days.
 	"""
 	cycles, months, day, _d = _resolver(days)
 	return ((cycles * 400 * 12) + months)
 
 def days_from_month(months, _resolver=resolve_by_months):
 	"""
-	Convert the given months to the number of Earth-days leading up to the
-	Gregorian month.
+	# Convert the given months to the number of Earth-days leading up to the
+	# Gregorian month.
 	"""
 	cycles, day_of_cycle, moy, _d = _resolver(months)
 	return (cycles * days_in_cycle) + day_of_cycle
 
 def date_from_days(days, _resolver=resolve_by_days):
 	"""
-	Convert the given Earth-days into a Gregorian date in the common form:
-	 (year, month, day).
+	# Convert the given Earth-days into a Gregorian date in the common form:
+	#  (year, month, day).
 	"""
 	cycles, months, day, _d = _resolver(days)
 	year_of_cycle, moy = divmod(months, months_in_year)
@@ -143,8 +143,8 @@ def date_from_days(days, _resolver=resolve_by_days):
 
 def days_from_date(date, _resolver=resolve_by_months):
 	"""
-	Convert a Gregorian date in the common form, (year, month, day), to the number
-	of days leading up to the date.
+	# Convert a Gregorian date in the common form, (year, month, day), to the number
+	# of days leading up to the date.
 	"""
 	year, month, day = date
 	month -= 1

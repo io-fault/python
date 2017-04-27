@@ -1,6 +1,6 @@
 """
-Defines the time Context that constructs unit types and manages their
-relationships to other unit types.
+# Defines the time Context that constructs unit types and manages their
+# relationships to other unit types.
 """
 import collections
 import fractions
@@ -20,12 +20,12 @@ kinds = (
 
 class Exception(Exception):
 	"""
-	Chronometry base exception.
+	# Chronometry base exception.
 	"""
 
 class TransformException(Exception):
 	"""
-	An attempt to transform units failed.
+	# An attempt to transform units failed.
 	"""
 	unit_input = None
 	unit_output = None
@@ -38,11 +38,11 @@ class TransformException(Exception):
 
 class Inconceivable(TransformException):
 	"""
-	An attempt to represent a unit in like-terms was not possible
-	given the current implementation.
+	# An attempt to represent a unit in like-terms was not possible
+	# given the current implementation.
 
-	Usually raised when a finite term attempts to convert an indefinite term or an
-	ambiguous term.
+	# Usually raised when a finite term attempts to convert an indefinite term or an
+	# ambiguous term.
 	"""
 
 class FormatError(Exception):
@@ -50,7 +50,7 @@ class FormatError(Exception):
 
 class ParseError(FormatError):
 	"""
-	The exception raised when the format of the datetime could not be parsed.
+	# The exception raised when the format of the datetime could not be parsed.
 	"""
 	def __init__(self, source, format = None):
 		self.format = format
@@ -61,8 +61,8 @@ class ParseError(FormatError):
 
 class StructureError(FormatError):
 	"""
-	The exception raised when the structure of a parsed format could not be
-	transformed.
+	# The exception raised when the structure of a parsed format could not be
+	# transformed.
 	"""
 	def __init__(self, source, struct, format = None):
 		self.format = format
@@ -75,10 +75,10 @@ class StructureError(FormatError):
 
 class IntegrityError(FormatError):
 	"""
-	The exception raised when a parsed point in time is not consistent.
+	# The exception raised when a parsed point in time is not consistent.
 
-	Notably, in the RFC format, there are portions specifying intersecting
-	parts of a timestamp. (The day of week field is arguably superfluous.)
+	# Notably, in the RFC format, there are portions specifying intersecting
+	# parts of a timestamp. (The day of week field is arguably superfluous.)
 	"""
 	def __init__(self, source, struct, tuple, format = None):
 		self.format = format
@@ -93,8 +93,8 @@ class IntegrityError(FormatError):
 
 class Unit(int):
 	"""
-	The base class for *finite* &.abstract.Measure and &.abstract.Point
-	subclasses across all &Context instances.
+	# The base class for *finite* &.abstract.Measure and &.abstract.Point
+	# subclasses across all &Context instances.
 	"""
 	__slots__ = ()
 
@@ -361,10 +361,10 @@ class Point(Unit):
 
 class Segment(tuple):
 	"""
-	A line segment on the time continuum. Two points, inclusive on the start, but
-	non-inclusive on the end.
+	# A line segment on the time continuum. Two points, inclusive on the start, but
+	# non-inclusive on the end.
 
-	If the start is greater than the end, the direction is implied to be negative.
+	# If the start is greater than the end, the direction is implied to be negative.
 	"""
 	__slots__ = ()
 
@@ -400,7 +400,7 @@ class Segment(tuple):
 
 	def points(self, step = None):
 		"""
-		Iterate through all the points between range according to the given step.
+		# Iterate through all the points between range according to the given step.
 		"""
 		start = self.start
 		stop = self.stop
@@ -424,7 +424,7 @@ class Segment(tuple):
 
 class Context(object):
 	"""
-	A container for time units and transformations.
+	# A container for time units and transformations.
 	"""
 	def __init__(self, Unit = Unit, Measure = Measure, Point = Point):
 		# opaque transformations
@@ -445,9 +445,9 @@ class Context(object):
 
 	def declare(self, id, datum, kind = 'definite'):
 		"""
-		Declare a fundamental unit for use in a context.
+		# Declare a fundamental unit for use in a context.
 
-		All defined, &Context.define, units are defined in terms of a declared unit.
+		# All defined, &Context.define, units are defined in terms of a declared unit.
 		"""
 		if not id.isidentifier():
 			raise ValueError("unit names must be valid identifiers")
@@ -461,7 +461,7 @@ class Context(object):
 
 	def define(self, id, term, exponent, base = 10):
 		"""
-		Defines a Unit in terms of another unit.
+		# Defines a Unit in terms of another unit.
 		"""
 		if not id.isidentifier():
 			raise ValueError("unit names must be valid identifiers")
@@ -472,10 +472,10 @@ class Context(object):
 
 	def bridge(self, from_unit, to_unit, transformer):
 		"""
-		Note a "bridge" between two units.
+		# Note a "bridge" between two units.
 
-		In the case where a unit cannot not be resolved from its definitions,
-		bridges can be used to perform the conversion.
+		# In the case where a unit cannot not be resolved from its definitions,
+		# bridges can be used to perform the conversion.
 		"""
 		self.bridges[(from_unit,to_unit)] = transformer
 
@@ -490,10 +490,10 @@ class Context(object):
 	@functools.lru_cache()
 	def compose(self, from_unit, to_unit, int = int):
 		"""
-		Compose two ratios into another so that the &from_unit can be converted
-		into the &to_unit.
+		# Compose two ratios into another so that the &from_unit can be converted
+		# into the &to_unit.
 
-		Ratio compositions are LRU cached.
+		# Ratio compositions are LRU cached.
 		"""
 		ratios = self.ratios[self.terms[from_unit]]
 		r = ratios[from_unit] / ratios[to_unit]
@@ -507,7 +507,7 @@ class Context(object):
 
 	def convert(self, from_unit, to_unit, value, ICE = Inconceivable):
 		"""
-		Convert the &value into &to_unit from the &from_unit.
+		# Convert the &value into &to_unit from the &from_unit.
 		"""
 		if from_unit in self.containers:
 			# Containers have their own conversion implementation.
@@ -584,7 +584,7 @@ class Context(object):
 
 	def point_factory(self, Measure, qname, kind = 'definite', Class = Point, point_magnitude = 1):
 		"""
-		Construct a Point class from the given scalar.
+		# Construct a Point class from the given scalar.
 		"""
 		unit_kind = kind
 
@@ -612,7 +612,7 @@ class Context(object):
 
 	def measure_factory(self, id, qname, kind = 'definite', Class = Measure, name = None, address = None):
 		"""
-		Construct a measure with the designated unit identifier and class.
+		# Construct a measure with the designated unit identifier and class.
 		"""
 		proper_name = name or id
 		unit_kind = kind
@@ -639,7 +639,7 @@ class Context(object):
 
 def standard_context(qname):
 	"""
-	Construct the standard time context from the local modules.
+	# Construct the standard time context from the local modules.
 	"""
 	from . import earth
 	from . import metric

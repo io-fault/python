@@ -1,5 +1,5 @@
 """
-Information about the metric second and its multiples.
+# Information about the metric second and its multiples.
 """
 
 #: The names of the SI multiples associated with their exponent.
@@ -57,8 +57,8 @@ abbreviations = {
 
 def context(context):
 	"""
-	Given a libunit.Context instance, define the metric units starting with the
-	'second'.
+	# Given a libunit.Context instance, define the metric units starting with the
+	# 'second'.
 	"""
 	import fractions
 	import operator

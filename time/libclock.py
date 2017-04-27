@@ -1,17 +1,17 @@
 """
-System clock management and query interface.
+# System clock management and query interface.
 """
 import contextlib
 from . import kernel
 
 class KClock(object):
 	"""
-	Operating System's &.abstract.Clock implementation.
+	# Operating System's &.abstract.Clock implementation.
 
-	This Class provides access to the kernel's clockwork. It is a thin wrapper providing
-	the &.abstract.Clock interface.
+	# This Class provides access to the kernel's clockwork. It is a thin wrapper providing
+	# the &.abstract.Clock interface.
 
-	Normally, KClock should be used via the &.library.iclock instance.
+	# Normally, KClock should be used via the &.library.iclock instance.
 	"""
 	__slots__ = ('_monotonic','_start_time')
 	unit = 'nanosecond'
@@ -91,7 +91,7 @@ class KClock(object):
 
 class IClock(object):
 	"""
-	Clock class for binding Point and Measure types with the underlying clockwork's data.
+	# Clock class for binding Point and Measure types with the underlying clockwork's data.
 	"""
 	__slots__ = ('unit', 'clockwork', 'Point', 'Measure')
 

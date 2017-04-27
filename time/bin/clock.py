@@ -1,7 +1,7 @@
 """
-Repeatedly print the current date and time every 64 milliseconds.
+# Repeatedly print the current date and time every 64 milliseconds.
 
-Carriage returns will be used to overwrite previous displays.
+# Carriage returns will be used to overwrite previous displays.
 """
 import sys
 from .. import library

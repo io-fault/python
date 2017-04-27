@@ -1,5 +1,5 @@
 """
-Week based measures of time: days of seven.
+# Week based measures of time: days of seven.
 """
 #: English names of the days of the week.
 weekday_names = (
@@ -36,7 +36,7 @@ weekday_name_to_number.update([
 
 def day_of_week(offset, days):
 	"""
-	Derive the canonical day of week from the given offset and days.
+	# Derive the canonical day of week from the given offset and days.
 	"""
 	return ((days % 7) - offset) % 7
 

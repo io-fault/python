@@ -1,9 +1,9 @@
 """
-Read TZif, time zone information, files(zic output).
+# Read TZif, time zone information, files(zic output).
 
-! WARNING:
-	This module is intended for internal use only.
-	The APIs are subject to change without notice.
+# ! WARNING:
+	# This module is intended for internal use only.
+	# The APIs are subject to change without notice.
 """
 import os
 import os.path
@@ -51,10 +51,10 @@ tzinfo = collections.namedtuple('tzinfo', (
 
 def parse_version_1(data):
 	"""
-	parse the raw data from a TZif file. 4-byte longs.
+	# parse the raw data from a TZif file. 4-byte longs.
 
-	Returns tuple of: (transtimes, types, timetypinfo, leaps, isstd, isgmt, abbr)
-	See &tzfile(5) for information about the fields.
+	# Returns tuple of: (transtimes, types, timetypinfo, leaps, isstd, isgmt, abbr)
+	# See &tzfile(5) for information about the fields.
 	"""
 	x = data[:header_struct_v1.size]
 	y = data[header_struct_v1.size:]
@@ -108,10 +108,10 @@ def parse_version_1(data):
 
 def parse_version_2(data):
 	"""
-	parse the raw data from a version 2 TZif file. 8-byte longs.
+	# parse the raw data from a version 2 TZif file. 8-byte longs.
 
-	Returns tuple of: (transtimes, types, timetypinfo, leaps, isstd, isgmt, abbr)
-	See &tzfile(5) for information about the fields(it's cryptically fun).
+	# Returns tuple of: (transtimes, types, timetypinfo, leaps, isstd, isgmt, abbr)
+	# See &tzfile(5) for information about the fields(it's cryptically fun).
 	"""
 	x = data[:header_struct_v2.size]
 	y = data[header_struct_v2.size:]
@@ -165,7 +165,7 @@ def parse_version_2(data):
 
 def parse(data):
 	"""
-	Given TZif data, identify the appropriate version and unpack the timezone information.
+	# Given TZif data, identify the appropriate version and unpack the timezone information.
 	"""
 	ident, data = (data[:20], data[20:])
 	if ident[:4] != magic:
@@ -209,7 +209,7 @@ def system_timezone_file(relativepath, tzdir = tzdir, _join = os.path.join):
 
 def get_timezone_data(filepath):
 	"""
-	Get the structured timezone data out of the specified file.
+	# Get the structured timezone data out of the specified file.
 	"""
 	with open(filepath, 'rb') as f:
 		d = parse(f.read())
@@ -219,7 +219,7 @@ def get_timezone_data(filepath):
 
 def abbreviations(tzdir:str, _join=os.path.join, bytes=bytes, bool=bool, int=int):
 	"""
-	Yield all abbreviations in the TZif files in the tzdir(/usr/share/zoneinfo).
+	# Yield all abbreviations in the TZif files in the tzdir(/usr/share/zoneinfo).
 	"""
 	prefixlen = len(libtzif.tzdir) + 1
 	for dirpath, dirname, filenames in os.walk(libtzif.tzdir):
@@ -233,10 +233,10 @@ def abbreviations(tzdir:str, _join=os.path.join, bytes=bytes, bool=bool, int=int
 
 def abbreviation_map(tzdir=tzdir):
 	"""
-	Generate and return a mapping of zone abbreviations to their particular offsets.
+	# Generate and return a mapping of zone abbreviations to their particular offsets.
 
-	Using this should mean that you know that abbreviations are ambiguous.
-	This function is provided to aid common cases and popular mappings.
+	# Using this should mean that you know that abbreviations are ambiguous.
+	# This function is provided to aid common cases and popular mappings.
 	"""
 	a = set(abbreviations(tzdir))
 	d = dict()

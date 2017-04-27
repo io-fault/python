@@ -81,11 +81,11 @@ def test_Radar_sums(test):
 
 def test_Radar_implicit_forget(test):
 	"""
-	This test can fail in cases where the object
-	is still, somehow, alive.
+	# This test can fail in cases where the object
+	# is still, somehow, alive.
 
-	It looks pretty consistent with respect to python3,
-	but I imagine implementation differences can change things.
+	# It looks pretty consistent with respect to python3,
+	# but I imagine implementation differences can change things.
 	"""
 	R = libflow.Radar(Chronometer = Chronometer)
 	a = SomeObject()
@@ -105,7 +105,7 @@ def test_Radar_explicit_forget(test):
 
 def test_Radar(test):
 	"""
-	Test most features of the Radar class.
+	# Test most features of the Radar class.
 	"""
 	R = libflow.Radar(Chronometer = Chronometer)
 	test/len(R.tracking) == 0
@@ -168,9 +168,9 @@ def test_Radar(test):
 
 def test_Radar_collapse_window(test):
 	"""
-	The test_Radar function was written before these features
-	existed. Rather than change that function, test the features
-	independently
+	# The test_Radar function was written before these features
+	# existed. Rather than change that function, test the features
+	# independently
 	"""
 	R = libflow.Radar(Chronometer = Chronometer)
 	update = Chronometer.set
@@ -204,7 +204,7 @@ def test_Radar_collapse_window(test):
 
 def test_Radar_zero(test):
 	"""
-	Validate that zero destroys the updated time.
+	# Validate that zero destroys the updated time.
 	"""
 	R = libflow.Radar(Chronometer = Chronometer)
 	update = Chronometer.set

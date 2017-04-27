@@ -1,7 +1,7 @@
 """
-Arbitrary Calendar Address Resolution
+# Arbitrary Calendar Address Resolution
 
-Used internally by &.gregorian in order to work with the gregorian calendar pattern.
+# Used internally by &.gregorian in order to work with the gregorian calendar pattern.
 """
 import itertools
 import operator
@@ -16,7 +16,7 @@ def aggregate(node,
 		len=len, sum=sum,
 	):
 	"""
-	Recursively aggregate the data in the node.
+	# Recursively aggregate the data in the node.
 	"""
 	title, repeat, sub = node
 

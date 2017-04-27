@@ -1,16 +1,16 @@
 """
-Earth-day related unit information.
+# Earth-day related unit information.
 
-[ Properties ]
+# [ Properties ]
 
-/seconds_in_minute
-	Number of seconds contained in a minute.
-/minutes_in_hour
-	Number of minutes contained in an hour.
-/hours_in_day
-	Number of hours contained in a day.
-/days_in_four_annum
-	Number of days in four annums.
+# /seconds_in_minute
+	# Number of seconds contained in a minute.
+# /minutes_in_hour
+	# Number of minutes contained in an hour.
+# /hours_in_day
+	# Number of hours contained in a day.
+# /days_in_four_annum
+	# Number of days in four annums.
 """
 
 seconds_in_minute = 60

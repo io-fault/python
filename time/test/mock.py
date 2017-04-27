@@ -1,5 +1,5 @@
 """
-Test support classes
+# Test support classes
 """
 
 class Chronometer(object):

@@ -1,12 +1,12 @@
 """
-Eternals are measures of indefinite units of time. They are used to represent concepts of
-now, never, and the furthest point in time in the past--genesis.
+# Eternals are measures of indefinite units of time. They are used to represent concepts of
+# now, never, and the furthest point in time in the past--genesis.
 
-Properties::
+# Properties::
 
-	Measure.of(eternal = 1) == Measure.of(eternal = (x > 0))
-	Measure.of(eternal =-1) == Measure.of(eternal = (x < 0))
-	Measure.of(eternal = 0) == Measure.of(eternal = (x = 0))
+	# Measure.of(eternal = 1) == Measure.of(eternal = (x > 0))
+	# Measure.of(eternal =-1) == Measure.of(eternal = (x < 0))
+	# Measure.of(eternal = 0) == Measure.of(eternal = (x = 0))
 """
 unit = 'eternal'
 
@@ -38,7 +38,7 @@ def days_from_current_factory(clock, ICE):
 
 def eternal_from_days(days):
 	"""
-	Definite points in time are considered zero in the indefinite continuum.
+	# Definite points in time are considered zero in the indefinite continuum.
 	"""
 	return 0
 

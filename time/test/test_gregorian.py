@@ -58,7 +58,7 @@ def test_mfd_alignment(test):
 
 def test_scan_months(test):
 	"""
-	Shows month_from_days aligning at the start of the month.
+	# Shows month_from_days aligning at the start of the month.
 	"""
 	month = (12 * 400) - 1
 	while month > 0:

@@ -1,27 +1,24 @@
 """
-Public APIs
+# Primary public module.
 
-[ Properties ]
---------------
+# Provides access to the default Point and Measure types: &Timestamp, &Measure, &Date, &Days.
+# The system clocks and related functionality are also exported here.
 
-/genesis
-	The earliest Point in time.
+# [ Properties ]
 
-/never
-	The latest Point in time.
-
-/present
-	The current Point in time--always moving.
-
-/future
-	A &Segment whose start is &present and end is &never.
-
-/past
-	A segment whose start is &genesis and end is &present.
-
-/continuum
-	A segment whose start is &genesis and end is &never; essentially, this is intended to
-	be a type check and determines if the given object is representing a Point in Time.
+# /genesis
+	# The earliest Point in time. Negative infinity.
+# /never
+	# The latest Point in time. Positive infinity.
+# /present
+	# The current Point in time--always moving.
+# /future
+	# A &Segment whose start is &present and end is &never.
+# /past
+	# A segment whose start is &genesis and end is &present.
+# /continuum
+	# A segment whose start is &genesis and end is &never; essentially, this is intended to
+	# be a type check and determines if the given object is representing a Point in Time.
 """
 import sys
 import operator
@@ -34,6 +31,8 @@ from . import core # Context & Standard Definitions.
 from . import libclock
 from . import libzone
 from . import eternal
+
+__shortname__ = 'libtime'
 
 #: Range class.
 Segment = core.Segment
@@ -113,13 +112,13 @@ del sys
 
 def unix(unix_timestamp, Timestamp = Timestamp.of):
 	"""
-	Create a &Timestamp instance *from seconds since the unix epoch*.
+	# Create a &Timestamp instance *from seconds since the unix epoch*.
 
 	#!/pl/python
 		chronometry.library.unix(0)
 		chronometry.library.Timestamp.of(iso='1970-01-01T00:00:00.0')
 
-	For precision beyond seconds, a subsequent elapse can be used.
+	# For precision beyond seconds, a subsequent elapse can be used.
 
 	#!/pl/python
 		float_ts = time.time()
@@ -132,11 +131,11 @@ def unix(unix_timestamp, Timestamp = Timestamp.of):
 
 class PartialAttributes(object):
 	"""
-	Collect an arbitrary series of identifiers.
+	# Collect an arbitrary series of identifiers.
 
-	When called, give the names, arguments, and keywords to the constructor.
+	# When called, give the names, arguments, and keywords to the constructor.
 
-	Chronometry internal use only.
+	# Chronometry internal use only.
 	"""
 	__slots__ = ('_construct', '_names')
 
@@ -187,18 +186,18 @@ update = PartialAttributes(construct_update)
 #: Composition constructor for instantiating [time] Unit Objects from Container types.
 #: Example::
 #:
-#:		from chronometry import library
-#:		from_iso = library.open.iso(library.Timestamp)
-#:		pits = map(from_iso, ("2002-01-01T3:45:00",))
+#: from chronometry import library
+#: from_iso = library.open.iso(library.Timestamp)
+#: pits = map(from_iso, ("2002-01-01T3:45:00",))
 #:
 #: Access to standard format parsers are made available:
 #: :py:func:`parse_iso8601`, :py:func:`parse_rfc1123`.
 open = PartialAttributes(construct_open)
 
-#: Parse ISO-8601 timestamp strings into a :py:class:`Timestamp` instance.
+#: Parse ISO-8601 timestamp strings into a &Timestamp instance.
 parse_iso8601 = open.iso(Timestamp)
 
-#: Parse RFC-1123 timestamp strings into a :py:class:`Timestamp` instance.
+#: Parse RFC-1123 timestamp strings into a &Timestamp instance.
 parse_rfc1123 = open.rfc(Timestamp)
 
 # This may end up getting moved, so don't expose it.
@@ -206,13 +205,13 @@ del PartialAttributes, construct_update, construct_select, construct_open
 
 def range(start, stop, step = None, Segment = Segment):
 	"""
-	Construct an iterator producing Points between the given &start and &stop.
+	# Construct an iterator producing Points between the given &start and &stop.
 
-	If &step is provided, it will determine the difference to apply to the
-	starting position for each iteration. If it is not provided, the &step
-	defaults to the &.abstract.Point.magnitude of the &start. For dates, the step
-	will be a day, but for timestamps, the magnitude is a nanosecond and will not
-	be ideal for most uses. Usually, a &step should be provided.
+	# If &step is provided, it will determine the difference to apply to the
+	# starting position for each iteration. If it is not provided, the &step
+	# defaults to the &.abstract.Point.magnitude of the &start. For dates, the step
+	# will be a day, but for timestamps, the magnitude is a nanosecond and will not
+	# be ideal for most uses. Usually, a &step should be provided.
 
 	#!/pl/python
 		pit = chronometry.library.now()
@@ -224,20 +223,20 @@ def range(start, stop, step = None, Segment = Segment):
 
 def field_delta(field, start, stop):
 	"""
-	Return the range components for identifying the exact field changes that occurred between two
-	&.abstract.Time instances. This function returns components suitable as input to &range.
+	# Return the range components for identifying the exact field changes that occurred between two
+	# &.abstract.Time instances. This function returns components suitable as input to &range.
 
-	This function can be used to identify the changes that occurred to a particular field
-	within the given range designated by &start and &stop.
+	# This function can be used to identify the changes that occurred to a particular field
+	# within the given range designated by &start and &stop.
 
-	[ Parameters ]
+	# [ Parameters ]
 
-	/&field
-		The name of the unit whose changes will be represented.
-	/&start
-		The beginning of the range.
-	/&stop
-		The end of the range.
+	# /&field
+		# The name of the unit whose changes will be represented.
+	# /&start
+		# The beginning of the range.
+	# /&stop
+		# The end of the range.
 	"""
 	start = start.truncate(field)
 	stop = stop.truncate(field)
@@ -252,7 +251,7 @@ def field_delta(field, start, stop):
 
 def business_week(pit, five = Days(5), one = Days(1), list = list):
 	"""
-	Return an iterator to the business days in the week of the given &pit.
+	# Return an iterator to the business days in the week of the given &pit.
 	"""
 	start = Date.of(pit.update('day', 1, 'week'))
 	stop = start.elapse(five)
@@ -263,26 +262,26 @@ def zone(name:str=None,
 		zone_open=functools.lru_cache()(libzone.Zone.open),
 	) -> libzone.Zone:
 	"""
-	Return a Zone object for localizing UTC timestamps and normalizing local timestamps.
+	# Return a Zone object for localizing UTC timestamps and normalizing local timestamps.
 	"""
 
 	return zone_open(construct, name)
 
 class Scheduler(object):
 	"""
-	All purpose event scheduler.
+	# All purpose event scheduler.
 
-	Coorindate the production of events according to a time delay against a monotonic timer.
+	# Coorindate the production of events according to a time delay against a monotonic timer.
 
-	Each instance manages the production of a set of events according to the
-	prescribed delay. When an event is scheduled, the amount of time specified is added to the
-	meter's current position. When the meter surpasses that value, the event is emitted.
+	# Each instance manages the production of a set of events according to the
+	# prescribed delay. When an event is scheduled, the amount of time specified is added to the
+	# meter's current position. When the meter surpasses that value, the event is emitted.
 
-	Events are arbitrary Python objects. Often, they will be tasks to be performed.
+	# Events are arbitrary Python objects. Often, they will be tasks to be performed.
 
-	&Scheduler differs from Python's scheduler as there is no attempt to manage the sleep
-	period. Rather, this responsibility is offloaded onto the user in order to keep
-	functionality isolated.
+	# &Scheduler differs from Python's scheduler as there is no attempt to manage the sleep
+	# period. Rather, this responsibility is offloaded onto the user in order to keep
+	# functionality isolated.
 	"""
 	unit = 'nanosecond'
 
@@ -302,10 +301,10 @@ class Scheduler(object):
 
 	def period(self):
 		"""
-		The period before the next event should occur.
+		# The period before the next event should occur.
 
-		When combining Harmony instances, this method can be used to identify
-		when this Harmony instance should be processed.
+		# When combining Harmony instances, this method can be used to identify
+		# when this Harmony instance should be processed.
 		"""
 		try:
 			smallest = self.heap[0]
@@ -315,7 +314,7 @@ class Scheduler(object):
 
 	def cancel(self, *events):
 		"""
-		Cancel the scheduled events.
+		# Cancel the scheduled events.
 		"""
 		# Update the set of cancellations immediately.
 		# This set is used as a filter by Defer cycles.
@@ -323,14 +322,14 @@ class Scheduler(object):
 
 	def put(self, *schedules, push=heapq.heappush) -> int:
 		"""
-		Schedules the given events for execution.
+		# Schedules the given events for execution.
 
-		[ Parameters ]
+		# [ Parameters ]
 
-		/schedules
-			The Measure, Event pairs: `(Measure, object), ...`
-			First item of the pairs being an &.abstract.Measure,
-			and the second an arbitrary &object.
+		# /schedules
+			# The Measure, Event pairs: `(Measure, object), ...`
+			# First item of the pairs being an &.abstract.Measure,
+			# and the second an arbitrary &object.
 		"""
 		snapshot = self.meter.snapshot()
 		events = []
@@ -351,11 +350,11 @@ class Scheduler(object):
 
 	def get(self, pop=heapq.heappop, push=heapq.heappush):
 		"""
-		Return all events whose sheduled delay has elapsed according to the
-		configured Chronometer.
+		# Return all events whose sheduled delay has elapsed according to the
+		# configured Chronometer.
 
-		The pairs within the returned sequence consist of a Measure and the Event. The
-		measure is the amount of time that has elapsed since the scheduled time.
+		# The pairs within the returned sequence consist of a Measure and the Event. The
+		# measure is the amount of time that has elapsed since the scheduled time.
 		"""
 		events = []
 		cur = self.meter.snapshot()

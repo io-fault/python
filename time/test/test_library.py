@@ -264,8 +264,8 @@ def test_timeofday_select(test):
 
 def test_align(test):
 	"""
-	The most important use of alignment is for finding the n-th
-	since the first or last of a month.
+	# The most important use of alignment is for finding the n-th
+	# since the first or last of a month.
 	"""
 	def select_last_thurs(ts):
 		ts = ts.elapse(month=1)
@@ -443,7 +443,7 @@ def test_month_spectrum(test):
 
 def test_zone(test):
 	"""
-	Presumes that Alaska is ~-10 and Japan is ~+10.
+	# Presumes that Alaska is ~-10 and Japan is ~+10.
 	"""
 	today = 'America/Anchorage'
 	tomorrow = 'Japan'

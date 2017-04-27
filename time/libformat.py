@@ -1,16 +1,16 @@
 """
-Format and parse datetime strings.
+# Format and parse datetime strings.
 
-Primarily this module exposes two functions: &parser,
-&formatter. These functions provide access to datetime formats defined by a
-standard or deemed common enough to merit a builtin implementation.
+# Primarily this module exposes two functions: &parser,
+# &formatter. These functions provide access to datetime formats defined by a
+# standard or deemed common enough to merit a builtin implementation.
 
-! NOTE:
-	The near future will bring a strptime and strftime implementation.
+# ! NOTE:
+	# The near future will bring a strptime and strftime implementation.
 
-While formatting PiTs can usually occur without error, parsing them from strings
-can result in a variety of errors. The parsers available in
-libformat can raise subclasses of &.core.FormatError.
+# While formatting PiTs can usually occur without error, parsing them from strings
+# can result in a variety of errors. The parsers available in
+# libformat can raise subclasses of &.core.FormatError.
 """
 import operator
 import functools
@@ -220,8 +220,8 @@ def _integrity(fun, format):
 
 def parser(fmt, _deref = aliases.get, _getn1 = operator.itemgetter(-1)):
 	"""
-	Given a format idenifier, return the function that can be used to parse
-	the formatted string into a Point instance.
+	# Given a format idenifier, return the function that can be used to parse
+	# the formatted string into a Point instance.
 	"""
 	fmt = _deref(fmt, fmt)
 	def parser_composition(
@@ -263,8 +263,8 @@ formatters = {
 
 def formatter(fmt, _deref = aliases.get):
 	"""
-	Given a format idenifier, return the function that can be used to format
-	the Point in time.
+	# Given a format idenifier, return the function that can be used to format
+	# the Point in time.
 	"""
 	return formatters[_deref(fmt, fmt)]
 

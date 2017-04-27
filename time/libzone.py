@@ -1,5 +1,5 @@
 """
-Public timezone library.
+# Public timezone library.
 """
 import os
 import os.path
@@ -10,12 +10,12 @@ from . import abstract
 
 class Offset(tuple):
 	"""
-	Offsets are constructed by a tuple of the form: `(offset, abbreviation, type)`.
-	Primarily, the type signifies whether or not the offset is daylight
-	savings or not.
+	# Offsets are constructed by a tuple of the form: `(offset, abbreviation, type)`.
+	# Primarily, the type signifies whether or not the offset is daylight
+	# savings or not.
 
-	&Offset instances are usually extracted from &Zone objects which
-	build a sequence of transitions for subsequent searching.
+	# &Offset instances are usually extracted from &Zone objects which
+	# build a sequence of transitions for subsequent searching.
 	"""
 	__slots__ = ()
 
@@ -25,29 +25,29 @@ class Offset(tuple):
 	@property
 	def magnitude(self):
 		"""
-		The offset in seconds from UTC.
+		# The offset in seconds from UTC.
 		"""
 		return self[0]
 
 	@property
 	def abbreviation(self):
 		"""
-		The Offset's timezone abbreviation; such as UTC, GMT, and EST.
+		# The Offset's timezone abbreviation; such as UTC, GMT, and EST.
 		"""
 		return self[1]
 
 	@property
 	def type(self):
 		"""
-		Field used to identify if the &Offset is daylight savings time.
+		# Field used to identify if the &Offset is daylight savings time.
 		"""
 		return self[2]
 
 	@property
 	def is_dst(self):
 		"""
-		Whether or not the &Offset is referring to a daylight savings time
-		offset.
+		# Whether or not the &Offset is referring to a daylight savings time
+		# offset.
 		"""
 		return self.type == 'dst'
 
@@ -72,14 +72,14 @@ class Offset(tuple):
 
 	def iso(self, pit):
 		"""
-		Return the offset-qualified ISO representation of the given point in time.
+		# Return the offset-qualified ISO representation of the given point in time.
 		"""
 		return ' '.join((pit.select('iso'), str(self)))
 
 	@classmethod
 	def from_tzinfo(typ, tzinfo):
 		"""
-		Construct a Zone instance from a &.tzif.tzinfo tuple.
+		# Construct a Zone instance from a &.tzif.tzinfo tuple.
 		"""
 		return typ(
 			(
@@ -93,16 +93,16 @@ abstract.Measure.register(Offset)
 
 class Zone(object):
 	"""
-	Zones consist of a sequence of transition times whose ranges correspond to a
-	particular offset.
+	# Zones consist of a sequence of transition times whose ranges correspond to a
+	# particular offset.
 
-	A mapping of transition times to their corresponding offset.
+	# A mapping of transition times to their corresponding offset.
 
-	&Zone instances manage the selection of a particular &Offset.
+	# &Zone instances manage the selection of a particular &Offset.
 
-	[ Properties ]
-	/default
-		The default &Offset of the &Zone.
+	# [ Properties ]
+	# /default
+		# The default &Offset of the &Zone.
 	"""
 
 	def __init__(self, transitions, offsets, default, leaps, name):
@@ -122,14 +122,14 @@ class Zone(object):
 
 	def find(self, pit, bisect=bisect.bisect):
 		"""
-		Get the appropriate offset in the zone for a given Point In Time, &pit.
-		If the &pit does not fall within a known range, the &default will be returned.
+		# Get the appropriate offset in the zone for a given Point In Time, &pit.
+		# If the &pit does not fall within a known range, the &default will be returned.
 
-		Returns an offset for the timestamp according to the Zone's transition times.
+		# Returns an offset for the timestamp according to the Zone's transition times.
 
-		[Parameters]
-		/pit
-			The &.library.Timestamp to use to find an offset with.
+		# [Parameters]
+		# /pit
+			# The &.library.Timestamp to use to find an offset with.
 		"""
 		idx = bisect(self.transitions, pit) - 1
 		try:
@@ -140,17 +140,17 @@ class Zone(object):
 
 	def slice(self, start, stop, bisect = bisect.bisect):
 		"""
-		Get a slice of transition points and time zone offsets
-		relative to a given &start and &stop.
+		# Get a slice of transition points and time zone offsets
+		# relative to a given &start and &stop.
 
-		Returns an iterable of transitions and &Offset instances that have
-		occurred during the period designated by the slice.
+		# Returns an iterable of transitions and &Offset instances that have
+		# occurred during the period designated by the slice.
 
-		[Parameters]
-		/start
-			The start of the period.
-		/stop
-			The end of the period.
+		# [Parameters]
+		# /start
+			# The start of the period.
+		# /stop
+			# The end of the period.
 		"""
 		first_offset = bisect(self.transitions, start) - 1
 		last_offset = bisect(self.transitions, stop)
@@ -162,35 +162,35 @@ class Zone(object):
 
 	def localize(self, pit):
 		"""
-		Given &pit, return the localized version according to the zone's transitions.
+		# Given &pit, return the localized version according to the zone's transitions.
 
-		The given Point In Time is expected to have a perspective consistent with the zone's
-		transition times. (In the same zone.)
+		# The given Point In Time is expected to have a perspective consistent with the zone's
+		# transition times. (In the same zone.)
 
-		Returns the localized timestamp.
+		# Returns the localized timestamp.
 
-		[Parameters]
-		/pit
-			The timestamp to localize.
+		# [Parameters]
+		# /pit
+			# The timestamp to localize.
 		"""
 		offset = self.find(pit)
 		return (pit.elapse(offset), offset)
 
 	def normalize(self, offset, pit):
 		"""
-		This function should be used in cases where adjustments are being made to
-		an already zoned point in time. Once the adjustments are complete, the point should be
-		normalized in order to properly represent the local point.
+		# This function should be used in cases where adjustments are being made to
+		# an already zoned point in time. Once the adjustments are complete, the point should be
+		# normalized in order to properly represent the local point.
 
-		If no change is necessary, the exact, given &pit will be returned.
+		# If no change is necessary, the exact, given &pit will be returned.
 
-		Returns the re-localized &pit and its new &Offset in a tuple.
+		# Returns the re-localized &pit and its new &Offset in a tuple.
 
-		[Parameters]
-		/offset
-			The offset of the &pit.
-		/pit
-			The localized point in time to normalize.
+		# [Parameters]
+		# /offset
+			# The offset of the &pit.
+		# /pit
+			# The localized point in time to normalize.
 		"""
 		p = pit.rollback(offset)
 
