@@ -26,7 +26,7 @@ def mkctxpkg(root_init, name='fault'):
 		if not exists(outer_init):
 			pass
 		else:
-			print('Already exists:', outer_init)
+			print('! NOTE:', outer_init, 'already exists.')
 
 			lpath = readlink(outer_init)
 			if not os.path.isabs(lpath):
@@ -34,7 +34,7 @@ def mkctxpkg(root_init, name='fault'):
 				lpath = join(dirname(outer_init), lpath)
 
 			if lpath == root.__file__:
-				print('! STATUS: Context root is properly linked.')
+				print('! STATUS: Context root is properly linked; exiting without changes.')
 				raise SystemExit(0)
 			else:
 				print('! WARNING: %r is not linked to %r' %(outer_init, root.__file__))
