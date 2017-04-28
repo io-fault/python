@@ -65,12 +65,12 @@ def mkctxpkg(root_init, name='fault'):
 	print('\t# %r' %(join(fault_dir, 'context'),))
 	os.rename(ctxdir, join(fault_dir, 'context'))
 
-	root_pyc_link_path = '../context/__pycache__/root.pyc'
 	root_link_path = 'context/root.py'
 
 	print('! STATUS: Creating symbolic links for context.root.')
 	os.symlink(root_link_path, join(fault_dir, '__init__.py'))
-	os.symlink(root_pyc_link_path, join(pycache, '__init__.pyc'))
+	#root_pyc_link_path = '../context/__pycache__/root.pyc'
+	#os.symlink(root_pyc_link_path, join(pycache, '__init__.pyc'))
 
 if __name__ == '__main__':
 	sys.stdout.close()
