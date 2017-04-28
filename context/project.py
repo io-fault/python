@@ -26,8 +26,9 @@ projects = (
 	'cryptography',
 	'traffic',
 	'system',
-	'stack',
+	'interface',
 
+	'internet',
 	'io',
 	'xml',
 	'web',
