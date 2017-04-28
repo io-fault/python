@@ -127,7 +127,7 @@ module_path ()
 	echo "$relpath" | sed 's:/:.:g' | sed 's:.::'
 }
 
-for project in ./chronometry ./system ./development ./traffic ./io
+for project in ./chronometry ./system ./development ./traffic ./io ./terminal
 do
 	cd "$fault_dir/$project"
 	root="$(dirname "$(pwd)")"
