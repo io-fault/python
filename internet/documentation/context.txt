@@ -1,0 +1,21 @@
+[ Bylaws ]
+
+	- Provision of data structures for representing MIME types and media ranges.
+	- Provision of an non-strict IRI parser and serializer.
+	- Implementation of an non-strict HTTP tokenizer for use in streaming architectures.
+	- Implementation of an non-strict HTTP serializer for use in streaming architectures.
+	- Provision of DNS data structures for representing Queries and Responses for common record types.
+	- Implementation of a DNS parser for use in streaming architectures.
+	- Implementation of Web Sockets built for use with the HTTP Parser implementation.
+	- Maintenance of all functionality including implementation flaws and security fixes.
+	- Compatible optimizations of any component provided reasonable maintenance cost.
+
+[ Glossary ]
+
+/Assembler
+	Serializer for a given protocol. Usually, takes a series of objects and emits
+	the data to be written to the wire.
+
+/Disassembler
+	Parser for a given protocol. Takes a series of binary data objects read from
+	the wire and emits a structured representation.

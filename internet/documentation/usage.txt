@@ -1,0 +1,18 @@
+This chapter describes how to use `internet`.
+
+[ HTTP ]
+
+The &.http module.
+
+[ HTTP >> Parsing HTTP Requests ]
+
+...
+
+[ HTTP >> Parsing HTTP Responses ]
+
+...
+
+[ SMTP ]
+
+The standard library's email package is notoriously good.
+SMTP support may never happen.
