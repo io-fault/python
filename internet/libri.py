@@ -436,3 +436,145 @@ def http(struct):
 		return "?".join((p, q))
 
 	return p
+
+def context_tokens(
+		scheme, type, user, password, host, port,
+		escape_user=escape_user_re.sub,
+		escape_password=escape_password_re.sub,
+		escape_port=escape_port_re.sub,
+		escape_host=escape_host_re.sub,
+		ri_type_delimiters = {
+			'relative': '//',
+			'authority': '://',
+			'absolute': ':',
+			'none': '',
+			None: '',
+		}
+	):
+	"""
+	#  Format the authority fields of a Resource Indicator.
+	"""
+	if scheme:
+		yield ('scheme', scheme)
+
+	yield ('type', ri_type_delimiters[type])
+
+	# Needs escaping.
+	if user is not None:
+		yield ('user', escape_user(re_pct_encode, user))
+
+	if password is not None:
+		yield ('delimiter', ":")
+		yield ('delimiter', escape_password(re_pct_encode, password))
+
+	if user is not None or password is not None:
+		yield ('delimiter', "@")
+
+	yield ('host', escape_host(re_pct_encode, host))
+
+	if port is not None:
+		yield ('delimiter', ':')
+		yield ('port', escape_port(re_pct_encode, port))
+
+def query_tokens(query,
+		escape_query_key=escape_query_key_re.sub,
+		escape_query_value=escape_query_value_re.sub
+	):
+	if query is None:
+		return
+	yield ('delimiter', "?")
+
+	if query:
+		k, v = query[0]
+		if not k and v is None:
+			pass
+		else:
+			yield ('query-key', escape_query_key(re_pct_encode, k))
+			if v is not None:
+				yield ('delimiter', "=")
+				yield ('query-value', escape_query_value(re_pct_encode, v or ''))
+
+	for k, v in query[1:]:
+		yield ('delimiter', "&")
+
+		if not k and v is None:
+			continue
+		yield ('query-key', escape_query_key(re_pct_encode, k))
+		if v is not None:
+			yield ('delimiter', "=")
+			yield ('query-value', escape_query_value(re_pct_encode, v or ''))
+
+def fragment_tokens(fragment, escape=escape_re.sub):
+	if fragment is None:
+		return
+	yield ('delimiter', "#")
+	yield ('fragment', escape(re_pct_encode, fragment))
+
+def path_tokens(root, path, escape_path=escape_path_re, pct_encode=re_pct_encode):
+	if path is None and root is None:
+		return
+
+	if not path and not root:
+		# '/' present, but no path fields.
+		yield ('delimiter-path-only', "/")
+		yield ('resource', '')
+		return
+
+	# Path segments leading to &rsrc.
+	roots = root
+	segments = path[:-1]
+	if path:
+		rsrc = path[-1]
+	else:
+		if roots:
+			rsrc = roots[-1]
+			del roots[-1]
+		else:
+			rsrc = None
+
+	if roots:
+		yield ('delimiter-path-initial', "/")
+		for root in roots[:-1]:
+			yield ('path-root', escape_path.sub(pct_encode, root))
+			yield ('delimiter-path-root', "/")
+		else:
+			yield ('path-root', escape_path.sub(pct_encode, roots[-1]))
+		if rsrc is None:
+			return
+
+	if segments:
+		if not roots:
+			yield ('delimiter-path-initial', "/")
+			yield ('path-segment', escape_path.sub(pct_encode, segments[0]))
+			del segments[0]
+
+		for segment in segments:
+			yield ('delimiter-path-segments', "/")
+			yield ('path-segment', escape_path.sub(pct_encode, segment))
+
+	if rsrc is not None:
+		yield ('delimiter-path-final', "/")
+		yield ('resource', escape_path.sub(pct_encode, rsrc))
+
+def tokens(struct):
+	"""
+	# Construct an iterator producing Resource Indicator Tokens.
+	# The items are pairs providing the type and the exact text
+	# to be used to reconstruct the Resource Indicator parsed
+	# into the given &struct.
+	"""
+	ctx = map(struct.get, ('scheme', 'type', 'user', 'password', 'host', 'port'))
+	root = struct.get('root')
+	path = struct.get('path')
+	return \
+		list(context_tokens(*ctx)) + \
+		list(path_tokens(root, path)) + \
+		list(query_tokens(struct.get('query', None))) + \
+		list(fragment_tokens(struct.get('fragment', None)))
+
+if __name__ == '__main__':
+	import sys
+	s = parse(sys.argv[1])
+	t = tokens(s)
+	for x in t:
+		print(x)
