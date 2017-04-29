@@ -1,4 +1,4 @@
-from .. import libri
+from .. import ri as library
 
 def cmbx(t):
 	'Yield a list of combinations using a mask'
@@ -459,14 +459,14 @@ def test_expectations(test):
 	for x in expectation_samples:
 		text, split, parsed = x
 
-		text_split = libri.split(text)
-		text_parsed = libri.parse(text)
+		text_split = library.split(text)
+		text_parsed = library.parse(text)
 
-		split_join = libri.join(split)
-		split_structure = libri.structure(split)
+		split_join = library.join(split)
+		split_structure = library.structure(split)
 
-		parsed_construct = libri.construct(parsed)
-		parsed_serialize = libri.serialize(parsed)
+		parsed_construct = library.construct(parsed)
+		parsed_serialize = library.serialize(parsed)
 
 		test/text_parsed == parsed
 		test/parsed_serialize == text
@@ -477,31 +477,31 @@ def test_expectations(test):
 
 def test_split_join_netloc(test):
 	for x in sample_join_netlocs:
-		sn = libri.split_netloc(x)
-		usn = libri.join_netloc(sn)
+		sn = library.split_netloc(x)
+		usn = library.join_netloc(sn)
 		test/usn == x
 
 def test_join_split_netloc(test):
 	for xx in sample_split_netlocs:
 		for x in cmbx(xx):
 			x = tuple(x)
-			un = libri.join_netloc(x)
-			sn = tuple(libri.split_netloc(un))
+			un = library.join_netloc(x)
+			sn = tuple(library.split_netloc(un))
 			test/sn == x
 
 def test_split_join_path(test):
 	for x in sample_join_paths:
-		s = libri.split_path(x)
-		us = libri.join_path(s)
+		s = library.split_path(x)
+		us = library.join_path(s)
 		test/us == x
 
 def test_join_split_path(test):
 	for x in sample_paths:
-		us = libri.join_path(x)
-		s = libri.split_path(us)
+		us = library.join_path(x)
+		s = library.split_path(us)
 		test/s == x
 
-def test_combinations(test, S = libri.serialize, P = libri.parse):
+def test_combinations(test, S = library.serialize, P = library.parse):
 	for x in samples():
 		s = S(x); p = P(s)
 		if p != x:
