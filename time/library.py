@@ -28,7 +28,7 @@ import collections
 import heapq
 
 from . import core # Context & Standard Definitions.
-from . import libclock
+from . import clock
 from . import views
 from . import eternal
 
@@ -96,11 +96,11 @@ future = Segment((present, never))
 past = Segment((genesis, present))
 
 #: Clock interface to the kernel's clock, demotic and monotonic.
-kclock = libclock.kclock
+kclock = clock.kclock
 
-#: Clock interface to the :py:obj:`kclock`
+#: Clock interface to the &kclock.
 #: that provides Measure and Timestamp instances.
-clock = libclock.IClock(kclock, Measure, Timestamp)
+clock = clock.IClock(kclock, Measure, Timestamp)
 
 #: Shortcut to @clock.demotic
 now = clock.demotic

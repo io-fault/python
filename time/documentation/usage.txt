@@ -714,9 +714,9 @@ chronometry has the concept of a clock. This clock has multiple services for tra
 the passing of time according to the "clockwork" of the underlying operating
 system. This includes monotonic passing of time, and "demotic", colloquial.
 
-The &.libclock module provides the implementation of the
-&.abstract.Clock interface using the &.system module.
-The &.system module uses whatever facilities it was able
+The &.clock module provides the implementation of the
+&.abstract.Clock interface using the &.kernel module.
+The &.kernel module uses whatever facilities it was able
 to find at compile time in order to provide maximum precision.
 
 [ Working with the Clock >> Demotic and Monotonic Time ]
