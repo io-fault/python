@@ -1,9 +1,35 @@
 """
-# Parse and Serialize Structured Resource Indicators
+# Parse, Serialize, and Tokenize Resource Indicators
 
-# As with many implementations in `internet`, libri is not strict with regards
-# to a particular specification. Rather, it seeks to handle all cases with relative
-# sanity such that any error checking may be performed by the user.
+# &.ri provides tools for working with standard IRIs or URIs. However,
+# it is not strict. It does not require exact formatting for a parse
+# operation to succeed; rather, the validation of the output is left
+# to the user.
+
+# The module refers to IRI and URI strings as Resource Indicators.
+# The distinction is made as the module deals with a slight generalization
+# where constraints are not enforced or checked.
+
+# [ Entry Points ]
+# - &parse
+# - &serialize
+# - &tokens
+
+# [ Types ]
+# A parsed indicator is designated a type. The set of possible types
+# is inspired by the URI and IRI standards:
+
+# /authority
+	# An authority indicator identified by the presence of (characters)`'://'`
+	# following the scheme field.
+# /absolute
+	# A colon following the scheme field.
+# /relative
+	# A pair of slashes following the scheme field. Often, the scheme
+	# is implied in these cases.
+# /amorphous
+	# The absence of characters that allow the unambiguous identification
+	# of a type. Usually indicates a value error.
 """
 
 import re
@@ -94,7 +120,7 @@ def split(iri):
 	end = len(s)
 
 	# absolute IRIs
-	if s.startswith("//"):
+	if s[:2] == "//":
 		pos = 2
 		type = "relative" # scheme is defined by context.
 	else:
