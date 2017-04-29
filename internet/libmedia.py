@@ -59,11 +59,12 @@ types = {
 	'pdf': 'application/pdf',
 	'postscript': 'application/postscript',
 
-	'json': 'application/json',
-	'javascript': 'application/javascript',
-
-	'js': 'text/plain;pl=javascript',
+	'javascript': 'text/plain;pl=javascript',
 	'py': 'text/plain;pl=python',
+
+	# Recommended types for .js files.
+	'json': 'application/json',
+	'js': 'application/javascript',
 
 	'xml': 'text/xml',
 	'sgml': 'text/sgml',
