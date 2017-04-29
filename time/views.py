@@ -1,95 +1,14 @@
 """
-# Public timezone library.
+# Container for Perspective implementations.
+
+# Primarily contains &Zone, which should normally be accessed indirectly
+# using &.library.zone.
 """
 import os
 import os.path
-import bisect
 import functools
 from . import tzif
 from . import abstract
-
-class Offset(tuple):
-	"""
-	# Offsets are constructed by a tuple of the form: `(offset, abbreviation, type)`.
-	# Primarily, the type signifies whether or not the offset is daylight
-	# savings or not.
-
-	# &Offset instances are usually extracted from &Zone objects which
-	# build a sequence of transitions for subsequent searching.
-	"""
-	__slots__ = ()
-
-	unit = 'second'
-	datum = 0
-
-	@property
-	def magnitude(self):
-		"""
-		# The offset in seconds from UTC.
-		"""
-		return self[0]
-
-	@property
-	def abbreviation(self):
-		"""
-		# The Offset's timezone abbreviation; such as UTC, GMT, and EST.
-		"""
-		return self[1]
-
-	@property
-	def type(self):
-		"""
-		# Field used to identify if the &Offset is daylight savings time.
-		"""
-		return self[2]
-
-	@property
-	def is_dst(self):
-		"""
-		# Whether or not the &Offset is referring to a daylight savings time
-		# offset.
-		"""
-		return self.type == 'dst'
-
-	def __hash__(self):
-		return self[0].__hash__()
-
-	def __str__(self):
-		return '%s%s%d' %(
-			self.abbreviation,
-			"+" if self.magnitude >= 0 else "-",
-			abs(self.magnitude)
-		)
-
-	def __repr__(self):
-		return '<%s(%s: %d)>' %(self.__class__.__name__, self.abbreviation, self.magnitude)
-
-	def __eq__(self, ob):
-		return tuple(self) == tuple(ob)
-
-	def __int__(self):
-		return self.magnitude
-
-	def iso(self, pit):
-		"""
-		# Return the offset-qualified ISO representation of the given point in time.
-		"""
-		return ' '.join((pit.select('iso'), str(self)))
-
-	@classmethod
-	def from_tzinfo(typ, tzinfo):
-		"""
-		# Construct a Zone instance from a &.tzif.tzinfo tuple.
-		"""
-		return typ(
-			(
-				tzinfo.tz_offset,
-				tzinfo.tz_abbrev.decode('ascii'),
-				'dst' if tzinfo.tz_isdst else 'std',
-			)
-		)
-
-abstract.Measure.register(Offset)
 
 class Zone(object):
 	"""
@@ -104,6 +23,89 @@ class Zone(object):
 	# /default
 		# The default &Offset of the &Zone.
 	"""
+
+	class Offset(tuple):
+		"""
+		# Offsets are constructed by a tuple of the form: `(offset, abbreviation, type)`.
+		# Primarily, the type signifies whether or not the offset is daylight
+		# savings or not.
+
+		# &Offset instances are usually extracted from &Zone objects which
+		# build a sequence of transitions for subsequent searching.
+		"""
+		__slots__ = ()
+
+		unit = 'second'
+		datum = 0
+
+		@property
+		def magnitude(self):
+			"""
+			# The offset in seconds from UTC.
+			"""
+			return self[0]
+
+		@property
+		def abbreviation(self):
+			"""
+			# The Offset's timezone abbreviation; such as UTC, GMT, and EST.
+			"""
+			return self[1]
+
+		@property
+		def type(self):
+			"""
+			# Field used to identify if the &Offset is daylight savings time.
+			"""
+			return self[2]
+
+		@property
+		def is_dst(self):
+			"""
+			# Whether or not the &Offset is referring to a daylight savings time
+			# offset.
+			"""
+			return self.type == 'dst'
+
+		def __hash__(self):
+			return self[0].__hash__()
+
+		def __str__(self):
+			return '%s%s%d' %(
+				self.abbreviation,
+				"+" if self.magnitude >= 0 else "-",
+				abs(self.magnitude)
+			)
+
+		def __repr__(self):
+			return '<%s(%s: %d)>' %(self.__class__.__name__, self.abbreviation, self.magnitude)
+
+		def __eq__(self, ob):
+			return tuple(self) == tuple(ob)
+
+		def __int__(self):
+			return self.magnitude
+
+		def iso(self, pit):
+			"""
+			# Return the offset-qualified ISO representation of the given point in time.
+			"""
+			return ' '.join((pit.select('iso'), str(self)))
+
+		@classmethod
+		def from_tzinfo(Class, tzinfo):
+			"""
+			# Construct a Zone instance from a &.tzif.tzinfo tuple.
+			"""
+			return Class(
+				(
+					tzinfo.tz_offset,
+					tzinfo.tz_abbrev.decode('ascii'),
+					'dst' if tzinfo.tz_isdst else 'std',
+				)
+			)
+
+	abstract.Measure.register(Offset)
 
 	def __init__(self, transitions, offsets, default, leaps, name):
 		self.transitions = transitions
@@ -120,7 +122,8 @@ class Zone(object):
 			len(self.offsets),
 		)
 
-	def find(self, pit, bisect=bisect.bisect):
+	import bisect
+	def find(self, pit, search=bisect.bisect):
 		"""
 		# Get the appropriate offset in the zone for a given Point In Time, &pit.
 		# If the &pit does not fall within a known range, the &default will be returned.
@@ -131,14 +134,14 @@ class Zone(object):
 		# /pit
 			# The &.library.Timestamp to use to find an offset with.
 		"""
-		idx = bisect(self.transitions, pit) - 1
+		idx = search(self.transitions, pit) - 1
 		try:
 			z = self.offsets[idx]
 		except IndexError:
 			z = self.default
 		return z
 
-	def slice(self, start, stop, bisect = bisect.bisect):
+	def slice(self, start, stop, search=bisect.bisect):
 		"""
 		# Get a slice of transition points and time zone offsets
 		# relative to a given &start and &stop.
@@ -152,13 +155,14 @@ class Zone(object):
 		# /stop
 			# The end of the period.
 		"""
-		first_offset = bisect(self.transitions, start) - 1
-		last_offset = bisect(self.transitions, stop)
+		first_offset = search(self.transitions, start) - 1
+		last_offset = search(self.transitions, stop)
 
 		trans = self.transitions[first_offset:last_offset]
 		offs = self.offsets[first_offset:last_offset]
 
 		return zip(trans, offs)
+	import bisect
 
 	def localize(self, pit):
 		"""
@@ -202,9 +206,9 @@ class Zone(object):
 		return (p.elapse(new_offset), new_offset)
 
 	@classmethod
-	def from_tzif_data(typ, construct, tzd, name = None, lru_cache = functools.lru_cache):
+	def from_tzif_data(Class, construct, tzd, name = None, lru_cache = functools.lru_cache):
 		# Re-use prior created offsets.
-		zb = lru_cache(maxsize=None)(Offset.from_tzinfo)
+		zb = lru_cache(maxsize=None)(Class.Offset.from_tzinfo)
 
 		# convert the unix epoch timestamps in seconds to Y2K+1 in nanoseconds
 		offsets, transitions, leaps = tzd
@@ -214,18 +218,18 @@ class Zone(object):
 
 		default = offsets[0]
 
-		return typ(transition_points, transition_offsets, zb(default), leaps, name)
+		return Class(transition_points, transition_offsets, zb(default), leaps, name)
 
 	@classmethod
-	def from_file(typ, construct, filepath):
-		return typ.from_tzif_data(
+	def from_file(Class, construct, filepath):
+		return Class.from_tzif_data(
 			construct,
 			tzif.get_timezone_data(filepath),
 			name = filepath
 		)
 
 	@classmethod
-	def open(typ, construct, fp = None, _fsjoin = os.path.join):
+	def open(Class, construct, fp = None, _fsjoin = os.path.join):
 		if not fp:
 			fp = os.environ.get(tzif.tzenviron)
 
@@ -234,4 +238,4 @@ class Zone(object):
 		else:
 			fp  = _fsjoin(tzif.tzdir, fp)
 
-		return typ.from_file(construct, fp)
+		return Class.from_file(construct, fp)

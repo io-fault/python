@@ -647,7 +647,7 @@ def standard_context(qname):
 	from . import eternal
 	from . import gregorian
 	from . import libformat
-	from . import libzone
+	from . import views
 
 	context = Context()
 

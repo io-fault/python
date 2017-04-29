@@ -42,15 +42,15 @@
 /Localization
 	Referring to the process of localizing a timestamp to a particular time zone. Given a
 	UTC timestamp, a localized version of the timestamp would be the timestamp adjusted by
-	the offset identified by the specified &.libzone.Zone.
-	&.libzone.Zone.localize.
+	the offset identified by the specified &.zone.Zone.
+	&.zone.Zone.localize.
 
 /Normalization
 	Referring the process of normalizing a localized timestamp to a particular time zone.
 	Given a localized timestamp, a normalized version of the timestamp would be the
 	timestamp adjusted to UTC and then localized. Normalization should be used when
 	representing timestamps whose localized version has been manipulated.
-	&.libzone.Zone.normalize.
+	&.zone.Zone.normalize.
 
 /Term
 	Internal use only; a core unit. Units are associated as "like" terms by

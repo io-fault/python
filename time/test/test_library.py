@@ -1,6 +1,6 @@
 import fractions
 from .. import library
-from .. import libzone
+from .. import views
 from . import mock
 
 def test_classes(test):
@@ -510,13 +510,18 @@ def test_zone_slice(test):
 	start = library.Timestamp.of(iso='2006-01-03T09:00:00.000000000')
 	stop = library.Timestamp.of(iso='2007-12-03T09:00:00.000000000')
 
-	# XXX: assuming LA zone consistency. fix with a contrived libzone.Zone() instance.
+	# XXX: assuming LA zone consistency. fix with a contrived zone.Zone() instance.
 	test/list(library.zone('America/Los_Angeles').slice(start, stop)) == [
-		(library.Timestamp.of(iso='2005-10-30T09:00:00.000000000'), libzone.Offset((-28800, 'PST', 'std'))),
-		(library.Timestamp.of(iso='2006-04-02T10:00:00.000000000'), libzone.Offset((-25200, 'PDT', 'dst'))),
-		(library.Timestamp.of(iso='2006-10-29T09:00:00.000000000'), libzone.Offset((-28800, 'PST', 'std'))),
-		(library.Timestamp.of(iso='2007-03-11T10:00:00.000000000'), libzone.Offset((-25200, 'PDT', 'dst'))),
-		(library.Timestamp.of(iso='2007-11-04T09:00:00.000000000'), libzone.Offset((-28800, 'PST', 'std')))
+		(library.Timestamp.of(iso='2005-10-30T09:00:00.000000000'),
+			views.Zone.Offset((-28800, 'PST', 'std'))),
+		(library.Timestamp.of(iso='2006-04-02T10:00:00.000000000'),
+			views.Zone.Offset((-25200, 'PDT', 'dst'))),
+		(library.Timestamp.of(iso='2006-10-29T09:00:00.000000000'),
+			views.Zone.Offset((-28800, 'PST', 'std'))),
+		(library.Timestamp.of(iso='2007-03-11T10:00:00.000000000'),
+			views.Zone.Offset((-25200, 'PDT', 'dst'))),
+		(library.Timestamp.of(iso='2007-11-04T09:00:00.000000000'),
+			views.Zone.Offset((-28800, 'PST', 'std')))
 	]
 	test/list(library.zone('MST').slice(start, stop)) == []
 

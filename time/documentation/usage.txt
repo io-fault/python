@@ -892,7 +892,7 @@ should be associated with the PiT object.
 [ Working with Time Zones >> Getting an Offset from a UTC Point in Time ]
 -------------------------------------------------------------------------
 
-While &.libzone provides the implementation of Zone objects, high level
+While &.views provides the implementation of Zone objects, high level
 access is provided via the &.library.zone function:
 
 #!/pl/python
@@ -900,7 +900,7 @@ access is provided via the &.library.zone function:
 	pit = libtime.now()
 	offset = tz.find(pit)
 
-Once the &.libzone.Offset object has been found for a given point in
+Once the &.views.Zone.Offset object has been found for a given point in
 time, the UTC point can be adjusted:
 
 #!/pl/python
@@ -910,8 +910,8 @@ time, the UTC point can be adjusted:
 -------------------------------------------------------------
 
 The examples in the previous section show the details of localization.
-&.libzone.Zone instances have the above functionality packed into a
-single method, &.libzone.Zone.localize:
+&.views.Zone instances have the above functionality packed into a
+single method, &.views.Zone.localize:
 
 #!/pl/python
 	pit, offset = libtime.zone().localize(libtime.now())
@@ -927,7 +927,7 @@ often necessary in order to properly represent the timestamp:
 ----------------------------------------------------------------
 
 Normalization is the process of adjusting a localized timestamp by its *known* offset into
-a UTC timestamp and then localizing it. The &.libzone.Zone.normalize
+a UTC timestamp and then localizing it. The &.views.Zone.normalize
 method has this functionality:
 
 #!/pl/python

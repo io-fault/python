@@ -29,7 +29,7 @@ import heapq
 
 from . import core # Context & Standard Definitions.
 from . import libclock
-from . import libzone
+from . import views
 from . import eternal
 
 __shortname__ = 'libtime'
@@ -259,8 +259,8 @@ def business_week(pit, five = Days(5), one = Days(1), list = list):
 
 def zone(name:str=None,
 		construct=unix,
-		zone_open=functools.lru_cache()(libzone.Zone.open),
-	) -> libzone.Zone:
+		zone_open=functools.lru_cache()(views.Zone.open),
+	) -> views.Zone:
 	"""
 	# Return a Zone object for localizing UTC timestamps and normalizing local timestamps.
 	"""
