@@ -1,8 +1,8 @@
 """
 # Collection of parsers and formatters that apply to multiple protocols.
 
-# Generally, a supplement for &.libhttp, and a dependency of &.media.
-# The tokenization that occurs in &.libhttp is intentionally simple, but
+# Generally, a supplement for &.http, and a dependency of &.media.
+# The tokenization that occurs in &.http is intentionally simple, but
 # some of the unparsed fields may need to be structured by the downstream of
 # a tokenization instance. Notably, cookie headers make use of parameter
 # series that can be processed by &split_parameter_series.

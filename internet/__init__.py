@@ -9,8 +9,8 @@
 # [ Hyper Text Transfer Protocol ]
 # --------------------------------
 
-# HTTP processing is provided by &.libhttp.Assembler and
-# &.libhttp.Disassembler. These generators manage the state of
+# HTTP processing is provided by &.http.Assembler and
+# &.http.Disassembler. These generators manage the state of
 # an HTTP 1.1 or 1.0 channel.
 
 # [ Domain Name Service ]

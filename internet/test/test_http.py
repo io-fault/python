@@ -1,45 +1,45 @@
-from .. import libhttp
+from .. import http as module
 
 # Sanity
 def test_module_protocol(test):
-	'Disassembler' in test/dir(libhttp)
-	'disassembly' in test/dir(libhttp)
-	'Assembler' in test/dir(libhttp)
-	'assembly' in test/dir(libhttp)
+	'Disassembler' in test/dir(module)
+	'disassembly' in test/dir(module)
+	'Assembler' in test/dir(module)
+	'assembly' in test/dir(module)
 
 def test_Disassembler_complete_request(test):
 	data = b"GET / HTTP/1.0\r\nHost: host\r\n\r\n"
-	state = libhttp.disassembly()
+	state = module.disassembly()
 	events = state.send(data)
 	x = [
-		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(libhttp.Event.headers, [(b'Host', b'host')]),
-		libhttp.EOH,
-		libhttp.EOM,
+		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.Event.headers, [(b'Host', b'host')]),
+		module.EOH,
+		module.EOM,
 	]
 	test/x == events
 
 def test_Disassembler_complete_response(test):
 	data = b"HTTP/1.0 200 OK\r\nHost: host\r\n\r\n"
-	state = libhttp.disassembly()
+	state = module.disassembly()
 	events = state.send(data)
 	x = [
-		(libhttp.Event.rline, (b'HTTP/1.0', b'200', b'OK')),
-		(libhttp.Event.headers, [(b'Host', b'host')]),
-		libhttp.EOH,
-		libhttp.EOM,
+		(module.Event.rline, (b'HTTP/1.0', b'200', b'OK')),
+		(module.Event.headers, [(b'Host', b'host')]),
+		module.EOH,
+		module.EOM,
 	]
 	test/x == events
 
 def test_Disassembler_response_nobody(test):
 	data = b"HTTP/1.0 204 OK\r\nHost: host\r\n\r\n"
-	state = libhttp.disassembly()
+	state = module.disassembly()
 	events = state.send(data)
 	x = [
-		(libhttp.Event.rline, (b'HTTP/1.0', b'204', b'OK')),
-		(libhttp.Event.headers, [(b'Host', b'host')]),
-		libhttp.EOH,
-		libhttp.EOM,
+		(module.Event.rline, (b'HTTP/1.0', b'204', b'OK')),
+		(module.Event.headers, [(b'Host', b'host')]),
+		module.EOH,
+		module.EOM,
 	]
 	test/x == events
 
@@ -49,17 +49,17 @@ def test_Disassembler_bypass(test):
 	is forwarded inside a bypass event.
 	"""
 	data = b"GET / HTTP/1.0\r\nHost: host\r\nConnection: close\r\n\r\nBYPASS"
-	state = libhttp.disassembly()
+	state = module.disassembly()
 	events = state.send(data)
 	x = [
-		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(libhttp.Event.headers, [(b'Host', b'host'), (b'Connection', b'close')]),
-		libhttp.EOH,
-		libhttp.EOM,
-		(libhttp.Event.bypass, b'BYPASS'),
+		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.Event.headers, [(b'Host', b'host'), (b'Connection', b'close')]),
+		module.EOH,
+		module.EOM,
+		(module.Event.bypass, b'BYPASS'),
 	]
 	test/x == events
-	test/state.send(b'More') == [(libhttp.Event.bypass, b'More')]
+	test/state.send(b'More') == [(module.Event.bypass, b'More')]
 
 def test_Disassembler_chunked_1(test):
 	"""
@@ -74,19 +74,19 @@ fffff\r
 0\r
 \r
 """
-	state = libhttp.disassembly()
+	state = module.disassembly()
 	output = state.send(data)
 	x = [
-		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
-		(libhttp.Event.headers, [
+		(module.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
+		(module.Event.headers, [
 			(b'Transfer-Encoding', b'chunked'),
 			(b'Host', b'host')
 		]),
-		libhttp.EOH,
-		(libhttp.Event.chunk, b'fffff'),
-		(libhttp.Event.chunk, b''),
-		(libhttp.Event.trailers, ()),
-		libhttp.EOM,
+		module.EOH,
+		(module.Event.chunk, b'fffff'),
+		(module.Event.chunk, b''),
+		(module.Event.trailers, ()),
+		module.EOM,
 	]
 	test/x == output
 
@@ -105,27 +105,27 @@ fff"""
 0\r
 \r
 """
-	g = libhttp.disassembly()
+	g = module.disassembly()
 	eventseq1 = g.send(data1)
 	eventseq2 = g.send(data2)
 	eventseq3 = g.send(data3)
 	x1 = [
-		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(libhttp.Event.headers, [
+		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.Event.headers, [
 				(b'Transfer-Encoding', b'chunked'),
 				(b'Host', b'host')
 			],
 		),
-		libhttp.EOH,
+		module.EOH,
 	]
 	x2 = [
-		(libhttp.Event.chunk, b'fff'),
+		(module.Event.chunk, b'fff'),
 	]
 	x3 = [
-		(libhttp.Event.chunk, b'ff'),
-		(libhttp.Event.chunk, b''),
-		(libhttp.Event.trailers, ()),
-		libhttp.EOM,
+		(module.Event.chunk, b'ff'),
+		(module.Event.chunk, b''),
+		(module.Event.trailers, ()),
+		module.EOM,
 	]
 
 	test/x1 == eventseq1
@@ -146,20 +146,20 @@ fffff\r
 Trailer: value\r
 \r
 """
-	g = libhttp.disassembly()
+	g = module.disassembly()
 	eventseq1 = g.send(data)
 	x1 = [
-		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(libhttp.Event.headers, [
+		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.Event.headers, [
 			(b'Transfer-Encoding', b'chunked'),
 			(b'Host', b'host')
 		]),
-		(libhttp.Event.headers, ()),
-		(libhttp.Event.chunk, b'fffff'),
-		(libhttp.Event.chunk, b''),
-		(libhttp.Event.trailers, [(b'Trailer', b'value')]),
-		(libhttp.Event.trailers, ()),
-		libhttp.EOM,
+		(module.Event.headers, ()),
+		(module.Event.chunk, b'fffff'),
+		(module.Event.chunk, b''),
+		(module.Event.trailers, [(b'Trailer', b'value')]),
+		(module.Event.trailers, ()),
+		module.EOM,
 	]
 	test/x1 == eventseq1
 
@@ -179,28 +179,28 @@ Trailer: value\r
 	data2 = b"""Trailer: value2\r
 \r
 """
-	g = libhttp.disassembly()
+	g = module.disassembly()
 	eventseq1 = g.send(data1)
 	eventseq2 = g.send(data2)
 	x1 = [
-		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(libhttp.Event.headers, [
+		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.Event.headers, [
 			(b'Transfer-Encoding', b'chunked'),
 			(b'Host', b'host')
 		]),
-		(libhttp.Event.headers, ()),
-		(libhttp.Event.chunk, b'fffff',),
-		(libhttp.Event.chunk, b'',),
-		(libhttp.Event.trailers, [
+		(module.Event.headers, ()),
+		(module.Event.chunk, b'fffff',),
+		(module.Event.chunk, b'',),
+		(module.Event.trailers, [
 				(b'Trailer', b'value')
 		]),
 	]
 	x2 = [
-		(libhttp.Event.trailers, [
+		(module.Event.trailers, [
 			(b'Trailer', b'value2')
 		]),
-		(libhttp.Event.trailers, ()),
-		libhttp.EOM,
+		(module.Event.trailers, ()),
+		module.EOM,
 	]
 	test/x1 == eventseq1
 	test/x2 == eventseq2
@@ -214,44 +214,44 @@ def test_Disassembler_trailers_limit_bypass(test):
 	data += b"5\r\nfffff\r\n0\r\nTrailer: value\r\n\r\n"
 
 	# Case where the trailer EOF is known.
-	g = libhttp.disassembly(max_trailer_size=4)
+	g = module.disassembly(max_trailer_size=4)
 	eventseq1 = g.send(data)
 	x1 = [
-		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(libhttp.Event.headers, [
+		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.Event.headers, [
 			(b'Transfer-Encoding', b'chunked'),
 			(b'Host', b'host')
 		]),
-		(libhttp.Event.headers, ()),
-		(libhttp.Event.chunk, b'fffff'),
-		(libhttp.Event.chunk, b''),
-		(libhttp.Event.trailers, [(b'Trailer', b'value')]),
-		(libhttp.Event.violation, ('limit', 'max_trailer_size', 14)),
-		(libhttp.Event.bypass, b'\r\n'),
+		(module.Event.headers, ()),
+		(module.Event.chunk, b'fffff'),
+		(module.Event.chunk, b''),
+		(module.Event.trailers, [(b'Trailer', b'value')]),
+		(module.Event.violation, ('limit', 'max_trailer_size', 14)),
+		(module.Event.bypass, b'\r\n'),
 	]
 	test/x1 == eventseq1
-	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
 
 	data = b"GET / HTTP/1.0\r\nTransfer-Encoding: chunked\r\nHost: host\r\n\r\n"
 	data += b"5\r\nfffff\r\n0\r\nTrailer: value"
 
 	# Case where the trailer EOF is *not* known.
-	g = libhttp.disassembly(max_trailer_size=4)
+	g = module.disassembly(max_trailer_size=4)
 	eventseq1 = g.send(data)
 	x2 = [
-		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(libhttp.Event.headers, [
+		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.Event.headers, [
 			(b'Transfer-Encoding', b'chunked'),
 			(b'Host', b'host')
 		]),
-		(libhttp.Event.headers, ()),
-		(libhttp.Event.chunk, b'fffff'),
-		(libhttp.Event.chunk, b''),
-		(libhttp.Event.violation, ('limit', 'max_trailer_size', 14)),
-		(libhttp.Event.bypass, b'Trailer: value'),
+		(module.Event.headers, ()),
+		(module.Event.chunk, b'fffff'),
+		(module.Event.chunk, b''),
+		(module.Event.violation, ('limit', 'max_trailer_size', 14)),
+		(module.Event.bypass, b'Trailer: value'),
 	]
 	test/x2 == eventseq1
-	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
 
 def test_Disassembler_max_trailers(test):
 	"""
@@ -262,23 +262,23 @@ def test_Disassembler_max_trailers(test):
 	data += b"5\r\nfffff\r\n0\r\nTrailer: value\r\n\r\n"
 
 	# Case where the trailer EOF is known.
-	g = libhttp.disassembly(max_trailers=0)
+	g = module.disassembly(max_trailers=0)
 	eventseq1 = g.send(data)
 	x1 = [
-		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(libhttp.Event.headers, [
+		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.Event.headers, [
 			(b'Transfer-Encoding', b'chunked'),
 			(b'Host', b'host')
 		]),
-		(libhttp.Event.headers, ()),
-		(libhttp.Event.chunk, b'fffff'),
-		(libhttp.Event.chunk, b''),
-		(libhttp.Event.trailers, [(b'Trailer', b'value')]),
-		(libhttp.Event.violation, ('limit', 'max_trailers', 1)),
-		(libhttp.Event.bypass, b'\r\n'),
+		(module.Event.headers, ()),
+		(module.Event.chunk, b'fffff'),
+		(module.Event.chunk, b''),
+		(module.Event.trailers, [(b'Trailer', b'value')]),
+		(module.Event.violation, ('limit', 'max_trailers', 1)),
+		(module.Event.bypass, b'\r\n'),
 	]
 	test/x1 == eventseq1
-	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
 
 def test_Disassembler_chunked_separated_size(test):
 	"""
@@ -299,37 +299,37 @@ Host: host\r
 	data9 = b'\n0\r\n\r'
 	data10 = b'\n'
 
-	g = libhttp.disassembly();
+	g = module.disassembly();
 	x1 = [
-		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(libhttp.Event.headers, [(b'Transfer-Encoding', b'chunked'), (b'Host', b'host')]),
-		(libhttp.Event.headers, ()),
+		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.Event.headers, [(b'Transfer-Encoding', b'chunked'), (b'Host', b'host')]),
+		(module.Event.headers, ()),
 	]
 	test/x1 == g.send(data1)
 	test/[] == g.send(data2)
 	test/[] == g.send(data3)
 	test/[] == g.send(data4)
-	test/[(libhttp.Event.chunk, b'')] == g.send(data5)
+	test/[(module.Event.chunk, b'')] == g.send(data5)
 
-	x2 = [(libhttp.Event.chunk, b'X' * (0x10 - 5))]
+	x2 = [(module.Event.chunk, b'X' * (0x10 - 5))]
 	test/x2 == list(g.send(data6))
 
-	x3 = [(libhttp.Event.chunk, b'Y' * (0x10 - (0x10 - 5)))]
+	x3 = [(module.Event.chunk, b'Y' * (0x10 - (0x10 - 5)))]
 	test/x3 == g.send(data7)
 	test/[] == g.send(data8)
 
-	x4 = [(libhttp.Event.chunk, b'')]
+	x4 = [(module.Event.chunk, b'')]
 	test/x4 == g.send(data9)
 
-	x5 = [(libhttp.Event.trailers, ()), libhttp.EOM]
+	x5 = [(module.Event.trailers, ()), module.EOM]
 	test/x5 == g.send(data10)
 
 def test_Disassembler_crlf_prefix_strip(test):
 	data = b"\r\n\r\nGET / HTTP/1.1\r\n"
-	g = libhttp.disassembly()
+	g = module.disassembly()
 	eventseq1 = g.send(data)
 	x1 = [
-		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
+		(module.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
 	]
 	test/x1 == eventseq1
 
@@ -344,67 +344,67 @@ Host: localhost\r
 Content-Length: 30\r
 \r
 ''' + b'Bad' * 10
-	g = libhttp.disassembly()
+	g = module.disassembly()
 
 	x1 = [
-		(libhttp.Event.rline, (b'GET', b'/index.html', b'HTTP/1.1')),
-		(libhttp.Event.headers, [(b'Host', b'localhost'), (b'Content-Length', b'20')]),
-		(libhttp.Event.headers, ()),
-		(libhttp.Event.content, b'A' * 20),
-		(libhttp.Event.content, b''),
-		libhttp.EOM,
+		(module.Event.rline, (b'GET', b'/index.html', b'HTTP/1.1')),
+		(module.Event.headers, [(b'Host', b'localhost'), (b'Content-Length', b'20')]),
+		(module.Event.headers, ()),
+		(module.Event.content, b'A' * 20),
+		(module.Event.content, b''),
+		module.EOM,
 
-		(libhttp.Event.rline, (b'POST', b'/data.html', b'HTTP/1.1')),
-		(libhttp.Event.headers, [(b'Host', b'localhost'), (b'Content-Length', b'30')]),
-		(libhttp.Event.headers, ()),
-		(libhttp.Event.content, b'Bad' * 10),
-		(libhttp.Event.content, b''),
-		libhttp.EOM,
+		(module.Event.rline, (b'POST', b'/data.html', b'HTTP/1.1')),
+		(module.Event.headers, [(b'Host', b'localhost'), (b'Content-Length', b'30')]),
+		(module.Event.headers, ()),
+		(module.Event.content, b'Bad' * 10),
+		(module.Event.content, b''),
+		module.EOM,
 	]
 	eventseq1 = g.send(mrequest)
 	test/x1 == eventseq1
 
 def test_Disassembler_type_error(test):
 	# XXX: moved away from HTTP exceptions in favor of violation events
-	g = libhttp.disassembly()
+	g = module.disassembly()
 	test/TypeError ^ (lambda: g.send(123))
 
 def test_Disassembler_limit_line_too_large(test):
 	data = b'GET / HTTP/1.1'
-	g = libhttp.disassembly(max_line_size = 8)
+	g = module.disassembly(max_line_size = 8)
 	r = g.send(data)
 	test/r == [
-		(libhttp.Event.violation, ('limit', 'max_line_size', 8)),
-		(libhttp.Event.bypass, data),
+		(module.Event.violation, ('limit', 'max_line_size', 8)),
+		(module.Event.bypass, data),
 	]
-	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
 
 def test_Disassembler_limit_line_too_large_with_eof(test):
 	data = b'GET / HTTP/1.1\r\nHost: host\r\n\r\n'
-	g = libhttp.disassembly(max_line_size = 4)
+	g = module.disassembly(max_line_size = 4)
 	r = g.send(data)
 	test/r == [
-		(libhttp.Event.violation, ('limit', 'max_line_size', 4)),
-		(libhttp.Event.bypass, data),
+		(module.Event.violation, ('limit', 'max_line_size', 4)),
+		(module.Event.bypass, data),
 	]
-	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
 
 def test_Disassembler_invalid_content_length(test):
 	"""
 	Check that the value error is properly reported.
 	"""
 	data = b"GET / HTTP/1.0\r\nHost: host\r\nContent-Length: vz@\r\nConnection: close\r\n\r\nBYPASS"
-	state = libhttp.disassembly()
+	state = module.disassembly()
 	events = state.send(data)
 	x = [
-		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(libhttp.Event.headers, [(b'Host', b'host')]),
-		(libhttp.Event.violation,
+		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.Event.headers, [(b'Host', b'host')]),
+		(module.Event.violation,
 			('protocol', 'Content-Length', bytearray(b'vz@'))),
-		(libhttp.Event.bypass, b'Connection: close\r\n\r\nBYPASS'),
+		(module.Event.bypass, b'Connection: close\r\n\r\nBYPASS'),
 	]
 	test/x == events
-	test/state.send(b'More') == [(libhttp.Event.bypass, b'More')]
+	test/state.send(b'More') == [(module.Event.bypass, b'More')]
 
 def test_Disassembler_invalid_chunk_field(test):
 	output = []
@@ -416,18 +416,18 @@ zzz\r
 fffff\r
 0\r
 \r"""
-	g = libhttp.disassembly()
+	g = module.disassembly()
 	r = g.send(data)
 	test/r == [
-		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
-		(libhttp.Event.headers,
+		(module.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
+		(module.Event.headers,
 			[(b'Transfer-Encoding', b'chunked'), (b'Host', b'host')]),
-		(libhttp.Event.headers, ()),
-		(libhttp.Event.violation,
+		(module.Event.headers, ()),
+		(module.Event.violation,
 			('protocol', 'chunk-field', bytearray(b'zzz'))),
-		(libhttp.Event.bypass, bytearray(b'fffff\r\n0\r\n\r')),
+		(module.Event.bypass, bytearray(b'fffff\r\n0\r\n\r')),
 	]
-	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
 
 def test_Disassembler_chunk_no_terminator(test):
 	output = []
@@ -439,19 +439,19 @@ Host: host\r
 fffff
 0\r
 \r"""
-	g = libhttp.disassembly()
+	g = module.disassembly()
 	r = g.send(data)
 	test/r == [
-		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
-		(libhttp.Event.headers,
+		(module.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
+		(module.Event.headers,
 			[(b'Transfer-Encoding', b'chunked'), (b'Host', b'host')]),
-		(libhttp.Event.headers, ()),
-		(libhttp.Event.chunk, b'fffff'),
-		(libhttp.Event.violation,
+		(module.Event.headers, ()),
+		(module.Event.chunk, b'fffff'),
+		(module.Event.violation,
 			('protocol', 'bad-chunk-terminator', b'\n0')),
-		(libhttp.Event.bypass, bytearray(b'\n0\r\n\r')),
+		(module.Event.bypass, bytearray(b'\n0\r\n\r')),
 	]
-	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
 
 def test_Disassembler_limit_max_chunksize(test):
 	output = []
@@ -463,32 +463,32 @@ Host: host\r
 fffff\r
 0\r
 \r"""
-	g = libhttp.disassembly(max_chunk_line_size = 1)
+	g = module.disassembly(max_chunk_line_size = 1)
 	r = g.send(data)
 	test/r == [
-		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
-		(libhttp.Event.headers,
+		(module.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
+		(module.Event.headers,
 			[(b'Transfer-Encoding', b'chunked'), (b'Host', b'host')]),
-			(libhttp.Event.headers, ()),
-		(libhttp.Event.violation, ('limit', 'max_chunk_line_size', 15, 1)),
-		(libhttp.Event.bypass, bytearray(b'50\r\nfffff\r\n0\r\n\r'))
+			(module.Event.headers, ()),
+		(module.Event.violation, ('limit', 'max_chunk_line_size', 15, 1)),
+		(module.Event.bypass, bytearray(b'50\r\nfffff\r\n0\r\n\r'))
 	]
-	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
 
 def test_Disassembler_limit_max_chunksize_split(test):
 	output = []
 	data = b"GET / HTTP/1.1\r\nTransfer-Encoding: chunked\r\nHost: host\r\n\r10"
-	g = libhttp.disassembly(max_chunk_line_size = 1)
+	g = module.disassembly(max_chunk_line_size = 1)
 	r = g.send(data)
 	test/r == [
-		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
-		(libhttp.Event.headers,
+		(module.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
+		(module.Event.headers,
 			[(b'Transfer-Encoding', b'chunked'), (b'Host', b'host')]),
-			(libhttp.Event.headers, ()),
-		(libhttp.Event.violation, ('limit', 'max_chunk_line_size', 15, 1)),
-		(libhttp.Event.bypass, bytearray(b'50\r\nfffff\r\n0\r\n\r'))
+			(module.Event.headers, ()),
+		(module.Event.violation, ('limit', 'max_chunk_line_size', 15, 1)),
+		(module.Event.bypass, bytearray(b'50\r\nfffff\r\n0\r\n\r'))
 	]
-	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
 
 def test_Disassembler_limit_max_chunksize_split(test):
 	output = []
@@ -498,78 +498,78 @@ Host: host\r
 \r
 5\r
 ffffffds"""
-	g = libhttp.disassembly(max_chunk_line_size = 1)
+	g = module.disassembly(max_chunk_line_size = 1)
 	r = g.send(data)
 	test/r == [
-		(libhttp.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
-		(libhttp.Event.headers,
+		(module.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
+		(module.Event.headers,
 			[(b'Transfer-Encoding', b'chunked'), (b'Host', b'host')]),
-			(libhttp.Event.headers, ()),
-		(libhttp.Event.violation, ('limit', 'max_chunk_line_size', 11, 1)),
-		(libhttp.Event.bypass, bytearray(b'5\r\nffffffds')),
+			(module.Event.headers, ()),
+		(module.Event.violation, ('limit', 'max_chunk_line_size', 11, 1)),
+		(module.Event.bypass, bytearray(b'5\r\nffffffds')),
 	]
-	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
 
 def test_Disassembler_limit_header_too_large(test):
 	output = []
 	data = b"GET / HTTP/1.1\r\nFoo: bar"
 	# feed it two while expecting one
-	g = libhttp.disassembly(max_header_size = 2)
+	g = module.disassembly(max_header_size = 2)
 	r = g.send(data)
 	vio, byp = r[-2:]
 	vio, (viotype, limitation, limit) = vio
-	test/vio == libhttp.Event.violation
+	test/vio == module.Event.violation
 	test/viotype == 'limit'
 	test/limitation == 'max_header_size'
 	test/limit == 2
-	test/byp[0] == libhttp.Event.bypass
+	test/byp[0] == module.Event.bypass
 	test/byp[1] == b"""Foo: bar"""
-	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
 
 def test_Disassembler_limit_header_too_large_with_eof(test):
 	output = []
 	data = b"GET / HTTP/1.1\r\nFirst: value\r\nSecond: value\r\n"
 	# feed it two while expecting one
-	g = libhttp.disassembly(max_header_size = 2)
+	g = module.disassembly(max_header_size = 2)
 	r = g.send(data)
 	vio, byp = r[-2:]
 	vio, (viotype, limitation, limit) = vio
-	test/vio == libhttp.Event.violation
+	test/vio == module.Event.violation
 	test/viotype == 'limit'
 	test/limitation == 'max_header_size'
 	test/limit == 2
-	test/byp[0] == libhttp.Event.bypass
+	test/byp[0] == module.Event.bypass
 	test/byp[1] == b"First: value\r\nSecond: value\r\n"
-	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
 
 def test_Disassembler_limit_header_too_many(test):
 	output = []
 	data = b"GET / HTTP/1.1\r\nFoo: bar\r\n\r"
 	# feed it two while expecting one
-	g = libhttp.disassembly(max_headers = 0)
+	g = module.disassembly(max_headers = 0)
 	r = g.send(data)
 	vio, byp = r[-2:]
 	vio, (viotype, limitation, count, max) = vio
-	test/vio == libhttp.Event.violation
+	test/vio == module.Event.violation
 	test/viotype == 'limit'
 	test/limitation == 'max_headers'
 	test/count == 1
 	test/max == 0
-	test/byp[0] == libhttp.Event.bypass
+	test/byp[0] == module.Event.bypass
 	test/byp[1] == b"\r"
-	test/g.send(b'Bypassed') == [(libhttp.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
 
 def test_Disassembler_exercise_zero_writes(test):
 	output = []
 	data = b"HTTP/1.0 400 Bad Request\r\nFoo: bar\r\n\r"
-	g = libhttp.disassembly()
+	g = module.disassembly()
 	test/g.send(b'') == []
 	test/g.send(b'') == []
 	test/g.send(b'') == []
 	test/g.send(b'') == []
 	test/g.send(data) == [
-		(libhttp.Event.rline, (b'HTTP/1.0', b'400', b'Bad Request')),
-		(libhttp.Event.headers, [(b'Foo', b'bar')])
+		(module.Event.rline, (b'HTTP/1.0', b'400', b'Bad Request')),
+		(module.Event.headers, [(b'Foo', b'bar')])
 	]
 
 def test_headers(test):
@@ -579,7 +579,7 @@ def test_headers(test):
 			[(b'Foo', b'Bar'), (b'Content-Length', b'5')])
 	]
 	for expected, sdata in samples:
-		test/expected == b''.join(libhttp.headers(sdata))
+		test/expected == b''.join(module.headers(sdata))
 
 def test_chunk(test):
 	samples = [
@@ -588,7 +588,7 @@ def test_chunk(test):
 		(hex(100).encode('ascii')[2:] + b'\r\n' + (b'x' * 100) + b'\r\n', b'x' * 100),
 	]
 	for expected, data in samples:
-		test/expected == b''.join(libhttp.chunk(data))
+		test/expected == b''.join(module.chunk(data))
 
 def test_assemble(test):
 	# out of order assembly
@@ -603,8 +603,8 @@ Content-Length: 0\r
 """
 	]
 
-	d = libhttp.disassembly()
-	a = libhttp.assembly()
+	d = module.disassembly()
+	a = module.assembly()
 
 	for x in reqs:
 		de = d.send(x)
@@ -617,8 +617,8 @@ def test_assemble_ooo(test):
 	Assembly presumes the user knows what she is doing.
 	"""
 	# out of order assembly
-	g = libhttp.assembly()
-	r = g.send([(libhttp.Event.content, b'data')])
+	g = module.assembly()
+	r = g.send([(module.Event.content, b'data')])
 	test/r == [b'data']
 
 if __name__ == '__main__':
