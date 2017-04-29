@@ -34,7 +34,7 @@
 import operator
 import functools
 import typing
-from . import librife
+from . import tools
 
 iana_registered_types = 'https://www.iana.org/assignments/media-types/media-types.xml'
 
@@ -170,8 +170,8 @@ class Type(tuple):
 		# WARNING: recoding of fields.
 		if self[2]:
 			optjoin = b';'
-			encoded = librife.encode_parameters(self[2])
-			optstr = librife.join_parameter_series(encoded)
+			encoded = tools.encode_parameters(self[2])
+			optstr = tools.join_parameter_series(encoded)
 		else:
 			optjoin = b''
 			optstr = b''
@@ -244,12 +244,10 @@ class Type(tuple):
 
 		# Additional parameters or overrides may be given using keywords.
 		"""
-		global librife
-
 		start = string.split(b';', 1)
 		ct, st = [x.strip() for x in start[0].split(b'/', 1)]
 
-		params = list(librife.decode_parameters(librife.split_parameter_series((start[1:] or (b'',))[0])))
+		params = list(tools.decode_parameters(tools.split_parameter_series((start[1:] or (b'',))[0])))
 		params.extend(parameters.items())
 
 		os = frozenset(params)
@@ -293,8 +291,8 @@ class Range(tuple):
 		"""
 		# Construct triples describing the &media_range.
 		"""
-		parts = librife.split_parameter_series(media_range,
-			normal=librife._normal_mediarange_area
+		parts = tools.split_parameter_series(media_range,
+			normal=tools._normal_mediarange_area
 		)
 		parts = iter(parts)
 
@@ -337,7 +335,7 @@ class Range(tuple):
 		for tpair, quality, parameters in Class.split(data):
 			cotype, subtype = [x.decode('ascii', 'surrogateescape') for x in tpair]
 			percent = int(float(quality or b'1.0') * 100)
-			parameters = list(librife.decode_parameters(parameters or ()))
+			parameters = list(tools.decode_parameters(parameters or ()))
 
 			l.append((percent, Type((cotype, subtype, frozenset(parameters)))))
 		l.sort(key=skey, reverse=True)
