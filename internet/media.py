@@ -23,7 +23,8 @@
 
 	# Code:
 	#!/pl/python
-		mt = libmedia.type_from_string("text/xml")
+		from fault.internet import media
+		mt = media.type_from_string("text/xml")
 
 	# Equivalent to &Type.from_string, but cached.
 # /range_from_string

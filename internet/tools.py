@@ -1,17 +1,11 @@
 """
 # Collection of parsers and formatters that apply to multiple protocols.
 
-# Generally, a supplement for &.libhttp, and a dependency of &.libmedia.
+# Generally, a supplement for &.libhttp, and a dependency of &.media.
 # The tokenization that occurs in &.libhttp is intentionally simple, but
 # some of the unparsed fields may need to be structured by the downstream of
 # a tokenization instance. Notably, cookie headers make use of parameter
 # series that can be processed by &split_parameter_series.
-
-# [ Terminology ]
-
-# The term `rife` is common, but not in this context. Alternative names
-# for this module would be `libcommon` or `libshared`. Rife was chosen
-# for its distinct qualities.
 
 # [ References ]
 

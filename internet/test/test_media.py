@@ -1,38 +1,37 @@
-from .. import libmedia as library
-libmedia = library
+from .. import media as library
 
 def test_module_protocol(test):
-	'Type' in test/dir(libmedia)
-	'Range' in test/dir(libmedia)
+	'Type' in test/dir(library)
+	'Range' in test/dir(library)
 
 def test_Type(test):
-	text_xml = libmedia.Type.from_string('text/xml')
-	test/text_xml == libmedia.Type(('text', 'xml', frozenset()))
+	text_xml = library.Type.from_string('text/xml')
+	test/text_xml == library.Type(('text', 'xml', frozenset()))
 	test/text_xml.parameters == frozenset()
 	text_xml in test/text_xml
 	test/str(text_xml) == 'text/xml'
 	test/text_xml.pattern == False
 
-	text_xml_options = libmedia.Type.from_string('text/xml;option1;option2')
-	test/text_xml_options == libmedia.Type(('text', 'xml', frozenset([('option1',None),('option2',None)])))
+	text_xml_options = library.Type.from_string('text/xml;option1;option2')
+	test/text_xml_options == library.Type(('text', 'xml', frozenset([('option1',None),('option2',None)])))
 
-	text_any = libmedia.Type.from_string('text/*')
-	test/text_any == libmedia.Type(('text', '*', frozenset()))
+	text_any = library.Type.from_string('text/*')
+	test/text_any == library.Type(('text', '*', frozenset()))
 	test/text_any.parameters == frozenset()
 	text_xml in test/text_any
 	test/str(text_any) == 'text/*'
 	test/text_any.pattern == True
 
-	any_any = libmedia.Type.from_string('*/*')
-	test/any_any == libmedia.Type(('*', '*', frozenset()))
+	any_any = library.Type.from_string('*/*')
+	test/any_any == library.Type(('*', '*', frozenset()))
 	test/any_any.parameters == frozenset()
 	text_any in test/any_any
 	text_xml in test/any_any
 	test/str(any_any) == '*/*'
 	test/any_any.pattern == True
 
-	text_html = libmedia.Type.from_string('text/html')
-	level1_html = libmedia.Type.from_string('text/html', level='1')
+	text_html = library.Type.from_string('text/html')
+	level1_html = library.Type.from_string('text/html', level='1')
 	test/level1_html == level1_html
 	test/text_html != level1_html
 	level1_html in test/text_html # text_html is the outermost container
@@ -41,7 +40,7 @@ def test_Type(test):
 
 	# text/html without options is all inclusive,
 	# but with options, the containing type must be a subset
-	text_html_giraffe = libmedia.Type.from_string('text/html', level='1', giraffe='mr')
+	text_html_giraffe = library.Type.from_string('text/html', level='1', giraffe='mr')
 	level1_html in test/text_html_giraffe
 	text_html_giraffe in test/text_html
 	level1_html in test/text_html_giraffe
@@ -57,103 +56,103 @@ def test_Range(test):
 	"""
 	emptyset = frozenset()
 
-	range = libmedia.Range.from_bytes(b'application/xml,text/xml')
-	selection = range.query(libmedia.Type(('text','xml',frozenset([('level','1')]))))
+	range = library.Range.from_bytes(b'application/xml,text/xml')
+	selection = range.query(library.Type(('text','xml',frozenset([('level','1')]))))
 	test/selection == (
-		libmedia.Type(('text','xml',frozenset([('level','1')]))),
-		libmedia.Type(('text','xml',emptyset)),
+		library.Type(('text','xml',frozenset([('level','1')]))),
+		library.Type(('text','xml',emptyset)),
 		100
 	)
 
 	# needs to select /xml over /*
-	range = libmedia.Range.from_bytes(b'application/xml,text/*,text/xml')
-	selection = range.query(libmedia.Type(('text','xml',frozenset([('level','1')]))))
+	range = library.Range.from_bytes(b'application/xml,text/*,text/xml')
+	selection = range.query(library.Type(('text','xml',frozenset([('level','1')]))))
 	test/selection == (
-		libmedia.Type(('text','xml',frozenset([('level','1')]))),
-		libmedia.Type(('text','xml',emptyset)),
+		library.Type(('text','xml',frozenset([('level','1')]))),
+		library.Type(('text','xml',emptyset)),
 		100
 	)
 
-	selection = range.query(libmedia.Type(('text','xml',emptyset)))
+	selection = range.query(library.Type(('text','xml',emptyset)))
 	test/selection == (
-		libmedia.Type(('text','xml',emptyset)),
-		libmedia.Type(('text','xml',emptyset)),
+		library.Type(('text','xml',emptyset)),
+		library.Type(('text','xml',emptyset)),
 		100
 	)
 
-	selection = range.query(libmedia.Type(('text','plain',emptyset)))
+	selection = range.query(library.Type(('text','plain',emptyset)))
 	test/selection == (
-		libmedia.Type(('text','plain',emptyset)),
-		libmedia.Type(('text','*',emptyset)),
+		library.Type(('text','plain',emptyset)),
+		library.Type(('text','*',emptyset)),
 		100
 	)
 
 	selection = range.query(
-		libmedia.Type(('text','plain',emptyset)),
-		libmedia.Type(('text','xml',emptyset)),
+		library.Type(('text','plain',emptyset)),
+		library.Type(('text','xml',emptyset)),
 	)
 	# text/xml should have precedence over text/*
 	test/selection == (
-		libmedia.Type(('text','xml',emptyset)),
-		libmedia.Type(('text','xml',emptyset)),
+		library.Type(('text','xml',emptyset)),
+		library.Type(('text','xml',emptyset)),
 		100
 	)
 
 	# some options; give text/xml a lower quality to check text/* matches
-	range = libmedia.Range.from_bytes(b'application/xml,text/*;q = 0.5,text/xml')
+	range = library.Range.from_bytes(b'application/xml,text/*;q = 0.5,text/xml')
 
 	selection = range.query(
-		libmedia.Type(('text','plain',emptyset)),
-		libmedia.Type(('text','xml',emptyset)),
+		library.Type(('text','plain',emptyset)),
+		library.Type(('text','xml',emptyset)),
 	)
 	# text/xml should have precedence over text/*
 	test/selection == (
-		libmedia.Type(('text','xml',emptyset)),
-		libmedia.Type(('text','xml',emptyset)),
+		library.Type(('text','xml',emptyset)),
+		library.Type(('text','xml',emptyset)),
 		100
 	)
 
 	# only query text/plain; should pick up /*
 	selection = range.query(
-		libmedia.Type(('text','plain',emptyset)),
+		library.Type(('text','plain',emptyset)),
 	)
 	# text/xml should have precedence over text/*
 	test/selection == (
-		libmedia.Type(('text','plain',emptyset)),
-		libmedia.Type(('text','*',emptyset)),
+		library.Type(('text','plain',emptyset)),
+		library.Type(('text','*',emptyset)),
 		50
 	)
 
 	# validate that text/*'s greater quality gives it priority
-	range = libmedia.Range.from_bytes(
+	range = library.Range.from_bytes(
 		b'application/xml;q=0.4,text/*;q = 0.5,text/xml;q=0.2')
 
 	selection = range.query(
-		libmedia.Type(('application','xml',emptyset)),
-		libmedia.Type(('text','plain',emptyset)),
+		library.Type(('application','xml',emptyset)),
+		library.Type(('text','plain',emptyset)),
 	)
 	# text/xml should have precedence over text/*
 	test/selection == (
-		libmedia.Type(('text','plain',emptyset)),
-		libmedia.Type(('text','*',emptyset)),
+		library.Type(('text','plain',emptyset)),
+		library.Type(('text','*',emptyset)),
 		50
 	)
 
 	# reveal precedence
-	range = libmedia.Range.from_bytes(
+	range = library.Range.from_bytes(
 		b'text/html,text/html ;  level=\n	1  ,text/*') # whitespace to exercise strip()
 
-	html_l1 = libmedia.Type(('text','html',frozenset([('level','1')])))
+	html_l1 = library.Type(('text','html',frozenset([('level','1')])))
 	selection = range.query(html_l1)
 	# text/html;level=1 should have precedence over text/* and text/html
 	test/selection == (html_l1, html_l1, 100)
 
 	# quotes
-	range = libmedia.Range.from_string(
+	range = library.Range.from_string(
 		'text/html;foo="me\\h;,\\"",text/xml')
 
-	text_html_foo = libmedia.Type(('text','html',frozenset([('foo','meh;,"')])))
-	text_html = libmedia.Type(('text','html',emptyset))
+	text_html_foo = library.Type(('text','html',frozenset([('foo','meh;,"')])))
+	text_html = library.Type(('text','html',emptyset))
 	selection = range.query(text_html)
 	# text/html;level=1 should have precedence over text/* and text/html
 	test/selection == (text_html, text_html_foo, 100)
