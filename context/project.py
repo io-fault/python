@@ -1,6 +1,6 @@
-identity = 'http://fault.io/python/context'
+identity = 'http://code.fault.io/fault.context'
 name = 'context'
-abstract = 'Context package for the fault.io core Python projects'
+abstract = 'Context package for the fault.io intersection projects'
 icon = '<http://fault.io>'
 
 fork = 'foundation'
@@ -13,28 +13,27 @@ contact = 'mailto:critical@fault.io'
 root = 'http://fault.io/python/'
 
 projects = (
-	'routes',
 	'chronometry',
 	'computation',
-	'filesystem',
-	'text',
+	'console',
+	'cryptography',
 
 	'development',
-	'llvm',
 	'factors',
+	'filesystem',
 
-	'cryptography',
-	'traffic',
-	'system',
-	'interface',
-
-	'internet',
 	'io',
-	'xml',
-	'web',
+	'llvm',
 
+	'routes',
+	'stack',
+	'system',
 	'terminal',
-	'console',
+	'text',
+	'traffic',
+
+	'web',
+	'xml',
 )
 
 if __name__ == '__main__':
