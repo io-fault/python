@@ -646,7 +646,7 @@ def standard_context(qname):
 	from . import week
 	from . import eternal
 	from . import gregorian
-	from . import libformat
+	from . import format
 	from . import views
 
 	context = Context()
@@ -667,7 +667,7 @@ def standard_context(qname):
 	metric.context(context)
 	gregorian.context(context)
 
-	libformat.context(context) # 'iso' and 'rfc' containers
+	format.context(context) # 'iso' and 'rfc' containers
 	context.container('__str__', *context.containers['iso'])
 
 	context.represent('day', [

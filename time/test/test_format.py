@@ -1,5 +1,5 @@
 from .. import core
-from .. import libformat
+from .. import format as module
 
 samples = [
 	('negative_year', (
@@ -83,13 +83,13 @@ exceptional_samples = [
 def test_samples(test):
 	for title, (pit_tuple, pit_formats) in samples:
 		for format, val in pit_formats:
-			parser = libformat.parser(format)
+			parser = module.parser(format)
 			test_pit = tuple(parser(val))
 			test/test_pit == pit_tuple
 
 def test_errors(test):
 	for format, errors in exceptional_samples:
-		parser = libformat.parser(format)
+		parser = module.parser(format)
 		for error, samples in errors:
 			for x in samples:
 				with test/error as exc:

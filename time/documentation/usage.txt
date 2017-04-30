@@ -423,7 +423,7 @@ The returned timestamp is a UTC timestamp.
 [ Constructing Points and Measures >> Creating a Timestamp from an ISO-9660 String ]
 -------------------------------
 
-While the &.libformat module manages the details, the
+While the &.format module manages the details, the
 &.library module provides access to the functionality:
 
 #!/pl/python
