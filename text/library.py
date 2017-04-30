@@ -12,7 +12,7 @@ import itertools
 
 from ..xml import library as libxml
 from ..routes import library as libroutes
-from ..computation import libstring
+from ..computation import string
 
 from . import core
 
@@ -262,7 +262,7 @@ class XML(object):
 	def create_section(self, tree, section):
 		title = section[-1]
 		if title:
-			ident = '.'.join(libstring.normal(x.replace(':', ''), separator='-') for x in title)
+			ident = '.'.join(string.normal(x.replace(':', ''), separator='-') for x in title)
 		else:
 			ident = None
 

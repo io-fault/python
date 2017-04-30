@@ -17,7 +17,7 @@ import itertools
 import collections
 
 from ..computation import library as libc
-from ..computation import libstring
+from ..computation import string
 
 from typing import Sequence
 
@@ -147,7 +147,7 @@ class Parser(object):
 		return False
 
 	@staticmethod
-	def emphasis(text, indicator='*', varsplit=libstring.varsplit):
+	def emphasis(text, indicator='*', varsplit=string.varsplit):
 		"""
 		# Return a sequence of paragraph events noting the emphasis areas versus regular
 		# text.
