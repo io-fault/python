@@ -23,6 +23,7 @@ projects = (
 	'filesystem',
 
 	'io',
+	'internet',
 	'daemon',
 	'llvm',
 
