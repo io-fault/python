@@ -1,6 +1,7 @@
 """
 # Clean the package tree of bootstrap built files.
 """
+import os.path
 import importlib.machinery
 from ...routes import library as libroutes
 from ...system import libfactor
@@ -51,7 +52,8 @@ def clear_bootstrap_extensions(route):
 	if removals:
 		print('/Removed')
 		for x in removals:
-			print('\t- ' + str(rmf))
+			print('\t- ' + str(x))
+			os.unlink(str(x))
 
 	if final.exists():
 		print()
