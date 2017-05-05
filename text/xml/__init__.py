@@ -1,2 +1,2 @@
-__factor_type__ = 'xml'
-__factor_dynamics__ = 'executable'
+__factor_domain__ = 'xml'
+__factor_type__ = 'executable'
