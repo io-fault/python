@@ -4,7 +4,8 @@
 [ Fault Text File ]
 ===================
 
-The `.txt` extension should be used for fault.text. It is strictly
+The `.txt` extension should be used for fault.text and the MIME media type of
+(type/mime)`text/plain` should be used with applicable protocols. It is strictly
 a format layered on top of raw text files. Whether or not a given text file
 is actually fault.text should be determined by the context or by
 the initial `#!` line used to identify a corresponding binary that can be used
@@ -267,7 +268,7 @@ from the shell comment character and used due to its name "the number sign".
 With exception to indentation, leading whitespace is ignored in order to allow
 a horizontal visual separation from adjacent paragraphs.
 
-#!/text/ecelctic
+#!/text/fault
 	...
 		# First Item.
 		# Second Item.
@@ -399,7 +400,7 @@ having to consider fault.text syntax inside the literal.
 &<http://fault.io>
 
 Paragraph with `anonymous inline code` that defaults the language.
-&<[Hyperlink Title]https://fault.io>
+&<[Hyperlink Title]https://fault.io> (not supported)
 &<https://fault.io>
 
 ==================
@@ -419,6 +420,40 @@ Conceptual type names are reserved for contextually defined purposes.
 
 /real
 	A string that represents a Real Number
+
+/reference
+	The contents should be interpreted as a Reference. When applied to an actual &[Reference],
+	the element should be identified as a reference to a reference.
+
+/cast
+	The contents are referring to a cast that might appear in the paranthesis leading
+	a reference or inline literal.
+
+[ Recommended Casts ]
+
+/(cast)`timestamp`
+	An ISO-9660 formatted timestamp.
+/(cast)`date`
+	An ISO-9660 formatted date: [&year `-` &month `-` &day].
+/(cast)`timezone`
+	A timezone name or geographic location indicating a time zone.
+
+/(cast)`system/home`
+	A path relative to a system user's home directory.
+/(cast)`system/directory`
+	A path to a directory on the host.
+/(cast)`system/file`
+	A path to a specific file on the host.
+/(cast)`system/filename`
+	The name of a file on the host; location independent.
+/(cast)`system/context`
+	The name of or reference to of a root execution context. For fault applications,
+	this usually refers to &..root deployment, but can be perceived generally.
+
+/(cast)`iri`
+	An internationalized resource identifier.
+/(cast)`uri`
+	A uniform resource identifier.
 
 ===========================
 [ Structured Data Storage ]
