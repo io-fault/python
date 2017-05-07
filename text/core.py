@@ -434,27 +434,47 @@ class Parser(object):
 		for token in iterator:
 			# This should be a dictionary of operations like commands in tokenize.
 			line, event, *params = token
+			if subnodes:
+				context = subnodes[-1]
+				context_type = context[0] if context else None
+			else:
+				context = None
+				context_type = None
 
 			if event == 'paragraph-line':
 				# extend existing paragraph or create new if it's not a paragraph
 				if not subnodes or subnodes[-1][0] not in paragraph_content:
 					if ntype in {'set', 'sequence'}:
-						subnodes[-1][1][-1][1].extend(params[0])
+						if node[-1] == indentation:
+							# Indentation at the subject node's level.
+							# Handle the case following an exit inside
+							# a set or sequence.
+							iterator.replay(token)
+							break
+						else:
+							subnodes[-1][1][-1][1].extend(params[0])
 					else:
 						content = list(params[0])
 						content.append(('eol', ''))
 						subnodes.append(('paragraph', content, indentation))
 				else:
 					subnodes[-1][1].extend(params[0])
-			elif event in ('paragraph-break', 'decoration'):
+
+			elif event in ('paragraph-break', 'decoration') or (
+				(event, ntype) in {
+					('unordered-item', 'sequence'),
+					('enumerated-item', 'set'),
+				}
+			):
 				# Explicit break; empty paragraphs will be ignored downstream.
 				if ntype in {'set', 'sequence'}:
 					trailing = subnodes[-1][1][-1][1]
 					if trailing and trailing[-1][:2] == ('text', ' '):
 						del trailing[-1]
-					# Handle unindented structure() decent performed by set.
+					# Handle unindented structure() descent performed by set.
 					break
 
+				# Actual paragraph break.
 				if subnodes and subnodes[-1][0] in paragraph_content:
 					if not subnodes[-1][1]:
 						# Don't add entries if it's already on an empty paragraph.
@@ -485,7 +505,9 @@ class Parser(object):
 			elif event == 'exit-indentation-level':
 				# block is treated specially because it doesn't descend on indentation
 				# events produced during the processing of literal-lines.
-				assert params[0] > 0 # indentation > 0 on exit
+
+				assert params[0] > 0 # indentation always > 0 on exit
+
 				if ntype == 'variable-content' and subnodes[-1] and subnodes[-1][1]:
 					paras = subnodes[-1]
 					if paras[1][-1] == ('eol', ''):
@@ -499,7 +521,7 @@ class Parser(object):
 					return True
 				else:
 					if indentation == params[0]:
-						# leave the structure() call representing
+						# Leave the structure() call representing
 						# the indentation level.
 						return True
 					else:
@@ -511,7 +533,9 @@ class Parser(object):
 			elif event == 'enter-indentation-level':
 				if ntype in {'set', 'sequence'}:
 					# Jump into the current working item on enter.
-					self.structure(sections, root, node[1][-1], params[-1], iterator)
+					self.structure(sections, root, subnodes[-1], params[-1], iterator)
+					# Exit processed.
+
 				elif params[0] != indentation and ntype != 'block':
 					# if it didn't already push a structure() call from anticipated descent
 					if subnodes and subnodes[-1][0] == 'paragraph':
@@ -521,6 +545,7 @@ class Parser(object):
 							subnodes[-1] = (para[0], para[1], params[-1])
 
 					self.structure(sections, root, node, params[-1], iterator)
+					# Exit processed.
 
 			elif event == 'unordered-item':
 				if ntype in {'sequence'}:
@@ -537,6 +562,7 @@ class Parser(object):
 						# Break on explicit exit
 						break
 				else:
+					# Remove trailing paragraph content from previous entry.
 					trailing = subnodes[-1][1][-1][1]
 					if trailing and trailing[-1][0] == 'text' and trailing[-1][1] == ' ':
 						del trailing[-1]
@@ -572,6 +598,9 @@ class Parser(object):
 
 					iterator.replay(token)
 					return True
+				else:
+					# Preliminary structure.
+					subnodes.append(('directive',) + tuple(params[0].split(maxsplit=1)))
 
 				# enqueue for the following object.
 				if subnodes[-1][0] != 'break':

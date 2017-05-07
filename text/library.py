@@ -41,7 +41,6 @@ class XML(object):
 		# /encoding
 			# The encoding that should be used for the XML.
 		"""
-		global core
 		p = core.Parser()
 		xmlctx = libxml.Serialization(xml_prefix=prefix, xml_encoding=encoding)
 		s = Class(xmlctx, identify=identify)
@@ -98,9 +97,13 @@ class XML(object):
 			# &None being a normal reference, and `'include'` being induced
 			# with a `'*'` prefixed to the reference
 		"""
+		if type == 'section':
+			string = source[1:-1].strip()
+		else:
+			string = source
 
 		yield from self.serialization.prefixed('reference',
-			self.serialization.escape(source),
+			self.serialization.escape(string),
 			('source', source), # canonical reference description
 			('type', type),
 			('action', action),
@@ -131,7 +134,7 @@ class XML(object):
 			if x[0] in {'sequence-item', 'set-item'}
 		]
 		tail = node[1][len(items):]
-		assert len(tail) == 0
+		assert len(tail) == 0 # Failed to switch to new set of items.
 
 		yield from chain((
 			self.serialization.prefixed(name, chain([
@@ -152,7 +155,6 @@ class XML(object):
 
 	def process_dictionary(self, tree, vl_node):
 		assert vl_node[0] == 'dictionary'
-		global itertools
 		element = self.serialization.prefixed
 		chain = itertools.chain.from_iterable
 
@@ -244,7 +246,6 @@ class XML(object):
 
 	def process_admonition(self, tree, content):
 		assert content[0] == 'admonition'
-		global itertools
 		element = self.serialization.prefixed
 
 		# both the key and the value are treated as paragraph data.
@@ -286,6 +287,15 @@ class XML(object):
 			('indentation-level', ilevel),
 		)
 
+	def process_directive(self, tree, data):
+		event, signal, *parameter = data
+		yield from self.serialization.prefixed(
+			event,
+			(),
+			('signal', signal),
+			('parameter', parameter[0] if parameter else None),
+		)
+
 	def process_break(self, tree, node):
 		"""
 		# Break nodes are convenience structures created to
@@ -294,6 +304,7 @@ class XML(object):
 		return ()
 
 	section_index = {
+		'directive': process_directive,
 		'paragraph': process_paragraph,
 		'set': process_set,
 		'sequence': process_sequence,
