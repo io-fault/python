@@ -30,65 +30,65 @@ def test_Parser_emphasis(test):
 		('emphasis', 'thrice', 1), ('text', '!')]
 	test/list(function("Some *emphasis!*, not **twice**, but *thrice*!")) == expect
 
-# txt = """
-# [Section 1]
+txt = """
+[Section 1]
 
-# Paragraph 1.
+Paragraph 1.
 
-	# - SetItem1
-	# - SetItem2
-	# - &Reference
+	- SetItem1
+	- SetItem2
+	- &Reference
 
-# /DictItem1
-	# DictValue1
-# /DictItem2
-	# DictValue2
-# /&Reference
-	# DictValue3
+/DictItem1
+	DictValue1
+/DictItem2
+	DictValue2
+/&Reference
+	DictValue3
 
-# Implicit Title:
-	# # SequenceItem1
-	# # SequenceItem2
-	# # SequenceItem3
-	# # &Reference
-
-#!/pl/python
-	# # Typed Character Matrix
+Implicit Title:
+	# SequenceItem1
+	# SequenceItem2
+	# SequenceItem3
+	# &Reference
 
 #!/pl/python
-	# # Subsequent Typed Character Matrix
+	# Typed Character Matrix
 
-# Paragraph 3. `Inline Literal`. (With-Cast)`Inline Literal`.
+#!/pl/python
+	# Subsequent Typed Character Matrix
 
-# Emphasis Types:
-	# # *Plain*
-	# # **Strong**
-	# # ***Excessive***
+Paragraph 3. `Inline Literal`. (With-Cast)`Inline Literal`.
+
+Emphasis Types:
+	# *Plain*
+	# **Strong**
+	# ***Excessive***
 
 # References:
-	# # &<URL>
-	# # &[Section 2]
-	# # &NoTerminator
+	# &<URL>
+	# &[Section 2]
+	# &NoTerminator
 
-# ! WARNING:
-	# Admonition
+! WARNING:
+	Admonition
 
-# ! ERROR:
-	# Admonition
+! ERROR:
+	Admonition
 	#!/pl/python
-		# # AdmonitionCharacterMatrix
+		# AdmonitionCharacterMatrix
 
-# [Section 1 >> Subsection 1]
+[Section 1 >> Subsection 1]
 
-# Subsection 1.1 Paragraph 1.
+Subsection 1.1 Paragraph 1.
 
-# Paragraph 2. &[Section 1]
+Paragraph 2. &[Section 1]
 
-# [Section 2]
+[Section 2]
 
-# Paragraph 1.
+Paragraph 1.
 
-# Paragraph 2.
+Paragraph 2.
 """
 
 def test_document(test):
