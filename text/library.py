@@ -97,18 +97,37 @@ class XML(object):
 			# &None being a normal reference, and `'include'` being induced
 			# with a `'*'` prefixed to the reference
 		"""
-		if type == 'section':
-			string = source[1:-1].strip()
-		else:
-			string = source
+		escape = self.serialization.escape
+		element = self.serialization.prefixed
 
-		yield from self.serialization.prefixed('reference',
-			self.serialization.escape(string),
+		href = None
+		if type == 'section':
+			sstr = escape(source[1:-1].strip())
+		elif type == 'hyperlink':
+			href = source[1:-1]
+			if href[0:1] == '[':
+				eot = href.find(']')
+				if eot == -1:
+					# no end for title. essentially a syntax error,
+					# so a warning element should be presented.
+					pass
+				else:
+					sstr = escape(href[1:eot])
+					href = href[eot+1:]
+			else:
+				# no title indicator.
+				sstr = None
+		else:
+			# Normal reference.
+			sstr = escape(source)
+
+		yield from element('reference',
+			sstr,
 			('source', source), # canonical reference description
 			('type', type),
 			('action', action),
 			('cast', cast), # canonical cast string
-			('xlink:href', source[1:-1] if type == 'hyperlink' else None),
+			('xlink:href', href),
 		)
 
 	def process_end_of_line(self, tree, text, cast=None):
