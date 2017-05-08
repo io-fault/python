@@ -78,9 +78,7 @@ class Parser(object):
 		"""
 		return self.stack[-1][-1]
 
-	def reference(self, string,
-			punctuation=',.;:!-+?()[]{}',
-		):
+	def reference(self, string, punctuation=',.;:!-+?()[]{}'):
 		"""
 		# Split the string at the reference's boundary.
 		# The &string is presumed to be the start of a reference with
@@ -468,10 +466,14 @@ class Parser(object):
 			):
 				# Explicit break; empty paragraphs will be ignored downstream.
 				if ntype in {'set', 'sequence'}:
+					# Clear trailing whitespace before processing
+					# the next item.
 					trailing = subnodes[-1][1][-1][1]
 					if trailing and trailing[-1][:2] == ('text', ' '):
 						del trailing[-1]
 					# Handle unindented structure() descent performed by set.
+					if event in ('unordered-item', 'enumerated-item'):
+						iterator.replay(token)
 					break
 
 				# Actual paragraph break.
@@ -534,7 +536,7 @@ class Parser(object):
 				if ntype in {'set', 'sequence'}:
 					# Jump into the current working item on enter.
 					self.structure(sections, root, subnodes[-1], params[-1], iterator)
-					# Exit processed.
+					# Exit processed inside call.
 
 				elif params[0] != indentation and ntype != 'block':
 					# if it didn't already push a structure() call from anticipated descent
@@ -552,14 +554,20 @@ class Parser(object):
 					trailing = subnodes[-1][1][-1][1]
 					if trailing and trailing[-1][0] == 'text' and trailing[-1][1] == ' ':
 						del trailing[-1]
+
 					iterator.replay(token)
-					return True
+					return False
 
 				if ntype != 'set':
-					node = ('set', [('set-item', [('paragraph', list(params[0]))])], indentation)
+					node = (
+						'set', [
+							('set-item', [('paragraph', list(params[0]))])
+						],
+						params[-1]
+					)
 					subnodes.append(node)
+
 					if self.structure(sections, root, node, indentation, iterator):
-						# Break on explicit exit
 						break
 				else:
 					# Remove trailing paragraph content from previous entry.
@@ -567,20 +575,31 @@ class Parser(object):
 					if trailing and trailing[-1][0] == 'text' and trailing[-1][1] == ' ':
 						del trailing[-1]
 
-					subnodes.append(('set-item', [('paragraph', list(params[0]))]))
+					subnodes.append((
+						'set-item', [
+							('paragraph', list(params[0]))
+						]
+					))
 
 			elif event == 'enumerated-item':
 				if ntype in {'set'}:
 					trailing = subnodes[-1][1][-1][1]
 					if trailing and trailing[-1][0] == 'text' and trailing[-1][1] == ' ':
 						del trailing[-1]
+
 					iterator.replay(token)
-					return True
+					return False
 
 				# Processed exactly as unordered-item.
 				if ntype != 'sequence':
-					node = ('sequence', [('sequence-item', [('paragraph', list(params[0]))])], indentation)
+					node = (
+						'sequence', [
+							('sequence-item', [('paragraph', list(params[0]))])
+						],
+						params[-1]
+					)
 					subnodes.append(node)
+
 					if self.structure(sections, root, node, indentation, iterator):
 						break
 				else:
@@ -588,7 +607,11 @@ class Parser(object):
 					if trailing and trailing[-1][0] == 'text' and trailing[-1][1] == ' ':
 						del trailing[-1]
 
-					subnodes.append(('sequence-item', [('paragraph', list(params[0]))]))
+					subnodes.append((
+						'sequence-item', [
+							('paragraph', list(params[0]))
+						]
+					))
 
 			elif event == 'directive':
 				if ntype in {'set', 'sequence'}:
@@ -606,22 +629,47 @@ class Parser(object):
 				if subnodes[-1][0] != 'break':
 					subnodes.append(('break', ()))
 			elif event == 'descent':
+				# variable-key (/)
+				# block (#!)
+				# admonition (!)
+				# Descent is the name of the token as they
+				# share the property of having an expectation
+				# that the next line will be indented.
+
 				if ntype in {'set', 'sequence'}:
 					trailing = subnodes[-1][1][-1][1]
 					if trailing and trailing[-1][0] == 'text' and trailing[-1][1] == ' ':
 						del trailing[-1]
 
 					# Pop set/sequence state and replay token in parent context.
+					# set and sequence unconditionally descend.
 					iterator.replay(token)
-					return True
+					return False
 
 				# Essentially, these are a class of subsections.
 				subtype, *params = params
+
+				# Indentation of the token *must* be greater
+				# than that of the working node as the exit
+				# events should have been present and processed
+				# otherwise.
 				assert params[-1] > indentation
 
 				if subtype == 'variable-key':
+					il = params[-1] # il of key
+
 					if not subnodes or subnodes[-1][0] != 'dictionary':
-						subnodes.append(('dictionary', [], indentation))
+						# New dictionary and new current working node.
+						subnodes.append(('dictionary', [], params[-1]))
+					else:
+						# Current subnode is a dictionary.
+						# If indentation is greater, it's
+						# inside the outer dictionary's indentation level,
+						# so it's a new dictioanry.
+						if il > subnodes[-1][-1]:
+							# il of key is greater than the current target node.
+							subnodes.append(('dictionary', [], params[-1]))
+
 					dn = subnodes[-1]
 					dn_content = dn[1]
 					dn_content.append(('variable-key', params[0]))
@@ -682,6 +730,8 @@ class Parser(object):
 				subnodes.append(('exception', (),
 					"unknown event type",
 					event, line, indentation, params))
+
+			# end of switch
 		else:
 			# end of document as
 			# exit-indentation-level causes breaks
