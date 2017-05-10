@@ -170,10 +170,13 @@ class Parser(object):
 		else:
 			normal = texts[0::2]
 			emphasized = texts[1::2]
-			pairs = zip(counts[0::2], counts[1::2])
+			pairs = list(zip(counts[0::2], counts[1::2]))
+			if len(pairs) < len(normal):
+				pairs.append((counts[-1], 0))
 
 			for n, e, (start_count, stop_count) in zip(normal, emphasized, pairs):
 				yield ('text', n)
+
 				if start_count == stop_count:
 					yield ('emphasis', e, start_count)
 				else:
