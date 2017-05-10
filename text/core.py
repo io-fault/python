@@ -13,6 +13,7 @@
 # during normal use.
 """
 
+import builtins
 import itertools
 import collections
 
@@ -147,9 +148,13 @@ class Parser(object):
 	@staticmethod
 	def emphasis(text, indicator='*', varsplit=string.varsplit):
 		"""
-		# Return a sequence of paragraph events noting the emphasis areas versus regular
-		# text.
+		# Return a sequence of paragraph events noting the emphasis areas versus
+		# regular text.
 		"""
+
+		list=builtins.list
+		zip=builtins.zip
+		len=builtins.len
 
 		parts = list(varsplit(indicator, text))
 		texts = parts[0::2]
