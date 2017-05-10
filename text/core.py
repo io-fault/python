@@ -79,7 +79,10 @@ class Parser(object):
 		"""
 		return self.stack[-1][-1]
 
-	def reference(self, string, punctuation=',.;:!-+?()[]{}'):
+	def reference(self, string,
+			punctuation=',.;:-+!?()[]{}',
+			terminators=str.maketrans({i:'\n' for i in ' \t()[]{}'})
+		):
 		"""
 		# Split the string at the reference's boundary.
 		# The &string is presumed to be the start of a reference with
@@ -90,7 +93,7 @@ class Parser(object):
 			# &*[Parameters(...)]
 			# (int *)`3928+23192-203`
 		"""
-		substruct = ()
+		label = None
 
 		if string.startswith('*'):
 			string = string[1:]
@@ -109,12 +112,15 @@ class Parser(object):
 			# Cross reference
 			# Trailing punctuation is stripped.
 			if string:
-				ref = string.split()[0].rstrip(punctuation)
+				# Wasteful as only the first match needs to be checked.
+				r = string.translate(terminators).split('\n', 1)[0]
+
+				# Lines are tokens, so newlines are safe tokens to use.
+				# Also, we'd stop on a newline anyways.
+				ref = r.rstrip(punctuation)
 			else:
 				ref = ''
 			typ = 'normal'
-
-		label = None
 
 		return (('reference', ref, typ, label, action), ('text', string[len(ref):]))
 
