@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
- ! XML Documentation for Python, C, C++, and Java projects.
- !-->
+	# XML structures for text.
+!-->
 <grammar
  xmlns="http://relaxng.org/ns/structure/1.0"
  ns="http://fault.io/xml/text"
@@ -22,6 +22,15 @@
    </zeroOrMore>
   </element>
  </define>
+
+	<define name="xml.space">
+		<attribute name="xml:space">
+			<choice>
+				<value>default</value>
+				<value>preserve</value>
+			</choice>
+		</attribute>
+	</define>
 
  <define name="book">
   <element name="book">
@@ -69,22 +78,29 @@
   </zeroOrMore>
  </define>
 
+	<define name="group">
+		<optional>
+			<attribute name="prefix">
+				<text/>
+			</attribute>
+		</optional>
+
+		<optional>
+			<attribute name="suffix">
+				<text/>
+			</attribute>
+		</optional>
+
+		<ref name="text"/>
+	</define>
+
  <define name="paragraph">
   <element name="paragraph">
    <ref name="text"/>
   </element>
  </define>
 
- <define name="xml.space">
-  <attribute name="xml:space">
-   <choice>
-    <value>default</value>
-    <value>preserve</value>
-   </choice>
-  </attribute>
- </define>
-
- <define name="cast">
+	<define name="cast">
   <optional>
    <attribute name="cast"><text/></attribute>
   </optional>
@@ -208,12 +224,12 @@
   </element>
  </define>
 
- <define name="literal">
-  <element name="literal">
-   <ref name="cast"/>
-   <optional><text/></optional>
-  </element>
- </define>
+	<define name="literal">
+		<element name="literal">
+			<ref name="cast"/>
+			<optional><text/></optional>
+		</element>
+	</define>
 
  <define name="reference">
   <element name="reference">
@@ -263,6 +279,3 @@
   </element>
  </define>
 </grammar>
-<!--
- ! vim: et:ts=1:sw=1:
- !-->
