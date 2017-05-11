@@ -114,8 +114,8 @@
    select="concat(((ancestor::*[@xml:id and local-name()!='module'][1]/@xml:id))[1], '::', @title)"/>
   <xsl:variable name="id" select="translate($address, ' ', '-')"/>
 
-  <div id="{$id}"
-   class="section"><a href="{concat('#', $id)}"><div class="section.title"><xsl:value-of
-     select="@title"/></div></a><xsl:apply-templates select="e:*"/></div>
+  <section id="{$id}"
+   class="fault.text"><a href="{concat('#', $id)}"><div class="section.title"><xsl:value-of
+     select="@title"/></div></a><xsl:apply-templates select="e:*"/></section>
  </xsl:template>
 </xsl:transform>
