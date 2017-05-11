@@ -23,6 +23,12 @@
 		</element>
 	</define>
 
+	<define name="text.xmlid">
+		<attribute name="xml:id">
+			<data type="ID"/>
+		</attribute>
+	</define>
+
 	<define name="xml.space">
 		<attribute name="xml:space">
 			<choice>
@@ -42,7 +48,10 @@
 
 	<define name="chapter">
 		<element name="chapter">
-			<ref name="head"/>
+			<optional>
+				<ref name="head"/>
+			</optional>
+
 			<zeroOrMore>
 				<ref name="section"/>
 			</zeroOrMore>
@@ -66,15 +75,19 @@
 		</optional>
 	</define>
 
+	<define name="text.paragraph.elements">
+		<choice>
+			<ref name="reference"/>
+			<ref name="literal"/>
+			<ref name="emphasis"/>
+			<ref name="exception"/>
+			<text/>
+		</choice>
+	</define>
+
 	<define name="text">
 		<zeroOrMore>
-			<choice>
-				<ref name="reference"/>
-				<ref name="literal"/>
-				<ref name="emphasis"/>
-				<ref name="exception"/>
-				<text/>
-			</choice>
+			<ref name="text.paragraph.elements"/>
 		</zeroOrMore>
 	</define>
 
@@ -96,6 +109,12 @@
 
 	<define name="paragraph">
 		<element name="paragraph">
+			<optional>
+				<attribute name="indentation">
+					<data type="integer"/>
+				</attribute>
+			</optional>
+
 			<ref name="text"/>
 		</element>
 	</define>
@@ -114,6 +133,7 @@
 				<ref name="sequence"/>
 				<ref name="matrix"/>
 				<ref name="dictionary"/>
+				<ref name="literals"/>
 			</choice>
 		</zeroOrMore>
 	</define>
@@ -122,7 +142,7 @@
 		<element name="sequence">
 			<zeroOrMore>
 				<element name="item">
-					<ref name="text"/>
+					<ref name="content"/>
 				</element>
 			</zeroOrMore>
 		</element>
@@ -132,7 +152,7 @@
 		<element name="set">
 			<zeroOrMore>
 				<element name="item">
-					<ref name="text"/>
+					<ref name="content"/>
 				</element>
 			</zeroOrMore>
 		</element>
@@ -148,6 +168,7 @@
 					<element name="key">
 						<ref name="text"/>
 					</element>
+
 					<element name="value">
 						<ref name="content"/>
 					</element>
@@ -174,15 +195,29 @@
 	<define name="head">
 		<element name="section">
 			<a:documentation>An untitled section at the start of a text document.</a:documentation>
-			<ref name="content"/>
+			<optional>
+				<ref name="text.xmlid"/>
+			</optional>
+
+			<optional>
+				<ref name="content"/>
+			</optional>
 		</element>
 	</define>
 
 	<define name="section">
 		<element name="section">
 			<a:documentation>A titled section within the text document.</a:documentation>
-			<attribute name="identifier"><text/></attribute>
-			<ref name="structure.attributes"/>
+			<optional>
+				<ref name="text.xmlid"/>
+			</optional>
+
+			<attribute name="identifier">
+				<!--
+					# Required for named sections.
+				!-->
+				<text/>
+			</attribute>
 			<ref name="content"/>
 		</element>
 	</define>
@@ -226,7 +261,9 @@
 
 	<define name="literal">
 		<element name="literal">
-			<ref name="cast"/>
+			<optional>
+				<ref name="cast"/>
+			</optional>
 			<optional><text/></optional>
 		</element>
 	</define>
@@ -256,7 +293,19 @@
 				</attribute>
 			</optional>
 
-			<!-- Attributes in distinct namespaces. -->
+			<optional>
+				<attribute name="type">
+					<choice>
+						<value>normal</value>
+						<value>hyperlink</value>
+						<value>section</value>
+					</choice>
+				</attribute>
+			</optional>
+
+			<!--
+				# Attributes in distinct namespaces.
+			!-->
 			<zeroOrMore>
 				<a:documentation></a:documentation>
 				<attribute>
@@ -268,6 +317,7 @@
 					</anyName>
 				</attribute>
 			</zeroOrMore>
+
 			<!-- Elements in distinct namespaces. -->
 			<zeroOrMore>
 				<choice>
@@ -278,4 +328,5 @@
 			</zeroOrMore>
 		</element>
 	</define>
+
 </grammar>
