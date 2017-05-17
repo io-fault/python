@@ -21,8 +21,8 @@ FAULT_DEVELOPMENT_PREFIX="${FAULT_DEVELOPMENT_PREFIX:-${FAULT_CONTEXT_NAME}.deve
 
 DEVCTX="${DEVCTX:-host:optimal}"
 DEV_NAME="${DEVCTX%:*}"
-DEV_PURPOSE="${DEVCTX#*:}"
-DEV_PURPOSE_SELECTED=0
+DEV_INTENTION="${DEVCTX#*:}"
+DEV_INTENTION_SELECTED=0
 
 gray () {
 	echo >&2 "[38;5;240m""$@""[0m"
@@ -52,33 +52,33 @@ do
 				shift
 			;;
 
-			# Explicit purpose
+			# Explicit intention
 			-P)
-				shift; DEV_PURPOSE="$1"
+				shift; DEV_INTENTION="$1"
 				shift
 			;;
 
 			-O)
-				DEV_PURPOSE='optimal'
-				DEV_PURPOSE_SELECTED=1
+				DEV_INTENTION='optimal'
+				DEV_INTENTION_SELECTED=1
 				shift
 			;;
 
 			-g)
-				DEV_PURPOSE='debug'
-				DEV_PURPOSE_SELECTED=1
+				DEV_INTENTION='debug'
+				DEV_INTENTION_SELECTED=1
 				shift
 			;;
 
 			-t)
-				DEV_PURPOSE='test'
-				DEV_PURPOSE_SELECTED=1
+				DEV_INTENTION='test'
+				DEV_INTENTION_SELECTED=1
 				shift
 			;;
 
 			-M)
-				DEV_PURPOSE='metrics'
-				DEV_PURPOSE_SELECTED=1
+				DEV_INTENTION='metrics'
+				DEV_INTENTION_SELECTED=1
 				shift
 			;;
 
@@ -103,7 +103,7 @@ do
 			;;
 
 			-h)
-				echo >&2 "Usage: dev [-OMdt] [-HW] $(igray $FAULT_DEVELOPMENT_PREFIX)<command> factors ..."
+				echo >&2 "Usage: dev [-OMIdt] [-HW] $(igray $FAULT_DEVELOPMENT_PREFIX)<command> factors ..."
 				exit 64
 			;;
 
@@ -145,17 +145,17 @@ done
 
 if test x"$1" = x'measure'
 then
-	DEV_PURPOSE='measure'
-	if test $DEV_PURPOSE_SELECTED -eq 0
+	DEV_INTENTION='measure'
+	if test $DEV_INTENTION_SELECTED -eq 0
 	then
-		echo >&2 'Ignored selected purpose `'"$DEV_PURPOSE"'` for metrics; `measure` is required.'
+		echo >&2 'Ignored selected purpose `'"$DEV_INTENTION"'` for metrics; `measure` is required.'
 	fi
 elif test x"$1" = x"test"
 then
-	if test $DEV_PURPOSE_SELECTED -eq 0
+	if test $DEV_INTENTION_SELECTED -eq 0
 	then
 		# Not explicitly selected, so use test for test.
-		DEV_PURPOSE='test'
+		DEV_INTENTION='test'
 	fi
 else
 	:
@@ -168,13 +168,13 @@ then
 else
 	# Initialize environment for subprocesses.
 
-	main="$FAULT_DIRECTORY/fpi/$DEV_NAME/${DEV_PURPOSE}.xml"
-	static="$FAULT_DIRECTORY/fpi/static/${DEV_PURPOSE}.xml"
+	main="$FAULT_DIRECTORY/fpi/$DEV_NAME/${DEV_INTENTION}.xml"
+	static="$FAULT_DIRECTORY/fpi/static/${DEV_INTENTION}.xml"
 	FPI_MECHANISMS=$main:$static
 	export FPI_MECHANISMS
 
 	# Current config.
-	DEVCTX="${DEV_NAME}:${DEV_PURPOSE}"
+	DEVCTX="${DEV_NAME}:${DEV_INTENTION}"
 	export DEVCTX
 fi
 
@@ -321,6 +321,19 @@ in
 
 			gray '<<<<<<<<<<'
 		done 2>&1 | eval ${PAGER:-less -R}
+	;;
+
+	reconstruct)
+		# Construct with FPI_REBUILD=1
+		if test $# -eq 0
+		then
+			IFS="$NL"
+			set -- $(cat "$SF")
+		fi
+
+		printf "{reconstruct}"
+		gray " ""$@"
+		exec env FPI_REBUILD=1 time "$PYTHON" -m "${FAULT_DEVELOPMENT_PREFIX}construct" "$@"
 	;;
 
 	update|up)
