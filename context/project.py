@@ -1,9 +1,9 @@
-identity = 'http://code.fault.io/fault.context'
+identity = 'http://fault.io/src/fault.context'
 name = 'context'
 abstract = 'Context package for the fault.io intersection projects'
-icon = '<http://fault.io>'
+icon = '🔋'
 
-fork = 'foundation'
+fork = 'potential'
 versioning = 'continuous'
 status = 'flux'
 

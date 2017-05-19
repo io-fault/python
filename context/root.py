@@ -1,5 +1,5 @@
 """
-# Python foundation projects.
+# fault core libraries and utilities.
 
 # [Development Tools]
 
