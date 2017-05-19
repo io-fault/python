@@ -145,10 +145,10 @@ done
 
 if test x"$1" = x'measure'
 then
-	DEV_INTENTION='measure'
+	DEV_INTENTION='metrics'
 	if test $DEV_INTENTION_SELECTED -eq 0
 	then
-		echo >&2 'Ignored selected purpose `'"$DEV_INTENTION"'` for metrics; `measure` is required.'
+		echo >&2 'Ignored selected purpose `'"$DEV_INTENTION"'` for metrics; `metrics` is required.'
 	fi
 elif test x"$1" = x"test"
 then
