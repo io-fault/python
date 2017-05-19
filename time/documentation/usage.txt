@@ -119,8 +119,9 @@ a homogenous pair.
 
 /Annums and Years
 	The "year" unit in chronometry is strictly referring to gregorian years. This means
-	that a "year" in chronometry is actually twelve gregorian months, which means *years
-	are a subjective unit of time*. For *metric* measures--Python timedeltas analog--this
+	that a "year" in chronometry is actually twelve gregorian months, which means
+	*years are a subjective unit of time*.
+	For *metric* measures--Python timedeltas analog--this
 	poses a problem in that years should not be used to represent the span when working
 	with &.library.Measure.
 
@@ -250,8 +251,8 @@ month of last year?".
 	pit = pit.update('day', 6, 'week') # set to the weekend of the week
 	pit = pit.elapse(week = 2)
 
-Things can get a little more interesting when asking, "What is the
-last weekend of the month?". It's not a problem::
+Things can get a little more interesting when asking about the last weekend
+of a given month.
 
 #!/pl/python
 	# move the beginning of month (to avoid possible day overflow)
@@ -261,7 +262,7 @@ last weekend of the month?". It's not a problem::
 	# 0 is the beginning of the week, so -1 is the end of the prior week.
 	pit = pit.update('day', -1, 'week')
 
-On day overflow, the following illustrates the effect::
+On day overflow, the following illustrates the effect:
 
 #!/pl/python
 	# working with a leap year
@@ -275,7 +276,7 @@ beginning of the month.
 
 Things can get even more interesting when asking,
 "What is the second to last Thursday of the month". Questions like this require
-alignment in order to be answered::
+alignment in order to be answered:
 
 #!/pl/python
 	pit = libtime.now()
@@ -302,7 +303,7 @@ wall clock. However, chronometry provides clock based devices for processes with
 monotonic requirements for things like rate limiting, polling timeouts, and
 simple execution-time measures.
 
-Measuring the execution time of a code block is easy with a chronometry stopwatch::
+Measuring the execution time of a code block is easy with a chronometry stopwatch:
 
 #!/pl/python
 	def work():
@@ -621,12 +622,12 @@ created by the segment are continuous in the future:
 
 Managing sets of unbounded segments are the recommended way to manage recurring jobs.
 
-===================================
-[ Working with Sets and Sequences ]
-===================================
+============================
+[ Working with Collections ]
+============================
 
 The accessor and manipulation methods provide a high level interface to an
-individual PiT or scalar, but often an operation needs to be applied
+individual Point or Measure, but often an operation needs to be applied
 *efficiently* to a set or sequence of Time Objects.
 
 The &.library module has a few tools for
@@ -874,8 +875,8 @@ is often dependent on the context in which a given local form is being used.
 
 When working with zoned PiTs, there are two situations:
 
-	# A canonical PiT, normally a PiT in UTC associated with a zone.
-	# A local PiT where the local form is being represented
+	# A canonical Point, normally a PiT in UTC associated with a zone.
+	# A local Point where the local form is being represented.
 
 Each situation has its own requirements for proper zone handling.
 
