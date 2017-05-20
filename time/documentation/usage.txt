@@ -366,7 +366,7 @@ Constructing instances is usually performed with the class method
 Or, &.library.Timestamp.of for Points.
 
 [ Constructing Points and Measures >> Creating a Timestamp ]
--------------------------------
+------------------------------------------------------------
 
 The &.library.Timestamp type is the Point In Time Representation
 Type with the finest precision available *by default*:
@@ -421,8 +421,9 @@ The returned timestamp is a UTC timestamp.
 	Using the system time for managing timeouts is discouraged.
 	chronometry's clock interface has monotonic devices for managing timeouts.
 
+
 [ Constructing Points and Measures >> Creating a Timestamp from an ISO-9660 String ]
--------------------------------
+------------------------------------------------------------------------------------
 
 While the &.format module manages the details, the
 &.library module provides access to the functionality:
@@ -645,7 +646,8 @@ over `generator expressions` as it allows a reference to the desired transformat
 	so the implementation only offers syntactic convenience. Future versions will
 	provide implementations that offer greater efficiency.
 
-[ Working with Sets and Sequences >> Selectors ]
+[ Working with Collections >> Selectors ]
+-----------------------------------------
 
 The &.library.select constructor provides a syntactically convenient
 means to select fields from an arbitrary Time Object.
@@ -661,8 +663,8 @@ given:
 	>>> print(hour_of_day(libtime.Timestamp.of(datetime=(2001,1,1,4,30,2))))
 
 
-[ Working with Sets and Sequences >> Updaters ]
------------------------------------------------
+[ Working with Collections >> Updaters ]
+----------------------------------------
 
 The &.library.update constructor provides a syntactically convenient
 means to update *a* field of an arbitrary Time Object.
@@ -673,7 +675,8 @@ operation consistent to: `(x.update('day', 0, 'week') for x in iter(obj))`
 Field updates can provide a concise means to simplify some rather tricky
 date-time math.
 
-[ Working with Sets and Sequences >> Openers ]
+[ Working with Collections >> Openers ]
+---------------------------------------
 
 There is often a need to construct an opener. Instantiating timestamps from
 date-time tuples, ISO formatted timestamps, and UNIX timestamps is common.
