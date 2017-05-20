@@ -14,11 +14,11 @@
 """
 import itertools
 
-def resolve_backslashes(field:bytes) -> bytes:
+def resolve_backslashes(field:bytes, escape=b'\\') -> bytes:
 	"""
 	# Properly resolve backslashes inside `quoted-string` areas.
 	"""
-	fi = iter(field.split(b'\\'))
+	fi = iter(field.split(escape))
 	yield next(fi)
 	for x in fi:
 		if x:
@@ -26,7 +26,7 @@ def resolve_backslashes(field:bytes) -> bytes:
 				yield x
 			else:
 				# Does not match escape pattern in RFC.
-				yield b'\\'
+				yield escape
 				yield x
 
 # Separators + CTL. Presence of these causes quotations.
@@ -129,7 +129,6 @@ def split_parameter_series(series,
 	# Specification designated invalid character sequences are not checked,
 	# and must be handled separately for strict conformance.
 	"""
-	global resolve_backslashes
 
 	# Normal processing outside quotes.
 	fx = normal
@@ -154,14 +153,14 @@ def split_parameter_series(series,
 		for quoted_area in iq:
 			if not quoted_area.endswith(escape_character):
 				# End of quote. Go back to normal processing.
-				v = empty.join(resolve_backslashes(v+quoted_area))
+				v = empty.join(resolve_backslashes(v+quoted_area, escape=escape_character))
 				break
 			else:
 				y = quoted_area.rstrip(escape_character)
 				c = y.__len__() - quoted_area.__len__()
 				if c % 2 == 0:
 					# End of quote. Go back to normal processing.
-					v = empty.join(resolve_backslashes(v+quoted_area))
+					v = empty.join(resolve_backslashes(v+quoted_area, escape=escape_character))
 					break
 				else:
 					# quote escape. update entry and
