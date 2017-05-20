@@ -1,6 +1,6 @@
-identity = 'http://fault.io/python/internet'
+identity = 'http://fault.io/src/fault.internet'
 name = 'internet'
-abstract = 'Internet protocol implementations (HTTP, DNS, and SMTP) for Python'
+abstract = 'Internet protocol implementations'
 icon = '📡'
 
 fork = 'darpa'
