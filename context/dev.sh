@@ -329,6 +329,7 @@ in
 		then
 			IFS="$NL"
 			set -- $(cat "$SF")
+			unset IFS
 		fi
 
 		printf "{reconstruct}"
@@ -342,6 +343,7 @@ in
 		then
 			IFS="$NL"
 			set -- $(cat "$SF")
+			unset IFS
 		fi
 
 		printf "{construct && induct}"
@@ -359,6 +361,7 @@ in
 		then
 			IFS="$NL"
 			set -- $(cat "$SF")
+			unset IFS
 		fi
 
 		printf "{[switch] construct && -R induct}"
@@ -390,9 +393,6 @@ in
 	;;
 
 	test)
-		state="$1"
-		shift
-
 		if test $# -eq 0
 		then
 			IFS="$NL"
