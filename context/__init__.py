@@ -1,7 +1,10 @@
 """
-# Fault Context Package Representation
+# Fault Context Package
+
+# Provides bootstrapping tools for fault environments.
 
 # [Executables]
+
 # /&.bin.prepare
 	# Prepare the context package for use. Differs from &..development.bin.prepare by
 	# performing bootstrapping of context package prior to prepare. No arguments are
