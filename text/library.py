@@ -23,21 +23,20 @@ class XML(object):
 	"""
 	# Serialize parsed events into XML.
 
-	# The eclectic parser produces event sequences and the serializer
+	# The parser produces event sequences and the serializer
 	# provides the hierarchical structure necessary for XML.
 	"""
 
 	@classmethod
 	def transform(Class, prefix:str, source:str, encoding:str='utf-8', identify=lambda x: x):
 		"""
-		# Construct an iterator producing XML from the given
-		# eclectic documentation &source.
+		# Construct an iterator producing XML from the given documentation &source.
 
 		# [ Parameters ]
 		# /prefix
 			# The element name prefix for the rendered XML.
 		# /source
-			# The eclectic text to transform into XML.
+			# The text to transform into XML.
 		# /encoding
 			# The encoding that should be used for the XML.
 		"""
@@ -48,7 +47,7 @@ class XML(object):
 
 	def __init__(self,
 			serialization:libxml.Serialization,
-			identify:object=lambda x: x,
+			identify:object=(lambda x: x),
 		):
 		"""
 		# [ Parameters ]
