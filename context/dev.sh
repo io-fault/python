@@ -323,7 +323,7 @@ in
 		done 2>&1 | eval ${PAGER:-less -R}
 	;;
 
-	reconstruct)
+	re|reconstruct)
 		# Construct with FPI_REBUILD=1
 		if test $# -eq 0
 		then
