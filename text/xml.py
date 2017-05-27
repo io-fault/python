@@ -8,14 +8,14 @@
 """
 import typing
 
-from ..xml import library as libxml, libschema
+from ..xml import library as libxml
 from ..system import libfactor
 
 from . import schemas
 
-namespaces = libschema.index_namespace_labels(schemas)
+namespaces = libxml.document.index_namespace_labels(schemas)
 
-class Text(libschema.Interface):
+class Text(libxml.document.Interface):
 	"""
 	# XML text structure interfaces.
 	"""
