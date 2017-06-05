@@ -20,5 +20,5 @@ class Text(libxml.document.Interface):
 	# XML text structure interfaces.
 	"""
 	from .schemas import txt as schema
-	schema = libfactor.package_inducted(schema) / 'pf.lnk'
+	#schema = libfactor.selected(schema)
 	namespace = namespaces['txt']
