@@ -524,7 +524,7 @@ class Parser(object):
 
 				assert params[0] > 0 # indentation always > 0 on exit
 
-				if ntype == 'variable-content' and subnodes[-1] and subnodes[-1][1]:
+				if ntype == 'variable-content' and subnodes and subnodes[-1] and subnodes[-1][1]:
 					paras = subnodes[-1]
 					if paras[1][-1] == ('eol', ''):
 						empty_addr = -2
@@ -557,7 +557,7 @@ class Parser(object):
 					if subnodes and subnodes[-1][0] == 'paragraph':
 						# Uninitialized paragraph start.
 						para = subnodes[-1]
-						if para[2] is None:
+						if len(para) > 2 and para[2] is None:
 							subnodes[-1] = (para[0], para[1], params[-1])
 
 					self.structure(sections, root, node, params[-1], iterator)
