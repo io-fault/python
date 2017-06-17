@@ -1,10 +1,10 @@
-/*
- * Interface to the kernel's clock using mostly POSIX interfaces.
- *
- * gettimeofday/settimeofday, adjtime, and monotonic timer access.
- *
- * These C functions perform conversion into Y2K+1 offsets for efficiency.
- */
+/**
+	# Interface to the kernel's clock using mostly POSIX interfaces.
+
+	# gettimeofday/settimeofday, adjtime, and monotonic timer access.
+
+	# These C functions perform conversion into Y2K+1 offsets for efficiency.
+**/
 #include <sys/types.h>
 #include <sys/time.h>
 
@@ -25,21 +25,25 @@
 #endif
 
 #ifdef __FreeBSD__
-/* uptime clock for portability across processes */
+/*
+	# Uptime clock for portability across processes.
+*/
 #warning FREEBSD_CLOCK_ID
 #define LOCAL_MONOTONIC_CLOCK_ID CLOCK_UPTIME_FAST
 #endif
 
 #ifndef LOCAL_MONOTONIC_CLOCK_ID
 #warning POSIX_CLOCK_ID
-/* linux etc? */
+/*
+	# linux etc?
+*/
 #define LOCAL_MONOTONIC_CLOCK_ID CLOCK_MONOTONIC
 #endif
 
 /*
- * If Python didn't find it, it won't include it.
- * However, it's quite necessary.
- */
+	# If Python didn't find it, it won't include it.
+	# However, it's quite necessary.
+*/
 #ifndef HAVE_STDINT_H
 #include <stdint.h>
 #endif
@@ -55,16 +59,16 @@ MACH(static clock_serv_t applestuff);
 
 typedef struct Chronometer *Chronometer;
 
-/*
- * Use a Y2K+1 epoch. (+1 for weekstart alignment)
- * It's nearly aligned on a gregorian cycle and a week cycle.
- */
 #define seconds_in_day (60 * 60 * 24)
+/**
+	# Use a Y2K+1 epoch. (+1 for weekstart alignment)
+	# It's nearly aligned on a gregorian cycle and a week cycle.
+**/
 const time_t unix_epoch_delta = (((((EPOCH_YEAR-1970) * 365) + 7) * seconds_in_day) + seconds_in_day);
 
-/*
- * wallclock snapshot as an int with microsecond precision.
- */
+/**
+	# Wallclock snapshot as an int with microsecond precision.
+**/
 static PyObj
 snapshot_us(PyObj self)
 {
@@ -86,9 +90,9 @@ snapshot_us(PyObj self)
 	return(PyLong_FromLongLong(ull));
 }
 
-/*
- * wallclock snapshot as an int with nanosecond precision.
- */
+/**
+	# Wallclock snapshot as an int with nanosecond precision.
+**/
 static PyObj
 snapshot_ns(PyObj self)
 {
@@ -177,9 +181,9 @@ sleep_ns(PyObj self, PyObj nsec)
 	return(PyLong_FromUnsignedLongLong(ull));
 }
 
-/*
- * Chronometer type for tracking elapsed time.
- */
+/**
+	# Chronometer object for tracking elapsed time.
+**/
 struct Chronometer {
 	PyObject_HEAD
 
@@ -192,13 +196,13 @@ chronometer_fetch(Chronometer cm)
 {
 	unsigned long long r;
 
-#ifdef __MACH__
-	mach_timespec_t ts;
-	clock_get_time(applestuff, &ts);
-#else
-	struct timespec ts;
-	clock_gettime(LOCAL_MONOTONIC_CLOCK_ID, &ts);
-#endif
+	#ifdef __MACH__
+		mach_timespec_t ts;
+		clock_get_time(applestuff, &ts);
+	#else
+		struct timespec ts;
+		clock_gettime(LOCAL_MONOTONIC_CLOCK_ID, &ts);
+	#endif
 
 	r = ts.tv_sec;
 	r *= 1000000000;
