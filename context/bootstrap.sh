@@ -168,7 +168,7 @@ do
 			"-DFACTOR_BASENAME=$modname" \
 			"-DF_PURPOSE=debug" \
 			-fwrapv \
-			src/*.c || exit
+			src/*.c
 
 		cd "$fault_dir/$project"
 	done
@@ -227,7 +227,7 @@ do
 				"-DFACTOR_BASENAME=$modname" \
 				"-DF_PURPOSE=debug" \
 				-fwrapv \
-				src/*.c || exit
+				src/*.c
 
 			cd ..
 		done
