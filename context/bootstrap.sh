@@ -82,8 +82,13 @@ fi
 
 pyversion="$("$python" -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')"
 pyabi="$("$python" -c 'import sys; print(sys.abiflags)')"
+pytype="$("$python" -c 'import sys; print(sys.implementation.name)')"
 
 test $? -eq 0 || exit 1
+
+echo "ABI: $pyabi"
+echo "VERSION: $pyversion"
+echo "TYPE: $pytype"
 
 compile ()
 {
