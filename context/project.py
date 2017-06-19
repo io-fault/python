@@ -25,7 +25,9 @@ projects = (
 	'io',
 	'internet',
 	'daemon',
+
 	'llvm',
+	'python',
 
 	'routes',
 	'stack',
