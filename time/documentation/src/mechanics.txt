@@ -9,7 +9,7 @@ datum.
 The hierarchy of chronometry time types is relatively straightforward, but is arguably
 peculiar. The Range is the base abstract class for Points and Measures. However, Points
 and Measures are siblings where the Point class is dependent on the presence of a Measure
-for Measurement operations such as :py:meth:`.abstract.Point.measure`.
+for Measurement operations such as &.abstract.Point.measure.
 
 [ Constraints ]
 
@@ -29,7 +29,7 @@ implementation semantically problematic as the constraint could not be inherited
 [ Storage ]
 
 The &.core module's &.core.Context class
-creates Point in Time types that are subclasses of the built-in Python `int`.
+creates Point in Time types that are subclasses of the built-in Python &int.
 
 The value of the integer is an offset from the year two thousand plus one day.
 
