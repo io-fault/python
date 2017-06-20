@@ -28,6 +28,7 @@ projects = (
 
 	'llvm',
 	'python',
+	'node',
 
 	'routes',
 	'stack',
