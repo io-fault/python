@@ -1,6 +1,6 @@
 identity = 'http://fault.io/src/fault.context'
 name = 'context'
-abstract = 'Context package for the fault.io intersection projects'
+abstract = 'Core project space'
 icon = '🔋'
 
 fork = 'potential'
@@ -10,7 +10,7 @@ status = 'flux'
 controller = 'fault.io'
 contact = 'mailto:critical@fault.io'
 
-root = 'http://fault.io/python/'
+root = 'http://fault.io/src/'
 
 projects = (
 	'chronometry',
@@ -25,10 +25,6 @@ projects = (
 	'io',
 	'internet',
 	'daemon',
-
-	'llvm',
-	'python',
-	'node',
 
 	'routes',
 	'stack',
