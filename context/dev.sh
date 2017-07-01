@@ -148,7 +148,7 @@ then
 	DEV_INTENTION='metrics'
 	if test $DEV_INTENTION_SELECTED -eq 0
 	then
-		echo >&2 'Ignored selected purpose `'"$DEV_INTENTION"'` for metrics; `metrics` is required.'
+		echo >&2 'Ignored selected intention `'"$DEV_INTENTION"'` for metrics; `metrics` is required.'
 	fi
 elif test x"$1" = x"test"
 then
@@ -157,6 +157,9 @@ then
 		# Not explicitly selected, so use test for test.
 		DEV_INTENTION='test'
 	fi
+elif test x"$DEV_NAME" = x"inspect"
+then
+	DEV_INTENTION='debug'
 else
 	:
 fi
