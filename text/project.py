@@ -1,4 +1,4 @@
-identity = 'http://fault.io/python/text'
+identity = 'http://fault.io/src/fault.text'
 name = 'text'
 abstract = 'Text Formatting Language for developer documentation and structured status'
 icon = '📜'
