@@ -1,4 +1,4 @@
-identity = 'http://fault.io/src/fault.context'
+identity = 'http://fault.io/src/python/context'
 name = 'context'
 abstract = 'Core project space'
 icon = '🔋'
