@@ -1,4 +1,4 @@
-identity = 'http://fault.io/src/fault.internet'
+identity = 'http://fault.io/src/python/internet'
 name = 'internet'
 abstract = 'Internet protocol implementations'
 icon = '📡'
