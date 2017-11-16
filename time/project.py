@@ -1,4 +1,4 @@
-identity = 'http://fault.io/src/fault.chronometry'
+identity = 'http://fault.io/src/python/chronometry'
 name = 'chronometry'
 abstract = 'An integer based time solution with selectable precision'
 icon = '⌛'
