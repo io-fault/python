@@ -1,6 +1,6 @@
 """
-# Transform the fault.text from standard input into UTF-8 encoded XML that is written to standard output.
-# The one optional argument selects the encoding of the XML output.
+# Transform the fault.text from standard input into UTF-8 encoded XML that is written to
+# standard output. The one optional argument selects the encoding of the XML output.
 """
 
 def main(src, args):

@@ -1,5 +1,5 @@
 """
-# Delineate a fault text file.
+# Delineate a text file.
 
 # Emits serialized Fragments to standard out of the selected Python module.
 """
