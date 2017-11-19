@@ -75,5 +75,12 @@ def mkctxpkg(root_init, name='fault'):
 if __name__ == '__main__':
 	sys.stdout.close()
 	sys.stdout = sys.stderr
+	args = sys.argv[1:]
+
 	from .. import root
-	mkctxpkg(root.__file__, name=root.__canonical__)
+	if args:
+		name, = args
+	else:
+		name = root.__canonical__
+
+	mkctxpkg(root.__file__, name=name)
