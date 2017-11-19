@@ -25,9 +25,9 @@ projects = (
 	'io',
 	'internet',
 	'daemon',
+	'sectors',
 
 	'routes',
-	'stack',
 	'system',
 	'terminal',
 	'text',
