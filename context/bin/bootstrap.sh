@@ -117,7 +117,7 @@ do
 			"-DMODULE_PACKAGE=$pkgname" \
 			"-DMODULE_BASENAME=$modname" \
 			"-DFACTOR_BASENAME=$modname" \
-			"-DF_PURPOSE=debug" \
+			"-DF_INTENTION=debug" \
 			-fwrapv \
 			src/*.c
 
@@ -176,7 +176,7 @@ do
 				"-DMODULE_PACKAGE=$pkgname" \
 				"-DMODULE_BASENAME=$modname" \
 				"-DFACTOR_BASENAME=$modname" \
-				"-DF_PURPOSE=debug" \
+				"-DF_INTENTION=debug" \
 				-fwrapv \
 				src/*.c
 
