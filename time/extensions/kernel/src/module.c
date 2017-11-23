@@ -99,27 +99,27 @@ snapshot_ns(PyObj self)
 	unsigned long long ull;
 	struct timespec ts;
 
-#ifdef __MACH__
-	/*
-	 * @2012
-	 * The mach interfaces to CALENDAR_CLOCK (clock_get_time)
-	 * are in usec precision. Just use gettimeofday. :(
-	 */
-	struct timeval tv;
-	if (gettimeofday(&tv, NULL))
-	{
-		PyErr_SetFromErrno(PyExc_OSError);
-		return(NULL);
-	}
-	ts.tv_sec = tv.tv_sec;
-	ts.tv_nsec = tv.tv_usec * 1000;
-#else
-	if (clock_gettime(CLOCK_REALTIME, &ts))
-	{
-		PyErr_SetFromErrno(PyExc_OSError);
-		return(NULL);
-	}
-#endif
+	#ifdef __MACH__
+		/*
+			# @2012
+			# The mach interfaces to CALENDAR_CLOCK (clock_get_time)
+			# are in usec precision. Just use gettimeofday. :(
+		*/
+		struct timeval tv;
+		if (gettimeofday(&tv, NULL))
+		{
+			PyErr_SetFromErrno(PyExc_OSError);
+			return(NULL);
+		}
+		ts.tv_sec = tv.tv_sec;
+		ts.tv_nsec = tv.tv_usec * 1000;
+	#else
+		if (clock_gettime(CLOCK_REALTIME, &ts))
+		{
+			PyErr_SetFromErrno(PyExc_OSError);
+			return(NULL);
+		}
+	#endif
 
 	ull = ts.tv_sec;
 	/* adjust relative to 2000-01-02 (first sunday) */
