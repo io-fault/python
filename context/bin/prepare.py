@@ -77,11 +77,5 @@ if __name__ == '__main__':
 	sys.stdout.close()
 	sys.stdout = sys.stderr
 	args = sys.argv[1:]
-
-	from .. import root
-	if args:
-		name, = args
-	else:
-		name = root.__canonical__
-
+	name, = args
 	mkctxpkg(root.__file__, name=name)
