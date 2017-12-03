@@ -15,7 +15,6 @@ root = 'http://fault.io/src/'
 projects = (
 	'chronometry',
 	'computation',
-	'console',
 	'cryptography',
 
 	'development',
