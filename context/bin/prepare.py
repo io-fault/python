@@ -76,4 +76,5 @@ if __name__ == '__main__':
 	sys.stdout = sys.stderr
 	args = sys.argv[1:]
 	name, = args
+	from .. import root
 	mkctxpkg(root.__file__, name=name)
