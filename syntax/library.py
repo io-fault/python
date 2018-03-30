@@ -38,6 +38,30 @@ class Address(tuple):
 	def __div__(self, x):
 		return self.__class__((self[0]-x, self[1]))
 
+	@property
+	def line(self):
+		"""
+		# The line number identified by the address.
+
+		# When the column number is zero, the internal value is adjusted under the
+		# presumption that the address was referring to the end of the previos line.
+		"""
+		if self[1] == 0:
+			return self[0] - 1
+		else:
+			return self[0]
+
+	@property
+	def column(self):
+		"""
+		# The column number identified by the address. &None if the address
+		# is referring to the end of the &line.
+		"""
+		if self[1] == 0:
+			return None
+		else:
+			return self[1]
+
 	@staticmethod
 	def normalize_stop(line_length, line_number, column_number):
 		"""
