@@ -20,8 +20,8 @@ class Address(tuple):
 
 	@classmethod
 	def from_string(Class, source, Type=int, delimiter='.'):
-		lineno, colno = source.split(delimiter, 1)
-		return Class((Type(lineno), Type(colno)))
+		pair = source.split(delimiter, 1)
+		return Class((Type(pair[0]), Type(pair[1])))
 
 	def __str__(self):
 		return "%s.%s"%(self[0], self[1])
@@ -84,6 +84,27 @@ class Area(librange.IRange):
 	"""
 	Type = Address
 
+	@property
+	def vertical(self):
+		"""
+		# Whether the Area refers to a purely vertically area of the syntax without
+		# constraints on the columns.
+
+		# Zero-column references *must* be used to identify an Area as purely vertical.
+		"""
+		return self[0][1] == self[1][1] == 0 and self[1][0] > self[0][0]
+
+	@property
+	def horizontal(self):
+		"""
+		# Whether the area refers a purely horizontal area of the syntax within a single line.
+
+		# Zero-column references to the end of the line are not permitted to be used for
+		# pure horizontal Areas. The inherited limitation being that some continuity realizations
+		# requires additional contextual knowledge (line length).
+		"""
+		return self[0][0] == self[1][0] and self[0][1] > 0 and self[1][1] > 0
+
 	@classmethod
 	def delineate(Class, lstart, cstart, lstop, cstop, stop_line_length):
 		"""
@@ -93,21 +114,52 @@ class Area(librange.IRange):
 		lstop, cstop = Class.Type.normalize_stop(stop_line_length, lstop, cstop)
 		return Area((Address((lstart,cstart)), Address((lstop,cstop))))
 
+	def __str__(self):
+		if self.vertical:
+			if self[1][0] - self[0][0] == 1:
+				return str(self[0][0])
+			else:
+				return '%s-%s' %(self[0][0], self[1][0]-1)
+		else:
+			return super().__str__()
+
 	@classmethod
 	def from_string(Class, string, delimiter='-'):
 		"""
 		# Construct an &Area from the given string.
 		"""
+		pair = string.split(delimiter, 1)
+		if pair.__len__() == 2:
+			start_str, stop_str = pair
+			stop_column = '.' in stop_str
+		else:
+			stop_str = start_str = pair[0]
+			stop_column = False
+		start_column = '.' in start_str
 
-		seq = [
-			Class((Class.Type.from_string(y[0]), Class.Type.from_string(y[1])))
-			for y in (
-				x.split(delimiter) for x in string.split()
-			)
-		]
-		seq.sort()
+		if start_column:
+			start = Class.Type.from_string(start_str)
+		else:
+			start = Class.Type((int(start_str), 0))
 
-		return Class.from_normalized_sequence(seq)
+		if stop_column:
+			stop = Class.Type.from_string(stop_str)
+		else:
+			# Neither, Vertical range: "100-121"
+			stop = Class.Type((int(stop_str)+1, 0))
+
+		return Class((start, stop))
+
+	@classmethod
+	def from_line_range(Class, pair):
+		"""
+		# Construct an &Area from the inclusive line indexes in &pair.
+		# The returned instance guarantees &vertical.
+		"""
+		return Class((
+			Class.Type((pair[0], 0)),
+			Class.Type((pair[1]+1, 0)),
+		))
 
 	def select(self, lines:typing.Sequence[typing.Text]):
 		"""
