@@ -496,7 +496,8 @@ def context_tokens(
 	if user is not None or password is not None:
 		yield ('delimiter', "@")
 
-	yield ('host', escape_host(re_pct_encode, host))
+	if host is not None:
+		yield ('host', escape_host(re_pct_encode, host))
 
 	if port is not None:
 		yield ('delimiter', ':')
