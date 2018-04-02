@@ -12,21 +12,22 @@ contact = 'mailto:critical@fault.io'
 
 root = 'http://fault.io/src/'
 
-projects = (
+projects = [
 	'chronometry',
 	'computation',
 	'cryptography',
 
+	'daemon',
 	'development',
 	'factors',
 	'filesystem',
 
 	'io',
 	'internet',
-	'daemon',
 	'sectors',
 
 	'routes',
+	'syntax',
 	'system',
 	'terminal',
 	'text',
@@ -34,7 +35,7 @@ projects = (
 
 	'web',
 	'xml',
-)
+]
 
 if __name__ == '__main__':
 	print('\n'.join(projects))
