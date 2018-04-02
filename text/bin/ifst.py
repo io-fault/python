@@ -54,21 +54,21 @@ def load(import_path, template):
 	document = r / (template + '.xml')
 	return lxml.readfile(str(document))
 
-def main(invocation:libsys.Invocation) -> None:
+def main(inv:libsys.Invocation):
 	try:
-		route, import_path, template, *path = invocation.args
+		route, import_path, template, *path = inv.args
 	except:
-		return invocation.exit(libsys.Exit.exiting_from_bad_usage)
+		return inv.exit(libsys.Exit.exiting_from_bad_usage)
 
 	route = libroutes.File.from_path(route)
-	if route.exists():
-		sys.stderr.write("ERROR: path %s already exists.\n" %(str(route),))
-		return invocation.exit(libsys.Exit.exiting_from_output_inaccessible)
+	if route.exists() and not route.is_directory():
+		sys.stderr.write("! ERROR: path (%r) must be a directory.\n" %(str(route),))
+		return inv.exit(libsys.Exit.exiting_from_output_inaccessible)
 
 	doc = load(import_path, template)
 	process(doc, route, path)
 
-	return invocation.exit(libsys.Exit.exiting_from_success)
+	return inv.exit(libsys.Exit.exiting_from_success)
 
 if __name__ == '__main__':
 	libsys.control(main, libsys.Invocation.system())
