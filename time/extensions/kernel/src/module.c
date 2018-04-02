@@ -135,6 +135,7 @@ sleep_us(PyObj self, PyObj usec)
 {
 	int r;
 	unsigned long long ull;
+	struct timespec request, actual;
 
 	ull = PyLong_AsUnsignedLongLong(usec);
 	if (PyErr_Occurred())
@@ -142,11 +143,24 @@ sleep_us(PyObj self, PyObj usec)
 
 	Py_BEGIN_ALLOW_THREADS
 
-	r = usleep((useconds_t) ull);
+	ull = ull * 1000;
+	request.tv_sec = ull / 1000000000;
+	request.tv_nsec = ull % 1000000000;
+
+	r = nanosleep(&request, &actual);
 
 	Py_END_ALLOW_THREADS
 
-	Py_RETURN_NONE;
+	if (r == 0)
+	{
+		Py_INCREF(usec);
+		return(usec);
+	}
+
+	ull = actual.tv_sec * 1000000000;
+	ull = ull + actual.tv_nsec;
+
+	return(PyLong_FromUnsignedLongLong(ull));
 }
 
 static PyObj
