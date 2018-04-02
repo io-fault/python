@@ -27,7 +27,9 @@
 		# is likely to extend beyond the roff downstream.
 	!-->
 
+	<ctl:library symbol="adjacents" type="application/xslt+xml" namespace="xsl"/>
 	<ctl:namespaces fault:keep="no" xi:keep="no" exsl:keep="no"/>
+
 	<xsl:output method="xml" encoding="utf-8" indent="no"/>
 
 	<xsl:param name="adjacents.delimiter" select="' '"/>
@@ -41,7 +43,7 @@
 		<xsl:variable name="nodes" select="*|text()|processing-instruction()"/>
 
 		<!--
-			# ! WARNING: Processing instructions might not be handled properly here.
+			# ! WARNING: (term)`XML Processing Instructions` might not be handled properly here.
 		!-->
 
 		<xsl:variable name="first.node" select="$nodes[position()=1]"/>
