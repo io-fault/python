@@ -13,13 +13,11 @@ contact = 'mailto:critical@fault.io'
 root = 'http://fault.io/src/'
 
 projects = [
-	'chronometry',
 	'computation',
-	'cryptography',
+	'chronometry', # rename to time
+	'cryptography', # rename to security
 
 	'daemon',
-	'development',
-	'factors',
 	'filesystem',
 
 	'io',
