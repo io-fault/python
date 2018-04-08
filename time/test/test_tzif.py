@@ -24,5 +24,5 @@ def test_loadall(test, _join = os.path.join, bytes = bytes, bool = bool, int = i
 					test/tz.tz_isgmt / bool
 
 if __name__ == '__main__':
-	import sys; from ...development import libtest
+	import sys; from ...test import library as libtest
 	libtest.execute(sys.modules[__name__])
