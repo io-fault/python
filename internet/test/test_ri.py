@@ -508,5 +508,5 @@ def test_combinations(test, S = library.serialize, P = library.parse):
 			test.fail("%r -> %r != %r" %(x, s, p))
 
 if __name__ == '__main__':
-	import sys; from ...development import libtest
+	import sys; from ...test import library as libtest
 	libtest.execute(sys.modules['__name__'])
