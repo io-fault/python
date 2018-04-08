@@ -8,8 +8,8 @@ import sys
 from ...system import library as libsys
 from ...routes import library as libroutes
 from .. import library as libtxt
-from ...development import fragments
 from ...xml import library as libxml
+from kit.factors import fragments
 
 def main(inv:libsys.Invocation):
 	filepath, = inv.args
