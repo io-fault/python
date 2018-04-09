@@ -16,11 +16,10 @@
 import builtins
 import itertools
 import collections
+import typing
 
 from ..computation import library as libc
 from ..computation import string
-
-from typing import Sequence
 
 # This iterator exists solely for the purpose of handling
 # transitions from set/sequence items to another type.
@@ -385,7 +384,7 @@ class Parser(object):
 		None: process,
 	}
 
-	def tokenize(self, lines:Sequence[str]):
+	def tokenize(self, lines:typing.Sequence[str]):
 		"""
 		# Tokenize the given source returning an iterator producing eclectic events.
 		# &source assumed to be is newline separated string.
@@ -473,11 +472,11 @@ class Parser(object):
 					subnodes[-1][1].extend(params[0])
 
 			elif event in ('paragraph-break', 'decoration') or (
-				(event, ntype) in {
-					('unordered-item', 'sequence'),
-					('enumerated-item', 'set'),
-				}
-			):
+					(event, ntype) in {
+						('unordered-item', 'sequence'),
+						('enumerated-item', 'set'),
+					}
+				):
 				# Explicit break; empty paragraphs will be ignored downstream.
 				if ntype in {'set', 'sequence'}:
 					# Clear trailing whitespace before processing
