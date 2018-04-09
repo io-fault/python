@@ -2,7 +2,7 @@
 # Collection of data structures and functions for working with exact addresses in (syntax) text files.
 """
 import typing
-from ..computation import range as librange
+from ..range import library as librange
 
 class Address(tuple):
 	"""
@@ -37,6 +37,12 @@ class Address(tuple):
 
 	def __div__(self, x):
 		return self.__class__((self[0]-x, self[1]))
+
+	def __rshift__(self, x):
+		return Area((self, self.__class__((x[0]+1, x[1]))))
+
+	def __lshift__(self, x):
+		return Area((x, self.__class__((self[0]+1, self[1]))))
 
 	@property
 	def line(self):
