@@ -20,7 +20,7 @@ chronometry's APIs are *not* compatible with the standard library's datetime mod
 The surface functionality is provided &.library:
 
 #!/pl/python
-	import fault.chronometry.library as libtime
+	import fault.time.library as libtime
 
 Current date and time as a &.library.Timestamp.
 

@@ -1,4 +1,5 @@
 """
+# Check earth based units (days).
 """
 import itertools
 from .. import earth

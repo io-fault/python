@@ -56,7 +56,7 @@ a homogenous pair.
 	key in dictionaries:
 
 	#!/pl/python
-		>>> from fault.chronometry import library as libtime
+		>>> from fault.time import library as libtime
 		>>> d = {}
 		>>> d[libtime.Date(0)] = 'Hello, World!'
 		>>> print d[0]
