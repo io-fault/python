@@ -1,5 +1,5 @@
 """
-# Test framework primitives.
+# Test framework primitives. Provides and defines &Test, &Contention, &Absurdity, and &Fate.
 """
 import builtins
 import gc
@@ -74,8 +74,6 @@ class Absurdity(Exception):
 		'__ge__': '>=',
 
 		'__mod__': 'is',
-		'__truediv__': 'isinstance',
-		'__sub__': 'issubclass',
 	}
 
 	def __init__(self, operator, former, latter, inverse=None):
@@ -124,8 +122,6 @@ class Contention(object):
 
 	# Build operator methods based on operator.
 	_override = {
-		'__truediv__' : ('isinstance', isinstance),
-		'__sub__' : ('issubclass', issubclass),
 		'__mod__' : ('is', lambda x,y: x is y)
 	}
 
@@ -325,7 +321,7 @@ class Test(object):
 		# A &contextlib.ExitStack for cleaning up allocations made during the test.
 		# The harness running the test decides when the stack's exit is processed.
 	"""
-	__slots__ = ('focus', 'identity', 'constraints', 'fate', 'exits')
+	__slots__ = ('focus', 'identity', 'constraints', 'fate', 'exits',)
 
 	# These referenced via Test instances to allow subclasses to override
 	# the implementations.
