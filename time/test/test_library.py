@@ -3,11 +3,21 @@ from .. import library
 from .. import views
 from . import mock
 
+class_pairs = [
+	(library.Timestamp, library.Measure),
+	(library.Date, library.Days),
+	(library.Week, library.Weeks),
+	(library.GregorianMonth, library.Months),
+]
+
 def test_classes(test):
-	test//library.Timestamp - library.Measure
-	test//library.Date - library.Days
-	test//library.Week - library.Weeks
-	test//library.GregorianMonth - library.Months
+	# Check distinct inheritance lines.
+	for A, B in class_pairs:
+		with test/test.Absurdity as exc:
+			test.issubclass(A, B)
+
+		with test/test.Absurdity as exc:
+			test.issubclass(B, A)
 
 def test_instants(test):
 	ts = library.Timestamp(0)
@@ -305,7 +315,7 @@ def test_hashing(test):
 	test/1 == len(d) # wait, really?
 
 def test_now(test):
-	test/library.now() / library.Timestamp
+	test.isinstance(library.now(), library.Timestamp)
 
 def test_business_week(test):
 	expected = [
@@ -330,20 +340,20 @@ def test_subseconds(test):
 
 def test_clock_features(test):
 	clock = library.clock
-	test/clock.demotic() / library.Timestamp
-	test/clock.monotonic() / library.Measure
-	test/clock.sleep(123) / library.Measure
+	test.isinstance(clock.demotic(), library.Timestamp)
+	test.isinstance(clock.monotonic(), library.Measure)
+	test.isinstance(clock.sleep(123), library.Measure)
 
 	for x, t in zip(range(3), clock.meter()):
 		test/t >= 0
 		test/t >= 0
-		test/t / library.Measure
+		test.isinstance(t, library.Measure)
 	for x, t in zip(range(3), clock.delta()):
 		test/t >= 0
-		test/t / library.Measure
+		test.isinstance(t, library.Measure)
 	with clock.stopwatch() as total:
 		pass
-	test/total() / library.Measure
+	test.isinstance(total(), library.Measure)
 	test/total() == total()
 
 	periods = clock.periods(library.Measure.of(subsecond=0.1))
@@ -582,7 +592,7 @@ def test_scheduler(test):
 			return self.__next__()
 	H = library.Scheduler(Chronometer = Chronometer)
 
-	test/H / library.Scheduler
+	test.isinstance(H, library.Scheduler)
 
 	update = Chronometer.set
 	update(0)
