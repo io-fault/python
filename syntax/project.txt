@@ -1,0 +1,16 @@
+/source/
+	`http://fault.io/src/python/syntax`
+/name/
+	`syntax`
+/abstract/
+	Syntax query and manipulation tools.
+/icon/
+	- [(entity)`fault`:syntax]
+/versioning/
+	continuous
+/status/
+	flux
+/controller/
+	`fault.io`
+/contact/
+	`mailto:critical@fault.io`
