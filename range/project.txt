@@ -1,0 +1,14 @@
+/source/
+	`http://fault.io/src/python/range`
+/name/
+	`range`
+/icon/
+	`↔`
+/versioning/
+	continuous
+/status/
+	flux
+/controller/
+	fault.io
+/contact/
+	`http://fault.io/critical`
