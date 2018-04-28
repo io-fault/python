@@ -1,0 +1,16 @@
+/source/
+	`http://fault.io/src/python/time`
+/name/
+	`time`
+/abstract/
+	`An integer based time solution with selectable precision`
+/icon/
+	`⌛`
+/versioning/
+	continuous
+/status/
+	flux
+/controller/
+	`fault.io`
+/contact/
+	`http://fault.io/critical`
