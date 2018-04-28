@@ -1,0 +1,14 @@
+/source/
+	`https://fault.io/src/python/test`
+/name/
+	`test`
+/icon/
+	``
+/versioning/
+	continuous
+/status/
+	flux
+/controller/
+	fault.io
+/contact/
+	`http://fault.io/critical`
