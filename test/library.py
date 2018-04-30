@@ -196,8 +196,33 @@ class Fate(BaseException):
 	line = None
 	color = 'white'
 
+	test_fate_descriptors = {
+		# Abstract, Impact, Numeric Identifier, Color
+		'return': ("passed", "The test returned without exception implying success",1,0,"green"),
+		'pass': ("passed", "The test was explicitly passed by raising its Fate",1,1,"green"),
+		'explicit': ("skipped", "The test must be explicitly invoked",0,2,"magenta"),
+		'skip': ("skipped", "The test was skipped for a specific reason",0,3,"cyan"),
+		'divide': ("divided", "The test is a container of a set of tests",1,4,"blue"),
+		'fail': ("failed", "The test raised an exception or contended an absurdity",-1,5,"red"),
+		'reveal': ("revealed", "The coverage data of the test does not meet expectations",-1,6,"red"),
+		'expire': ("expired", "The test did not finish in the configured time",-1,8,"yellow"),
+		'interrupt': ("interrupted", "The test was interrupted by a control exception",-1,9,"orange"),
+		'core': ("cored", "The test caused a core image to be produced by the operating system",-1,90,"orange"),
+	}
+
 	def __init__(self, content):
 		self.content = content
+
+	@property
+	def descriptor(self):
+		return self.test_fate_descriptors[self.identifier]
+
+	@property
+	def negative(self):
+		"""
+		# Whether the fate's effect should be considered undesirable.
+		"""
+		return self.impact < 0
 
 	@property
 	def contention(self):
