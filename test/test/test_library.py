@@ -6,7 +6,7 @@ def test_Test_fail(test):
 		local.fail("foo")
 	t = library.Test(None, test_function)
 	t.seal()
-	test/t.fate / library.Fail
+	test.isinstance(t.fate, library.Fail)
 	test/"foo" == t.fate.content
 
 def test_Test_error(test):
@@ -14,7 +14,7 @@ def test_Test_error(test):
 		raise TypeError("foo")
 	t = library.Test(None, t)
 	t.seal()
-	test/t.fate / library.Fail
+	test.isinstance(t.fate, library.Fail)
 
 def raise_parameter(excvalue):
 	raise excvalue
@@ -24,13 +24,13 @@ def test_Test_skip(test):
 		it.skip("test")
 	t = library.Test(None, f)
 	t.seal()
-	test/t.fate / library.Skip
+	test.isinstance(t.fate, library.Skip)
 	test/"test" == t.fate.content
 
 def test_Contention(test, partial = functools.partial):
 	t = library.Test(None, None)
 	# protocol
-	test/(t/1) / library.Contention
+	test.isinstance((t/1), library.Contention)
 	test/(t/1).test == t
 	test/(t/1).object == 1
 
@@ -41,22 +41,23 @@ def test_Contention(test, partial = functools.partial):
 	test/library.Absurdity ^ partial((t / 1).__ge__, 2)
 	test/library.Absurdity ^ partial((t / 3).__le__, 2)
 	test/library.Absurdity ^ partial((t / []).__contains__, 2)
-	test/library.Absurdity ^ partial((t / 2).__truediv__, str)
-	test/library.Absurdity ^ partial((t / int).__sub__, str)
+
+	test/library.Absurdity ^ partial(t.isinstance, 2, str)
+	test/library.Absurdity ^ partial(t.issubclass, int, str)
 
 	try:
 		with t/ValueError as r:
 			raise OSError("foo")
 	except library.Absurdity as exc:
-		test/exc.__context__ / OSError
-		test/r() / OSError
+		test.isinstance(exc.__context__, OSError)
+		test.isinstance(r(), OSError)
 	else:
 		test.fail("subject did not catch unexpected")
 
 	try:
 		with t/ValueError as r:
 			raise ValueError("foo")
-		test/r() / ValueError
+		test.isinstance(r(), ValueError)
 	except:
 		test.fail("exception raised when none was expected")
 
@@ -113,9 +114,9 @@ def test_Contention(test, partial = functools.partial):
 	class B(A):
 		pass
 
-	t/B - A
-	t/B() / B
-	t/B() / A
+	t.issubclass(B, A)
+	t.isinstance(B(), B)
+	t.isinstance(B(), A)
 
 def test_issubclass(test):
 	class A(object):
