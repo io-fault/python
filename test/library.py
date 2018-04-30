@@ -331,22 +331,22 @@ class Test(object):
 
 	# [ Properties ]
 
-	# /identity
+	# /identity/
 		# A unique identifier for the &Test. Usually, a qualified name that can be used to
-		# locate &focus without having the actual object.
+		# locate &subject without having the actual object.
 
-	# /focus
+	# /subject/
 		# The callable that performs a series of checks--using the &Test instance--that
 		# determines the &fate.
 
-	# /fate
+	# /fate/
 		# The conclusion of the Test; pass, fail, error, skip. An instance of &Fate.
 
-	# /exits
+	# /exits/
 		# A &contextlib.ExitStack for cleaning up allocations made during the test.
 		# The harness running the test decides when the stack's exit is processed.
 	"""
-	__slots__ = ('focus', 'identity', 'constraints', 'fate', 'exits',)
+	__slots__ = ('subject', 'identity', 'constraints', 'fate', 'exits',)
 
 	# These referenced via Test instances to allow subclasses to override
 	# the implementations.
@@ -370,10 +370,10 @@ class Test(object):
 	Interrupt = Interrupt
 	Core = Core
 
-	def __init__(self, identity, focus, *constraints, ExitStack=contextlib.ExitStack):
+	def __init__(self, identity, subject, *constraints, ExitStack=contextlib.ExitStack):
 		# allow explicit identity as the callable may be a wrapped function
 		self.identity = identity
-		self.focus = focus
+		self.subject = subject
 		self.constraints = constraints
 		self.exits = ExitStack()
 
@@ -413,7 +413,7 @@ class Test(object):
 		self.fate = None
 
 		try:
-			r = self.focus(self)
+			r = self.subject(self)
 			# Make an attempt at causing any deletions.
 			gc.collect()
 			if not isinstance(r, self.Fate):
@@ -472,7 +472,7 @@ class Test(object):
 				...
 
 		# This allows &fail implementations set a trace prior to exiting
-		# the test's &focus.
+		# the test's &subject.
 
 		# &Fate exceptions are not trapped.
 		"""
