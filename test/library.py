@@ -495,18 +495,136 @@ class Test(object):
 		del collect
 	except ImportError:
 		def garbage(self, *args, **kw):
-			'Garbage collection not available'
+			"""
+			# Garbage collection not available.
+			"""
 			pass
+
+class Harness(object):
+	"""
+	# Manage the collection and execution of a set of tests.
+
+	# This is a Test Engine base class that finds and dispatches tests
+	# in a hierarchical pattern. Most test runners should subclass
+	# &Harness in order to control dispatch and status reporting.
+	"""
+
+	Test = Test
+	Fail = Fail
+	Divide = Divide
+	Core = Core
+
+	def __init__(self, package):
+		"""
+		# Create a harness for running the tests in the &package.
+		"""
+		self.package = package
+
+	@staticmethod
+	def collect_subjects(container):
+		"""
+		# Prepare a collection of test subjects with their corresponding identifier
+		# for subsequent execution.
+		"""
+		return gather(container)
+
+	@staticmethod
+	def load_test_container(identifier):
+		"""
+		# Load a set of tests that can be addressed using the given &identifier.
+
+		# Default implementation uses &importlib.import_module.
+		"""
+		from importlib import import_module
+		return import_module(str(identifier))
+
+	@staticmethod
+	def listpkg(path):
+		"""
+		# List the modules contained by the given path.
+		"""
+
+		from pkgutil import iter_modules
+		for (importer, name, ispkg) in iter_modules(path) if path is not None else ():
+			yield (ispkg, name)
+
+	def test_module(self, test):
+		"""
+		# Test subject for loading modules and dividing their contained tests.
+		"""
+
+		module = self.load_test_container(test.identity)
+		test/module.__name__ == test.identity
+
+		module.__tests__ = self.collect_subjects(module)
+		if '__test__' in dir(module):
+			# allow module to skip the entire set
+			module.__test__(test)
+
+		raise self.Divide(module)
+
+	def test_package(self, test):
+		"""
+		# Test subject for loading packages and dividing their contained modules.
+		"""
+
+		module = self.load_test_container(test.identity)
+		test/module.__name__ == test.identity
+		name = module.__name__
+
+		if 'context' in dir(module):
+			module.context(self)
+
+		seq = list(self.listpkg(module.__path__))
+		module.__tests__ = [
+			('.'.join((name, x[1])), self.test_module)
+			for x in seq
+			if not x[0] and x[1][:5] == 'test_'
+		]
+
+		raise self.Divide(module)
+
+	def test_root(self, package):
+		"""
+		# Test subject for loading the root test package within a project.
+		"""
+
+		path = str(package)
+		project = self.load_test_container(path)
+
+		module = type(builtins)("test.root")
+		ft = getattr(project, '__factor_type__', 'library')
+
+		module.__tests__ = [(path + '.test', self.test_package)]
+		return module
+
+	def dispatch(self, test):
+		"""
+		# Dispatch the given &Test to resolve its fate.
+		# Subclasses controlling execution will often override this method.
+		"""
+
+		with test.exits:
+			test.seal()
+
+	def process(self, container, modules):
+		"""
+		# Dispatch the set of test subjects declared within the container's `__tests__` attribute.
+
+		# The tests attribute should be a sequence of identifier-subject pairs that can be
+		# used construct a &Test instance.
+		"""
+
+		for tid, tcall in getattr(container, '__tests__', ()):
+			test = self.Test(tid, tcall)
+			self.dispatch(test)
 
 def execute(module):
 	"""
-	# A minimal test harness for Python.
-
-	# Execute the tests contained in the given container. Usually given a module object.
-
-	# ! WARNING:
-		# No status information is printed. Raises the first negative impact Test.
+	# Resolve the fate of the tests contained in &module. No status information
+	# is printed and the exception of the first failure will be raised.
 	"""
+
 	for id, func in gather(module):
 		test = Test(id, func)
 		with test.exits:
