@@ -51,6 +51,7 @@ def test_Area(test):
 	b = library.Address((5,1))
 	c = library.Address((10,1))
 	A = library.Area((a,b))
+
 	test/(a in A) == True
 	test/(b in A) == True
 	test/(c in A) == False
@@ -77,6 +78,18 @@ def test_Area_delineate(test):
 	b = library.Area.delineate(1,2,5,10,10)
 	test/b[0] == (1,2)
 	test/b[1] == (6,0)
+
+def test_Area_horizontals(test):
+	A = library.Area
+
+	a = A.delineate(1,1,1,16,16)
+	test/a.horizontal == False
+
+	b = A.delineate(1,1,1,5,16)
+	test/b.horizontal == True
+
+	c = A.delineate(1,1,2,1,23)
+	test/c.horizontal == False
 
 sample = [
 	"This(1) is the first line.",
