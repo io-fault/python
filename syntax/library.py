@@ -83,6 +83,20 @@ class Address(tuple):
 
 		return line_number, column_number
 
+	@property
+	def imaginary(self) -> bool:
+		"""
+		# Whether the address refers to an imaginary location. An imaginary line is
+		# identified using `0` as addresses use `1` based indexes.
+
+		# Often, imaginary locations can be considered invalid by a given context, but when
+		# employed by AST nodes or stack traces, line zero can be used to refer to injected nodes
+		# that do not exist in the original Syntax Document. The column index of imaginary lines
+		# should be used to refer to meta data about the injection.
+		"""
+
+		return self[0] == 0
+
 class Area(librange.IRange):
 	"""
 	# Inclsuive Range of &Address instances. Usable with &librange.Set and
@@ -167,7 +181,8 @@ class Area(librange.IRange):
 			Class.Type((pair[1]+1, 0)),
 		))
 
-	def select(self, lines:typing.Sequence[typing.Text]):
+	Slice = typing.Tuple[typing.Text, typing.Text, typing.Sequence[typing.Text]]
+	def select(self, lines:typing.Sequence[typing.Text]) -> Slice:
 		"""
 		# Retrieve the prefix, suffix, and selected lines that are delieanted by the &Area, &self.
 		"""
