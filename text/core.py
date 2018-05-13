@@ -348,6 +348,8 @@ class Parser(object):
 			self.indentation = il + 1
 			self.push(self.__class__.process_paragraph_line, self.indentation, self.default_commands)
 			# variable list values are expected to descend.
+			if line.endswith('/'):
+				line = line[:-1]
 			yield (lineno, 'descent', 'variable-key',
 				list(self.process_paragraph_line(lineno, code, il, line))[0][2], self.indentation)
 			yield (lineno, 'enter-indentation-level', self.indentation)
