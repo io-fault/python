@@ -1,13 +1,13 @@
-@protocol http://if.fault.io/structure/project
+! CONTEXT:
+	/protocol/
+		&<http://if.fault.io/project>
 
-/source/
-	`http://fault.io/src/python/context`
-/product/
-	`http://fault.io/python/`
+/identifier/
+	`http://fault.io/python/context`
 /name/
 	`context`
 /abstract/
-	`Core Python Projects`
+	Core Python Projects
 /icon/
 	`🔋`
 
