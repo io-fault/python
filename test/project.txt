@@ -1,13 +1,21 @@
-/source/
-	`https://fault.io/src/python/test`
+! CONTEXT:
+	/protocol/
+		&<http://if.fault.io/project>
+
+/identifier/
+	`https://fault.io/python/test`
 /name/
 	`test`
+/abstract/
+	Test framework components
 /icon/
 	``
+
 /versioning/
 	continuous
 /status/
 	flux
+
 /controller/
 	fault.io
 /contact/
