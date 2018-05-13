@@ -1,15 +1,21 @@
-/source/
-	`http://fault.io/src/python/time`
+! CONTEXT:
+	/protocol/
+		&<http://if.fault.io/project>
+
+/identifier/
+	`http://fault.io/python/time`
 /name/
 	`time`
 /abstract/
-	`An integer based time solution with selectable precision`
+	An integer based time solution with selectable precision
 /icon/
-	`⌛`
+	- (emoji)`⌛`
+
 /versioning/
 	continuous
 /status/
 	flux
+
 /controller/
 	`fault.io`
 /contact/
