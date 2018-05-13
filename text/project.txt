@@ -1,13 +1,21 @@
-/source/
-	`http://fault.io/src/python/text`
+! CONTEXT:
+	/protocol/
+		&<http://if.fault.io/project>
+
+/identifier/
+	`http://fault.io/python/text`
 /name/
 	`text`
+/abstract/
+	Structured plain text parser
 /icon/
-	`📜`
+	- (emoji)`📜`
+
 /versioning/
 	continuous
 /status/
 	flux
+
 /controller/
 	fault.io
 /contact/
