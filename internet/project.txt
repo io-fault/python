@@ -1,13 +1,21 @@
-/source/
-	`http://fault.io/src/python/internet`
+! CONTEXT:
+	/protocol/
+		&<http://if.fault.io/project>
+
+/identifier/
+	`http://fault.io/python/internet`
 /name/
 	`internet`
+/abstract/
+	Internet protocol implementations for HTTP, DNS, and SMTP
 /icon/
 	`📡`
+
 /versioning/
 	continuous
 /status/
 	flux
+
 /controller/
 	fault.io
 /contact/
