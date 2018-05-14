@@ -4,7 +4,7 @@
 Units of unbound quantities of time are called "eternals". They are a special Measure and
 Point type that have only three values: zero, infinity, and negative infinity.
 
-Time classes in chronometry are created by Time Contexts. The default context is
+Time classes are created by Time Contexts. The default context is
 initialized and provided by the &.library module. The following
 lists are the time classes created by that context.
 
@@ -25,7 +25,7 @@ Measure types:
 The interfaces are described by the abstract base classes in
 &.abstract. Primarily:
 
-/&.abstract.Range
+/&.abstract.Segment
 	An abstract Range.
 
 /&.abstract.Measure
@@ -38,11 +38,11 @@ The interfaces are described by the abstract base classes in
 [ Ranges ]
 ----------
 
-chronometry includes the class for arbitrary time ranges. They offer more
+&..time includes the class for arbitrary time ranges. They offer more
 functionality than the builtin the &range iterator, regarding integers,
 but they have similar purposes.
 
-Arbitrary ranges in chronometry are either a pair of &.abstract.Point
+Arbitrary ranges in &..time are either a pair of &.abstract.Point
 instances, or a pair of &.abstract.Measure instances. Mixing points
 and measures in ranges is not necessary as such cases can be easily normalized into
 a homogenous pair.
@@ -50,107 +50,113 @@ a homogenous pair.
 [ Eccentricities ]
 ------------------
 
-/Points and Measures are Python Integers
+[ Eccentricities >> Points and Measures are Python Integers ]
 
-	This has the effect that integers with the same value will be seen as the same
-	key in dictionaries:
+This has the effect that integers with the same value will be seen as the same
+key in dictionaries:
 
-	#!/pl/python
-		>>> from fault.time import library as libtime
-		>>> d = {}
-		>>> d[libtime.Date(0)] = 'Hello, World!'
-		>>> print d[0]
-		Hello, World!
+#!/pl/python
+	>>> from fault.time import library as libtime
+	>>> d = {}
+	>>> d[libtime.Date(0)] = 'Hello, World!'
+	>>> print d[0]
+	Hello, World!
 
-	If type based scoping is needed, the key can be qualified with the type:
+If type based scoping is needed, the key can be qualified with the type:
 
-	#!/pl/python
-		d = {}
-		d[(libtime.Date, libtime.Date(0))] = 'Hello, Date!'
-		d[(libtime.Timestamp, libtime.Timestamp(0))] = 'Hello, Timestamp!'
+#!/pl/python
+	d = {}
+	d[(libtime.Date, libtime.Date(0))] = 'Hello, Date!'
+	d[(libtime.Timestamp, libtime.Timestamp(0))] = 'Hello, Timestamp!'
 
-	Or, nested dictionaries could be used:
+Or, nested dictionaries could be used:
 
-	#!/pl/python
-		d = {libtime.Date: {}, libtime.Timestamp: {}}
-		d[libtime.Date][libtime.Date(0))] = 'Hello, Date!'
-		d[libtime.Timestamp][libtime.Timestamp(0))] = 'Hello, Timestamp!'
+#!/pl/python
+	d = {libtime.Date: {}, libtime.Timestamp: {}}
+	d[libtime.Date][libtime.Date(0))] = 'Hello, Date!'
+	d[libtime.Timestamp][libtime.Timestamp(0))] = 'Hello, Timestamp!'
 
-/Datetime Math
-	chronometry is heavily based on direct Python &int subclasses. This offers many
-	benefits, but it also avoids overriding the integer's operators leaving a,
-	contextually, low-level operation that should normally be avoided. This likely
-	offers a suprise as the usual `+` and `-` operators do not perform as they would
-	with the standard library's &datetime.datetime or many other datetime packages.
+[ Eccentricities >> Datetime Math ]
 
-	Instead, chronometry relies on the higher-level methods to perform delta
-	calculation and point positioning.
+&..time is heavily based on direct Python &int subclasses. This offers many
+benefits, but it also avoids overriding the integer's operators leaving a,
+contextually, low-level operation that should normally be avoided. This likely
+offers a suprise as the usual `+` and `-` operators do not perform as they would
+with the standard library's &datetime.datetime or many other datetime packages.
 
-/Day and Month Fields
-	The `day` and `month` fields of the standard time context are **offsets** and
-	are not consistent with the usual representation of gregorian day-of-month and
-	month-of-year. Some of the Container keywords do, however, use the usual
-	gregorian representation.
+Instead, &..time relies on the higher-level methods to perform delta
+calculation and point positioning.
 
-	More clearly:
+[ Eccentricites >> Day and Month Fields ]
 
-	#!/pl/python
-		pit = libtime.Timestamp.of(iso="2002-01-01T00:00:00")
-		assert pit.select('day', 'month') == 0
-		assert pit.select('month', 'year') == 0
+The `day` and `month` fields of the standard time context are **offsets** and
+are not consistent with the usual representation of gregorian day-of-month and
+month-of-year. Some of the Container keywords do, however, use the usual
+gregorian representation.
 
-	As opposed to the day-of-month and month-of-year fields being equal to `1` as
-	one might expect them to be. Rather, *they are offsets*.
+More clearly:
 
-/Month Arithmetic Can Overflow
-	The implementation of month arithmetic is sensitive to the selected day:
+#!/pl/python
+	pit = libtime.Timestamp.of(iso="2002-01-01T00:00:00")
+	assert pit.select('day', 'month') == 0
+	assert pit.select('month', 'year') == 0
 
-	#!/pl/python
-		# working with a leap year
-		pit = libtime.Timestamp.of(iso='2012-01-31T18:55:33.946259')
-		pit.elapse(month=1)
-		libtime.Timestamp.of(iso='2012-03-02T18:55:33.946259')
+As opposed to the day-of-month and month-of-year fields being equal to `1` as
+one might expect them to be. Rather, *they are offsets*.
 
-	The issue can be avoided by adjusting the PiT to the beginning of the month:
+[ Eccentricities >> Month Arithmetic Can Overflow ]
 
-	#!/pl/python
-		pit = pit.update('day', 0, 'month')
-		pit.elapse(month=1)
+The implementation of month arithmetic is sensitive to the selected day:
 
-/Annums and Years
-	The "year" unit in chronometry is strictly referring to gregorian years. This means
-	that a "year" in chronometry is actually twelve gregorian months, which means
-	*years are a subjective unit of time*.
-	For *metric* measures--Python timedeltas analog--this
-	poses a problem in that years should not be used to represent the span when working
-	with &.library.Measure.
+#!/pl/python
+	# working with a leap year
+	pit = libtime.Timestamp.of(iso='2012-01-31T18:55:33.946259')
+	pit.elapse(month=1)
+	libtime.Timestamp.of(iso='2012-03-02T18:55:33.946259')
 
-	In order to compensate, the &.library.Month class provides a means to
-	express such subjective time spans.
+The issue can be avoided by adjusting the PiT to the beginning of the month:
 
-/Unit Aware Comparison
-	Unit subclasses do *not* override the built-in comparison methods implemented by the
-	&int type that all unit classes are based on. Given that these classes can
-	represent different units, comparisons *must* be performed with *like units* in order
-	to yield consistently correct results. In order to compensate, unit aware comparisons are
-	provided for &.abstract.Point types:
-	&.abstract.Point.leads and &.abstract.Point.follows.
+#!/pl/python
+	pit = pit.update('day', 0, 'month')
+	pit.elapse(month=1)
 
-	Measures do not implement unit-aware comparisons and must be converted to like-units
-	before the integer comparisons may be used.
+[ Eccentricities >> Annums and Years ]
 
+The "year" unit in &..time is strictly referring to gregorian years. This means
+that a "year" in &..time is actually twelve gregorian months, which means
+*years are a subjective unit of time*.
+For *metric* measures--Python timedeltas analog--this
+poses a problem in that years should not be used to represent the span when working
+with &.library.Measure.
+
+In order to compensate, the &.library.Month class provides a means to
+express such subjective time spans.
+
+[ Eccentricities >> Unit Aware Comparison ]
+
+Unit subclasses do *not* override the built-in comparison methods implemented by the
+&int type that all unit classes are based on. Given that these classes can
+represent different units, comparisons *must* be performed with *like units* in order
+to yield consistently correct results. In order to compensate, unit aware comparisons are
+provided for &.abstract.Point types:
+&.abstract.Point.leads and &.abstract.Point.follows.
+
+Measures do not implement unit-aware comparisons and must be converted to like-units
+before the integer comparisons may be used.
+
+---------------------------------
 [ Math in Python datetime Terms ]
 ---------------------------------
 
-chronometry does not use the usual arithmetic operators for performing datetime
-math. Rather, *chronometry uses named methods in order to draw a semantic distinction*.
+&..time does not use the usual arithmetic operators for performing datetime
+math. Rather, &..time *uses named methods in order to draw a semantic distinction*.
 Not to mention, it is sometimes desirable to use the integer's operators directly
 in order to avoid semantics involved with representation types.
 
 The list here points to the abstract base classes.
 Points *are* timestamps, datetimes,. Measures *are* intervals, timedeltas.
 
-/`timedelta() + timedelta()`
+/`timedelta() + timedelta()`/
 	&.abstract.Measure.increase:
 
 	#!/pl/python
@@ -158,7 +164,7 @@ Points *are* timestamps, datetimes,. Measures *are* intervals, timedeltas.
 		m2 = libtime.Measure(second=1)
 		m1.increase(m2)
 
-/`timedelta() - timedelta()`
+/`timedelta() - timedelta()`/
 	&.abstract.Measure.decrease:
 
 	#!/pl/python
@@ -166,7 +172,7 @@ Points *are* timestamps, datetimes,. Measures *are* intervals, timedeltas.
 		m2 = libtime.Measure(second=1)
 		m1.decrease(m2)
 
-/`datetime() + timedelta()`
+/`datetime() + timedelta()`/
 	&.abstract.Point.elapse:
 
 	#!/pl/python
@@ -174,7 +180,7 @@ Points *are* timestamps, datetimes,. Measures *are* intervals, timedeltas.
 		measure = libtime.Measure(second=1)
 		ts.elapse(measure)
 
-/`datetime() - timedelta()`
+/`datetime() - timedelta()`/
 	Point in Time subtraction is handled with
 	&.abstract.Point.rollback:
 
@@ -183,7 +189,7 @@ Points *are* timestamps, datetimes,. Measures *are* intervals, timedeltas.
 		measure = libtime.Measure(second=1)
 		ts.rollback(measure)
 
-/`datetime() - datetime()`
+/`datetime() - datetime()`/
 	&.abstract.Point.measure:
 
 	#!/pl/python
@@ -225,22 +231,22 @@ And from a datetime tuple.
 	ts2 = libtime.Timestamp.of(datetime = (2001, 1, 1, 5, 30, 1, 0))
 	assert ts == ts2
 
-chronometry PiTs do not perform calendrical validation; rather, fields with excess
+&..time PiTs do not perform calendrical validation; rather, fields with excess
 values overflow onto larger units. This is similar to how MySQL handles
-overflow. For chronometry, this choice is deliberate and the user is expected to
+overflow. For &..time, this choice is deliberate and the user is expected to
 perform any desired validation.
 
 #!/pl/python
 	pit = libtime.Date.of(date=(1982,5,0))
 
 The assigned `pit` now points to the last day of the month preceding the fifth
-month in the year 1982. This kind of wrapping allows chronometry users to *quickly*
-perform some of the most difficult datetime math.
+month in the year 1982.
 
+-----------------
 [ Datetime Math ]
 -----------------
 
-chronometry can easily answer questions like, "What was third weekend of the fifth
+&..time can easily answer questions like, "What was third weekend of the fifth
 month of last year?".
 
 #!/pl/python
@@ -299,11 +305,11 @@ day of the re-aligned week.
 ----------
 
 &.library.now provides quick and easy access to "demotic time", UTC
-wall clock. However, chronometry provides clock based devices for processes with
+wall clock. However, &..time provides clock based devices for processes with
 monotonic requirements for things like rate limiting, polling timeouts, and
 simple execution-time measures.
 
-Measuring the execution time of a code block is easy with a chronometry stopwatch:
+Measuring the execution time of a code block is easy with a stopwatch:
 
 #!/pl/python
 	def work():
@@ -358,7 +364,7 @@ is an arbitrary unit of time and is usually referring to instances the
 &.library.Measure class.
 
 ! NOTE:
-	"Point" may be a misnomer considering that chronometry allows these objects
+	"Point" may be a misnomer considering that &..time allows these objects
 	to be treated as a vector.
 
 Constructing instances is usually performed with the class method
@@ -403,7 +409,7 @@ appropriate:
 
 #!/pl/python
 	>>> libtime.Date.of(date=(1982,5,18))
-	chronometry.library.Date.of(iso='1982-05-18')
+	libtime.Date.of(iso='1982-05-18')
 
 
 [ Constructing Points and Measures >> Getting the Current Point in Time ]
@@ -419,10 +425,10 @@ The returned timestamp is a UTC timestamp.
 
 ! NOTE:
 	Using the system time for managing timeouts is discouraged.
-	chronometry's clock interface has monotonic devices for managing timeouts.
+	libtime's clock interface has monotonic devices for managing timeouts.
 
 
-[ Constructing Points and Measures >> Creating a Timestamp from an ISO-9660 String ]
+[ Constructing Points and Measures >> Creating a Timestamp from an ISO-8601 String ]
 ------------------------------------------------------------------------------------
 
 While the &.format module manages the details, the
@@ -431,8 +437,8 @@ While the &.format module manages the details, the
 #!/pl/python
 	ts = libtime.Timestamp.of(iso='2009-02-01T3:33:45.123321')
 
-chronometry provides parsers for both ISO-9660 and RFC-1123 datetime formats. The
-above example shows how to construct a Point in Time from an ISO-9660 string.
+&..time provides parsers for both ISO-8601 and RFC-1123 datetime formats. The
+above example shows how to construct a Point in Time from an ISO-8601 string.
 The following shows RFC-1123, the format used by HTTP:
 
 #!/pl/python
@@ -512,7 +518,7 @@ And a contrived use-case where the file `f` contains lines containing unix times
 [ Arithmetic of Points and Measures ]
 =====================================
 
-chronometry's time types are all based on subclasses of Python's &int.
+Time types are all based on subclasses of Python's &int.
 The usual arithmetic operators are essentially low-level operations that can be
 used in certain cases, but they should be restricted to performance critical
 situations where the higher-level methods cannot be used.
@@ -690,33 +696,32 @@ parameter to the constructor.
 
 Common forms:
 
-/`libtime.open.unix(libtime.Timestamp)`
+/`libtime.open.unix(libtime.Timestamp)`/
 	Given an integer relative to the UNIX epoch, return a
 	corresponding &.library.Timestamp instance.
 
-/`libtime.open.iso(libtime.Timestamp)`
+/`libtime.open.iso(libtime.Timestamp)`/
 	Given an ISO formatted string, return a
 	corresponding &.library.Timestamp instance.
 
-/`libtime.open.iso(libtime.Date)`
+/`libtime.open.iso(libtime.Date)`/
 	Same as the varient taking the timestamp, but align the Point to the date.
 
-/`libtime.open.rfc(libtime.Timestamp)`
+/`libtime.open.rfc(libtime.Timestamp)`/
 	Like the ISO variant, but take an RFC complient string.
 	This is notably useful when working with HTTP.
 
-/`libtime.open.datetime(libtime.Timestamp)`
+/`libtime.open.datetime(libtime.Timestamp)`/
 	Build a constructor that takes seconds from the UNIX epoch and returns a
 	&.library.Timestamp instance.
-
 
 ==========================
 [ Working with the Clock ]
 ==========================
 
-chronometry has the concept of a clock. This clock has multiple services for tracking
-the passing of time according to the "clockwork" of the underlying operating
-system. This includes monotonic passing of time, and "demotic", colloquial.
+Clocks have multiple services for tracking the passing of time according
+to the "clockwork" of the underlying operating system. This includes monotonic
+passing of time, and "demotic", colloquial.
 
 The &.clock module provides the implementation of the
 &.abstract.Clock interface using the &.kernel module.
@@ -728,20 +733,12 @@ to find at compile time in order to provide maximum precision.
 Clocks have two concepts of time, the demotic and monotonic. The rate of change
 of demotic time is mutable and the monotonic time is, ideally, immutable.
 
-! NOTE:
-	The designation of "demotic time" is not common.
-
 Demotic time is the UTC standard wall clock time and is often referred to
-ambiguously as it is generally assumed to be the desired perspective of time.
-chronometry even refers to this ambiguously as "now", &.library.now.
+ambiguously as it is generally presumed to be the desired perspective of time.
 
 Monotonic time is the amount of time that has elapsed from some arbitrary point
-and chronometry denotes that by only returning &.library.Measure
+and &..time denotes that by only returning &.library.Measure
 instances for representing monotonic time.
-
-Direct use of the &.clock.monotonic method is not
-recommended for most cases. Rather, chronometry provides some iterators and
-context managers that cover the common use-cases of monotonic time.
 
 [ Working with the Clock >> Time Meters ]
 
@@ -792,7 +789,7 @@ units, just start tracking:
 
 #!/pl/python
 	import socket
-	from chronometry import libflow
+	from fault.time import libflow
 	s = socket.socket()
 	R = libflow.Radar()
 	units = 0
@@ -805,12 +802,8 @@ chronometer is started.
 Subsequently, the initial rate information may be skewed by additional time.
 
 Everytime the units of an object are tracked, &.library.Radar.track,
-a new record is created.
-
-! WARNING:
-	The number of records can grow unbounded unless some maintenance is performed.
-
-There are two methods for maintenance:
+a new record is created. The number of records can grow unbounded unless some
+maintenance is performed. There are two methods for maintenance:
 &.library.Radar.collapse and &.library.Radar.truncate.
 
 In cases where the overall rate is desired, collapse provides the necessary
