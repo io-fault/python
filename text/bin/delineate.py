@@ -20,7 +20,7 @@ def main(inv:libsys.Invocation):
 
 	w(b'<?xml version="1.0" encoding="utf-8"?>')
 	w(b'<factor xmlns="http://fault.io/xml/fragments" ')
-	w(b'xmlns:txt="http://fault.io/xml/text" xmlns:xlink="')
+	w(b'xmlns:txt="http://if.fault.io/xml/text" xmlns:xlink="')
 	w(libxml.namespaces['xlink'].encode('utf-8'))
 	w(b'" type="documentation">')
 	w(b'<chapter>')

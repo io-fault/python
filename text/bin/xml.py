@@ -10,7 +10,7 @@ def main(src, args):
 
 	s = library.XML.transform('', data, encoding=encoding)
 
-	tag_open = '<chapter xmlns="http://fault.io/xml/text"'
+	tag_open = '<chapter xmlns="http://if.fault.io/xml/text"'
 	tag_open += ' xmlns:xlink="http://www.w3.org/1999/xlink">'
 	tag_open = tag_open.encode(encoding)
 
