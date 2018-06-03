@@ -1,4 +1,5 @@
 #!/usr/bin/env fault.text
+@cast fault/text
 
 ===================
 [ Fault Text File ]
@@ -119,9 +120,9 @@ Paragraph lines are the default effect of a text line inside an fault.text docum
 they are implicitly created which is unlike most other structures that are initiated
 by command codes (operators borrowed from other languages and contexts).
 
-==================
-[ Literal Blocks ]
-==================
+================
+[ Syntax Areas ]
+================
 
 Literal lines are the lines contained within indentation blocks following the block
 command, `#!`. The notation is borrowed from UNIX executable files which define the
@@ -140,9 +141,7 @@ to the content.
 
 Inline literals are literal text ranges existing in paragraph lines delimited using
 the grave accent, also known as a "backtick". Its syntax is borrowed from one of the
-Bourne Shell's notations for command substitution. It was also chosen for its
-similarity to quotations which are often used in programming languages to refer to literal
-text.
+Bourne Shell's notations for command substitution and it's common use in structure text languages.
 
 #!/text/fault
 	`Inline Literal`
@@ -309,11 +308,11 @@ the XML schema identify &[Variable Lists] as &.schema.dictionary.
 
 #!/text/fault
 
-	/Variable Entry
-		Paragraph Content
+	/Variable Entry/
+		Section Content
 
-	/Another Variable Entry
-		Paragraph Content
+	/Another Variable Entry/
+		Section Content
 
 Variable list items *should* be referrable *if* the list is given an address.
 Anonymous variable lists have no reference point and, therefore, the items cannot
@@ -357,7 +356,7 @@ formatting of matrices.
 ===============
 
 Admonition notation is borrowed from math's notation for factorials, (syntax)`!`.
-Admonitions consist of a severity and a following sequence of paragraphs
+Admonitions consist of a type and a following sequence of paragraphs
 indented on the lines following:
 
 #!/text/fault
@@ -365,22 +364,22 @@ indented on the lines following:
 	! WARNING:
 		Warning Contents.
 
-The severity (word following the (syntax)`!`) is an arbitrary word usually one
-of: `WARNING`, `NOTE`, `ERROR`, `DANGER`, `DEVELOPER`, and `RECOMMENDATION`.
+The type (word following the (syntax)`!`) is an arbitrary word.
 
 Admonitions consist of arbitrary section content. This means that
 lists, blocks, and even inner admonitions may appear.
 
-! NOTE:
-	Note admonition.
-! WARNING:
-	Warning admonition.
-! DEVELOPER:
-	Admonition intended for developers.
-! RECOMMENDATION:
-	Recommendation.
-! ERROR:
-	Admonition noting an error.
+#!/text/fault
+	! NOTE:
+		Note admonition.
+	! WARNING:
+		Warning admonition.
+	! DEVELOPER:
+		Admonition intended for developers.
+	! RECOMMENDATION:
+		Recommendation.
+	! ERROR:
+		Admonition noting an error.
 
 =========
 [ Casts ]
@@ -399,61 +398,21 @@ having to consider fault.text syntax inside the literal.
 (iri)`http://fault.io`
 &<http://fault.io>
 
-Paragraph with `anonymous inline code` that defaults the language.
-&<[Hyperlink Title]https://fault.io> (not supported)
-&<https://fault.io>
-
 ==================
 [ Reserved Casts ]
 ==================
 
 Conceptual type names are reserved for contextually defined purposes.
 
-/text
-	An arbitrary sequence of characters making up text. Normally represented by the
-	context as UNICODE characters.
+/text/
+	Used to express that the literal contents is normal text without formatting indicators.
 
-/integer or int
-	A string that represents a negative or positive number.
-	`0b`, `0o`, and `0x` can be used to identify the base and a preceding `+` or `-` minus
-	identifies whether it is positive or negative.
+/reference/
+	The contents should be interpreted as a Reference.
 
-/real
-	A string that represents a Real Number
-
-/reference
-	The contents should be interpreted as a Reference. When applied to an actual &[Reference],
-	the element should be identified as a reference to a reference.
-
-/cast
+/cast/
 	The contents are referring to a cast that might appear in the paranthesis leading
 	a reference or inline literal.
-
-[ Recommended Casts ]
-
-/(cast)`timestamp`
-	An ISO-9660 formatted timestamp.
-/(cast)`date`
-	An ISO-9660 formatted date: [&year `-` &month `-` &day].
-/(cast)`timezone`
-	A timezone name or geographic location indicating a time zone.
-
-/(cast)`system/home`
-	A path relative to a system user's home directory.
-/(cast)`system/directory`
-	A path to a directory on the host.
-/(cast)`system/file`
-	A path to a specific file on the host.
-/(cast)`system/filename`
-	The name of a file on the host; location independent.
-/(cast)`system/context`
-	The name of or reference to of a root execution context. For fault applications,
-	this usually refers to &..root deployment, but can be perceived generally.
-
-/(cast)`iri`
-	An internationalized resource identifier.
-/(cast)`uri`
-	A uniform resource identifier.
 
 ===========================
 [ Structured Data Storage ]
@@ -465,11 +424,11 @@ structures, it can also be used as configuration files.
 Application configuration without documentation is opaque for most software. Being able
 to package them together provides convenience for the user and the developer.
 
-/`string-key`
+/`string-key`/
 	# &1
 	# &2
 	# &3
-/&0
+/&0/
 	Key is the number zero.
 	The value here is paragraph text with placeholder references:
 	(reference)&!param-name.
@@ -481,7 +440,6 @@ to package them together provides convenience for the user and the developer.
 This section defines the normative grammar for fault.text.
 
 #!/text/grammar
-
 	newline := "\\n"
 	whitespace := (" " | "\\t" | newline)*
 
