@@ -9,7 +9,7 @@
 	xmlns:set="http://exslt.org/sets"
 	xmlns:str="http://exslt.org/strings"
 	xmlns:exsl="http://exslt.org/common"
-	xmlns:txt="http://fault.io/xml/text"
+	xmlns:txt="http://if.fault.io/xml/text"
 	xmlns:func="http://exslt.org/functions"
 	extension-element-prefixes="func"
 	exclude-result-prefixes="set str exsl func xl xsl txt">

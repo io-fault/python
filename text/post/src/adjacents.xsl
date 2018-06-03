@@ -6,11 +6,11 @@
 	# or semantics.
 !-->
 <xsl:transform version="1.0"
-	xmlns="http://fault.io/xml/text"
+	xmlns="http://if.fault.io/xml/text"
 	xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
 	xmlns:exsl="http://exslt.org/common"
 	xmlns:str="http://exslt.org/strings"
-	xmlns:txt="http://fault.io/xml/text"
+	xmlns:txt="http://if.fault.io/xml/text"
 	xmlns:fault="http://fault.io/xml/xpath"
 	xmlns:ctl="http://fault.io/xml/control"
 	xmlns:xi="http://www.w3.org/2001/XInclude"
