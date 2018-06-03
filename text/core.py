@@ -1,16 +1,10 @@
 """
 # Parser implementation.
 
-# The XML output is the interface that should be used. The contents of this file
-# are subject to change by the minute.
-
 # The parser is hand rolled in order to easily accommodate for grammar
 # violations, and as an attempt to display the format's simplicity. While the
 # tokenizer enjoys an easily understood implementation, syntactic analysis
 # (&Parser.structure) is hacked and nearly unreadable demanding a replacement.
-
-# The assertions here are primarily for testing purposes and should be disabled
-# during normal use.
 """
 
 import builtins
@@ -54,12 +48,11 @@ class Parser(object):
 	# Configuration and state class for parsing eclectic markdown.
 
 	# [ Properties ]
-
-	# /stack
+	# /stack/
 		# The stack of line processing callbacks for the given context.
-	# /paragraph
+	# /paragraph/
 		# A sequence representing the current working paragraph.
-	# /indentation
+	# /indentation/
 		# The current indentation level.
 	"""
 
@@ -195,9 +188,9 @@ class Parser(object):
 		# Identify the styles and references for the given string.
 
 		# [ Parameters ]
-		# /string
+		# /string/
 			# The text between a literal area.
-		# /edge
+		# /edge/
 			# Whether the &string was on the edge of a literal.
 		"""
 		trail = None
@@ -318,8 +311,9 @@ class Parser(object):
 		"""
 		# Lines that begin with "!":
 
-		# ! NOTE:
-			# Paragraphs.
+		#!text
+			" ! NOTE:
+				" Paragraphs.
 		"""
 
 		self.indentation = il + 1
@@ -388,8 +382,8 @@ class Parser(object):
 
 	def tokenize(self, lines:typing.Sequence[str]):
 		"""
-		# Tokenize the given source returning an iterator producing eclectic events.
-		# &source assumed to be is newline separated string.
+		# Tokenize the given source returning an iterator producing text events.
+		# &source presumed to be is newline separated string.
 		"""
 
 		# essentially, this provides the basic paragraph formatting.
