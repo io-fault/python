@@ -1,83 +1,53 @@
 """
-# Transform fault.text into XML.
-
-# The &XML.transform class method provides the high-level interface
-# for transforming fault.text into XML.
-
-#!/pl/python
-	text_iter = libtext.XML.transform('txt:', text, encoding='utf-8')
-	sys.stdout.buffer.write(b''.join(text_iter))
+# fault Text nodes implementations and parsing functionality.
 """
 import itertools
 
-from ..xml import library as libxml
-from ..routes import library as libroutes
 from ..computation import string
 
 from . import core
 
-# Much of this is write-once code.
-# A rewrite using a parser-generator would be appropriate.
-
-class XML(object):
+class Transform(object):
 	"""
-	# Serialize parsed events into XML.
-
-	# The parser produces event sequences and the serializer
-	# provides the hierarchical structure necessary for XML.
+	# Transform parse events into a form designated by the given AST constructor.
 	"""
+	chain = staticmethod(itertools.chain.from_iterable)
 
-	@classmethod
-	def transform(Class, prefix:str, source:str, encoding:str='utf-8', identify=lambda x: x):
+	def __init__(self, serialization, identify=(lambda x: x)):
 		"""
-		# Construct an iterator producing XML from the given documentation &source.
+		# Initialize a &Transform instance designating the AST constructor.
 
 		# [ Parameters ]
-		# /prefix
-			# The element name prefix for the rendered XML.
-		# /source
-			# The text to transform into XML.
-		# /encoding
-			# The encoding that should be used for the XML.
-		"""
-		p = core.Parser()
-		xmlctx = libxml.Serialization(xml_prefix=prefix, xml_encoding=encoding)
-		s = Class(xmlctx, identify=identify)
-		return s.serialize(p.parse(source))
 
-	def __init__(self,
-			serialization:libxml.Serialization,
-			identify:object=(lambda x: x),
-		):
-		"""
-		# [ Parameters ]
-		# /serialization
-			# The serialization instance used to construct the XML.
-		# /identify
+		# /serialization/
+			# The serialization instance used to construct the tree.
+		# /identify/
 			# The function used to prepare an identifier. Normally, a function
 			# that prepends on some contextual identifier in order to guarantee
 			# uniqueness. For example, `lambda x: 'ContextName' + x`.
 		"""
 		self.serialization = serialization
 		self.identify = identify
+		self.emit = self.serialization.prefixed
+		self.text = self.serialization.escape
 
-	def serialize(self, tree):
+	def process(self, tree):
 		assert tree[0] == 'document'
 		for section in tree[1]:
 			yield from self.create_section(tree, section)
 
 	def process_paragraph_text(self, tree, text, cast=None):
-		yield from self.serialization.escape(text)
+		yield from self.text(text)
 
 	def process_paragraph_emphasis(self, tree, data, weight=1):
-		yield from self.serialization.prefixed('emphasis',
-			self.serialization.escape(data),
+		yield from self.emit('emphasis',
+			self.text(data),
 			('weight', str(weight))
 		)
 
 	def process_paragraph_literal(self, tree, data, cast=None):
-		yield from self.serialization.prefixed('literal',
-			self.serialization.escape(data),
+		yield from self.emit('literal',
+			self.text(data),
 			('cast', cast),
 		)
 
@@ -86,18 +56,18 @@ class XML(object):
 		):
 		"""
 		# [ Parameters ]
-		# /source
+		# /source/
 			# The reference source; the actual string found to be
 			# identified as a reference.
-		# /type
+		# /type/
 			# The type of reference, one of: `'hyperlink'`, `'section'`, `None`.
-		# /action
+		# /action/
 			# The effect desired by the reference: `'include'` or &None.
 			# &None being a normal reference, and `'include'` being induced
 			# with a `'*'` prefixed to the reference
 		"""
-		escape = self.serialization.escape
-		element = self.serialization.prefixed
+		escape = self.text
+		element = self.emit
 
 		href = None
 		if type == 'section':
@@ -126,7 +96,7 @@ class XML(object):
 			('type', type),
 			('action', action),
 			('cast', cast), # canonical cast string
-			('xlink:href', href),
+			self.serialization.hyperlink(href),
 		)
 
 	def process_end_of_line(self, tree, text, cast=None):
@@ -145,7 +115,7 @@ class XML(object):
 	}
 
 	def process_items(self, tree, node, name):
-		chain = itertools.chain.from_iterable
+		chain = self.chain
 		items = [
 			(x[0], x[1], x[2] if x[2:] else None)
 			for x in node[1]
@@ -155,8 +125,8 @@ class XML(object):
 		assert len(tail) == 0 # Failed to switch to new set of items.
 
 		yield from chain((
-			self.serialization.prefixed(name, chain([
-					self.serialization.prefixed('item', chain((
+			self.emit(name, chain([
+					self.emit('item', chain((
 							self.section_index[y[0]](self, tree, y) for y in x[1]
 						)),
 					)
@@ -173,8 +143,8 @@ class XML(object):
 
 	def process_dictionary(self, tree, vl_node):
 		assert vl_node[0] == 'dictionary'
-		element = self.serialization.prefixed
-		chain = itertools.chain.from_iterable
+		element = self.emit
+		chain = self.chain
 
 		# both the key is treated as paragraph data, but value is section data.
 		content = vl_node[1]
@@ -227,8 +197,9 @@ class XML(object):
 		return False
 
 	def paragraph_content(self, tree, sequence):
+		chain = self.chain
 		if sequence and not self.empty_paragraph(sequence):
-			yield from itertools.chain.from_iterable([
+			yield from chain([
 				self.paragraph_index[part[0]](self, tree, *part[1:])
 				for part in sequence
 			])
@@ -236,12 +207,18 @@ class XML(object):
 			# empty paragraph
 			pass
 
-	def process_paragraph(self, tree, paragraph, chain=itertools.chain.from_iterable):
+	def process_paragraph(self, tree, paragraph):
+		chain = self.chain
 		if paragraph[1] and not self.empty_paragraph(paragraph[1]):
-			yield from self.serialization.prefixed('paragraph',
+			if paragraph[1][-1][1].isspace():
+				# Filter trailing spaces inserted by presumption of a following line.
+				del paragraph[1][-1]
+
+			para = paragraph[1]
+			yield from self.emit('paragraph',
 				chain([
 					self.paragraph_index[part[0]](self, tree, *part[1:])
-					for part in paragraph[1]
+					for part in para
 				]),
 				('indentation', paragraph[2] if paragraph[2:] else None)
 			)
@@ -249,13 +226,14 @@ class XML(object):
 			# empty paragraph
 			pass
 
-	def process_literals(self, tree, sequence):
+	def process_syntax(self, tree, sequence):
+		chain = self.chain
 		l = iter(sequence)
-		element = self.serialization.prefixed
-		escape = self.serialization.escape
+		element = self.emit
+		escape = self.text
 
-		yield from element('literals',
-			itertools.chain.from_iterable([
+		yield from element('syntax',
+			chain([
 				element('line', escape(x))
 				for x in sequence[1]
 			]),
@@ -264,13 +242,13 @@ class XML(object):
 
 	def process_admonition(self, tree, content):
 		assert content[0] == 'admonition'
-		element = self.serialization.prefixed
+		element = self.emit
 
 		# both the key and the value are treated as paragraph data.
-		severity, title = content[2]
+		atype, title = content[2]
 		yield from element('admonition',
 			self.process_section(tree, ('admonition-content', content[1])),
-			('severity', severity),
+			('type', atype),
 		)
 
 	def process_section(self, tree, section):
@@ -285,10 +263,10 @@ class XML(object):
 		else:
 			ident = None
 
-		yield from self.serialization.prefixed('section',
+		yield from self.emit('section',
 			self.process_section(tree, section),
 			('identifier', title[-1] if title else None),
-			('xml:id', self.identify(ident) if ident is not None else None),
+			('absolute', self.identify(ident) if ident is not None else None),
 		)
 
 	def process_exception(self, tree, exception):
@@ -297,7 +275,7 @@ class XML(object):
 		# regarding syntax that was not entirely comprehensible.
 		"""
 		node_type, empty_content, msg, event, lineno, ilevel, params = exception
-		yield from self.serialization.prefixed('exception',
+		yield from self.emit('exception',
 			(),
 			('event', event),
 			('message', msg),
@@ -307,7 +285,7 @@ class XML(object):
 
 	def process_directive(self, tree, data):
 		event, signal, *parameter = data
-		yield from self.serialization.prefixed(
+		yield from self.emit(
 			event,
 			(),
 			('signal', signal),
@@ -327,7 +305,8 @@ class XML(object):
 		'set': process_set,
 		'sequence': process_sequence,
 		'dictionary': process_dictionary,
-		'block': process_literals,
+		'block': process_syntax,
+		'syntax': process_syntax,
 		'admonition': process_admonition,
 		'break': process_break,
 		'section': create_section,
