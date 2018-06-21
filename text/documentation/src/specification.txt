@@ -1,5 +1,4 @@
 #!/usr/bin/env fault.text
-@cast fault/text
 
 ===================
 [ Fault Text File ]
@@ -130,7 +129,7 @@ binary that should be used to "execute" the given file. In fault.text's context,
 it defines the type of data contained within the block and any transformations performed
 to the content.
 
-#!/pl/javascript|xz|base64
+#!/pl/javascript
 	...
 	...
 	...
@@ -151,32 +150,6 @@ have lower precedence and cannot contain grave accents themselves. Literal accen
 be interpolated using &References, `&~grave-accent`.
 
 ==============
-[ Directives ]
-==============
-
-Directives are identified using the at-sign, (character)`@`, at the beginning of the line
-containing the details of the directive.
-
-Directives are primarily used to define alternate identifiers for document structures, but
-can also be used to send messages to the processing context to control presentation of the
-associated structure.
-
-#!/text/fault
-	@custom_section_address
-	[ Section ]
-
-#!/text/fault
-	@paragraph_address
-	First Paragraph
-
-	Second Paragraph
-
-Spaces in address declarations are used to separate the address from additional configuration.
-
-Addresses are local to the context in which they are declared. Addresses inside sections are scoped
-to that section unless explicitly declared as global.
-
-==============
 [ References ]
 ==============
 
@@ -194,7 +167,6 @@ punctuation.
 However, Section References are enclosed in brackets in order to allow whitespace.
 
 #!/text/fault
-
 	A sentence containing a reference at the end, &Reference.
 
 Like inline literals, references may be casted in order to select the namespace set that
@@ -218,8 +190,8 @@ allow reuse of a given address.
 	A citation[&Address-Name] is a reference to a defined address that can
 	be found in a specially not citations section.
 
-	[#References]
-	/ReferenceName
+	[References]
+	/ReferenceName/
 		&<http://docs.fault.io/>
 
 ==================
@@ -251,7 +223,6 @@ Processors and serialization should recognize arbitrary levels of emphasis even 
 only two levels are normally used.
 
 #!/text/fault
-
 	A paragraph line with *emphasis* around the word emphasis.
 	Greater emphasis is placed with more **asterisks**.
 
@@ -269,9 +240,9 @@ a horizontal visual separation from adjacent paragraphs.
 
 #!/text/fault
 	...
-		# First Item.
-		# Second Item.
-		# Third Item.
+	# First Item.
+	# Second Item.
+	# Third Item.
 	...
 
 Unordered lists are represented by a series of lines that start with the subtraction
@@ -284,9 +255,9 @@ are not supported.
 #!/text/fault
 
 	...
-		- Simple single item.
-		- Complicated Multiline items are supported using continuation commands.
-		- Spaces before the command code is allowed for visual appeal.
+	- Simple single item.
+	- Complicated Multiline items are supported using continuation commands.
+	- Spaces before the command code is allowed for visual appeal.
 	...
 
 Enumerated lists and unordered lists share the same formatting features. The only distinction
@@ -451,14 +422,16 @@ This section defines the normative grammar for fault.text.
 	root := head (title section)*
 	head := section
 	inline-literal := ("`" text "`", cast)
+	syntax-line := (indentation text newline)
+	syntax := ("#!" text newline)
 	reference := (cast?, "&" text)
 	paragraph := (text | reference | inline-literal)*
-	set := ((newline whitespace "-" whitespace, paragraph))
-	enumeration := ((newline whitespace "#" whitespace, paragraph))
-	variable-identity := (newline whitespace "/" paragraph
-	variable-data := paragraph
-	variables := ((variable-identity, variable-data))*
-	list := (enumeration* | set* | variables*)
+	set := ((whitespace "-" whitespace, paragraph))
+	enumeration := ((whitespace "#" whitespace, paragraph))
+	variable-key := (newline whitespace "/" paragraph "/") ("#!" text)? newline
+	variable-data := paragraph | set | syntax | enumeration | dictionary
+	dictionary := ((variable-key, variable-data))*
+	list := (enumeration* | set* | dictionary*)
 
 	declaration := text
 	block := (declaration, (literal-lines)*)

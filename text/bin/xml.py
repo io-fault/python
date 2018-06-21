@@ -3,15 +3,16 @@
 # standard output. The one optional argument selects the encoding of the XML output.
 """
 from ...web import xml
-from .. import library
+from .. import document
+from .. import format
 
 def main(src, args):
 	data = src.read()
 	encoding = args[0] if args else 'utf-8'
 
 	xs = xml.Serialization(xml_encoding=encoding)
-	p = library.core.Parser()
-	fts = library.Transform(xs)
+	p = format.Parser()
+	fts = document.Transform(xs)
 	s = fts.process(p.parse(data))
 
 	tag_open = '<chapter xmlns="http://if.fault.io/xml/text"'

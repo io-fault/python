@@ -3,8 +3,8 @@
 """
 
 def main(src, args):
-	from .. import core
-	p = core.Parser()
+	from .. import format
+	p = format.Parser()
 	for x in p.tokenize(src.readlines()):
 		sys.stdout.write(repr(x)+'\n')
 
