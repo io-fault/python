@@ -11,9 +11,17 @@ def test_Fragment(test):
 def test_Paragraph(test):
 	pass
 
+def test_Paragraph_sole(test):
+	p = core.Paragraph([
+		core.Fragment(('text', 'data')),
+	])
+	test/p.sole == core.Fragment(('text', 'data'))
+
 def test_Paragraph_sentences(test):
 	para = core.Paragraph([('text', 'A single sentence.'), ('text', ' Another sentence.')])
-	test/test.sentences == para
+	t = list(para.sentences)
+	test/t[0][0] == para[0]
+	test/t[1][0] == para[1]
 
 if __name__ == '__main__':
 	import sys

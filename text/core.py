@@ -1,5 +1,15 @@
 """
 # Text data structures for working with paragraph content.
+
+# &Fragment and &Paragraph are designed to be easily transformed and serialized
+# using common tools. &Fragment *should* always be a pair-tuple, and &Paragraph a
+# sequence of Fragments. The JSON/msgpack representation would likely be
+# a sequence of sequences.
+
+# These text structure primitives are not ideal for managing fine grained formatting
+# control. They are intended for managing semantic markup. However, &Fragment
+# being arbitrarily typed allows for format control events that could be interpreted
+# by a Processing Context for such a purpose.
 """
 import typing
 
@@ -18,9 +28,32 @@ class Fragment(tuple):
 		return self[1]
 
 	@property
+	def emphasis(self) -> int:
+		"""
+		# Return the integer weight of the emphasized text.
+		# &None if the text is not emphasized.
+		"""
+		tp = self.typepath
+		if tp[:2] != ('text', 'emphasis'):
+			return None
+
+		return int(self.typepath[2])
+
+	@property
 	def type(self) -> str:
 		"""
 		# Type string of the fragment.
+
+		# Usually a (character)`/` separated string where the first two fields
+		# are supposed to exist unconditionally. Common prefixes:
+
+		# - (id)`text/normal`
+		# - (id)`text/emphasis/[0-9]*`
+		# - (id)`reference/hyperlink`
+		# - (id)`referance/section`
+		# - (id)`reference/ambiguous`
+		# - (id)`reference/parenthetical`
+		# - (id)`literal/grave-accent`
 		"""
 		return self[0]
 
@@ -48,6 +81,15 @@ class Paragraph(list):
 		return '%s(%s)' %(self.__class__.__name__, super().__repr__())
 
 	@property
+	def sole(self) -> Fragment:
+		"""
+		# Return the first and only fragment of the Paragraph.
+		# If multiple fragments exist, a &ValueError is raised.
+		"""
+		only_fragment, = self
+		return only_fragment
+
+	@property
 	def sentences(self):
 		"""
 		# Iterator producing lists that contain the sentence contents.
@@ -61,15 +103,17 @@ class Paragraph(list):
 				parts = x[1].split('.')
 				if len(parts) > 1:
 					# Terminate sentence.
-					current.append(QualifiedText(('text', parts[0]+'.')))
+					current.append(Fragment(('text', parts[0]+'.')))
 					yield current
 
 					for p in parts[1:-1]:
-						yield [QualifiedText(('text', p+'.'))]
+						yield [Fragment(('text', p+'.'))]
 
 					# New parts.
-					current = [parts[-1]]
+					if parts[-1]:
+						current = [Fragment(('text', parts[-1]))]
+					else:
+						current = []
 					continue
-
-			# Sentence continued.
-			current.append(x)
+			else:
+				current.append(x)

@@ -16,7 +16,10 @@ def export(paragraph):
 	for x in paragraph:
 		if isinstance(x, str):
 			if x:
-				l.append(core.Fragment(('text', x)))
+				l.append(core.Fragment(('text/normal', x)))
+		elif x[0] == 'emphasis':
+			weight = str(x[-1].get('weight','1'))
+			l.append(core.Fragment(('text/emphasis/'+weight, x[1][0])))
 		elif x[0] == 'reference':
 			rtype = x[-1]['type']
 			cast = x[-1].get('cast')
@@ -25,7 +28,7 @@ def export(paragraph):
 				content = x[-1]['url']
 				suffix = '/hyperlink'
 			elif rtype == 'section':
-				content = x[-1]
+				content = x[1][0]
 				suffix = '/section'
 			elif rtype == 'normal':
 				content = x[-1]['source']
@@ -38,10 +41,10 @@ def export(paragraph):
 
 			l.append(core.Fragment(('reference'+suffix+cast, content)))
 		elif x[0] == 'literal':
-			cast = x[-1].get('cast')
+			cast = x[-1].get('cast', '')
 			if cast:
 				cast = '/' + cast
-			l.append(core.Fragment(('literal'+cast, x[1][0])))
+			l.append(core.Fragment(('literal/grave-accent'+cast, x[1][0])))
 
 	return core.Paragraph(l)
 

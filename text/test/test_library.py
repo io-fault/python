@@ -3,7 +3,7 @@ from .. import library
 from .. import core
 
 def test_Parser_emphasis(test):
-	function = core.Parser.emphasis
+	function = library.format.Parser.emphasis
 	test/list(function("No emphasis")) == [('text', "No emphasis")]
 
 	expect = [('text', "Some "), ('emphasis', 'emphasis!', 1)]
@@ -58,6 +58,7 @@ Implicit Title:
 #!/pl/python
 	# Subsequent Typed Character Matrix
 
+(title)`Paragraph Title`
 Paragraph 3. `Inline Literal`. (With-Cast)`Inline Literal`.
 
 Emphasis Types:
@@ -91,15 +92,11 @@ Paragraph 1.
 Paragraph 2.
 """
 
-def test_document(test):
+def test_parse(test):
 	"""
-	# Construct an XML document from a fault.text document and validate its structure.
-
-	# ! WARNING:
-		# Does not perform any checks against the XML.
+	# Check most branches from &library.parse.
 	"""
-	xmli = library.XML.transform('txt:', txt, encoding='utf-8')
-	xml = b''.join(xmli)
+	nodetree = library.parse(txt)
 
 if __name__ == '__main__':
 	import sys
