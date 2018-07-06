@@ -16,87 +16,93 @@
 # - &tokens
 
 # [ Types ]
+
 # A parsed indicator is designated a type. The set of possible types
 # is inspired by the URI and IRI standards:
 
-# /authority
+# /authority/
 	# An authority indicator identified by the presence of (characters)`'://'`
 	# following the scheme field.
-# /absolute
+# /absolute/
 	# A colon following the scheme field.
-# /relative
+# /relative/
 	# A pair of slashes following the scheme field. Often, the scheme
 	# is implied in these cases.
-# /amorphous
+# /amorphous/
 	# The absence of characters that allow the unambiguous identification
 	# of a type. Usually indicates a value error.
 """
 
-import re
 import collections
-
-pct_encode = '%%%0.2X'.__mod__
-unescaped = '%' + ''.join([chr(x) for x in range(0, 33)])
-
-percent_escapes_re = re.compile('(%[0-9a-fA-F]{2,2})+')
-
-escape_re = re.compile('[%s]' %(re.escape(unescaped),))
-escape_user_re = re.compile('[%s]' %(re.escape(unescaped + ':@/?#'),))
-escape_password_re = re.compile('[%s]' %(re.escape(unescaped + '@/?#'),))
-
-escape_host_re = escape_port_re = escape_path_re = \
-	re.compile('[%s]' %(re.escape(unescaped + '/?#'),))
-escape_query_key_re = re.compile('[%s]' %(re.escape(unescaped + '&=#'),))
-escape_query_value_re = re.compile('[%s]' %(re.escape(unescaped + '&#'),))
-
-percent_escapes = {}
-x = k = None
-for x in range(256):
-	k = '%0.2X'.__mod__(x)
-	percent_escapes[k] = x
-	percent_escapes[k.lower()] = x
-	percent_escapes[k[0].lower() + k[1]] = x
-	percent_escapes[k[0] + k[1].lower()] = x
-del x, k
 
 scheme_chars = '-.+0123456789'
 
-def unescape(x, mkval=chr, len=len, isinstance=isinstance):
-	"""
-	# Substitute percent escapes with literal characters.
-	"""
+_pct_encode = '%%%0.2X'.__mod__
 
-	nstr = type(x)('')
-	if isinstance(x, str):
-		mkval = chr
+def _decode_parts(string, chr=chr, int=int):
+	initial, *areas = string.split('%')
+	yield initial
+	for string in areas:
+		yield chr(int(string[:2].lower(), 16)) #! Invalid %-escape: `string[:2]`
+		yield string[2:]
 
-	pos = 0
-	end = len(x)
-	while pos != end:
-		newpos = x.find('%', pos)
-		if newpos == -1:
-			nstr += x[pos:]
-			break
-		else:
-			nstr += x[pos:newpos]
+def decode_percent_escapes(string, parse=_decode_parts):
+	return ''.join(parse(string))
 
-		val = percent_escapes.get(x[newpos+1:newpos+3])
-		if val is not None:
-			nstr += mkval(val)
-			pos = newpos + 3
-		else:
-			nstr += '%'
-			pos = newpos + 1
-	return nstr
+_uri_escape = (lambda x: ''.join(map(_pct_encode, x.encode('utf-8'))))
+_percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%"] + list(range(0,33))})
+_user_percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%@:/?#"] + list(range(0,33))})
+_password_percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%@/?#"] + list(range(0,33))})
+_primary_percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%/?#"] + list(range(0,33))})
+_fragment_percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%?#"] + list(range(0,33))})
 
-def re_pct_encode(m):
-	return pct_encode(ord(m.group(0)))
+_query_key_percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%&#="] + list(range(0,33))})
+_query_value_percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%&#"] + list(range(0,33))})
+
+if 0:
+	percent_escapes = {}
+	x = k = None
+	for x in range(256):
+		k = '%0.2X'.__mod__(x)
+		percent_escapes[k] = x
+		percent_escapes[k.lower()] = x
+		percent_escapes[k[0].lower() + k[1]] = x
+		percent_escapes[k[0] + k[1].lower()] = x
+	del x, k
+
+	def unescape(x, mkval=chr, len=len, isinstance=isinstance):
+		"""
+		# Substitute percent escapes with literal characters.
+		"""
+
+		nstr = type(x)('')
+		if isinstance(x, str):
+			mkval = chr
+
+		pos = 0
+		end = len(x)
+		while pos != end:
+			newpos = x.find('%', pos)
+			if newpos == -1:
+				nstr += x[pos:]
+				break
+			else:
+				nstr += x[pos:newpos]
+
+			val = percent_escapes.get(x[newpos+1:newpos+3])
+			if val is not None:
+				nstr += mkval(val)
+				pos = newpos + 3
+			else:
+				nstr += '%'
+				pos = newpos + 1
+		return nstr
 
 Parts = collections.namedtuple("Parts",
 	('type', 'scheme', 'netloc', 'path', 'query', 'fragment')
 )
 
-def split(iri):
+def split(iri, _scheme_char_set=set(scheme_chars)):
 	"""
 	# Split an IRI into its base components based on the markers:
 
@@ -141,7 +147,12 @@ def split(iri):
 
 			# validate the scheme.
 			for x in scheme:
-				if not (x in scheme_chars) and \
+				# ! DEFECT:
+					# The range check here has the possibility of recognizing
+					# characters outside of the ascii uppercase and lowercase.
+					# While this isn't a strict parser, it was not the original
+					# intention to accept those values(early versions supporting bytes).
+				if not (x in _scheme_char_set) and \
 				not ('A' <= x <= 'Z') and not ('a' <= x <= 'z'):
 					# it's not a valid scheme
 					pos = 0
@@ -195,18 +206,18 @@ def split(iri):
 
 	return Parts(type, scheme, netloc, path, query, fragment)
 
-def join_path(p, _re = escape_path_re, _re_pct_encode = re_pct_encode):
+def join_path(p, _escape_path=_primary_percent_translations):
 	"""
 	# Join a list of paths(strings) on "/" *after* escaping them.
 	"""
 
 	if not p:
 		return None
-	return '/'.join([_re.sub(re_pct_encode, x) for x in p])
+	return '/'.join([x.translate(_escape_path) for x in p])
 
 unsplit_path = join_path
 
-def split_path(p, fieldproc = unescape):
+def split_path(p, fieldproc=decode_percent_escapes):
 	"""
 	# Return a list of unescaped strings split on "/".
 
@@ -248,7 +259,7 @@ def join(t):
 
 unsplit = join
 
-def split_netloc(netloc, fieldproc = unescape):
+def split_netloc(netloc, fieldproc=decode_percent_escapes):
 	"""
 	# Split a net location into a 4-tuple, (user, password, host, port).
 
@@ -302,38 +313,44 @@ def split_netloc(netloc, fieldproc = unescape):
 
 	return (user, password, addr, port)
 
-def join_netloc(t):
+def join_netloc(t,
+		_escape_user=_user_percent_translations,
+		_escape_password=_password_percent_translations,
+		_escape_host=_primary_percent_translations,
+		_escape_port=_primary_percent_translations
+	):
 	"""
 	# Create a netloc fragment from the given tuple(user,password,host,port).
 	"""
 
 	if t[0] is None and t[2] is None:
 		return None
+
 	s = ''
 	if t[0] is not None:
-		s += escape_user_re.sub(re_pct_encode, t[0])
+		s += t[0].translate(_escape_user)
 		if t[1] is not None:
 			s += ':'
-			s += escape_password_re.sub(re_pct_encode, t[1])
+			s += t[1].translate(_escape_password)
 		s += '@'
 
 	if t[2] is not None:
-		s += escape_host_re.sub(re_pct_encode, t[2])
+		s += t[2].translate(_escape_host)
 		if t[3] is not None:
 			s += ':'
-			s += escape_port_re.sub(re_pct_encode, t[3])
+			s += t[3].translate(_escape_port)
 
 	return s
 
 unsplit_netloc = join_netloc
 
-def parse_query(query, fieldproc=unescape):
+def parse_query(query, fieldproc=decode_percent_escapes):
 	return [
 		tuple((list(map(fieldproc, x.split('=', 1))) + [None])[:2])
 		for x in query.split('&')
 	]
 
-def structure(t, fieldproc=unescape, tuple=tuple, list=list, map=map):
+def structure(t, fieldproc=decode_percent_escapes, tuple=tuple, list=list, map=map):
 	"""
 	# Create a dictionary from a split RI(5-tuple).
 
@@ -379,8 +396,8 @@ def structure(t, fieldproc=unescape, tuple=tuple, list=list, map=map):
 	return d
 
 def construct_query(x,
-		key_re = escape_query_key_re,
-		value_re = escape_query_value_re,
+		_key_escape=_query_key_percent_translations,
+		_value_escape=_query_value_percent_translations,
 	):
 	"""
 	# Given a sequence of (key, value) pairs, construct.
@@ -389,10 +406,10 @@ def construct_query(x,
 	return '&'.join([
 		v is not None and \
 		'='.join((
-			key_re.sub(re_pct_encode, k),
-			value_re.sub(re_pct_encode, v),
+			k.translate(_key_escape),
+			v.translate(_value_escape),
 		)) or \
-		key_re.sub(re_pct_encode, k)
+		k.translate(_key_escape)
 		for k, v in x
 	])
 
@@ -403,13 +420,15 @@ def construct(x):
 
 	p = x.get('path')
 	if p is not None:
-		p = '/'.join([escape_path_re.sub(re_pct_encode, y) for y in p])
+		p = '/'.join([
+			y.translate(_primary_percent_translations) for y in p
+		])
 	q = x.get('query')
 	if q is not None:
 		q = construct_query(q)
 	f = x.get('fragment')
 	if f is not None:
-		f = escape_re.sub(re_pct_encode, f)
+		f = f.translate(_fragment_percent_translations)
 
 	u = x.get('user')
 	pw = x.get('password')
@@ -430,7 +449,7 @@ def construct(x):
 		p, q, f
 	)
 
-def parse(iri, structure = structure, split = split, fieldproc = unescape):
+def parse(iri, structure = structure, split = split, fieldproc = decode_percent_escapes):
 	"""
 	# Parse an RI into a dictionary object. Synonym for `structure(split(x))`.
 
@@ -465,10 +484,10 @@ def http(struct):
 
 def context_tokens(
 		scheme, type, user, password, host, port,
-		escape_user=escape_user_re.sub,
-		escape_password=escape_password_re.sub,
-		escape_port=escape_port_re.sub,
-		escape_host=escape_host_re.sub,
+		_escape_user=_user_percent_translations,
+		_escape_password=_password_percent_translations,
+		_escape_host=_primary_percent_translations,
+		_escape_port=_primary_percent_translations,
 		ri_type_delimiters = {
 			'relative': '//',
 			'authority': '://',
@@ -487,25 +506,25 @@ def context_tokens(
 
 	# Needs escaping.
 	if user is not None:
-		yield ('user', escape_user(re_pct_encode, user))
+		yield ('user', user.translate(_escape_user))
 
 	if password is not None:
 		yield ('delimiter', ":")
-		yield ('delimiter', escape_password(re_pct_encode, password))
+		yield ('delimiter', password.translate(_escape_password))
 
 	if user is not None or password is not None:
 		yield ('delimiter', "@")
 
 	if host is not None:
-		yield ('host', escape_host(re_pct_encode, host))
+		yield ('host', host.translate(_escape_host))
 
 	if port is not None:
 		yield ('delimiter', ':')
-		yield ('port', escape_port(re_pct_encode, port))
+		yield ('port', port.translate(_escape_port))
 
 def query_tokens(query,
-		escape_query_key=escape_query_key_re.sub,
-		escape_query_value=escape_query_value_re.sub
+		_escape_key=_query_key_percent_translations,
+		_escape_value=_query_value_percent_translations,
 	):
 	if query is None:
 		return
@@ -516,28 +535,28 @@ def query_tokens(query,
 		if not k and v is None:
 			pass
 		else:
-			yield ('query-key', escape_query_key(re_pct_encode, k))
+			yield ('query-key', k.translate(_escape_key))
 			if v is not None:
 				yield ('delimiter', "=")
-				yield ('query-value', escape_query_value(re_pct_encode, v or ''))
+				yield ('query-value', (v or '').translate(_escape_value))
 
 	for k, v in query[1:]:
 		yield ('delimiter', "&")
 
 		if not k and v is None:
 			continue
-		yield ('query-key', escape_query_key(re_pct_encode, k))
+		yield ('query-key', k.translate(_escape_key))
 		if v is not None:
 			yield ('delimiter', "=")
-			yield ('query-value', escape_query_value(re_pct_encode, v or ''))
+			yield ('query-value', (v or '').translate(_escape_value))
 
-def fragment_tokens(fragment, escape=escape_re.sub):
+def fragment_tokens(fragment, _escape_fragment=_fragment_percent_translations):
 	if fragment is None:
 		return
 	yield ('delimiter', "#")
-	yield ('fragment', escape(re_pct_encode, fragment))
+	yield ('fragment', fragment.translate(_escape_fragment))
 
-def path_tokens(root, path, escape_path=escape_path_re, pct_encode=re_pct_encode):
+def path_tokens(root, path, _escape_path=_primary_percent_translations):
 	if path is None and root is None:
 		return
 
@@ -562,28 +581,28 @@ def path_tokens(root, path, escape_path=escape_path_re, pct_encode=re_pct_encode
 	if roots:
 		yield ('delimiter-path-initial', "/")
 		for root in roots[:-1]:
-			yield ('path-root', escape_path.sub(pct_encode, root))
+			yield ('path-root', root.translate(_escape_path))
 			yield ('delimiter-path-root', "/")
 		else:
-			yield ('path-root', escape_path.sub(pct_encode, roots[-1]))
+			yield ('path-root', roots[-1].translate(_escape_path))
 		if rsrc is None:
 			return
 
 	if segments:
 		if not roots:
 			yield ('delimiter-path-initial', "/")
-			yield ('path-segment', escape_path.sub(pct_encode, segments[0]))
+			yield ('path-segment', segments[0].translate(_escape_path))
 			del segments[0]
 
 		for segment in segments:
 			yield ('delimiter-path-segments', "/")
-			yield ('path-segment', escape_path.sub(pct_encode, segment))
+			yield ('path-segment', segment.translate(_escape_path))
 
 	if rsrc is not None:
 		yield ('delimiter-path-final', "/")
-		yield ('resource', escape_path.sub(pct_encode, rsrc))
+		yield ('resource', rsrc.translate(_escape_path))
 
-def tokens(struct):
+def tokens(struct, list=list, map=map):
 	"""
 	# Construct an iterator producing Resource Indicator Tokens.
 	# The items are pairs providing the type and the exact text
@@ -602,6 +621,8 @@ def tokens(struct):
 if __name__ == '__main__':
 	import sys
 	s = parse(sys.argv[1])
+	print(s)
 	t = tokens(s)
 	for x in t:
 		print(x)
+	print(serialize(s))

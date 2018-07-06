@@ -1,7 +1,9 @@
 from .. import ri as library
 
 def cmbx(t):
-	'Yield a list of combinations using a mask'
+	"""
+	# Yield a list of combinations using a mask
+	"""
 	tl = len(t)
 	return [
 		[x & m and t[x-1] or '' for x in range(1, tl + 1)]
