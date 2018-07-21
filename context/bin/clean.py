@@ -3,7 +3,8 @@
 """
 import os.path
 import importlib.machinery
-from ...routes import library as libroutes
+
+from ...system import python
 from ...system import libfactor
 
 ext_suffixes = importlib.machinery.EXTENSION_SUFFIXES
@@ -71,6 +72,6 @@ if __name__ == '__main__':
 	sys.stdout = sys.stderr
 	print('! NOTE: Extensions ending with %r are being kept.' %(ext_suffixes[0],))
 	print('')
-	rr = libroutes.Import.from_fullname(context.__package__).container
+	rr = python.Import.from_fullname(context.__package__).container
 	for pkg in collect_composites(rr):
 		clear_bootstrap_extensions(pkg)
