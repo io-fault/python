@@ -3,13 +3,13 @@
 		&<http://if.fault.io/project/information>
 
 /identifier/
-	`http://fault.io/python/syntax`
+	&<http://fault.io/python/syntax>
 /name/
 	`syntax`
 /abstract/
 	Syntax query and manipulation tools
 /icon/
-	- [(entity)`fault`:syntax]
+	- (category)`text`
 
 /versioning/
 	continuous
@@ -19,4 +19,4 @@
 /controller/
 	`fault.io`
 /contact/
-	`http://fault.io/critical`
+	&<http://fault.io/critical>
