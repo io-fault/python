@@ -4,8 +4,10 @@
 # The sections of the chapter represent the available filesystem trees that can be instantiated.
 """
 import sys
-from ...system import library as libsys
-from ...routes import library as libroutes
+
+from ...system import process
+from ...system import files
+
 from ...text import library as libtext
 
 def pairs(items):
@@ -59,25 +61,25 @@ def instantiate(target, source, section):
 
 	emit(target, data)
 
-def main(inv:libsys.Invocation):
+def main(inv:process.Invocation) -> process.Exit:
 	try:
 		target, filepath, section, *path = inv.args
 	except:
-		return inv.exit(libsys.Exit.exiting_from_bad_usage)
+		return inv.exit(process.Exit.exiting_from_bad_usage)
 
-	route = libroutes.File.from_path(target)
+	route = files.Path.from_path(target)
 	if route.exists() and not route.is_directory():
 		sys.stderr.write("! ERROR: path (%r) must be a directory.\n" %(str(route),))
-		return inv.exit(libsys.Exit.exiting_from_output_inaccessible)
+		return inv.exit(process.Exit.exiting_from_output_inaccessible)
 
-	sourcepath = libroutes.File.from_path(filepath)
+	sourcepath = files.Path.from_path(filepath)
 	if not sourcepath.exists() or sourcepath.is_directory():
 		sys.stderr.write("! ERROR: source (%r) does not exist or is a directory.\n" %(str(sourcepath),))
-		return inv.exit(libsys.Exit.exiting_from_input_inaccessible)
+		return inv.exit(process.Exit.exiting_from_input_inaccessible)
 
 	instantiate(route, sourcepath, section)
 
-	return inv.exit(libsys.Exit.exiting_from_success)
+	return inv.exit(process.Exit.exiting_from_success)
 
 if __name__ == '__main__':
-	libsys.control(main, libsys.Invocation.system())
+	process.control(main, process.Invocation.system())

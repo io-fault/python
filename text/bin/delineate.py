@@ -3,17 +3,18 @@
 
 # Emits serialized Fragments to standard out of the selected Python module.
 """
-
 import sys
-from ...system import library as libsys
-from ...routes import library as libroutes
+
+from ...system import process
+from ...system import files
+
 from .. import library as libtxt
 from ...xml import library as libxml
 from kit.factors import fragments
 
-def main(inv:libsys.Invocation):
+def main(inv:process.Invocation) -> process.Exit:
 	filepath, = inv.args
-	src = libroutes.File.from_path(filepath)
+	src = files.Path.from_path(filepath)
 
 	w = sys.stdout.buffer.write
 	wl = sys.stdout.buffer.writelines
@@ -35,6 +36,6 @@ def main(inv:libsys.Invocation):
 	sys.exit(0)
 
 if __name__ == '__main__':
-	libsys.control(main, libsys.Invocation.system())
+	process.control(main, process.Invocation.system())
 
 
