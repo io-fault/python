@@ -3,7 +3,7 @@
 		&<http://if.fault.io/project/information>
 
 /identifier/
-	`https://fault.io/python/test`
+	`http://fault.io/python/test`
 /name/
 	`test`
 /abstract/
