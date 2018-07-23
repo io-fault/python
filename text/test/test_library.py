@@ -39,11 +39,11 @@ Paragraph 1.
 	- SetItem2
 	- &Reference
 
-/DictItem1
+/DictItem1/
 	DictValue1
-/DictItem2
+/DictItem2/
 	DictValue2
-/&Reference
+/&Reference/
 	DictValue3
 
 Implicit Title:
