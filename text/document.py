@@ -44,6 +44,8 @@ def export(paragraph):
 			cast = x[-1].get('cast', '')
 			if cast:
 				cast = '/' + cast
+			else:
+				cast = ''
 			l.append(core.Fragment(('literal/grave-accent'+cast, x[1][0])))
 
 	return core.Paragraph(l)
