@@ -1,5 +1,8 @@
 """
 # Range classes for managing associations and sets whose items span ranges.
+
+# [ Engineering ]
+# Mapping needs to be implemented.
 """
 import operator
 import itertools
