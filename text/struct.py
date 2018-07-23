@@ -2,6 +2,8 @@
 # Interpret a fault.text encoded data structure.
 # &protocol contains the supported types.
 """
+import typing
+
 from . import document
 from . import library as libtext
 
@@ -34,6 +36,15 @@ def _requirement_i(obj):
 		if t[0] in {'set', 'sequence'}:
 			for i in t[1]:
 				yield document.paragraph_as_string(i[1][0])
+		else:
+			yield document.paragraph_as_string(t)
+
+def _symbol_i(obj):
+	if obj[0] in {'set', 'sequence'}:
+		for t in obj[1]:
+			yield document.export(t[1][0][1])
+	else:
+		yield document.export(obj[1])
 
 def _context_data(section):
 	# Currently limited to sections only containing one admonition.
@@ -58,7 +69,11 @@ def project(data):
 	main_dict = {
 		e[1][0][1][0]: (e[1][1][1][0]) for e in data[0]
 	}
-	abs_para = main_dict.pop('abstract')[1]
+	abs_para = main_dict.pop('abstract')[1] # FORMAT: /abstract/ field not found.
+	id_para_nodes = main_dict.pop('identifier')[1] # FORMAT: /identifier/ field not found.
+
+	id_para = document.export([x for x in id_para_nodes if x])
+	id_frag = id_para.sole
 
 	# Trim
 	for i in range(len(abs_para)):
@@ -72,33 +87,59 @@ def project(data):
 
 	main_dict = {k:_project_interpret(v) for k,v in main_dict.items()}
 	main_dict['abstract'] = document.export(abs_para)
+	main_dict['identifier'] = id_frag[1]
 
 	return main_dict
+
+def infras(data):
+	main = (
+		(e[1][0][1][0], (e[1][1][1][0])) for e in data[0]
+	)
+
+	rd = {}
+	for k, v in main:
+		if v[0] == 'set':
+			rd[k] = set(document.export(x[1][0][1]).sole for x in v[1]) # One fragment in item
+		elif v[0] == 'sequence':
+			rd[k] = list(document.export(x[1][0][1]).sole for x in v[1]) # One fragment in item
+		else:
+			rd[k] = document.export(v[1])
+
+	return rd
 
 def factor(data):
 	main_dict = {
 		e[1][0][1][0]: (e[1][1][1]) for e in data[0]
 	}
-	for k in ('type', 'domain'):
-		a = main_dict[k]
-		main_dict[k] = _factor_field_i(a[0])
 
-	reqs = main_dict.get('integrals')
+	ftype = main_dict['type'] # FORMAT: /type/ must be declared within the first dictionary.
+	main_dict['type'] = _factor_field_i(ftype[0])
+
+	domain = main_dict.get('domain') # Optional; usually defaults to 'system'.
+	if domain is not None:
+		main_dict['domain'] = _factor_field_i(domain[0])
+	else:
+		main_dict['domain'] = None
+
+	reqs = main_dict.get('symbols') # Optional; defaults to empty set.
 	if reqs is not None:
-		main_dict['integrals'] = set(_requirement_i(reqs))
+		main_dict['symbols'] = set(_requirement_i(reqs))
 
 	return main_dict
 
 protocol = {
-	"http://if.fault.io/project": project,
+	"http://if.fault.io/project/information": project,
+	"http://if.fault.io/project/infrastructure": infras,
+	"http://if.fault.io/project/snapshot": None,
 	"http://if.fault.io/factor": factor
 }
 
-def parse(text):
+def parse(text:str) -> typing.Tuple[object, object]:
 	try:
 		tree = list(libtext.parse(text))
 		context, main = _context_data(tree[0][1])
-		si = protocol[context['protocol'][0][-1]]
+		proto = context['protocol'][0][-1] # FORMAT: /protocol/ not found in CONTEXT admonition.
+		si = protocol[proto] # FORMAT: protocol not supported by fault.text.struct
 		struct = si(main.pop('dictionary'))
 	except Exception as err:
 		raise ValueError("unrecognized text structure") from err
