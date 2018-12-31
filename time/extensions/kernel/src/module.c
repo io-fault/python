@@ -4,7 +4,7 @@
 	# gettimeofday/settimeofday, adjtime, and monotonic timer access.
 
 	# These C functions perform conversion into Y2K+1 offsets for efficiency.
-**/
+*/
 #include <sys/types.h>
 #include <sys/time.h>
 
@@ -63,12 +63,12 @@ typedef struct Chronometer *Chronometer;
 /**
 	# Use a Y2K+1 epoch. (+1 for weekstart alignment)
 	# It's nearly aligned on a gregorian cycle and a week cycle.
-**/
+*/
 const time_t unix_epoch_delta = (((((EPOCH_YEAR-1970) * 365) + 7) * seconds_in_day) + seconds_in_day);
 
 /**
 	# Wallclock snapshot as an int with microsecond precision.
-**/
+*/
 static PyObj
 snapshot_us(PyObj self)
 {
@@ -92,7 +92,7 @@ snapshot_us(PyObj self)
 
 /**
 	# Wallclock snapshot as an int with nanosecond precision.
-**/
+*/
 static PyObj
 snapshot_ns(PyObj self)
 {
@@ -197,7 +197,7 @@ sleep_ns(PyObj self, PyObj nsec)
 
 /**
 	# Chronometer object for tracking elapsed time.
-**/
+*/
 struct Chronometer {
 	PyObject_HEAD
 
@@ -295,49 +295,49 @@ const char chronometer_doc[] =
 static PyTypeObject
 ChronometerType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-	MODULE_QPATH("Chronometer"),	/* tp_name */
-	sizeof(struct Chronometer),	/* tp_basicsize */
-	0,										/* tp_itemsize */
-	NULL,									/* tp_dealloc */
-	NULL,									/* tp_print */
-	NULL,									/* tp_getattr */
-	NULL,									/* tp_setattr */
-	NULL,									/* tp_compare */
-	NULL,									/* tp_repr */
-	NULL,									/* tp_as_number */
-	NULL,									/* tp_as_sequence */
-	NULL,									/* tp_as_mapping */
-	NULL,									/* tp_hash */
-	NULL,									/* tp_call */
-	NULL,									/* tp_str */
-	NULL,									/* tp_getattro */
-	NULL,									/* tp_setattro */
-	NULL,									/* tp_as_buffer */
+	FACTOR_PATH("Chronometer"),    /* tp_name */
+	sizeof(struct Chronometer),    /* tp_basicsize */
+	0,                             /* tp_itemsize */
+	NULL,                          /* tp_dealloc */
+	NULL,                          /* tp_print */
+	NULL,                          /* tp_getattr */
+	NULL,                          /* tp_setattr */
+	NULL,                          /* tp_compare */
+	NULL,                          /* tp_repr */
+	NULL,                          /* tp_as_number */
+	NULL,                          /* tp_as_sequence */
+	NULL,                          /* tp_as_mapping */
+	NULL,                          /* tp_hash */
+	NULL,                          /* tp_call */
+	NULL,                          /* tp_str */
+	NULL,                          /* tp_getattro */
+	NULL,                          /* tp_setattro */
+	NULL,                          /* tp_as_buffer */
 	Py_TPFLAGS_BASETYPE|
-	Py_TPFLAGS_DEFAULT,				/* tp_flags */
-	chronometer_doc,					/* tp_doc */
-	NULL,									/* tp_traverse */
-	NULL,									/* tp_clear */
-	NULL,									/* tp_richcompare */
-	0,										/* tp_weaklistoffset */
-	chronometer_iter,					/* tp_iter */
-	chronometer_next,					/* tp_iternext */
-	chronometer_methods,				/* tp_methods */
-	chronometer_members,				/* tp_members */
-	NULL,									/* tp_getset */
-	NULL,									/* tp_base */
-	NULL,									/* tp_dict */
-	NULL,									/* tp_descr_get */
-	NULL,									/* tp_descr_set */
-	0,										/* tp_dictoffset */
-	NULL,									/* tp_init */
-	NULL,									/* tp_alloc */
-	chronometer_new,					/* tp_new */
+	Py_TPFLAGS_DEFAULT,            /* tp_flags */
+	chronometer_doc,               /* tp_doc */
+	NULL,                          /* tp_traverse */
+	NULL,                          /* tp_clear */
+	NULL,                          /* tp_richcompare */
+	0,                             /* tp_weaklistoffset */
+	chronometer_iter,              /* tp_iter */
+	chronometer_next,              /* tp_iternext */
+	chronometer_methods,           /* tp_methods */
+	chronometer_members,           /* tp_members */
+	NULL,                          /* tp_getset */
+	NULL,                          /* tp_base */
+	NULL,                          /* tp_dict */
+	NULL,                          /* tp_descr_get */
+	NULL,                          /* tp_descr_set */
+	0,                             /* tp_dictoffset */
+	NULL,                          /* tp_init */
+	NULL,                          /* tp_alloc */
+	chronometer_new,               /* tp_new */
 };
 
-/*
- * Sleeper type for elapsing time.
- */
+/**
+	# Sleeper type for elapsing time.
+*/
 struct Sleeper {
 	PyObject_HEAD
 
@@ -488,12 +488,12 @@ s_disturb(PyObj self)
 	struct Sleeper *s = (struct Sleeper *) self;
 	unsigned int next_trips = s->trips + 1;
 
-	/*
-	 * Increment the trips while holding the GIL.
-	 * Trips are only decremented when the GIL is held.
-	 *
-	 * XXX: This should really be a conditional call to pthread_kill.
-	 */
+	/**
+		# Increment the trips while holding the GIL.
+		# Trips are only decremented when the GIL is held.
+
+		# XXX: This should really be a conditional call to pthread_kill.
+	*/
 	if (next_trips > 0)
 		s->trips = next_trips;
 
@@ -517,44 +517,44 @@ const char sleeper_doc[] =
 PyTypeObject
 SleeperType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-	MODULE_QPATH("Sleeper"),		/* tp_name */
-	sizeof(struct Sleeper),			/* tp_basicsize */
-	0,										/* tp_itemsize */
-	NULL,									/* tp_dealloc */
-	NULL,									/* tp_print */
-	NULL,									/* tp_getattr */
-	NULL,									/* tp_setattr */
-	NULL,									/* tp_compare */
-	NULL,									/* tp_repr */
-	NULL,									/* tp_as_number */
-	NULL,									/* tp_as_sequence */
-	NULL,									/* tp_as_mapping */
-	NULL,									/* tp_hash */
-	NULL,									/* tp_call */
-	NULL,									/* tp_str */
-	NULL,									/* tp_getattro */
-	NULL,									/* tp_setattro */
-	NULL,									/* tp_as_buffer */
+	FACTOR_PATH("Sleeper"),        /* tp_name */
+	sizeof(struct Sleeper),        /* tp_basicsize */
+	0,                             /* tp_itemsize */
+	NULL,                          /* tp_dealloc */
+	NULL,                          /* tp_print */
+	NULL,                          /* tp_getattr */
+	NULL,                          /* tp_setattr */
+	NULL,                          /* tp_compare */
+	NULL,                          /* tp_repr */
+	NULL,                          /* tp_as_number */
+	NULL,                          /* tp_as_sequence */
+	NULL,                          /* tp_as_mapping */
+	NULL,                          /* tp_hash */
+	NULL,                          /* tp_call */
+	NULL,                          /* tp_str */
+	NULL,                          /* tp_getattro */
+	NULL,                          /* tp_setattro */
+	NULL,                          /* tp_as_buffer */
 	Py_TPFLAGS_BASETYPE|
-	Py_TPFLAGS_DEFAULT,				/* tp_flags */
-	sleeper_doc,							/* tp_doc */
-	NULL,									/* tp_traverse */
-	NULL,									/* tp_clear */
-	NULL,									/* tp_richcompare */
-	0,										/* tp_weaklistoffset */
-	sleeper_iter,						/* tp_iter */
-	sleeper_next,						/* tp_iternext */
-	sleeper_methods,					/* tp_methods */
-	sleeper_members,					/* tp_members */
-	NULL,									/* tp_getset */
-	NULL,									/* tp_base */
-	NULL,									/* tp_dict */
-	NULL,									/* tp_descr_get */
-	NULL,									/* tp_descr_set */
-	0,										/* tp_dictoffset */
-	NULL,									/* tp_init */
-	NULL,									/* tp_alloc */
-	sleeper_new,						/* tp_new */
+	Py_TPFLAGS_DEFAULT,            /* tp_flags */
+	sleeper_doc,                   /* tp_doc */
+	NULL,                          /* tp_traverse */
+	NULL,                          /* tp_clear */
+	NULL,                          /* tp_richcompare */
+	0,                             /* tp_weaklistoffset */
+	sleeper_iter,                  /* tp_iter */
+	sleeper_next,                  /* tp_iternext */
+	sleeper_methods,               /* tp_methods */
+	sleeper_members,               /* tp_members */
+	NULL,                          /* tp_getset */
+	NULL,                          /* tp_base */
+	NULL,                          /* tp_dict */
+	NULL,                          /* tp_descr_get */
+	NULL,                          /* tp_descr_set */
+	0,                             /* tp_dictoffset */
+	NULL,                          /* tp_init */
+	NULL,                          /* tp_alloc */
+	sleeper_new,                   /* tp_new */
 };
 
 #ifdef __MACH__
@@ -596,10 +596,9 @@ INIT("clock mechanics using common userland interfaces")
 
 	return(mod);
 
-fail:
-	DROP_MODULE(mod);
-	return(NULL);
+	fail:
+	{
+		DROP_MODULE(mod);
+		return(NULL);
+	}
 }
-/*
- * vim: ts=3:sw=3:noet:
- */
