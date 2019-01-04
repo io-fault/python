@@ -37,5 +37,3 @@ def main(inv:process.Invocation) -> process.Exit:
 
 if __name__ == '__main__':
 	process.control(main, process.Invocation.system())
-
-
