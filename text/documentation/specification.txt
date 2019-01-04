@@ -45,7 +45,7 @@ aaaaaaaaaaaaaaaaa
 bbbbbbbbbbbbbbbbb
 ccccccccccccccccc
 =-=-=-=-=-=-=-=-=
-|--==--==--==--|
+|--==--===--==--|
 
 It's important that short lines are not misperceived as decorations, so minimums in
 decoration line length and maximums in repetition characters are used to help avoid ambiguity.
@@ -233,7 +233,7 @@ and emphasis of two asterisks *should* be mapped to bold.
 [ Lists ]
 =========
 
-Enumerated lists are notated using the hash symbol: (quote)`#`. It is borrowed 
+Enumerated lists are notated using the hash symbol: (quote)`#`. It is borrowed
 from the shell comment character and used due to its name "the number sign".
 With exception to indentation, leading whitespace is ignored in order to allow
 a horizontal visual separation from adjacent paragraphs.
