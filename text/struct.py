@@ -131,7 +131,7 @@ protocol = {
 	"http://if.fault.io/project/information": project,
 	"http://if.fault.io/project/infrastructure": infras,
 	"http://if.fault.io/project/snapshot": None,
-	"http://if.fault.io/factor": factor
+	"http://if.fault.io/project/factor": factor
 }
 
 def parse(text:str) -> typing.Tuple[object, object]:
