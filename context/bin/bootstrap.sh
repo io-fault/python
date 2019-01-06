@@ -10,10 +10,17 @@ then
 	exit 1
 fi
 
+sdk="$1"; shift 1
+if ! test -d "$sdk"
+then
+	echo >&2 "second parameter must be the 'sdk' context package root directory."
+	exit 1
+fi
+
 python="$(which "$1")"; shift 1
 if ! test -x "$python"
 then
-	echo >&2 "second parameter must be the Python implementation to build for."
+	echo >&2 "third parameter must be the Python implementation to build for."
 	exit 1
 fi
 
@@ -83,7 +90,7 @@ module_path ()
 	echo "$relpath" | sed 's:/:.:g' | sed 's:.::'
 }
 
-for project in ./chronometry ./system ./development ./traffic ./io ./terminal
+for project in ./time ./system ./traffic ./io ./terminal
 do
 	cd "$fault_dir/$project"
 	root="$(dirname "$(pwd)")"
@@ -96,28 +103,34 @@ do
 
 	for module in ./extensions/*/
 	do
-		iscache="$(echo "$module" | grep '__pycache__')"
+		iscache="$(echo "$module" | grep '__pycache__\|__f-cache__\|__f-int__')"
 		if ! test x"$iscache" = x""
 		then
 			continue
 		fi
 
 		cd "$module"
+		pwd
 		modname="$(basename "$(pwd)")"
 
 		fullname="$(module_path "$(pwd)")"
+		package="$(cd ..; module_path "$(pwd)")"
+		project="$(cd ../..; module_path "$(pwd)")"
 		targetname="$(echo "$fullname" | sed 's/.extensions//')"
 		pkgname="$(echo "$fullname" | sed 's/[.][^.]*$//')"
 
 		compile ${CC:-cc} -v -o "../../${modname}.${platsuffix}" \
-			-I$fault_dir/development/include/src \
+			-I$sdk/factors/include/src \
 			-I$prefix/include \
 			-I$prefix/include/python$pyversion$pyabi \
-			"-DMODULE_QNAME=$targetname" \
-			"-DMODULE_PACKAGE=$pkgname" \
-			"-DMODULE_BASENAME=$modname" \
-			"-DFACTOR_BASENAME=$modname" \
 			"-DF_INTENTION=debug" \
+			"-DF_FACTOR_DOMAIN=system" \
+			"-DF_FACTOR_TYPE=extension" \
+			"-DFACTOR_BASENAME=$modname" \
+			"-DFACTOR_SUBPATH=$modname" \
+			"-DFACTOR_PROJECT=$project" \
+			"-DFACTOR_PACKAGE=$package" \
+			"-DFACTOR_QNAME=$fullname" \
 			-fwrapv \
 			src/*.c
 
@@ -141,6 +154,12 @@ do
 
 	for subdir in ./extensions/*/
 	do
+		iscache="$(echo "$subdir" | grep '__pycache__\|__f-cache__\|__f-int__')"
+		if ! test x"$iscache" = x""
+		then
+			continue
+		fi
+
 		cd "$subdir"
 		pkgdir="$(basename "$(pwd)")"
 
@@ -154,29 +173,35 @@ do
 
 		for module in ./*/
 		do
-			iscache="$(echo "$module" | grep '__pycache__')"
+			iscache="$(echo "$module" | grep '__pycache__\|__f-cache__\|__f-int__')"
 			if ! test x"$iscache" = x""
 			then
 				continue
 			fi
 
 			cd "$module"
+			pwd
 			modname="$(basename "$(pwd)")"
 
 			fullname="$(module_path "$(pwd)")"
+			package="$(cd ..; module_path "$(pwd)")"
+			project="$(cd ../..; module_path "$(pwd)")"
 			targetname="$(echo "$fullname" | sed 's/.extensions//')"
 			pkgname="$(echo "$fullname" | sed 's/[.][^.]*$//')"
 
 			compile ${CC:-cc} -v -o "../../../${pkgdir}/${modname}.${platsuffix}" \
-				-I$fault_dir/development/include/src \
+				-I$sdk/factors/include/src \
 				-I../../../include/src \
 				-I$prefix/include \
 				-I$prefix/include/python$pyversion$pyabi \
-				"-DMODULE_QNAME=$targetname" \
-				"-DMODULE_PACKAGE=$pkgname" \
-				"-DMODULE_BASENAME=$modname" \
-				"-DFACTOR_BASENAME=$modname" \
 				"-DF_INTENTION=debug" \
+				"-DF_FACTOR_DOMAIN=system" \
+				"-DF_FACTOR_TYPE=extension" \
+				"-DFACTOR_BASENAME=$modname" \
+				"-DFACTOR_SUBPATH=$modname" \
+				"-DFACTOR_PROJECT=$project" \
+				"-DFACTOR_PACKAGE=$package" \
+				"-DFACTOR_QNAME=$fullname" \
 				-fwrapv \
 				src/*.c
 
