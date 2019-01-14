@@ -134,7 +134,7 @@ class Parser(object):
 	def pop(self):
 		del self.stack[-1]
 
-	def is_decoration(self, stripped, minimum=4, level=3):
+	def is_decoration(self, stripped, minimum=5, level=3, allowed=set("-=_^#><'+*")):
 		"""
 		# Determine if the line is a decoration.
 		"""
@@ -142,7 +142,7 @@ class Parser(object):
 		chars = set(stripped)
 		nc = len(chars)
 
-		if sl > minimum and nc >= 1 and nc <= level:
+		if sl >= minimum and nc >= 1 and nc <= level and not (chars - allowed):
 			return True
 
 		return False
