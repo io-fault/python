@@ -120,7 +120,8 @@ do
 		pkgname="$(echo "$fullname" | sed 's/[.][^.]*$//')"
 
 		compile ${CC:-cc} -v -o "../../${modname}.${platsuffix}" \
-			-I$sdk/factors/include/src \
+			-I$sdk/python/include/src \
+			-I$sdk/posix/include/src \
 			-I$prefix/include \
 			-I$prefix/include/python$pyversion$pyabi \
 			"-DF_INTENTION=debug" \
@@ -190,7 +191,8 @@ do
 			pkgname="$(echo "$fullname" | sed 's/[.][^.]*$//')"
 
 			compile ${CC:-cc} -v -o "../../../${pkgdir}/${modname}.${platsuffix}" \
-				-I$sdk/factors/include/src \
+				-I$sdk/python/include/src \
+				-I$sdk/posix/include/src \
 				-I../../../include/src \
 				-I$prefix/include \
 				-I$prefix/include/python$pyversion$pyabi \
