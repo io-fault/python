@@ -9,7 +9,7 @@
 /abstract/
 	Core Python Projects
 /icon/
-	`🔋`
+	- (emoji)`🔋`
 
 /versioning/
 	continuous
