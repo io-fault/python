@@ -9,7 +9,7 @@
 /abstract/
 	Internet protocol implementations for HTTP, DNS, and SMTP
 /icon/
-	`📡`
+	- (emoji)`📡`
 
 /versioning/
 	continuous
