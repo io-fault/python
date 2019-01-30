@@ -9,7 +9,7 @@
 /abstract/
 	Range types for supporting Sets and Mappings
 /icon/
-	`↔`
+	- (emoji)`↔`
 
 /versioning/
 	continuous
