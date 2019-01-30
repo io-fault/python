@@ -8,8 +8,6 @@
 	`test`
 /abstract/
 	Test framework components
-/icon/
-	``
 
 /versioning/
 	continuous
