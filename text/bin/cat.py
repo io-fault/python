@@ -27,12 +27,12 @@ def transform(tree, section):
 		raise Exception("section not found " + section)
 
 	root = section_content[1]
-	if root[0][0] == 'paragraph':
-		abstract = root[0]
-		start = root[1][1]
-	else:
-		abstract = None
-		start = root[0][1]
+	x = 0
+	for x in range(len(root)):
+		if root[0][0] == 'dictionary':
+			break
+
+	start = root[x][1]
 
 	return mapping(start)
 
@@ -49,10 +49,13 @@ def main(inv:process.Invocation) -> process.Exit:
 
 	sourcepath = files.Path.from_path(filepath)
 	if not sourcepath.exists() or sourcepath.is_directory():
-		sys.stderr.write("! ERROR: source (%r) does not exist or is a directory.\n" %(str(sourcepath),))
+		sys.stderr.write("[!# ERROR: source (%r) does not exist or is a directory]\n" %(str(sourcepath),))
 		return inv.exit(process.Exit.exiting_from_input_inaccessible)
 
 	data = structure(sourcepath, section)
+	if not paths:
+		paths = data.keys()
+
 	for p in paths:
 		sys.stdout.write(data[p])
 
