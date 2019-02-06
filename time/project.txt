@@ -9,7 +9,7 @@
 /abstract/
 	An integer based time solution with selectable precision
 /icon/
-	- (emoji)`⌛`
+	- (emoji)`⏱`
 
 /versioning/
 	continuous
