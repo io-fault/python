@@ -165,7 +165,7 @@ class Contention(object):
 		# Contend that the &subject raises the given exception when it is called::
 
 		#!/pl/python
-			test/Exception ^ subject
+			test/Exception ^ (lambda: subject())
 
 		# Reads: "Test that 'Exception' is raised by 'subject'".
 		"""
