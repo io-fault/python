@@ -171,7 +171,7 @@ def parse(data):
 	if ident[:4] != magic:
 		# not a TZif file
 		return None
-	if ident[5] == b'2':
+	if ident[5] == b'2'[0]:
 		return parse_version_2(data)
 	else:
 		return parse_version_1(data)
