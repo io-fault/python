@@ -568,7 +568,7 @@ INIT_MACH_PORT(void)
 /* METH_O, METH_VARARGS, METH_VARKEYWORDS, METH_NOARGS */
 #define MODULE_FUNCTIONS() \
 	PYMETHOD(snapshot_us, snapshot_us, METH_NOARGS, "get the time in microseconds") \
-	PYMETHOD(snapshot_ns, snapshot_ns, METH_NOARGS, "get the time in microseconds") \
+	PYMETHOD(snapshot_ns, snapshot_ns, METH_NOARGS, "get the time in nanoseconds") \
 	PYMETHOD(sleep_us, sleep_us, METH_O, "sleep for the given number of microseconds") \
 	PYMETHOD(sleep_ns, sleep_ns, METH_O, "sleep for the given number of nanoseconds")
 
