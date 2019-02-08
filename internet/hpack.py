@@ -11,13 +11,14 @@ from .data import hpack as data
 def huffman_decode(field:bytes,
 		h_range=(data.h_start, data.h_stop),
 		index=data.huffman_reverse_index,
-		bytes=bytes
+		bytes=bytes,
+		range=range,
 	):
 	"""
 	# Decode the byte string using the HPACK huffman code table.
 
 	# [ Invariants ]
-		# - `encode(decode(x)) == x`
+	# - `encode(decode(x)) == x`
 	"""
 	get = index.get
 	bits = ''.join(bin(x)[2:].rjust(8, '0') for x in field)
@@ -51,7 +52,7 @@ def huffman_encode(field:bytes,
 	# Encode the byte string as using the HPACK huffman code table.
 
 	# [ Invariants ]
-		# - `decode(encode(x)) == x`
+	# - `decode(encode(x)) == x`
 	"""
 	seq = ''.join([table[x] for x in field])
 	byte_fields = [seq[y:y+8] for y in range(0, len(seq), 8)]
@@ -63,18 +64,14 @@ def huffman_encode(field:bytes,
 
 	return bytes((int(x, 2) for x in byte_fields))
 
-def encoder(
-		hencode=huffman_encode
-	):
+def encoder(hencode=huffman_encode):
 	"""
 	# Encoding state for serializing headers.
 	"""
 	dindex = {}
 	yield None
 
-def decoder(
-		hdecode=huffman_decode
-	):
+def decoder(hdecode=huffman_decode):
 	"""
 	# Decoding state for loading headers.
 	"""

@@ -1,15 +1,15 @@
 """
-HPACK data for generating indexes.
+# HPACK data for generating indexes.
 
-https://tools.ietf.org/html/rfc7541
+# http://tools.ietf.org/html/rfc7541
 
-[ Properties ]
+# [ Properties ]
 
-/static_table
-	The predefined headers and constants.
+# /static_table/
+	# The predefined headers and constants.
 
-/huffman_code
-	The bit strings representing a character value.
+# /huffman_code/
+	# The bit strings representing a character value.
 """
 
 static_table = [
