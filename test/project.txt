@@ -8,11 +8,13 @@
 	`test`
 /abstract/
 	Test framework components
+/icon/
+	- (emoji)`🔬`
 
 /versioning/
 	continuous
 /status/
-	flux
+	volatile
 
 /controller/
 	fault.io
