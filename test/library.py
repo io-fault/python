@@ -583,6 +583,10 @@ class Harness(object):
 			for x in seq
 			if not x[0] and x[1][:5] == 'test_'
 		]
+		module.__tests__.extend([
+			('.'.join((name, x[1])), self.test_package)
+			for x in seq if x[0]
+		])
 
 		raise self.Divide(module)
 
