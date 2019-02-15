@@ -204,6 +204,8 @@ class Fate(BaseException):
 		'skip': ("skipped", "The test was skipped for a specific reason",0,3,"cyan"),
 		'divide': ("divided", "The test is a container of a set of tests",1,4,"blue"),
 		'fail': ("failed", "The test raised an exception or contended an absurdity",-1,5,"red"),
+		'absurdity': ("failed", "The test contended an absurdity",-1,5,"red"),
+		'exception': ("failed", "The test's execution resulted in an exception",-1,5,"red"),
 		'reveal': ("revealed", "The coverage data of the test does not meet expectations",-1,6,"red"),
 		'expire': ("expired", "The test did not finish in the configured time",-1,8,"yellow"),
 		'interrupt': ("interrupted", "The test was interrupted by a control exception",-1,9,"orange"),
