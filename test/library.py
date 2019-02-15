@@ -599,9 +599,8 @@ class Harness(object):
 		project = self.load_test_container(path)
 
 		module = type(builtins)("test.root")
-		ft = getattr(project, '__factor_type__', 'library')
-
 		module.__tests__ = [(path + '.test', self.test_package)]
+
 		return module
 
 	def dispatch(self, test):
