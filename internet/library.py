@@ -200,3 +200,34 @@ class Reference(tuple):
 			port = common_services[service]
 
 		return Class(('domain', name, port, service))
+
+def realize(struct, scheme=None, host=None, port=None):
+	"""
+	# Construct an &Endpoint or &Reference from &struct.
+
+	#!/pl/python
+		ref_or_endpoint = host.realize(ri.parse(url))
+	"""
+
+	host = struct['host']
+	port = struct.get('port', port)
+	scheme = struct.get('scheme', scheme)
+
+	onlydigits = all(map(str.isdigit, host.split('.', 3)))
+	if onlydigits:
+		if port is None:
+			port = common_services[scheme]
+		endpoint = Endpoint.create_ip4(host, port)
+	else:
+		# either domain or ip6
+		if ':' in host:
+			# ipv6
+			host = host[1:-1]
+			if port is None:
+				port = common_services[scheme]
+			endpoint = Endpoint.create_ip6(host, port)
+		else:
+			# needs name resolution
+			endpoint = Reference.from_domain(host, scheme, port=port)
+
+	return endpoint
