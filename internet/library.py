@@ -15,23 +15,28 @@ class Service(int):
 	epheremal_range = (49152, 0xFFFF)
 
 	def valid(self):
-		"Whether or not the Service port is within the standard range."
+		"""
+		# Whether or not the Service port is within the standard range.
+		"""
 
 		return self >= 0 and self <= 0xFFFF
 
 	def system(self):
-		"Whether or not the Service port is considered a 'well known' port."
+		"""
+		# Whether or not the Service port is considered a 'well known' port.
+		"""
 
 		return self >= 0 and self < 1024
 
 	def ephemeral(self):
-		"Whether or not the Service port is considered an 'ephemeral' port by IANA."
+		"""
+		# Whether or not the Service port is considered an 'ephemeral' port by IANA.
+		"""
 
 		return self >= 49152 and self < 0xFFFF
 
 	@classmethod
 	def from_name(Class, name):
-		global common_services
 		return common_services[name]
 
 # A subset of IANA's list to the primary services used by the Internet.
@@ -65,38 +70,48 @@ class Endpoint(tuple):
 
 	@classmethod
 	def create_ip4(Class, string, port, Type=ipaddress.IPv4Address):
-		"Create an IPv4 Endpoint Instance"
+		"""
+		# Create an IPv4 Endpoint Instance
+		"""
 
 		return Class((Type(string), Service(port)))
 
 	@classmethod
 	def create_ip6(Class, string, port, Type=ipaddress.IPv6Address):
-		"Create an IPv6 Endpoint Instance"
+		"""
+		# Create an IPv6 Endpoint Instance
+		"""
 
 		return Class((Type(string), Service(port)))
 
 	@property
 	def protocol(self, str=str):
-		"Addressing protocol; 4 or 6"
+		"""
+		# Addressing protocol; 4 or 6
+		"""
 
 		return 'ip' + str(self.address.version)
 
 	@property
 	def interface(self):
-		"The &ipaddress typed address."
+		"""
+		# The &ipaddress typed address.
+		"""
 		return self[0]
 
 	address = interface
 
 	@property
 	def port(self):
-		"The &Service of the endpoint."
+		"""
+		# The &Service of the endpoint.
+		"""
 
 		return self[1]
 
 	def __str__(self):
 		"""
-		"# <address>:<port>" representation suitable for interpolation into
+		# "<address>:<port>" representation suitable for interpolation into
 		# an IRI network location.
 		"""
 
@@ -139,22 +154,30 @@ class Reference(tuple):
 
 	@property
 	def protocol(self):
-		"Resolution protocol. Usually, DNS."
+		"""
+		# Resolution protocol. Usually, DNS.
+		"""
 		return self[0]
 
 	@property
 	def address(self):
-		"The unencoded domain name."
+		"""
+		# The unencoded domain name.
+		"""
 		return self[1]
 
 	@property
 	def port(self):
-		"The resolved or overridden port for the service."
+		"""
+		# The resolved or overridden port for the service.
+		"""
 		return self[2]
 
 	@property
 	def service(self):
-		"The actual service name being referred to."
+		"""
+		# The actual service name being referred to.
+		"""
 		return self[3]
 
 	def __str__(self):
