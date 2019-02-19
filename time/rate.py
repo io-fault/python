@@ -132,10 +132,10 @@ class Radar(object):
 
 		# Returns a pair of sequences split at the given &pit.
 
-		# [Parameters]
-		# /seq
+		# [ Parameters ]
+		# /seq/
 			# A sequence of `(units, time)` pairs.
-		# /pit
+		# /pit/
 			# A point in time relative to the beginning of the sequence.
 		"""
 
@@ -193,9 +193,9 @@ class Radar(object):
 			# Using &forget is not necessary unless an
 			# override for the dictionary type was given.
 
-		# [Parameters]
+		# [ Parameters ]
 
-		# /subject
+		# /subject/
 			# The tracked object to be removed.
 		"""
 
@@ -251,9 +251,9 @@ class Radar(object):
 
 		# Returns the amount of time dropped as a &.library.Measure instance.
 
-		# [Parameters]
+		# [ Parameters ]
 
-		# /subject
+		# /subject/
 			# The object whose flow-time is to be zeroed.
 		"""
 
@@ -279,10 +279,10 @@ class Radar(object):
 
 		# Returns the number of records collapsed.
 
-		# [Parameters]
-		# /subject
+		# [ Parameters ]
+		# /subject/
 			# The object whose flow is to be collapsed.
-		# /window
+		# /window/
 			# The window of the flow to maintain.
 		"""
 
@@ -308,10 +308,10 @@ class Radar(object):
 
 		# Returns the number of records removed.
 
-		# [Parameters]
-		# /subject
+		# [ Parameters ]
+		# /subject/
 			# The tracked object.
-		# /window
+		# /window/
 			# The amount of time in the past to retain.
 		"""
 
@@ -334,10 +334,10 @@ class Radar(object):
 
 		# Uses the &sums method to construct the product.
 
-		# [Parameters]
-		# /subject
+		# [ Parameters ]
+		# /subject/
 			# The tracked object.
-		# /window
+		# /window/
 			# The limit of view of the rate.
 		"""
 
@@ -359,8 +359,8 @@ class Radar(object):
 			# for all tracked flows, overall may not ever be able to give
 			# an accurate answer.
 
-		# [Parameters]
-		# /window
+		# [ Parameters ]
+		# /window/
 			# The size of the window to view.
 		"""
 
