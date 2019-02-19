@@ -20,7 +20,7 @@ class Zone(object):
 	# &Zone instances manage the selection of a particular &Offset.
 
 	# [ Properties ]
-	# /default
+	# /default/
 		# The default &Offset of the &Zone.
 	"""
 
@@ -130,8 +130,8 @@ class Zone(object):
 
 		# Returns an offset for the timestamp according to the Zone's transition times.
 
-		# [Parameters]
-		# /pit
+		# [ Parameters ]
+		# /pit/
 			# The &.library.Timestamp to use to find an offset with.
 		"""
 		idx = search(self.transitions, pit) - 1
@@ -149,10 +149,10 @@ class Zone(object):
 		# Returns an iterable of transitions and &Offset instances that have
 		# occurred during the period designated by the slice.
 
-		# [Parameters]
-		# /start
+		# [ Parameters ]
+		# /start/
 			# The start of the period.
-		# /stop
+		# /stop/
 			# The end of the period.
 		"""
 		first_offset = search(self.transitions, start) - 1
@@ -173,8 +173,8 @@ class Zone(object):
 
 		# Returns the localized timestamp.
 
-		# [Parameters]
-		# /pit
+		# [ Parameters ]
+		# /pit/
 			# The timestamp to localize.
 		"""
 		offset = self.find(pit)
@@ -190,10 +190,10 @@ class Zone(object):
 
 		# Returns the re-localized &pit and its new &Offset in a tuple.
 
-		# [Parameters]
-		# /offset
+		# [ Parameters ]
+		# /offset/
 			# The offset of the &pit.
-		# /pit
+		# /pit/
 			# The localized point in time to normalize.
 		"""
 		p = pit.rollback(offset)
