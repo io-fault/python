@@ -18,6 +18,9 @@ kinds = (
 	'subjective',
 )
 
+# Used to convert system times.
+unix_epoch_delta = (((((2000-1970) * 365) + 7) * (24*60*60)) + (24*60*60))
+
 class Exception(Exception):
 	"""
 	# Chronometry base exception.
