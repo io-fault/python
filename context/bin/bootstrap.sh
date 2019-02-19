@@ -90,7 +90,7 @@ module_path ()
 	echo "$relpath" | sed 's:/:.:g' | sed 's:.::'
 }
 
-for project in ./time ./system ./traffic ./io ./terminal
+for project in ./time ./system ./terminal
 do
 	cd "$fault_dir/$project"
 	root="$(dirname "$(pwd)")"
