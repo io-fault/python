@@ -101,8 +101,18 @@ kclock = clock.kclock
 #: that provides Measure and Timestamp instances.
 clock = clock.IClock(kclock, Measure, Timestamp)
 
-#: Shortcut to @clock.demotic
-now = clock.demotic
+try:
+	from ..system import clocks
+	_real_clock_read = clocks.Real().adjust(-core.unix_epoch_delta).get
+	def now():
+		"""
+		# Get the current point in time according to the system's real clock as a &Timestamp.
+		"""
+		return Timestamp(_real_clock_read())
+	del clocks
+except ImportError:
+	#: Shortcut to @clock.demotic
+	now = clock.demotic
 
 # Support for Present to Finite Point
 Context.bridge('eternal', 'day', eternal.days_from_current_factory(clock, core.Inconceivable))
