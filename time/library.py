@@ -6,17 +6,17 @@
 
 # [ Properties ]
 
-# /genesis
+# /genesis/
 	# The earliest Point in time. Negative infinity.
-# /never
+# /never/
 	# The latest Point in time. Positive infinity.
-# /present
+# /present/
 	# The current Point in time--always moving.
-# /future
+# /future/
 	# A &Segment whose start is &present and end is &never.
-# /past
+# /past/
 	# A segment whose start is &genesis and end is &present.
-# /continuum
+# /continuum/
 	# A segment whose start is &genesis and end is &never; essentially, this is intended to
 	# be a type check and determines if the given object is representing a Point in Time.
 """
@@ -43,8 +43,7 @@ Context, MeasureTypes, PointTypes = core.standard_context(__name__)
 MeasureTypes = MeasureTypes
 
 #: Scalar with finest, default, representation type precision.
-#: Currently this is nanosecond precision, but chronometry reserves the right to increase the
-#: precision across minor versions.
+#: Currently this is nanosecond precision.
 Measure = MeasureTypes[0]
 
 #: Scalar in earth-days.
@@ -115,8 +114,8 @@ def unix(unix_timestamp, Timestamp = Timestamp.of):
 	# Create a &Timestamp instance *from seconds since the unix epoch*.
 
 	#!/pl/python
-		chronometry.library.unix(0)
-		chronometry.library.Timestamp.of(iso='1970-01-01T00:00:00.0')
+		libtime.unix(0)
+		libtime.Timestamp.of(iso='1970-01-01T00:00:00.0')
 
 	# For precision beyond seconds, a subsequent elapse can be used.
 
@@ -124,7 +123,7 @@ def unix(unix_timestamp, Timestamp = Timestamp.of):
 		float_ts = time.time()
 		nsecs = int(float_ts)
 		us = int((float_ts - nsecs) * 1000000)
-		x = chronometry.library.unix(nsecs)
+		x = libtime.unix(nsecs)
 		x = x.elapse(microsecond=us)
 	"""
 	return Timestamp(unix=unix_timestamp)
@@ -186,12 +185,11 @@ update = PartialAttributes(construct_update)
 #: Composition constructor for instantiating [time] Unit Objects from Container types.
 #: Example::
 #:
-#: from chronometry import library
-#: from_iso = library.open.iso(library.Timestamp)
+#: from_iso = libtime.open.iso(library.Timestamp)
 #: pits = map(from_iso, ("2002-01-01T3:45:00",))
 #:
 #: Access to standard format parsers are made available:
-#: :py:func:`parse_iso8601`, :py:func:`parse_rfc1123`.
+#: &parse_iso8601, &parse_rfc1123.
 open = PartialAttributes(construct_open)
 
 #: Parse ISO-8601 timestamp strings into a &Timestamp instance.
@@ -214,10 +212,10 @@ def range(start, stop, step = None, Segment = Segment):
 	# be ideal for most uses. Usually, a &step should be provided.
 
 	#!/pl/python
-		pit = chronometry.library.now()
+		pit = libtime.now()
 		week_start = pit.update('day', 1, 'week')
 		week_end = begin.elapse(day=7)
-		this_week = chronometry.library.range(week_start, week_end, library.Days(1))
+		this_week = libtime.range(week_start, week_end, library.Days(1))
 	"""
 	return Segment((start, stop)).points(step)
 
@@ -231,11 +229,11 @@ def field_delta(field, start, stop):
 
 	# [ Parameters ]
 
-	# /&field
+	# /field/
 		# The name of the unit whose changes will be represented.
-	# /&start
+	# /start/
 		# The beginning of the range.
-	# /&stop
+	# /stop/
 		# The end of the range.
 	"""
 	start = start.truncate(field)
@@ -326,7 +324,7 @@ class Scheduler(object):
 
 		# [ Parameters ]
 
-		# /schedules
+		# /schedules/
 			# The Measure, Event pairs: `(Measure, object), ...`
 			# First item of the pairs being an &.abstract.Measure,
 			# and the second an arbitrary &object.

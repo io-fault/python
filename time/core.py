@@ -53,7 +53,7 @@ class FormatError(Exception):
 
 class ParseError(FormatError):
 	"""
-	# The exception raised when the format of the datetime could not be parsed.
+	# The exception raised when a string representation of the datetime could not be parsed.
 	"""
 	def __init__(self, source, format = None):
 		self.format = format
