@@ -60,13 +60,16 @@ compile ()
 	"$compiler" $osflags "$@"
 }
 
+defsys=`uname -s | tr "[:upper:]" "[:lower:]"`
+defarch=`uname -m | tr "[:upper:]" "[:lower:]"`
+
 platsuffix="so" # Following platform switch overrides when necessary.
 
-case "$(uname -s)" in
-	*Darwin*)
+case "$defsys" in
+	*darwin*)
 		osflags="-Wl,-bundle,-undefined,dynamic_lookup,-lSystem,-L$prefix/lib,-lpython$pyversion$pyabi -fPIC";
 	;;
-	*FreeBSD*)
+	*freebsd*)
 		osflags="-Wl,-lc,-L$prefix/lib,-lpython$pyversion$pyabi -fPIC -shared -pthread"
 	;;
 	*)
@@ -115,7 +118,7 @@ do
 
 		fullname="$(module_path "$(pwd)")"
 		package="$(cd ..; module_path "$(pwd)")"
-		project="$(cd ../..; module_path "$(pwd)")"
+		projectfactor="$(cd ../..; module_path "$(pwd)")"
 		targetname="$(echo "$fullname" | sed 's/.extensions//')"
 		pkgname="$(echo "$fullname" | sed 's/[.][^.]*$//')"
 
@@ -124,12 +127,14 @@ do
 			-I$sdk/posix/include/src \
 			-I$prefix/include \
 			-I$prefix/include/python$pyversion$pyabi \
+			"-DF_SYSTEM=$defsys" \
+			"-DF_TARGET_ARCHITECTURE=$defarch" \
 			"-DF_INTENTION=debug" \
 			"-DF_FACTOR_DOMAIN=system" \
 			"-DF_FACTOR_TYPE=extension" \
 			"-DFACTOR_BASENAME=$modname" \
 			"-DFACTOR_SUBPATH=$modname" \
-			"-DFACTOR_PROJECT=$project" \
+			"-DFACTOR_PROJECT=$projectfactor" \
 			"-DFACTOR_PACKAGE=$package" \
 			"-DFACTOR_QNAME=$fullname" \
 			-fwrapv \
@@ -186,7 +191,7 @@ do
 
 			fullname="$(module_path "$(pwd)")"
 			package="$(cd ..; module_path "$(pwd)")"
-			project="$(cd ../..; module_path "$(pwd)")"
+			projectfactor="$(cd ../..; module_path "$(pwd)")"
 			targetname="$(echo "$fullname" | sed 's/.extensions//')"
 			pkgname="$(echo "$fullname" | sed 's/[.][^.]*$//')"
 
@@ -196,12 +201,14 @@ do
 				-I../../../include/src \
 				-I$prefix/include \
 				-I$prefix/include/python$pyversion$pyabi \
+				"-DF_SYSTEM=$defsys" \
+				"-DF_TARGET_ARCHITECTURE=$defarch" \
 				"-DF_INTENTION=debug" \
 				"-DF_FACTOR_DOMAIN=system" \
 				"-DF_FACTOR_TYPE=extension" \
 				"-DFACTOR_BASENAME=$modname" \
 				"-DFACTOR_SUBPATH=$modname" \
-				"-DFACTOR_PROJECT=$project" \
+				"-DFACTOR_PROJECT=$projectfactor" \
 				"-DFACTOR_PACKAGE=$package" \
 				"-DFACTOR_QNAME=$fullname" \
 				-fwrapv \
