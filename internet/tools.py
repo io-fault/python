@@ -9,7 +9,7 @@
 
 # [ References ]
 
-# /Cookies
+# /Cookies/
 	# &<http://www.ietf.org/rfc/rfc2109.txt>
 """
 import itertools
@@ -40,7 +40,7 @@ def _quote(octets,
 		len=len, bytes=bytes
 	):
 	# An unfortunate implementation, but the necessary tools
-	# for an efficient don't appear to be in the standard library.
+	# for an efficient solution don't appear to be in the standard library.
 	parts = octets.translate(tmap).split(b'\0')
 	if len(parts) == 1:
 		# No need for quotes.
