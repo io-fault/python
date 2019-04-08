@@ -18,37 +18,37 @@ class Event(int):
 
 	# Event Structure:
 
-	# /(identifier)`BYPASS`
+	# /(identifier)`BYPASS`/
 		# (&Event.bypass, &bytes)
 
-	# /(identifier)`RLINE`
+	# /(identifier)`RLINE`/
 		# For requests: (&Event.rline, (method, uri, version))
 		# For responses: (&Event.rline, (version, response_code, description))
 
-	# /(identifier)`CHUNK`
+	# /(identifier)`CHUNK`/
 		# (&Event.chunk, &bytearray)
 
-	# /(identifier)`CONTENT`
+	# /(identifier)`CONTENT`/
 		# (&Event.content, &bytearray)
 
-	# /(identifier)`HEADERS`
+	# /(identifier)`HEADERS`/
 		# (&Event.headers, [(&bytes, &bytes),...])
 
-	# /(identifier)`TRAILERS`
+	# /(identifier)`TRAILERS`/
 		# (&Event.trailers, [(&bytes, &bytes),...])
 
-	# /(identifier)`MESSAGE`
+	# /(identifier)`MESSAGE`/
 		# (&Event.message, &None)
 
-	# /(identifier)`VIOLATION`
+	# /(identifier)`VIOLATION`/
 		# (&Event.trailers, (type, ...))
 
 		# Where `type` is:
 
-		# /`'limit'`
+		# /`'limit'`/
 			# A configured limit was exceeded.
 
-		# /`'protocol'`
+		# /`'protocol'`/
 			# A protocol error occurred.
 	"""
 
@@ -630,7 +630,6 @@ def chunk(data, len=len, CRLF=http.CRLF):
 	#!/pl/python
 		assert chunk(b'data') == (b'4\\r\\n', b'data', b'\\r\\n')
 	"""
-	global chunk_size
 	return (chunk_size(len(data)), data, CRLF)
 
 trailers = headers
