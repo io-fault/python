@@ -34,71 +34,71 @@ from . import eternal
 
 __shortname__ = 'libtime'
 
-#: Range class.
+# Range class.
 Segment = core.Segment
 
 Context, MeasureTypes, PointTypes = core.standard_context(__name__)
 
-#: A tuple containing all of the default Scalar types.
+# A tuple containing all of the default Scalar types.
 MeasureTypes = MeasureTypes
 
-#: Scalar with finest, default, representation type precision.
-#: Currently this is nanosecond precision.
+# Scalar with finest, default, representation type precision.
+# Currently this is nanosecond precision.
 Measure = MeasureTypes[0]
 
-#: Scalar in earth-days.
+# Scalar in earth-days.
 Days = MeasureTypes[1]
 
-#: Scalar in seven earth-days.
+# Scalar in seven earth-days.
 Weeks = MeasureTypes[2]
 
-#: Scalar in Gregorian Months.
+# Scalar in Gregorian Months.
 Months = MeasureTypes[3]
 
-#: A tuple containing all of the default Point in Time types.
+# A tuple containing all of the default Point in Time types.
 PointTypes = PointTypes
 
-#: Point In Time with Measure's precision.
+# Point In Time with Measure's precision.
 Timestamp = PointTypes[0]
 
-#: Point In Time with earth-day precision.
+# Point In Time with earth-day precision.
 Date = PointTypes[1]
 
-#: Point In Time with seven earth-day precision.
+# Point In Time with seven earth-day precision.
 Week = PointTypes[2]
 
-#: Point In Time with Gregorian Month precision.
+# Point In Time with Gregorian Month precision.
 GregorianMonth = PointTypes[3]
 
-#: Infinite measure unit.
+# Infinite measure unit.
 Eternals = Context.measures['eternal'][None]
 
-#: Infinite unit points. Class used for genesis, never, and now.
+# Infinite unit points. Class used for genesis, never, and now.
 Indefinite = Context.points['eternal'][None]
 
-#: Furthest Point in the future.
+# Furthest Point in the future.
 never = Indefinite(1)
 
-#: Furthest Point in the past.
+# Furthest Point in the past.
 genesis = Indefinite(-1)
 
-#: Current Point in Time, always moving.
+# Current Point in Time, always moving.
 present = Indefinite(0)
 
-#: Segment representing all time. All points in time exist in this segment.
+# Segment representing all time. All points in time exist in this segment.
 continuum = Segment((genesis, never))
 
-#: Segment representing the future.
+# Segment representing the future.
 future = Segment((present, never))
 
-#: Segment representing the past.
+# Segment representing the past.
 past = Segment((genesis, present))
 
-#: Clock interface to the kernel's clock, demotic and monotonic.
+# Clock interface to the kernel's clock, demotic and monotonic.
 kclock = clock.kclock
 
-#: Clock interface to the &kclock.
-#: that provides Measure and Timestamp instances.
+# Clock interface to the &kclock.
+# that provides Measure and Timestamp instances.
 clock = clock.IClock(kclock, Measure, Timestamp)
 
 try:
@@ -111,7 +111,7 @@ try:
 		return Timestamp(_real_clock_read())
 	del clocks
 except ImportError:
-	#: Shortcut to @clock.demotic
+	# Shortcut to @clock.demotic
 	now = clock.demotic
 
 # Support for Present to Finite Point
@@ -184,28 +184,28 @@ def construct_open(names, args, kw, mc = operator.methodcaller):
 # Hide the module from view.
 del operator
 
-#: Composition constructor for selecting parts from [time] Unit Objects.
-#: For instance, `select.day.week()`.
+# Composition constructor for selecting parts from [time] Unit Objects.
+# For instance, `select.day.week()`.
 select = PartialAttributes(construct_select)
 
-#: Composition constructor for updating Time Objects.
-#: For instance, `update.day.week(0)`.
+# Composition constructor for updating Time Objects.
+# For instance, `update.day.week(0)`.
 update = PartialAttributes(construct_update)
 
-#: Composition constructor for instantiating [time] Unit Objects from Container types.
-#: Example::
-#:
-#: from_iso = libtime.open.iso(library.Timestamp)
-#: pits = map(from_iso, ("2002-01-01T3:45:00",))
-#:
-#: Access to standard format parsers are made available:
-#: &parse_iso8601, &parse_rfc1123.
+# Composition constructor for instantiating [time] Unit Objects from Container types.
+# Example::
+#
+# from_iso = libtime.open.iso(library.Timestamp)
+# pits = map(from_iso, ("2002-01-01T3:45:00",))
+#
+# Access to standard format parsers are made available:
+# &parse_iso8601, &parse_rfc1123.
 open = PartialAttributes(construct_open)
 
-#: Parse ISO-8601 timestamp strings into a &Timestamp instance.
+# Parse ISO-8601 timestamp strings into a &Timestamp instance.
 parse_iso8601 = open.iso(Timestamp)
 
-#: Parse RFC-1123 timestamp strings into a &Timestamp instance.
+# Parse RFC-1123 timestamp strings into a &Timestamp instance.
 parse_rfc1123 = open.rfc(Timestamp)
 
 # This may end up getting moved, so don't expose it.
