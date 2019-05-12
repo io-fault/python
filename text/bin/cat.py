@@ -1,6 +1,7 @@
 """
 # Read the syntax from a dictionary entry inside a selected sections.
 """
+import os
 import sys
 
 from ...system import process
@@ -45,12 +46,12 @@ def main(inv:process.Invocation) -> process.Exit:
 	try:
 		filepath, section, *paths = inv.args
 	except:
-		return inv.exit(process.Exit.exiting_from_bad_usage)
+		return inv.exit(os.EX_USAGE)
 
 	sourcepath = files.Path.from_path(filepath)
 	if not sourcepath.exists() or sourcepath.is_directory():
 		sys.stderr.write("[!# ERROR: source (%r) does not exist or is a directory]\n" %(str(sourcepath),))
-		return inv.exit(process.Exit.exiting_from_input_inaccessible)
+		return inv.exit(os.EX_NOINPUT)
 
 	data = structure(sourcepath, section)
 	if not paths:
@@ -59,7 +60,7 @@ def main(inv:process.Invocation) -> process.Exit:
 	for p in paths:
 		sys.stdout.write(data[p])
 
-	return inv.exit(process.Exit.exiting_from_success)
+	return inv.exit(0)
 
 if __name__ == '__main__':
 	process.control(main, process.Invocation.system())
