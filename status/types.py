@@ -185,8 +185,7 @@ class Parameters(object):
 
 	# Currently &Parameters is being implemented with the perception of it being
 	# a in-memory database. Aside from storage of simple values, there are, or will be, interfaces
-	# for loading and storing fragmented objects such as tables, matrices, structures,
-	# and arbitrary finite-maps.
+	# for loading and storing fragmented objects such as tables, matrices, and structures.
 	"""
 	__slots__ = ('_storage',)
 
@@ -241,9 +240,15 @@ class Parameters(object):
 	def __init__(self, storage):
 		self._storage = storage
 
-	def __iter__(self):
+	def iterspecs(self):
+		"""
+		# Emit &Specification items for all the contained parameters.
+		"""
 		for k, (t, v) in self._storage.items():
 			yield t[0], t[1], k, v
+
+	def __eq__(self, operand):
+		return operand._storage == self._storage
 
 	# Mapping Interfaces
 	def __setitem__(self, key, value):
