@@ -180,17 +180,11 @@ class Parameters(object):
 		# # Type, &.core.types.
 		# # Key, &str identifier used for addressing the parameter.
 		# # Value or Representation, &object.
-
-	# [ Engineering ]
-
-	# Currently &Parameters is being implemented with the perception of it being
-	# a in-memory database. Aside from storage of simple values, there are, or will be, interfaces
-	# for loading and storing fragmented objects such as tables, matrices, and structures.
 	"""
 	__slots__ = ('_storage',)
 
 	# Form, Type, Key, Value
-	Specification = typing.Tuple[str, str, str, str]
+	Specification = typing.Tuple[str, str, str, object]
 
 	# Mapping for set_parameters and others that detect the Parameter typeform.
 	_python_builtins = {
