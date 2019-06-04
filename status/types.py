@@ -397,7 +397,7 @@ class Parameters(object):
 		return Class({k:(tf(v),v) for k,v in iterpairs})
 
 	@classmethod
-	def from_specification_v1(Class, iterspec:typing.Iterable[typing.Tuple[str,str,str,object]]):
+	def from_specifications_v1(Class, iterspec:typing.Iterable[typing.Tuple[str,str,str,object]]):
 		"""
 		# Create from an iterable producing the exact storage specifications.
 		# Likely used in cases where the present fields are constantly defined.
