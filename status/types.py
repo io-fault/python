@@ -240,7 +240,7 @@ class Parameters(object):
 	def __init__(self, storage):
 		self._storage = storage
 
-	def iterspecs(self):
+	def iterspecs(self) -> typing.Iterable[Specification]:
 		"""
 		# Emit &Specification items for all the contained parameters.
 		"""
@@ -264,6 +264,13 @@ class Parameters(object):
 			tf = idtf(v)
 			self._storage[k] = (tf, v)
 
+	def specify(self, iterspec:typing.Iterable[Specification]):
+		"""
+		# Update the parameters using an iterator of Specifications.
+		"""
+		s = self._storage
+		s.update({k:((form,typ),v) for form,typ,k,v in iterspec})
+
 	def empty(self) -> bool:
 		"""
 		# Whether the instance has any parameters.
@@ -275,13 +282,6 @@ class Parameters(object):
 		# The iterator of parameter names stored within the instance.
 		"""
 		return self._storage.keys()
-
-	def select(self, keys:typing.Iterable[str]) -> typing.Iterable[object]:
-		"""
-		# Select the parameter values identified by &keys in the order produced.
-		"""
-		s = self._storage
-		return (s[x][-1] for x in keys)
 
 	def get_parameter(self, key:str) -> object:
 		"""
@@ -309,8 +309,8 @@ class Parameters(object):
 
 	def set_excluded(self, key:str, value:object):
 		"""
-		# Store an object in &self that will *not* be included in any transmission
-		# of the parameters.
+		# Store an object in the parameter set that will *not* be included
+		# in any transmission of the parameters.
 
 		# [ Engineering ]
 		# ! TENTATIVE: subject may be removed.
@@ -397,13 +397,70 @@ class Parameters(object):
 		return Class({k:(tf(v),v) for k,v in iterpairs})
 
 	@classmethod
-	def from_specifications_v1(Class, iterspec:typing.Iterable[typing.Tuple[str,str,str,object]]):
+	def from_specifications_v1(Class, iterspec:Specification):
 		"""
 		# Create from an iterable producing the exact storage specifications.
 		# Likely used in cases where the present fields are constantly defined.
 		"""
 
 		return Class({k:((form,typ),v) for form,typ,k,v in iterspec})
+
+	@classmethod
+	def from_relation_v1(Class, attributes, types, tuples, titles=None):
+		"""
+		# Create an instance encoding a single relation.
+
+		# Primarily intended for use with &Report instances.
+		"""
+
+		src = {
+			'Type': (('value', 'string'), 'relation'),
+			'Attributes': (('v-sequence', 'identifier'), attributes),
+			'Titles': (('v-sequence', 'string'), titles),
+		}
+
+		vectors = []
+		add = vectors.append
+		for attname, atttype in zip(attributes, types):
+			v = list()
+			add(v.append)
+			src[attname] = (('v-sequence', atttype), v)
+
+		for t in tuples:
+			for ainsert, v in zip(vectors, t):
+				ainsert(v)
+
+		return Class(src)
+
+	def select(self, attconstraints:typing.Iterable[str]) -> typing.Iterable[typing.Tuple]:
+		"""
+		# Select the tuples from the encoded relation restricting the produced
+		# tuples to the attributes listed in &attconstraints.
+
+		# If &attcontraints is &None, all attributes will be selected.
+
+		# The attributes of the tuples produced will be in the order that they appear
+		# in &attconstraints. An attribute may be selected multiple times.
+
+		# ! RELATION: &from_relation_v1
+		"""
+		s = self._storage
+		keys = (attconstraints if attconstraints is not None else s['Attributes'][-1])
+
+		return zip(*[s[x][-1] for x in keys])
+
+	def insert(self, tuples:typing.Iterable[typing.Tuple]):
+		"""
+		# Insert a set of tuples into the encoded relation.
+
+		# ! RELATION: &from_relation_v1
+		"""
+		s = self._storage
+		appends = [s[x][-1].append for x in s['Attributes'][-1]]
+
+		for t in tuples:
+			for ainsert, v in zip(appends, t):
+				ainsert(v)
 
 class Trace(tuple):
 	"""

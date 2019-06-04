@@ -6,9 +6,9 @@ from .. import types
 
 def test_EStruct_constructors_v1(test):
 	"""
-	# - types.EStruct.from_fields_v1
-	# - types.EStruct.from_arguments_v1
-	# - types.EStruct.from_tuple_v1
+	# - &types.EStruct.from_fields_v1
+	# - &types.EStruct.from_arguments_v1
+	# - &types.EStruct.from_tuple_v1
 	"""
 	# Check defaults.
 	ambiguous = types.EStruct.from_fields_v1('protocol-field')
@@ -55,10 +55,10 @@ def test_EStruct_immutable(test):
 
 def test_Failure_constructors_v1(test):
 	"""
-	# - types.Failure.from_arguments_v1
-	# - types.Failure.f_error
-	# - types.Failure.f_context
-	# - types.Failure.f_parameters
+	# - &types.Failure.from_arguments_v1
+	# - &types.Failure.f_error
+	# - &types.Failure.f_context
+	# - &types.Failure.f_parameters
 	"""
 	esa = types.EStruct.from_fields_v1('protocol-field')
 
@@ -72,10 +72,10 @@ def test_Failure_constructors_v1(test):
 
 def test_Message_constructors_v1(test):
 	"""
-	# - types.Message.from_arguments_v1
-	# - types.Message.msg_event
-	# - types.Message.msg_context
-	# - types.Message.msg_parameters
+	# - &types.Message.from_arguments_v1
+	# - &types.Message.msg_event
+	# - &types.Message.msg_context
+	# - &types.Message.msg_parameters
 	"""
 	esa = types.EStruct.from_fields_v1('protocol-field')
 
@@ -89,10 +89,10 @@ def test_Message_constructors_v1(test):
 
 def test_Report_constructors_v1(test):
 	"""
-	# - types.Report.from_arguments_v1
-	# - types.Report.r_event
-	# - types.Report.r_context
-	# - types.Report.r_parameters
+	# - &types.Report.from_arguments_v1
+	# - &types.Report.r_event
+	# - &types.Report.r_context
+	# - &types.Report.r_parameters
 	"""
 	esa = types.EStruct.from_fields_v1('protocol-field')
 
@@ -103,6 +103,88 @@ def test_Report_constructors_v1(test):
 	test/re.r_event == esa
 	test/re.r_context.t_route == []
 	test/re.r_parameters.empty() == True
+
+def test_Parameters_typeform_detection(test):
+	"""
+	# - &types.Parameters.identify_object_typeform
+	"""
+
+	iotfx = types.Parameters.identify_object_typeform
+	iotfn = [
+		(lambda x: iotfx(x)[1]),
+		(lambda x: iotfx([x])[1]),
+		(lambda x: iotfx(set([x]))[1]),
+	]
+
+	for iotf in iotfn:
+		test/iotf(None) == 'void'
+		test/iotf(-1) == 'integer'
+		test/iotf(1) == 'integer'
+		test/iotf("string") == 'string'
+		test/iotf(True) == 'boolean'
+		test/iotf(False) == 'boolean'
+		test/iotf(1.2) == 'rational'
+		test/iotf(b'') == 'octets'
+
+	test/iotfx({}) == ('value', 'parameters')
+	test/iotfx([{}]) == ('v-sequence', 'parameters')
+
+def test_Parameters_constructors_v1(test):
+	"""
+	# - &types.Parameters.from_nothing_v1
+	# - &types.Parameters.from_pairs_v1
+	# - &types.Parameters.from_specifications_v1
+	# - &types.Parameters.from_relation_v1
+	"""
+
+	empty = types.Parameters.from_nothing_v1()
+	test/empty.empty() == True
+	test/set(empty.iterspecs()) == set()
+
+	iprimitives = types.Parameters.from_pairs_v1([
+		('i-field', 1),
+		('s-field', "string"),
+		('b-field', True),
+	])
+
+	xprimitives = types.Parameters.from_specifications_v1([
+		('value', 'integer', 'i-field', 1),
+		('value', 'string', 's-field', "string"),
+		('value', 'boolean', 'b-field', True),
+	])
+	test/iprimitives == xprimitives
+
+	rel = types.Parameters.from_relation_v1(
+		['id', 'name'],
+		['integer', 'string'],
+		[
+			(1, "first"),
+			(2, "second"),
+			(3, "third"),
+		]
+	)
+	test/rel.get_parameter('id') == [1,2,3]
+	test/rel.get_parameter('name') == ["first", "second", "third"]
+
+def test_Parameters_relation_storage(test):
+	tuples = [
+		(1, "first"),
+		(2, "second"),
+		(3, "third"),
+	]
+	rel = types.Parameters.from_relation_v1(
+		['id', 'name'],
+		['integer', 'string'],
+		tuples,
+	)
+
+	test/list(rel.select(None)) == tuples
+	test/list(rel.select(['id', 'name'])) == tuples
+	rel.insert([
+		(4, "fourth"),
+	])
+
+	test/list(rel.select(['id', 'name'])) == (tuples + [(4, "fourth")])
 
 if __name__ == '__main__':
 	from ...test import library as libtest
