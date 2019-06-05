@@ -1,7 +1,4 @@
-"""
-# Test &.library with full coverage.
-"""
-from .. import library as module
+from .. import types as module
 
 def test_combine(test):
 	Type = module.IRange
