@@ -44,7 +44,7 @@ def test_Address_normalize_stop(test):
 
 def test_Area(test):
 	"""
-	# Partially redundant with &.library.librange.IRange tests,
+	# Partially redundant with &.library.rtypes.IRange tests,
 	# check the local interface for sanity assurance.
 	"""
 	a = library.Address((1,5))

@@ -2,13 +2,13 @@
 # Collection of data structures and functions for working with exact addresses in (syntax) text files.
 """
 import typing
-from ..range import library as librange
+from ..range import types as rangetypes
 
 class Address(tuple):
 	"""
 	# A Line Number and Column address used to identify a position in a syntax file.
 	# Line numbers and columns are 1-based. There is no Line Zero and no column zero
-	# with exception to Addresses used in &librange.IRange instances.
+	# with exception to Addresses used in &rangetypes.IRange instances.
 
 	# Address values must be constructed with one special condition:
 	# if the address is being used in a range where the last character of the line
@@ -76,7 +76,7 @@ class Address(tuple):
 
 		# If the given address points to the final position in the line, the line
 		# number will be incremented and its column set to zero. This allows
-		# &librange.Set to detect continuity when working with &Area instances.
+		# &rangetypes.Set to detect continuity when working with &Area instances.
 		"""
 		if column_number >= line_length:
 			return line_number + 1, 0
@@ -97,10 +97,10 @@ class Address(tuple):
 
 		return self[0] == 0
 
-class Area(librange.IRange):
+class Area(rangetypes.IRange):
 	"""
-	# Inclsuive Range of &Address instances. Usable with &librange.Set and
-	# &librange.Mapping instances.
+	# Inclsuive Range of &Address instances. Usable with &rangetypes.Set and
+	# &rangetypes.Mapping instances.
 	"""
 	Type = Address
 
