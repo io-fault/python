@@ -186,6 +186,7 @@ class Parameters(object):
 	# Form, Type, Key, Value
 	Specification = typing.Tuple[str, str, str, object]
 
+	_status_type_identifier = 'parameters'
 	# Mapping for set_parameters and others that detect the Parameter typeform.
 	_python_builtins = {
 		bool: 'boolean',
@@ -206,6 +207,8 @@ class Parameters(object):
 		# Fast Path
 		if type(obj) in Class._python_builtins:
 			return ('value', Class._python_builtins[type(obj)])
+		elif hasattr(obj, '_status_type_identifier'):
+			return ('value', obj._status_type_identifier)
 
 		first = None
 		try:
@@ -249,7 +252,7 @@ class Parameters(object):
 		self.set_parameter(key, value)
 
 	def __getitem__(self, key):
-		self.get_parameter(key)
+		return self.get_parameter(key)
 
 	def update(self, pairiter):
 		idtf = self.identify_object_typeform
@@ -467,6 +470,7 @@ class Trace(tuple):
 	# exist for interface purposes.
 	"""
 	__slots__ = ()
+	_status_type_identifier = 'trace'
 
 	@property
 	def t_route(self) -> [(EStruct, Parameters)]:
@@ -498,6 +502,7 @@ class Failure(tuple):
 	# regarding the &f_error that occurred.
 	"""
 	__slots__ = ()
+	_status_type_identifier = 'failure'
 
 	@property
 	def f_context(self) -> Trace:
@@ -525,7 +530,7 @@ class Failure(tuple):
 		return self[1]
 
 	@classmethod
-	def from_arguments_v1(Class, errcontext, error:EStruct, **parameters):
+	def from_arguments_v1(Class, errcontext:typing.Optional[Trace], error:EStruct, **parameters):
 		"""
 		# Create using context and error positional parameters, and
 		# error parameters from the given keywords.
@@ -541,6 +546,7 @@ class Message(tuple):
 	# Message event associated with an origin context and additional parameters.
 	"""
 	__slots__ = ()
+	_status_type_identifier = 'message'
 
 	@property
 	def msg_context(self) -> Trace:
@@ -564,7 +570,7 @@ class Message(tuple):
 		return self[1]
 
 	@classmethod
-	def from_arguments_v1(Class, msgctx, msgid:EStruct, **parameters):
+	def from_arguments_v1(Class, msgctx:typing.Optional[Trace], msgid:EStruct, **parameters):
 		"""
 		# Create message instance using positional arguments and parameters from keywords.
 
@@ -580,6 +586,7 @@ class Report(tuple):
 	# The report's contents resides within the &r_parameters.
 	"""
 	__slots__ = ()
+	_status_type_identifier = 'report'
 
 	@property
 	def r_context(self) -> Trace:
@@ -603,7 +610,7 @@ class Report(tuple):
 		return self[1]
 
 	@classmethod
-	def from_arguments_v1(Class, re_ctx, report_id:EStruct, **parameters):
+	def from_arguments_v1(Class, re_ctx:typing.Optional[Trace], report_id:EStruct, **parameters):
 		"""
 		# Create report instance from arguments.
 		# Signature is identical to &Failure.from_arguments_v1 and &Message.from_arguments_v1.
