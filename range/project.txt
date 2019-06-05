@@ -7,7 +7,7 @@
 /name/
 	`range`
 /abstract/
-	Range types for supporting Sets and Mappings
+	Range types supporting Sets and Mappings.
 /icon/
 	- (emoji)`↔`
 
