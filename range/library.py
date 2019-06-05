@@ -2,7 +2,11 @@
 # Range classes for managing associations and sets whose items span ranges.
 
 # [ Engineering ]
-# Mapping needs to be implemented.
+
+# Mapping, and a Stack thereof, are not yet implemented. Currently, there
+# are some differences between the implementation of a Mapping and the extant
+# Set. Notably, adjacent ranges can only be joined if the values are equivalent.
+# Sets join adjacent ranges unconditionally.
 """
 import operator
 import itertools
@@ -19,7 +23,7 @@ def inclusive_range_set(numbers):
 
 	# [ Parameters ]
 
-	# /numbers
+	# /numbers/
 		# Iterable of Integers.
 	"""
 	l = list(numbers)
@@ -204,7 +208,7 @@ class IRange(tuple):
 
 		# [ Parameters ]
 
-		# /ranges
+		# /ranges/
 			# Sequence of &IRange instances to be filtered.
 		"""
 
@@ -238,12 +242,12 @@ class IRange(tuple):
 
 		# [ Parameters ]
 
-		# /ranges
+		# /ranges/
 			# Sequence of &IRange instances to intersect with &self.
 
 		# [ Returns ]
 
-		# /&*Annotation
+		# /&*Annotation/
 			# A iterable producing &IRange instances.
 		"""
 
@@ -286,7 +290,7 @@ class Set(object):
 	__slots__ = ('starts', 'stops')
 
 	@classmethod
-	def from_string(Class, string, separator=' ', tuple=tuple) -> 'Set':
+	def from_string(Class, string, separator=' ', tuple=tuple):
 		global combine
 		seq = list((IRange.from_string(x) for x in string.split(separator) if x))
 		seq.sort()
@@ -294,12 +298,12 @@ class Set(object):
 		return Class(([x[0] for x in reduced], [x[1] for x in reduced]))
 
 	@classmethod
-	def from_set(Class, iterable) -> 'Set':
+	def from_set(Class, iterable):
 		l = list(inclusive_range_set(iterable))
 		return Class.from_normal_sequence(l)
 
 	@classmethod
-	def from_normal_sequence(Class, ranges) -> 'Set':
+	def from_normal_sequence(Class, ranges):
 		"""
 		# Low-level constructor building a Set from an
 		# *ordered sequence* of *non-overlapping* range instances.
