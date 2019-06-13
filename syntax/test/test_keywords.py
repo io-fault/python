@@ -96,6 +96,37 @@ def test_Parser_words(test):
 	test/all_types[2][0] != 'keyword'
 	test/all_types[4][0] != 'coreword'
 
+def test_Parser_spaces(test):
+	"""
+	# - &module.Parser
+	# - &module.Parser.tokenize
+	"""
+	subc = mkcsubset(module.Profile)
+	parser = module.Parser.from_profile(subc)
+
+	# Full
+	spaced = list(parser.tokenize("\t\tword padding end \t"))
+	test/spaced[0] == ('space', 'lead', "\t"*2)
+	test/spaced[2] == ('space', 'pad', " "*1)
+	test/spaced[4] == ('space', 'pad', " "*1)
+	test/spaced[6] == ('space', 'follow', " \t"*1)
+
+	# Follow only
+	offset = 0
+	spaced = list(parser.tokenize("(word  \t"))
+	test/spaced[2] == ('space', 'follow', "  \t"*1)
+
+	# Lead only
+	offset = 0
+	spaced = list(parser.tokenize("   word)"))
+	test/spaced[0] == ('space', 'lead', " "*3)
+
+	# Lead and follow.
+	offset = 0
+	spaced = list(parser.tokenize("   word\t \n)"))
+	test/spaced[0] == ('space', 'lead', " "*3)
+	test/spaced[2] == ('space', 'follow', "\t \n"*1)
+
 def test_Parser_exclusion_classification(test):
 	"""
 	# - &module.Parser

@@ -182,6 +182,14 @@ class Parser(object):
 
 	# Given a &Profile instance, a constructed instance will provide a
 	# &tokenize method for processing syntax understood to match the profile.
+
+	# [ Engineering ]
+
+	# This is essentially a tightly coupled partial application for &tokenize.
+	# &from_profile builds necessary parameters from a &Profile instance and
+	# the internal constructor, &__init__, makes them available to the method.
+
+	# Applications should create and cache an instance for a given language.
 	"""
 
 	@classmethod
@@ -312,10 +320,12 @@ class Parser(object):
 			foffset = 0
 			noffset = 0
 			for field in iid.split():
-				noffset = iid.find(field, foffset)
+				noffset = iid.find(field[:1], foffset)
+				assert noffset != -1
+
 				if foffset != noffset:
 					yield ('space', 'pad', iid[foffset:noffset])
-				foffset += len(field)
+				foffset = noffset + len(field)
 
 				yield (classify_id(field), 'event', field)
 
