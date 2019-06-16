@@ -60,13 +60,13 @@ class Profile(tuple):
 		):
 		return Class(map(set, (
 			metawords, keywords,
-			literals,
-			enclosures,
+			map(tuple, literals),
+			map(tuple, enclosures),
 			terminators,
 			routers,
 			operations,
 
-			exclusions, corewords,
+			map(tuple, exclusions), corewords,
 		)))
 
 	@property
