@@ -2,13 +2,23 @@
 # Programming language profile and parser class for Keyword Oriented Syntax.
 
 # Provides a data structure for describing keyword based languages that allows
-# a naive processor to assign a classifications to the tokens contained
+# a naive processor to assign classifications to the tokens contained
 # by a string.
 
 # &Profile instances have limited information regarding languages and &Parser instances should
 # have naive processing algorithms. This intentional deficiency is a product of the goal to
 # keep Keywords based interpretations trivial to implement and their parameter set small so that the
 # the profile may be quickly and easily defined by users without requiring volumes of documentation.
+
+# [ Parser Process Methods ]
+
+# &Parser instances have two high-level methods for producing tokens: &Parser.processlines_x and
+# &Parser.processlines_c. The former resets the context provided to &Parser.delimit for each line,
+# and the latter maintains it throughout the lifetime of the generator.
+
+# While &Parser.processlines_c appears desireable in many cases, the limitations of &Profile instances
+# may make it reasonable to choose &Parser.processlines_x in order to avoid the effects of an
+# inaccruate profile.
 
 # [ Engineering ]
 
@@ -19,8 +29,11 @@
 import typing
 import itertools
 import functools
+import collections
 
 from ..computation import string
+
+Tokens = typing.Iterable[typing.Tuple[str,str,str]]
 
 class Profile(tuple):
 	"""
@@ -29,6 +42,8 @@ class Profile(tuple):
 	# Empty strings present in any of these sets will usually refer to the End of Line.
 	# This notation is primarily intended for area exclusions for supporting line comments,
 	# but &literals and &enclosures may also use them to represent the beginning or end of a line.
+
+	# While &Profile is a tuple subclass, indexes should *not* be used to access members.
 	"""
 	__slots__ = ()
 
@@ -36,13 +51,13 @@ class Profile(tuple):
 	def from_keywords_v1(Class,
 			metawords=(),
 			keywords=(),
+			corewords=(),
 			literals=(),
 			exclusions=(),
 			enclosures=(),
 			routers=(),
 			terminators=(),
 			operations=(),
-			corewords=(),
 		):
 		return Class(map(set, (
 			metawords, keywords,
@@ -178,16 +193,16 @@ class Profile(tuple):
 
 class Parser(object):
 	"""
-	# Keyword Oriented Syntax tokenization class.
+	# Keyword Oriented Syntax parser providing tokenization and region delimiting.
 
-	# Given a &Profile instance, a constructed instance will provide a
-	# &tokenize method for processing syntax understood to match the profile.
+	# Instances do not hold state and methods of the same instance may be used
+	# by multiple threads.
 
 	# [ Engineering ]
 
-	# This is essentially a tightly coupled partial application for &tokenize.
-	# &from_profile builds necessary parameters from a &Profile instance and
-	# the internal constructor, &__init__, makes them available to the method.
+	# This is essentially a tightly coupled partial application for &tokenize
+	# and &delimit. &from_profile builds necessary parameters using a &Profile
+	# instance and the internal constructor, &__init__, makes them available to the methods.
 
 	# Applications should create and cache an instance for a given language.
 	"""
@@ -251,10 +266,14 @@ class Parser(object):
 						opchars = opchars[opmin:]
 						area = opmax
 
+		exits = {}
+		for ops in (profile.enclosures, profile.exclusions, profile.literals):
+			exits.update({x[0]: x[1] for x in ops if x[0] != x[1]})
+
 		return Class(
 			profile,
 			operators, opmap,
-			delimiter, table,
+			delimiter, table, exits,
 			classify_identifier,
 			classify_operators,
 		)
@@ -262,12 +281,17 @@ class Parser(object):
 	def __init__(self,
 			profile,
 			opset, opmap,
-			delimiter, optable,
+			delimiter, optable, exits,
 			classify_id,
 			classify_op,
 			spaces=" \t\n",
 			opcachesize=32,
 		):
+		"""
+		# ! WARNING: Do not use directly.
+			# The initializer's parameters are subject to change.
+			# &from_profile should be used to build instances.
+		"""
 		self.profile = profile
 
 		self._spaces = spaces
@@ -275,17 +299,142 @@ class Parser(object):
 		self._opmap = opmap
 		self._delimiter = delimiter
 		self._optable = optable
+		self._exits = exits
 		self._classify_id = classify_id
 		self._classify_op = classify_op
 		self._opcache = functools.lru_cache(opcachesize)(lambda x: list(classify_op(x)))
 
+	def processlines_x(self, lines:typing.Iterable[str], eol='\n') -> typing.Iterable[Tokens]:
+		"""
+		# Process lines with context resets;
+		# &tokenize and &delimit multiple &lines resetting the context at the end of each line.
+
+		# This is the recommended method for extracting tokens from a file for syntax documents
+		# that are expected to restate line context or have inaccurate profiles. The iterators
+		# produced may be ran out of order as no state is shared.
+		"""
+
+		tok = self.tokenize
+		delimit = self.delimit
+
+		for line in lines:
+			yield delimit([('inclusion', None)], tok(line), eol=eol)
+
+	def processlines_c(self, lines:typing.Iterable[str], eol='\n') -> typing.Iterable[Tokens]:
+		"""
+		# Process lines with continuous context;
+		# &tokenize and &delimit multiple lines maintaining the context across all &lines.
+
+		# This is the recommended method for extracting tokens from a file for syntax documents
+		# that are expected to *not* restate line context *and* have accurate profiles.
+
+		# The produced iterators *must* be ran in the order as the context is shared across
+		# instances. Running iterators as they constructed is recommended.
+		"""
+
+		ctx = self.allocstack()
+		tok = self.tokenize
+		delimit = self.delimit
+
+		for line in lines:
+			yield delimit(ctx, tok(line), eol=eol)
+
+	def allocstack(self):
+		"""
+		# Allocate context stack for use with &delimit.
+		"""
+		return [('inclusion', None)]
+
+	def delimit(self, context, tokens:Tokens, eol='\n') -> Tokens:
+		"""
+		# Insert switch tokens into an iteration of tokens marking the
+		# boundaries of expressions, comments and quotations.
+
+		# &context is manipulated during the iteration and maintains the
+		# nested state of comments. &allocstack may be used to allocate an
+		# initial state.
+
+		# This is a relatively low-level method; &processlines_x or &processlines_c
+		# should normally be used.
+		"""
+
+		ctx_id, ctx_exit = context[-1]
+		get_exit = self._exits.get
+
+		previous = ('switch', ctx_id, '')
+		if ctx_exit is None:
+			# Only state initial ground.
+			yield previous
+
+		for t in tokens:
+			t_type, t_qual, t_chars = t
+
+			if t_qual not in {'start', 'stop', 'delimit'} or t_type == 'enclosure':
+				if ctx_exit == '' and t_type == 'space' and eol in t_chars:
+					# Handle End of Line exits specially.
+					context.pop()
+					yield ('switch', context[-1][0], '')
+
+					while context[-1][1] == '':
+						context.pop()
+						yield ('switch', context[-1][0], '')
+
+					ctx_id, ctx_exit = context[-1]
+
+				yield t
+			else:
+				assert t_qual in {'start', 'stop', 'delimit'}
+				exit_match = (t_chars == ctx_exit)
+
+				# Translate delimit to start/stop.
+				if t_qual == 'delimit':
+					if exit_match:
+						# Might Pop
+						effect = False
+					else:
+						# Might Push
+						effect = True
+				else:
+					effect = (t_qual == 'start')
+
+				if effect:
+					# maybe push and switch to new
+					new_exit = get_exit(t_chars, t_chars)
+
+					if ctx_id == 'inclusion' or (ctx_id == t_type and new_exit == ctx_exit):
+						# Ground state or the token was consistent.
+						ctx_id = t_type
+						ctx_exit = new_exit
+						context.append((ctx_id, ctx_exit))
+						yield ('switch', ctx_id, '')
+						yield (t_type, 'start', t_chars)
+					else:
+						yield t
+				elif exit_match and ctx_id == t_type:
+					# pop and switch to old
+
+					context.pop()
+					ctx_id, ctx_exit = context[-1]
+					yield (t_type, 'stop', t_chars)
+					yield ('switch', ctx_id, '')
+				else:
+					yield t
+
+			previous = t
+
 	def tokenize(self, line:str,
 			len=len, zip=zip, list=list,
 			varsplit=string.varsplit,
-		) -> typing.Sequence[typing.Sequence[typing.Tuple[str,str,str]]]:
+		) -> Tokens:
 		"""
-		# Token a string of syntax using the language profile given to a constructor.
+		# Tokenize a string of syntax using the language profile given to a constructor.
+
+		# Direct use of this is not recommended as boundaries are not signalled.
+		# &processlines_x or &processlines_c should be used.
+		# The raw tokens, however, are usable in contexts where boundary information is
+		# not desired or is not accurate enough for an application's use.
 		"""
+
 		areas = list(varsplit(self._delimiter, line.translate(self._optable)))
 
 		classify_id = self._classify_id

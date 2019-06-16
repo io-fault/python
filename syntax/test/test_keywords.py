@@ -247,6 +247,358 @@ def test_Parser_fragments(test):
 	# Actual operator identified
 	test/no_fragment[5] == ('operation', 'event', '-')
 
+def test_Parser_allocstack(test):
+	"""
+	# - &module.Parser.allocstack
+
+	# Sanity.
+	"""
+	subc = mkcsubset(module.Profile)
+	parser = module.Parser.from_profile(subc)
+	test/parser.allocstack() != None
+
+def test_Parser_delimit_note_nothing(test):
+	"""
+	# - &module.Parser.delimit
+
+	# Checks that the initial switch is injected in the stream.
+	"""
+	subc = mkcsubset(module.Profile)
+	parser = module.Parser.from_profile(subc)
+
+	tokens = [
+		('identifier', 'event', 'value'),
+		('space', 'injection', ' '),
+		('identifier', 'event', 'string-data'),
+	]
+
+	ctx = parser.allocstack()
+
+	dt = list(parser.delimit(ctx, []))
+	test/dt[0] == ('switch', 'inclusion', '')
+	test/dt[1:] == []
+
+	dt = list(parser.delimit(ctx, tokens))
+	test/dt[0] == ('switch', 'inclusion', '')
+	test/dt[1:] == tokens
+
+def test_Parser_delimit_note_exclusion(test):
+	"""
+	# - &module.Parser.delimit
+	"""
+	subc = mkcsubset(module.Profile)
+	parser = module.Parser.from_profile(subc)
+
+	tokens = [
+		('exclusion', 'start', '//'),
+		('space', 'injection', ' '),
+		('identifier', 'event', 'Comment'),
+		('space', 'injection', '\n'), # Triggers exit of //
+	]
+
+	ctx = parser.allocstack()
+	dt = list(parser.delimit(ctx, tokens))
+
+	# Initial state.
+	test/dt[0] == ('switch', 'inclusion', '')
+
+	# Exclusion transition
+	test/dt[1] == ('switch', 'exclusion', '')
+
+	# Exclusion exit via EOL.
+	test/dt[-2] == ('switch', 'inclusion', '')
+
+	# State should be effectively reset.
+	test/ctx[-1] == ('inclusion', None)
+
+def test_Parser_delimit_note_capture(test):
+	"""
+	# - &module.Parser.delimit
+
+	# Checks that 'delimit' is transitioned to start and stop.
+	"""
+	subc = mkcsubset(module.Profile)
+	parser = module.Parser.from_profile(subc)
+
+	tokens = [
+		('identifier', 'event', 'value'),
+		('space', 'injection', ' '),
+		('operation', 'event', '='),
+		('space', 'injection', ' '),
+		('literal', 'delimit', '"'),
+		('identifier', 'event', 'string-data'),
+		('literal', 'delimit', '"'), # Triggers exit (stop) of earlier literal.
+		('space', 'injection', '\n'),
+	]
+
+	ctx = parser.allocstack()
+	dt = list(parser.delimit(ctx, tokens))
+
+	# Initial state.
+	test/dt[0] == ('switch', 'inclusion', '')
+
+	# Literal transition
+	test/dt[5] == ('switch', 'literal', '')
+
+	# Literal exit via delimit.
+	test/dt[-2] == ('switch', 'inclusion', '')
+	test/dt[-3] == ('literal', 'stop', '"')
+
+	# State should be effectively reset.
+	test/ctx[-1] == ('inclusion', None)
+
+# Shared tests for literals and exclusions:
+
+def delimit_nested(test, parser, t_type):
+	tokens = [
+		('identifier', 'event', 'not-a-comment'),
+		(t_type, 'start', '/*'),
+		('identifier', 'event', 'first'),
+		(t_type, 'start', '/*'),
+		('identifier', 'event', 'second'),
+		(t_type, 'stop', '*/'),
+		('identifier', 'event', 'third'),
+		(t_type, 'stop', '*/'),
+		('identifier', 'event', 'not-a-comment'),
+		('space', 'injection', '\n'),
+	]
+
+	ctx = parser.allocstack()
+	dt = list(parser.delimit(ctx, tokens))
+
+	expect = [
+		('switch', 'inclusion', ''),
+		('identifier', 'event', 'not-a-comment'),
+
+		('switch', t_type, ''),
+		(t_type, 'start', '/*'),
+		('identifier', 'event', 'first'),
+
+		('switch', t_type, ''),
+		(t_type, 'start', '/*'),
+		('identifier', 'event', 'second'),
+		(t_type, 'stop', '*/'),
+
+		('switch', t_type, ''),
+		('identifier', 'event', 'third'),
+		(t_type, 'stop', '*/'),
+
+		('switch', 'inclusion', ''),
+		('identifier', 'event', 'not-a-comment'),
+		('space', 'injection', '\n'),
+	]
+
+	test/dt == expect
+
+def delimit_nested_inconsistent(test, parser, t_type):
+	tokens = [
+		('identifier', 'event', 'not-a-comment'),
+		(t_type, 'start', '//'),
+		('identifier', 'event', 'first'),
+		(t_type, 'start', '/*'),
+		('identifier', 'event', 'second'),
+		(t_type, 'stop', '*/'),
+		('identifier', 'event', 'not-a-comment'),
+		('space', 'injection', '\n'),
+	]
+
+	ctx = parser.allocstack()
+	dt = list(parser.delimit(ctx, tokens))
+
+	expect = [
+		('switch', 'inclusion', ''),
+		('identifier', 'event', 'not-a-comment'),
+
+		('switch', t_type, ''),
+		(t_type, 'start', '//'),
+		('identifier', 'event', 'first'),
+		(t_type, 'start', '/*'),
+		('identifier', 'event', 'second'),
+		(t_type, 'stop', '*/'),
+		('identifier', 'event', 'not-a-comment'),
+		('switch', 'inclusion', ''),
+		('space', 'injection', '\n'),
+	]
+
+	test/dt == expect
+	# Make sure no exclusion state is maintained.
+	test/ctx[-1] == ('inclusion', None)
+
+def delimit_nested_inconsistent_alteration(test, parser, t_type):
+	tokens = [
+		('identifier', 'event', 'not-a-comment'),
+		(t_type, 'start', '/*'),
+		('identifier', 'event', 'first'),
+		(t_type, 'start', '//'),
+		('identifier', 'event', 'second'),
+		(t_type, 'stop', '*/'),
+		('identifier', 'event', 'not-a-comment'),
+		('space', 'injection', '\n'),
+	]
+
+	ctx = parser.allocstack()
+	dt = list(parser.delimit(ctx, tokens))
+
+	expect = [
+		('switch', 'inclusion', ''),
+		('identifier', 'event', 'not-a-comment'),
+
+		('switch', t_type, ''),
+		(t_type, 'start', '/*'),
+		('identifier', 'event', 'first'),
+		(t_type, 'start', '//'),
+		('identifier', 'event', 'second'),
+		(t_type, 'stop', '*/'),
+
+		('switch', 'inclusion', ''),
+		('identifier', 'event', 'not-a-comment'),
+		('space', 'injection', '\n'),
+	]
+
+	test/dt == expect
+
+def test_Parser_delimit_exclusion_nested(test):
+	"""
+	# - &module.Parser.delimit
+
+	# Checks that 'delimit' recognizes nested exclusions with redundant switches.
+	"""
+	subc = mkcsubset(module.Profile)
+	parser = module.Parser.from_profile(subc)
+	delimit_nested(test, parser, 'exclusion')
+
+def test_Parser_delimit_exclusion_unnested(test):
+	"""
+	# - &module.Parser.delimit
+
+	# Checks that 'delimit' avoids pushing the context
+	# when an inconsistent nested comment is found.
+	# "// /* Newline Comment in block */"
+	"""
+	subc = mkcsubset(module.Profile)
+	parser = module.Parser.from_profile(subc)
+	delimit_nested_inconsistent(test, parser, 'exclusion')
+
+def test_Parser_delimit_exclusion_unnested_alternate(test):
+	"""
+	# - &module.Parser.delimit
+
+	# Checks that 'delimit' avoids pushing the context
+	# when an inconsistent nested comment is found.
+	# "/* // Newline Comment in block */"
+	"""
+	subc = mkcsubset(module.Profile)
+	parser = module.Parser.from_profile(subc)
+	delimit_nested_inconsistent_alteration(test, parser, 'exclusion')
+
+# Identical to the three above, but important to demand consistency 'literal'.
+
+def test_Parser_delimit_literal_nested(test):
+	"""
+	# - &module.Parser.delimit
+
+	# Checks that 'delimit' recognizes nested exclusions with redundant switches.
+	"""
+	subc = mkcsubset(module.Profile)
+	subc.literals.clear()
+	subc.literals.update(subc.exclusions)
+	subc.exclusions.clear()
+
+	parser = module.Parser.from_profile(subc)
+	delimit_nested(test, parser, 'literal')
+
+def test_Parser_delimit_literal_unnested(test):
+	"""
+	# - &module.Parser.delimit
+
+	# Checks that 'delimit' avoids pushing the context
+	# when an inconsistent nested comment is found.
+	# "// /* Newline Comment in block */"
+	"""
+	subc = mkcsubset(module.Profile)
+	subc.literals.clear()
+	subc.literals.update(subc.exclusions)
+	subc.exclusions.clear()
+
+	parser = module.Parser.from_profile(subc)
+	delimit_nested_inconsistent(test, parser, 'literal')
+
+def test_Parser_delimit_literal_unnested_alternate(test):
+	"""
+	# - &module.Parser.delimit
+
+	# Checks that 'delimit' avoids pushing the context
+	# when an inconsistent nested comment is found.
+	# "/* // Newline Comment in block */"
+	"""
+	subc = mkcsubset(module.Profile)
+	subc.literals.clear()
+	subc.literals.update(subc.exclusions)
+	subc.exclusions.clear()
+
+	parser = module.Parser.from_profile(subc)
+	delimit_nested_inconsistent_alteration(test, parser, 'literal')
+
+def test_Parser_processlines_x(test):
+	"""
+	# - &module.Parser.processlines_x
+
+	# Sanity check and validation of context breaks.
+	"""
+	subc = mkcsubset(module.Profile)
+	parser = module.Parser.from_profile(subc)
+
+	first, second = map(list, parser.processlines_x(["/* Broken", " * Context */"]))
+	dt = first + second
+
+	expect = [
+		('switch', 'inclusion', ""),
+		('switch', 'exclusion', ""),
+		('exclusion', 'start', "/*"),
+		('space', 'lead', " "),
+		('identifier', 'event', "Broken"),
+
+		('switch', 'inclusion', ""),
+		('space', 'follow', " "),
+		('fragment', 'event', "*"),
+		('space', 'lead', " "),
+		('identifier', 'event', "Context"),
+		('space', 'follow', " "),
+		('exclusion', 'stop', "*/"),
+		# It's already at ground state, so this switch does not occur:
+		# ('switch', 'inclusion', ""),
+	]
+	test/dt == expect
+
+def test_Parser_processlines_c(test):
+	"""
+	# - &module.Parser.processlines_x
+
+	# Sanity check and validation of context continuity.
+	"""
+	subc = mkcsubset(module.Profile)
+	parser = module.Parser.from_profile(subc)
+
+	first, second = map(list, parser.processlines_c(["/* Maintained", " * Context */"]))
+	dt = first + second
+
+	expect = [
+		('switch', 'inclusion', ""),
+		('switch', 'exclusion', ""),
+		('exclusion', 'start', "/*"),
+		('space', 'lead', " "),
+		('identifier', 'event', "Maintained"),
+
+		('space', 'follow', " "),
+		('fragment', 'event', "*"),
+		('space', 'lead', " "),
+		('identifier', 'event', "Context"),
+		('space', 'follow', " "),
+		('exclusion', 'stop', "*/"),
+		('switch', 'inclusion', ""),
+	]
+	test/dt == expect
+
 if __name__ == '__main__':
 	import sys
 	from ...test import library as libtest
