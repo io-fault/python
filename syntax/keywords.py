@@ -344,7 +344,7 @@ class Parser(object):
 		"""
 		return [('inclusion', None)]
 
-	def delimit(self, context, tokens:Tokens, eol='\n') -> Tokens:
+	def delimit(self, context, tokens:Tokens, eol='\n', restate=True) -> Tokens:
 		"""
 		# Insert switch tokens into an iteration of tokens marking the
 		# boundaries of expressions, comments and quotations.
@@ -361,8 +361,8 @@ class Parser(object):
 		get_exit = self._exits.get
 
 		previous = ('switch', ctx_id, '')
-		if ctx_exit is None:
-			# Only state initial ground.
+		if restate:
+			# Only state initial ground or explicitly requested.
 			yield previous
 
 		for t in tokens:

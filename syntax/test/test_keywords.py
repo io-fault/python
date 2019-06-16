@@ -589,6 +589,7 @@ def test_Parser_processlines_c(test):
 		('space', 'lead', " "),
 		('identifier', 'event', "Maintained"),
 
+		('switch', 'exclusion', ""),
 		('space', 'follow', " "),
 		('fragment', 'event', "*"),
 		('space', 'lead', " "),
