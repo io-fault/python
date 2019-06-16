@@ -29,7 +29,6 @@
 import typing
 import itertools
 import functools
-import collections
 
 from ..computation import string
 
