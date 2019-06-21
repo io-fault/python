@@ -539,16 +539,16 @@ def test_Parser_delimit_literal_unnested_alternate(test):
 	parser = module.Parser.from_profile(subc)
 	delimit_nested_inconsistent_alteration(test, parser, 'literal')
 
-def test_Parser_processlines_x(test):
+def test_Parser_process_lines(test):
 	"""
-	# - &module.Parser.processlines_x
+	# - &module.Parser.process_lines
 
 	# Sanity check and validation of context breaks.
 	"""
 	subc = mkcsubset(module.Profile)
 	parser = module.Parser.from_profile(subc)
 
-	first, second = map(list, parser.processlines_x(["/* Broken", " * Context */"]))
+	first, second = map(list, parser.process_lines(["/* Broken", " * Context */"]))
 	dt = first + second
 
 	expect = [
@@ -570,16 +570,16 @@ def test_Parser_processlines_x(test):
 	]
 	test/dt == expect
 
-def test_Parser_processlines_c(test):
+def test_Parser_process_document(test):
 	"""
-	# - &module.Parser.processlines_x
+	# - &module.Parser.process_document
 
 	# Sanity check and validation of context continuity.
 	"""
 	subc = mkcsubset(module.Profile)
 	parser = module.Parser.from_profile(subc)
 
-	first, second = map(list, parser.processlines_c(["/* Maintained", " * Context */"]))
+	first, second = map(list, parser.process_document(["/* Maintained", " * Context */"]))
 	dt = first + second
 
 	expect = [

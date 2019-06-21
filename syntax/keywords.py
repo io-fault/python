@@ -303,14 +303,14 @@ class Parser(object):
 		self._classify_op = classify_op
 		self._opcache = functools.lru_cache(opcachesize)(lambda x: list(classify_op(x)))
 
-	def processlines_x(self, lines:typing.Iterable[str], eol='\n') -> typing.Iterable[Tokens]:
+	def process_lines(self, lines:typing.Iterable[str], eol='\n') -> typing.Iterable[typing.Iterable[Tokens]]:
 		"""
-		# Process lines with context resets;
+		# Process lines using context resets;
 		# &tokenize and &delimit multiple &lines resetting the context at the end of each line.
 
 		# This is the recommended method for extracting tokens from a file for syntax documents
 		# that are expected to restate line context or have inaccurate profiles. The iterators
-		# produced may be ran out of order as no state is shared.
+		# produced may be ran out of order as no parsing state is shared across lines.
 		"""
 
 		tok = self.tokenize
@@ -319,9 +319,9 @@ class Parser(object):
 		for line in lines:
 			yield delimit([('inclusion', None)], tok(line), eol=eol)
 
-	def processlines_c(self, lines:typing.Iterable[str], eol='\n') -> typing.Iterable[Tokens]:
+	def process_document(self, lines:typing.Iterable[str], eol='\n') -> typing.Iterable[typing.Iterable[Tokens]]:
 		"""
-		# Process lines with continuous context;
+		# Process lines of a complete source code file using continuous context;
 		# &tokenize and &delimit multiple lines maintaining the context across all &lines.
 
 		# This is the recommended method for extracting tokens from a file for syntax documents
