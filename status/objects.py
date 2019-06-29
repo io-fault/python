@@ -63,13 +63,6 @@ def integrate(frame,
 	for form, typ, key, value in zip(*frame):
 		yield (formcodes[form], typcodes[typ], key, value)
 
-Roots = typing.Union[
-	types.Message,
-	types.Failure,
-	types.Report,
-	types.Trace,
-]
-
 recursive_types = {
 	types.Message: 'message',
 	types.Failure: 'failure',
@@ -261,7 +254,7 @@ class Transport(object):
 		'parameters': decode_parameters,
 	}
 
-	def prepare(self, sti:Roots, version:int=1) -> typing.Tuple[int, str, list]:
+	def prepare(self, sti:typing.Union[types.Roots, types.Trace], version:int=1) -> typing.Tuple[int, str, list]:
 		"""
 		# Prepare the local status type instance, &sti, for serialization.
 		# Returns a tuple consisting of the format version, root status type,
@@ -274,7 +267,7 @@ class Transport(object):
 		method = self._encoding[envtype]
 		return (version, envtype, method(self, sti))
 
-	def interpret(self, status:typing.Tuple[int, str, list]) -> Roots:
+	def interpret(self, status:typing.Tuple[int, str, list]) -> typing.Union[types.Roots, types.Trace]:
 		"""
 		# Interpret the previously serialized status objects.
 		# Expects &status to a tuple designating the format version, root status type,

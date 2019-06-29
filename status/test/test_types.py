@@ -186,6 +186,24 @@ def test_Parameters_relation_storage(test):
 
 	test/list(rel.select(['id', 'name'])) == (tuples + [(4, "fourth")])
 
+def test_packet_string_constructor(test):
+	"""
+	# - &types._from_string_constructor
+	# - &types.Message.from_string_v1
+	# - &types.Failure.from_string_v1
+	# - &types.Report.from_string_v1
+	"""
+
+	typset = [types.Message, types.Failure, types.Report]
+	for Class in typset:
+		packet = Class.from_string_v1("QUAL[200]: abstract")
+		test.isinstance(packet, Class)
+
+		es, params, tr = types.corefields(packet)
+		test/es.identifier == "200"
+		test/es.code == 200
+		test/es.abstract == "abstract"
+
 if __name__ == '__main__':
 	from ...test import library as libtest
 	import sys; libtest.execute(sys.modules[__name__])

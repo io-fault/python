@@ -3,23 +3,10 @@
 
 # [ Constructor Versioning ]
 
-# The class methods of the types here are given version numbers. A version consists of
-# a set of constructors. If a change is made to a structure that warrants a
-# change to the constructors, a new version will be introduced with a new set of
-# constructors leaving the old versions to fill in reasonable defaults. If no such
-# default is possible, the set of old constructors will be removed entirely.
-
-# The structures here are expected to be stable, so it is unlikely this practice
-# will be employed.
-
-# [ Engineering ]
-
-# &Failure, &Report, and &Message are identical structures *except* the field names.
-# This separation is inentional in order to make clear semantic distinctions and allow
-# possible variations across the classes. Also, it is likely important to discourage
-# processing instances using the same pipeline. While reporting endpoints may not
-# care so much, the initial recipient of these objects should be expecting a
-# particular type.
+# The class methods of the types here are given version numbers. New versions of methods
+# can be introduced at any time without the immediate or eventual depcrecation of older versions.
+# Generally, they should be usable into perpetuity aside from some unforeseen exception and in
+# such a case, deprecation warnings will be used prior to their removal.
 """
 import typing
 
@@ -152,9 +139,9 @@ class EStruct(tuple):
 		# Create an instance using &fields; expects five objects in this order:
 
 		# # Protocol as a string.
-		# # String Identifier.
-		# # Integer Code.
-		# # Symbol.
+		# # String Identifier of Event.
+		# # Integer Code of Event.
+		# # Symbol String.
 		# # Abstract Paragraph.
 		"""
 		return Class(fields[:5])
@@ -166,6 +153,32 @@ class EStruct(tuple):
 		# with where the fields are stored in the tuple.
 		"""
 		return Class((protocol, identifier, code, symbol, abstract))
+
+	@classmethod
+	def from_string_v1(Class, erstring, protocol="http://if.fault.io/status/unspecified"):
+		"""
+		# Create an EStruct using a string following the format:
+		# (illustration)`SYMBOL[str-id int-code]: Abstract`.
+
+		# The protocol keyword can be used to designate the &protocol field.
+		"""
+		l, f = erstring.split(':', 1)
+		sym, ids = l.split('[', 1) # Requires brackets: ERRSYM[]: ...
+		idparts = ids.split(' ', 1)
+
+		if len(idparts) > 1:
+			idstr, idint = idparts
+			idint = int(idint.strip(']'))
+		else:
+			idstr, = idparts
+			idstr = idstr.strip(']')
+
+			try:
+				idint = int(idstr)
+			except:
+				idint = -1
+
+		return Class((protocol, idstr, idint, sym, f.strip()))
 
 class Parameters(object):
 	"""
@@ -237,6 +250,9 @@ class Parameters(object):
 	def __init__(self, storage):
 		self._storage = storage
 
+	def __contains__(self, ob:str):
+		return ob in self._storage
+
 	def iterspecs(self) -> typing.Iterable[Specification]:
 		"""
 		# Emit &Specification items for all the contained parameters.
@@ -253,6 +269,11 @@ class Parameters(object):
 
 	def __getitem__(self, key):
 		return self.get_parameter(key)
+
+	def get(self, key, fallback=None):
+		if key in self._storage:
+			return self._storage[key][-1]
+		return fallback
 
 	def update(self, pairiter):
 		idtf = self.identify_object_typeform
@@ -461,8 +482,8 @@ class Parameters(object):
 
 class Trace(tuple):
 	"""
-	# A sequence of frame events identifying the exact cursor position of an interpreter.
-	# Often associated with a &Failure instance's error using &Failure.f_parameters.
+	# A sequence of events identifying a location.
+	# Primarily used for storing stack traces, but paths of any sort can be identified.
 
 	# [ Engineering ]
 	# Currently, this only contains the route stack and is essentially an envelope.
@@ -495,6 +516,20 @@ class Trace(tuple):
 		"""
 		return Class(([],))
 
+def _from_string_constructor(Class, erstring:str,
+		context:typing.Optional[Trace]=None,
+		parameters=None,
+		protocol="http://if.fault.io/status/unspecified"
+	):
+
+	if context is None:
+		context = Trace.from_nothing_v1()
+	if parameters is None:
+		parameters = Parameters.from_nothing_v1()
+	es = EStruct.from_string_v1(erstring, protocol=protocol)
+
+	return Class((es, parameters, context))
+
 class Failure(tuple):
 	"""
 	# Data structure referencing the &EStruct detailing the error that occurred causing
@@ -503,6 +538,10 @@ class Failure(tuple):
 	"""
 	__slots__ = ()
 	_status_type_identifier = 'failure'
+
+	@property
+	def _status_type_corefields(self) -> tuple:
+		return self
 
 	@property
 	def f_context(self) -> Trace:
@@ -529,6 +568,8 @@ class Failure(tuple):
 		"""
 		return self[1]
 
+	from_string_v1 = classmethod(_from_string_constructor)
+
 	@classmethod
 	def from_arguments_v1(Class, errcontext:typing.Optional[Trace], error:EStruct, **parameters):
 		"""
@@ -547,6 +588,14 @@ class Message(tuple):
 	"""
 	__slots__ = ()
 	_status_type_identifier = 'message'
+
+	@property
+	def _status_type_corefields(self) -> tuple:
+		return self
+
+	@property
+	def _corefields(self) -> tuple:
+		return self
 
 	@property
 	def msg_context(self) -> Trace:
@@ -569,6 +618,8 @@ class Message(tuple):
 		"""
 		return self[1]
 
+	from_string_v1 = classmethod(_from_string_constructor)
+
 	@classmethod
 	def from_arguments_v1(Class, msgctx:typing.Optional[Trace], msgid:EStruct, **parameters):
 		"""
@@ -587,6 +638,10 @@ class Report(tuple):
 	"""
 	__slots__ = ()
 	_status_type_identifier = 'report'
+
+	@property
+	def _status_type_corefields(self) -> tuple:
+		return self
 
 	@property
 	def r_context(self) -> Trace:
@@ -609,6 +664,8 @@ class Report(tuple):
 		"""
 		return self[1]
 
+	from_string_v1 = classmethod(_from_string_constructor)
+
 	@classmethod
 	def from_arguments_v1(Class, re_ctx:typing.Optional[Trace], report_id:EStruct, **parameters):
 		"""
@@ -618,3 +675,20 @@ class Report(tuple):
 		if re_ctx is None:
 			re_ctx = Trace.from_nothing_v1()
 		return Class((report_id, Parameters.from_pairs_v1(parameters.items()), re_ctx))
+
+Roots = typing.Union[
+	Message,
+	Failure,
+	Report,
+]
+
+def corefields(st:Roots) -> typing.Tuple[EStruct, Parameters, Trace]:
+	"""
+	# Retrieve the event structure, parameter set, and context trace
+	# from the root type &st.
+
+	# Currently, this returns &st directly as &Message, &Failure, and &Report
+	# share the same tuple structure which is consistent with &corefields
+	# signature.
+	"""
+	return st._status_type_corefields
