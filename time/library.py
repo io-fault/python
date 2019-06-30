@@ -27,54 +27,14 @@ import itertools
 import collections
 import heapq
 
-from . import core # Context & Standard Definitions.
 from . import clock
 from . import views
 from . import eternal
 
 __shortname__ = 'libtime'
 
-# Range class.
-Segment = core.Segment
-
-Context, MeasureTypes, PointTypes = core.standard_context(__name__)
-
-# A tuple containing all of the default Scalar types.
-MeasureTypes = MeasureTypes
-
-# Scalar with finest, default, representation type precision.
-# Currently this is nanosecond precision.
-Measure = MeasureTypes[0]
-
-# Scalar in earth-days.
-Days = MeasureTypes[1]
-
-# Scalar in seven earth-days.
-Weeks = MeasureTypes[2]
-
-# Scalar in Gregorian Months.
-Months = MeasureTypes[3]
-
-# A tuple containing all of the default Point in Time types.
-PointTypes = PointTypes
-
-# Point In Time with Measure's precision.
-Timestamp = PointTypes[0]
-
-# Point In Time with earth-day precision.
-Date = PointTypes[1]
-
-# Point In Time with seven earth-day precision.
-Week = PointTypes[2]
-
-# Point In Time with Gregorian Month precision.
-GregorianMonth = PointTypes[3]
-
-# Infinite measure unit.
-Eternals = Context.measures['eternal'][None]
-
-# Infinite unit points. Class used for genesis, never, and now.
-Indefinite = Context.points['eternal'][None]
+from .types import *
+unix = from_unix_timestamp
 
 # Furthest Point in the future.
 never = Indefinite(1)
@@ -118,25 +78,6 @@ except ImportError:
 Context.bridge('eternal', 'day', eternal.days_from_current_factory(clock, core.Inconceivable))
 
 del sys
-
-def unix(unix_timestamp, Timestamp = Timestamp.of):
-	"""
-	# Create a &Timestamp instance *from seconds since the unix epoch*.
-
-	#!/pl/python
-		libtime.unix(0)
-		libtime.Timestamp.of(iso='1970-01-01T00:00:00.0')
-
-	# For precision beyond seconds, a subsequent elapse can be used.
-
-	#!/pl/python
-		float_ts = time.time()
-		nsecs = int(float_ts)
-		us = int((float_ts - nsecs) * 1000000)
-		x = libtime.unix(nsecs)
-		x = x.elapse(microsecond=us)
-	"""
-	return Timestamp(unix=unix_timestamp)
 
 class PartialAttributes(object):
 	"""
@@ -193,7 +134,6 @@ select = PartialAttributes(construct_select)
 update = PartialAttributes(construct_update)
 
 # Composition constructor for instantiating [time] Unit Objects from Container types.
-# Example::
 #
 # from_iso = libtime.open.iso(library.Timestamp)
 # pits = map(from_iso, ("2002-01-01T3:45:00",))
