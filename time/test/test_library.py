@@ -545,35 +545,6 @@ def test_indefinite_comparisons(test):
 	test/True == library.present.follows(library.genesis)
 	test/True == library.present.precedes(library.never)
 
-def test_indefinite_segments(test):
-	# present is *part* of the past and the future according to our definition.
-	test/True == (library.present in library.past)
-	test/True == (library.present in library.future)
-	test/True == (library.present in library.continuum)
-
-	test/True == (library.now().elapse(hour=1) in library.future)
-	test/True == (library.now().elapse(hour=-1) in library.past)
-
-	test/False == (library.now().elapse(hour=-1) in library.future)
-	test/False == (library.now().elapse(hour=1) in library.past)
-
-def test_indefinite_containment(test):
-	start = library.now().elapse(hour=-2)
-	end = start.elapse(hour=4)
-	present_window = library.Segment((start, end))
-
-	start = library.now().elapse(hour=-2)
-	end = start.elapse(hour=1)
-	past_window = library.Segment((start, end))
-
-	start = library.now().elapse(hour=1)
-	end = start.elapse(hour=1)
-	future_window = library.Segment((start, end))
-
-	test/True == (library.present in present_window)
-	test/False == (library.present in past_window)
-	test/False == (library.present in future_window)
-
 def test_indefinite_definite_comparisons(test):
 	ts = library.now()
 
@@ -582,9 +553,6 @@ def test_indefinite_definite_comparisons(test):
 
 	test/True == ts.follows(library.genesis)
 	test/True == ts.precedes(library.never)
-
-	test/True == library.present.follows(ts.elapse(hour=-1))
-	test/True == library.present.precedes(ts.elapse(hour=1))
 
 def test_scheduler(test):
 	class Chronometer(mock.Chronometer):

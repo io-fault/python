@@ -48,12 +48,6 @@ present = Indefinite(0)
 # Segment representing all time. All points in time exist in this segment.
 continuum = Segment((genesis, never))
 
-# Segment representing the future.
-future = Segment((present, never))
-
-# Segment representing the past.
-past = Segment((genesis, present))
-
 # Clock interface to the kernel's clock, demotic and monotonic.
 kclock = clock.kclock
 
@@ -73,9 +67,6 @@ try:
 except ImportError:
 	# Shortcut to @clock.demotic
 	now = clock.demotic
-
-# Support for Present to Finite Point
-Context.bridge('eternal', 'day', eternal.days_from_current_factory(clock, core.Inconceivable))
 
 del sys
 
