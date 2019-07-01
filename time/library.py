@@ -2,18 +2,6 @@
 # Primary public module.
 
 # Provides access to the default Point and Measure types: &Timestamp, &Measure, &Date, &Days.
-
-# [ Properties ]
-
-# /genesis/
-	# The earliest Point in time. Negative infinity.
-# /never/
-	# The latest Point in time. Positive infinity.
-# /present/
-	# The point between &genesis and &never.
-# /continuum/
-	# A segment whose start is &genesis and end is &never; essentially, this is intended to
-	# be a type check and determines if the given object is representing a Point in Time.
 """
 import operator
 import functools
@@ -28,19 +16,7 @@ __shortname__ = 'libtime'
 
 from .types import *
 unix = from_unix_timestamp
-
-# Furthest Point in the future.
-never = Indefinite(1)
-
-# Furthest Point in the past.
-genesis = Indefinite(-1)
-
-# Current Point in Time, always moving.
-present = Indefinite(0)
-
-# Segment representing all time. All points in time exist in this segment.
-continuum = Segment((genesis, never))
-
+from .constants import *
 from .sysclock import now
 
 class PartialAttributes(object):
