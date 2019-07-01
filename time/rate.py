@@ -239,7 +239,7 @@ class Radar(object):
 
 		return next(self.tracking[subject][0])
 
-	def zero(self, subject, Measure = library.Measure, next = next):
+	def zero(self, subject, Measure=library.Measure, next=next):
 		"""
 		# Zero out the Chronometer for the given subject.
 
@@ -325,7 +325,7 @@ class Radar(object):
 		q.extendleft(reversed(b)) # maintain window
 		return a
 
-	def rate(self, subject, window = None):
+	def rate(self, subject, window=None):
 		"""
 		# Construct a tuple of the (total units, total time) for
 		# the given subject and within the specified window.

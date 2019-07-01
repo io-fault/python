@@ -2,7 +2,6 @@
 # Primary public module.
 
 # Provides access to the default Point and Measure types: &Timestamp, &Measure, &Date, &Days.
-# The system clocks and related functionality are also exported here.
 
 # [ Properties ]
 
@@ -11,23 +10,17 @@
 # /never/
 	# The latest Point in time. Positive infinity.
 # /present/
-	# The current Point in time--always moving.
-# /future/
-	# A &Segment whose start is &present and end is &never.
-# /past/
-	# A segment whose start is &genesis and end is &present.
+	# The point between &genesis and &never.
 # /continuum/
 	# A segment whose start is &genesis and end is &never; essentially, this is intended to
 	# be a type check and determines if the given object is representing a Point in Time.
 """
-import sys
 import operator
 import functools
 import itertools
 import collections
 import heapq
 
-from . import clock
 from . import views
 from . import eternal
 
@@ -48,27 +41,7 @@ present = Indefinite(0)
 # Segment representing all time. All points in time exist in this segment.
 continuum = Segment((genesis, never))
 
-# Clock interface to the kernel's clock, demotic and monotonic.
-kclock = clock.kclock
-
-# Clock interface to the &kclock.
-# that provides Measure and Timestamp instances.
-clock = clock.IClock(kclock, Measure, Timestamp)
-
-try:
-	from ..system import clocks
-	_real_clock_read = clocks.Real().adjust(-core.unix_epoch_delta).get
-	def now():
-		"""
-		# Get the current point in time according to the system's real clock as a &Timestamp.
-		"""
-		return Timestamp(_real_clock_read())
-	del clocks
-except ImportError:
-	# Shortcut to @clock.demotic
-	now = clock.demotic
-
-del sys
+from .sysclock import now
 
 class PartialAttributes(object):
 	"""

@@ -25,13 +25,13 @@ Measure types:
 The interfaces are described by the abstract base classes in
 &.abstract. Primarily:
 
-/&.abstract.Segment
+/&.abstract.Segment/
 	An abstract Range.
 
-/&.abstract.Measure
+/&.abstract.Measure/
 	A measurement of time.
 
-/&.abstract.Point
+/&.abstract.Point/
 	A point in time. Points are used to specify calendar dates or
 	calendar dates with time of day.
 
@@ -301,48 +301,6 @@ set to zero. This is why the day is set to the last day of the month, in case
 the Thursday is the last day of the month, and with proper alignment the first
 day of the re-aligned week.
 
-[ Clocks ]
-----------
-
-&.library.now provides quick and easy access to "demotic time", UTC
-wall clock. However, &..time provides clock based devices for processes with
-monotonic requirements for things like rate limiting, polling timeouts, and
-simple execution-time measures.
-
-Measuring the execution time of a code block is easy with a stopwatch:
-
-#!/pl/python
-	def work():
-		pass
-
-	with libtime.clock.stopwatch() as snapshot:
-		work()
-
-	print(snapshot())
-	print(snapshot())
-
-! NOTE:
-	Considering the overhead involved with instantiating a
-	&.library.Timestamp instance, measuring
-	execution with the high-level clock interfaces may
-	not be appropriate or may require some adjustments
-	accounting for the overhead.
-
-The current runtime of a stopwatch can be accessed within the block as well.
-However, once the block exits, the stopwatch will stop tracking elapsed time.
-
-Deltas and meters provide a means to track the change in, monotonic, time:
-
-#!/pl/python
-	for measure_since_last_iteration in libtime.clock.delta():
-		pass
-
-Meters are like deltas, but provide the *total* measurement:
-
-#!/pl/python
-	for measure_since_first_iteration in libtime.clock.meter():
-		pass
-
 [ Time Zones ]
 --------------
 
@@ -488,7 +446,7 @@ Notably, the above is not particularly useful without a date:
 
 [ Constructing Points and Measures >> Constructing a Timestamp from a UNIX Timestamp ]
 --------------------------------------------------------------------------------------
- 
+
 The `unix` container keyword provides an interface from seconds since the
 UNIX-epoch, "January 1, 1970". A timestamp can be made using the
 &.abstract.Time.of method:
@@ -714,124 +672,6 @@ Common forms:
 /`libtime.open.datetime(libtime.Timestamp)`/
 	Build a constructor that takes seconds from the UNIX epoch and returns a
 	&.library.Timestamp instance.
-
-==========================
-[ Working with the Clock ]
-==========================
-
-Clocks have multiple services for tracking the passing of time according
-to the "clockwork" of the underlying operating system. This includes monotonic
-passing of time, and "demotic", colloquial.
-
-The &.clock module provides the implementation of the
-&.abstract.Clock interface using the &.kernel module.
-The &.kernel module uses whatever facilities it was able
-to find at compile time in order to provide maximum precision.
-
-[ Working with the Clock >> Demotic and Monotonic Time ]
-
-Clocks have two concepts of time, the demotic and monotonic. The rate of change
-of demotic time is mutable and the monotonic time is, ideally, immutable.
-
-Demotic time is the UTC standard wall clock time and is often referred to
-ambiguously as it is generally presumed to be the desired perspective of time.
-
-Monotonic time is the amount of time that has elapsed from some arbitrary point
-and &..time denotes that by only returning &.library.Measure
-instances for representing monotonic time.
-
-[ Working with the Clock >> Time Meters ]
-
-Time meters, &.library.clock.meter, are iterators provided by
-&.abstract.Clock implementations that track the amount of time
-that has elapsed since the *first* iteration:
-
-#!/pl/python
-	for x in libtime.clock.meter():
-		print(repr(x))
-		if x.select('second') > 1:
-			break
-
-Meters are perfect for polling situations with timeouts.
-
-[ Working with the Clock >> Delta Meters ]
-
-In other cases, the total time is not particularly interesting or needs be
-calculated by another component of the process. Delta meters,
-&.library.clock.delta are iterators that yield the amount of time
-that has elapsed since the *prior* iteration.
-
-Delta meters are good for implementing rate limiting:
-
-#!/pl/python
-	total = libtime.Measure()
-	for x in libtime.clock.delta():
-		print(repr(x))
-		total = total.elapse(x)
-		if x.__class__(total).select('second') > 1:
-			break
-
-[ Tracking Arbitrary Units over Time ]
-
-Using the same underlying functionality as &.library.clock.delta,
-the &.libflow module provides tools for tracking units over time
-for a set of objects.
-
-Instances of the &.libflow.Radar class manage the tracked
-units over a period of time for a given set of objects. It keeps records of the
-given units associated with the amount of time that has elapsed since the last
-record was made. The time deltas are ultimately collected using the system's
-monotonic clock.
-
-By default, Radars use weak references in order to identify when there is no
-need to keep records on an object. In order to begin tracking an object's
-units, just start tracking:
-
-#!/pl/python
-	import socket
-	from fault.time import libflow
-	s = socket.socket()
-	R = libflow.Radar()
-	units = 0
-	R.track(s, units)
-
-This creates a record associated with the socket object `s` noting zero units.
-However, usually it is best to wait until an actual transfer occurs before tracking
-an object. When an object is tracked for the first time, its corresponding
-chronometer is started.
-Subsequently, the initial rate information may be skewed by additional time.
-
-Everytime the units of an object are tracked, &.library.Radar.track,
-a new record is created. The number of records can grow unbounded unless some
-maintenance is performed. There are two methods for maintenance:
-&.library.Radar.collapse and &.library.Radar.truncate.
-
-In cases where the overall rate is desired, collapse provides the necessary
-functionality to aggregate the records:
-
-#!/pl/python
-	R = libflow.Radar()
-	data = processdata()
-	R.track(ob, len(data))
-	data = processdata()
-	R.track(ob, len(data))
-	R.collapse(ob) # "ob" now has one record associated with it
-
-In cases where the interest only lies in a previous window, truncate will trim
-the records according to the window's specification:
-
-#!/pl/python
-	R = libflow.Radar()
-	data = processdata()
-	R.track(ob, len(data))
-	data = processdata()
-	R.track(ob, len(data))
-	records_before_last_six_seconds = R.truncate(ob, library.Measure.of(second=6))
-	rate_over_last_six_seconds = R.rate(ob)
-
-In cases where both are desired, the collapse method can be given a window. The
-total resource consumption is entirely recorded while the specified window's
-consistency is maintained.
 
 
 ===========================

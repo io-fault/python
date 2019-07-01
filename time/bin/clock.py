@@ -4,13 +4,14 @@
 # Carriage returns will be used to overwrite previous displays.
 """
 import sys
+from .. import sysclock
 from .. import library
 
-def print_local_timestamp(clock = library.clock):
+def print_local_timestamp(now=sysclock.now):
 	localtime = library.zone()
 	try:
-		for total in clock.meter(delay=library.Measure.of(millisecond=64)):
-			ts = clock.demotic()
+		while not None:
+			ts = now()
 			st = localtime.localize(ts)[0].select('iso')
 			sys.stdout.write(("   " + st + "\r"))
 	except KeyboardInterrupt:

@@ -338,31 +338,6 @@ def test_subseconds(test):
 	test/val == library.Measure.of(centisecond=150)
 	test/float(val.select('subsecond')) == 0.5
 
-def test_clock_features(test):
-	clock = library.clock
-	test.isinstance(clock.demotic(), library.Timestamp)
-	test.isinstance(clock.monotonic(), library.Measure)
-	test.isinstance(clock.sleep(123), library.Measure)
-
-	for x, t in zip(range(3), clock.meter()):
-		test/t >= 0
-		test/t >= 0
-		test.isinstance(t, library.Measure)
-	for x, t in zip(range(3), clock.delta()):
-		test/t >= 0
-		test.isinstance(t, library.Measure)
-	with clock.stopwatch() as total:
-		pass
-	test.isinstance(total(), library.Measure)
-	test/total() == total()
-
-	periods = clock.periods(library.Measure.of(subsecond=0.1))
-	test/next(periods)[0] == 0 # fragile
-	clock.sleep(library.Measure.of(subsecond=0.1))
-	test/next(periods)[0] == 1 # fragile
-	clock.sleep(library.Measure.of(subsecond=0.2))
-	test/next(periods)[0] == 2 # fragile
-
 def test_range(test):
 	y2k = library.Timestamp.of(year=2000, month=0, day=0)
 	test/[y2k] == list(library.range(
