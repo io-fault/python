@@ -2,8 +2,6 @@
 # Common time domains.
 
 # Aside from &Segment, all types in this module are subclasses of &builtins.int.
-
-# [ Properties ]
 """
 from . import core
 
