@@ -162,7 +162,7 @@ class Zone(object):
 		offs = self.offsets[first_offset:last_offset]
 
 		return zip(trans, offs)
-	import bisect
+	del bisect
 
 	def localize(self, pit):
 		"""
