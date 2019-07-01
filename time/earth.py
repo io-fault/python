@@ -3,6 +3,8 @@
 
 # [ Properties ]
 
+# /periods/
+	# SI unit second definition constant with respect to caesium frequency.
 # /seconds_in_minute/
 	# Number of seconds contained in a minute.
 # /minutes_in_hour/
@@ -13,6 +15,7 @@
 	# Number of days in four annums.
 """
 
+periods = 9192631779
 seconds_in_minute = 60
 minutes_in_hour = 60
 hours_in_day = 24
