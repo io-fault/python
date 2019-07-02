@@ -1,8 +1,12 @@
 """
 # Container for Perspective implementations.
 
-# Primarily contains &Zone, which should normally be accessed indirectly
-# using &.library.zone.
+# [ Timezones ]
+# Usage:
+
+##!/pl/python
+	from fault.time import types, views
+	z = views.Zone.open(types.from_unix_timestamp, "America/Los_Angeles")
 """
 import os
 import os.path

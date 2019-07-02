@@ -366,6 +366,25 @@ def test_indefinite_definite_comparisons(test):
 	test/True == ts.follows(genesis)
 	test/True == ts.precedes(never)
 
+def test_Segment_points(test):
+	y2k = module.Timestamp.of(year=2000, month=0, day=0)
+	seg = list(
+		module.Segment((
+			module.Timestamp.of(year=2000,month=0,day=0),
+			module.Timestamp.of(year=2001,month=0,day=0)
+		)).points(module.Months.of(year=1))
+	)
+	test/[y2k] == seg
+
+	y2k1 = module.Timestamp.of(year=2001,month=0,day=0)
+	seg2 = list(
+		module.Segment((
+			module.Timestamp.of(year=2000,month=0,day=0),
+			module.Timestamp.of(year=2002,month=0,day=0),
+		)).points(module.Months.of(year=1))
+	)
+	test/[y2k, y2k1] == seg2
+
 if __name__ == '__main__':
 	import sys; from ...test import library as libtest
 	libtest.execute(sys.modules[__name__])

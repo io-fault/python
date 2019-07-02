@@ -47,7 +47,7 @@ Eternals = Context.measures['eternal'][None]
 # Infinite unit points. Class used for genesis, never, and now.
 Indefinite = Context.points['eternal'][None]
 
-def from_unix_timestamp(unix_timestamp, Timestamp = Timestamp.of):
+def from_unix_timestamp(unix_timestamp, Timestamp=Timestamp.of):
 	"""
 	# Create a &Timestamp instance *from seconds since the unix epoch*.
 
