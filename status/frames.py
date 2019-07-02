@@ -85,9 +85,8 @@ type_codes = {
 	"<-": 'transaction-stopped', # [<- (system/pid) Status-Identifier Conclusion ...]
 
 	# Resource Content Manipulation
-	"+=": 'resource-inserted-units',
-	"-=": 'resource-deleted-units',
-	">|": 'resource-rewritten',
+	"+=": 'resource-inserted-units', # append
+	"-=": 'resource-deleted-units', # partial truncation
 
 	"Δ=": 'resource-delta',
 	"<=": 'resource-reverted',
@@ -103,6 +102,7 @@ type_codes = {
 	"..": 'resource-relocated',
 	"Δ@": 'resource-property-delta',
 
+	">|": 'resource-rewritten',
 	".|": 'resource-relocated-substitution',
 	"*|": 'resource-replicated-substitution',
 	"&|": 'resource-referenced-substitution',
@@ -122,14 +122,14 @@ type_codes = {
 	"√&": 'archive-delta-referenced',
 
 	# Transfer Snapshots.
-	"↓.": 'resource-received',
 	"↑.": 'resource-transmitted',
-	"↓|": 'resource-received-substitution',
+	"↓.": 'resource-received',
 	"↑|": 'resource-transmitted-substitution',
+	"↓|": 'resource-received-substitution',
 
 	# Transfer Progress Information.
-	"↓:": 'data-received',
 	"↑:": 'data-transmitted',
+	"↓:": 'data-received',
 	"↓↑": 'data-transferred',
 }
 

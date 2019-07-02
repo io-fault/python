@@ -31,7 +31,7 @@ def itertraceback(traceback):
 
 def iterlnotab(lineno:int, encoded:bytes) -> typing.Iterable[typing.Tuple[int, int]]:
 	# Construct bytecode address to line number pairs from an encoded co_lnotab field.
-	# Currently not used and may be deprecated.
+	# Currently not used and may be removed.
 	ln = lineno
 	ba = 0
 
