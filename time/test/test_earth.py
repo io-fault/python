@@ -3,21 +3,21 @@
 """
 import itertools
 from .. import earth
-from .. import library as lib
+from .. import types
 
 from_units_data = [
-	lib.Days(-1),
-	lib.Days(0),
-	lib.Days(0),
-	lib.Days(0),
-	lib.Days(0),
-	lib.Days(0),
-	lib.Days(1),
+	types.Days(-1),
+	types.Days(0),
+	types.Days(0),
+	types.Days(0),
+	types.Days(0),
+	types.Days(0),
+	types.Days(1),
 ]
 
 def check_from_units(test, samples):
 	for u, s in zip(from_units_data, samples):
-		nu = lib.Days(s)
+		nu = types.Days(s)
 		test/u == nu
 
 def test_from_units_decimal(test):
