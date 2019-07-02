@@ -402,13 +402,6 @@ The following shows RFC-1123, the format used by HTTP:
 #!/pl/python
 	ts = libtime.Timestamp.of(rfc='Sun, 19 Mar 2012 07:27:58')
 
-For direct callable access to this functionality, the &Openers functionality
-should be used:
-
-#!/pl/python
-	parse_iso_to_ts = libtime.open.iso(libtime.Timestamp)
-	ts = parse_iso_to_ts('2009-02-01T3:33:45.123321')
-
 [ Constructing Points and Measures >> Formatting a Standard Timestamp ]
 -----------------------------------------------------------------------
 
@@ -460,12 +453,6 @@ Subseqently, a given PiT can yield a UNIX timestamp using the
 #!/pl/python
 	now = libtime.now()
 	unix = now.select('unix')
-
-Alternatively, the &.library.open composition constructor can be used
-to build a callable that returns &.library.Timestamp instances:
-
-#!/pl/python
-	from_unix = libtime.open.unix(libtime.Timestamp)
 
 And a contrived use-case where the file `f` contains lines containing unix timestamps:
 
@@ -554,7 +541,7 @@ Subsequently, allowing quick identification:
 [ Eternal Measures and Points ]
 ===============================
 
-Chronometry defines eternal units of time that are of Indefinite non-zero periods. These units are used to
+&..time defines eternal units of time that are of Indefinite non-zero periods. These units are used to
 define the very beginning, the current, and the very end of time: &.library.Genesis,
 &.library.Present, &.library.Never. These points in time are ambiguous and have simple rules
 when used with finite points in time. Never is a point in the future that is greater than
@@ -586,93 +573,6 @@ created by the segment are continuous in the future:
 		print(x, ts)
 
 Managing sets of unbounded segments are the recommended way to manage recurring jobs.
-
-============================
-[ Working with Collections ]
-============================
-
-The accessor and manipulation methods provide a high level interface to an
-individual Point or Measure, but often an operation needs to be applied
-*efficiently* to a set or sequence of Time Objects.
-
-The &.library module has a few tools for
-constructing--FP'ish--compositions for extraction, manipulation, and creation.
-
-	- &.library.select
-	- &.library.update
-	- &.library.open
-
-Using these objects to construct selectors and manipulations is often desirable
-over `generator expressions` as it allows a reference to the desired transformation.
-
-! NOTE:
-	Currently these compositions work directly with the presented interfaces,
-	so the implementation only offers syntactic convenience. Future versions will
-	provide implementations that offer greater efficiency.
-
-[ Working with Collections >> Selectors ]
------------------------------------------
-
-The &.library.select constructor provides a syntactically convenient
-means to select fields from an arbitrary Time Object.
-
-For instance, `map(libtime.select.timeofday(), iter(obj))`, will perform an
-operation consistent to: `(x.select('timeofday') for x in iter(obj))`.
-
-In the case where the `whole` needs to be specified, a second attribute may be
-given:
-
-#!/pl/python
-	hour_of_day = libtime.select.hour.day()
-	>>> print(hour_of_day(libtime.Timestamp.of(datetime=(2001,1,1,4,30,2))))
-
-
-[ Working with Collections >> Updaters ]
-----------------------------------------
-
-The &.library.update constructor provides a syntactically convenient
-means to update *a* field of an arbitrary Time Object.
-
-For instance, `map(libtime.update.day.week(0), iter(obj))`, will perform an
-operation consistent to: `(x.update('day', 0, 'week') for x in iter(obj))`
-
-Field updates can provide a concise means to simplify some rather tricky
-date-time math.
-
-[ Working with Collections >> Openers ]
----------------------------------------
-
-There is often a need to construct an opener. Instantiating timestamps from
-date-time tuples, ISO formatted timestamps, and UNIX timestamps is common.
-
-The &.library.open constructor provides a syntactically convenient
-means of doing so.
-
-Open is different from Select and Update as it is primarily concerned with
-instantiation. Therefore, the desired type to "open into" must be specified as a
-parameter to the constructor.
-
-Common forms:
-
-/`libtime.open.unix(libtime.Timestamp)`/
-	Given an integer relative to the UNIX epoch, return a
-	corresponding &.library.Timestamp instance.
-
-/`libtime.open.iso(libtime.Timestamp)`/
-	Given an ISO formatted string, return a
-	corresponding &.library.Timestamp instance.
-
-/`libtime.open.iso(libtime.Date)`/
-	Same as the varient taking the timestamp, but align the Point to the date.
-
-/`libtime.open.rfc(libtime.Timestamp)`/
-	Like the ISO variant, but take an RFC complient string.
-	This is notably useful when working with HTTP.
-
-/`libtime.open.datetime(libtime.Timestamp)`/
-	Build a constructor that takes seconds from the UNIX epoch and returns a
-	&.library.Timestamp instance.
-
 
 ===========================
 [ Working with Time Zones ]
