@@ -1,6 +1,5 @@
 from .. import library
 from .. import views
-from . import mock
 
 def test_now(test):
 	test.isinstance(library.now(), library.Timestamp)
