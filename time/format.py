@@ -23,6 +23,7 @@ from . import week
 
 rfc1123 = "{day_of_week}, {day:02} {month} {year} {hour:02}:{minute:02}:{second:02}"
 iso8601 = "{0}-{1:02}-{2:02}T{3:02}:{4:02}:{5:02}.{6}"
+iso8601_date = "{0}-{1:02}-{2:02}"
 
 models = {
 	'rfc1123' : rfc1123,
@@ -260,6 +261,9 @@ def format_iso8601(pitt, subsec, dow,
 	# strip trailing zeros for conciseness repr
 	sub = sub.rstrip("0")
 	return _fmt(*(pitt + (sub or "0",)))
+
+def format_iso8601_date(pitt, subsec, dow, _fmt=iso8601_date.format):
+	return _fmt(*pitt[:3])
 
 formatters = {
 	'rfc1123' : format_rfc1123,

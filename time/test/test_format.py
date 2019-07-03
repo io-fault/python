@@ -104,6 +104,14 @@ def test_space_separated_iso(test):
 	test/p("2001-01-01 04:30:01") == (2001, 1, 1, 4, 30, 1, 0)
 	test/p("2001-01-01 4:30:1") == (2001, 1, 1, 4, 30, 1, 0)
 
+def test_isodate_format(test):
+	"""
+	# - &module.format_iso8601_date
+	"""
+	fmt = module.format_iso8601_date
+	test/fmt((2000, 1, 1, 12, 30), 0, 0) == "2000-01-01"
+	test/fmt((1926, 7, 12, 12, 30, 1), 0, 0) == "1926-07-12"
+
 if __name__ == '__main__':
 	import sys; from ...test import library as libtest
 	libtest.execute(sys.modules[__name__])
