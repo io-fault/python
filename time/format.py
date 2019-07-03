@@ -6,7 +6,7 @@
 # standard or deemed common enough to merit a builtin implementation.
 
 # ! NOTE:
-	# The near future will bring a strptime and strftime implementation.
+	# Currently does not provide access to strptime and strftime functionality.
 
 # While formatting PiTs can usually occur without error, parsing them from strings
 # can result in a variety of errors. The parsers available in

@@ -587,7 +587,6 @@ def standard_context(qname):
 	from . import eternal
 	from . import gregorian
 	from . import format
-	from . import views
 
 	context = Context()
 
@@ -674,5 +673,21 @@ def standard_context(qname):
 
 	context.container('unix', pack_unix, unpack_unix)
 	context.constant('unix', unix_delta)
+
+	# Remove the set of modules unlikely to be used after this point.
+	try:
+		import sys
+		infomodules = (
+			earth,
+			metric,
+			week,
+			eternal,
+			gregorian,
+		)
+		for x in infomodules:
+			del sys.modules[x.__name__]
+	except Exception as err:
+		# XXX: Raise warning about unload failure.
+		pass
 
 	return (context, measures, points)
