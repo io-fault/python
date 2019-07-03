@@ -30,8 +30,8 @@ models = {
 }
 
 def parse_rfc1123(s,
-		abbrev_to_month = gregorian.month_abbreviations.__getitem__,
-		len = len
+		abbrev_to_month=gregorian.month_abbreviations.__getitem__,
+		len=len
 	):
 	# be loose with the comma; don't break
 	# if there's whitespace between the DOW and comma.
@@ -60,7 +60,7 @@ def parse_rfc1123(s,
 		('timezone', timezone)
 	)
 
-def parse_iso8601(s, mstrip = operator.methodcaller('strip')):
+def parse_iso8601(s, mstrip=operator.methodcaller('strip')):
 	s = s.lower().replace(' ', 't')
 	if 't' in s:
 		date, *ignored, time = s.split('t', 1)
@@ -102,6 +102,7 @@ def parse_iso8601(s, mstrip = operator.methodcaller('strip')):
 			hm = time
 			subsecond = '0'
 		hour, minute, second = hm.split(':', 2)
+
 	date = zip(('year', 'month', 'day'), map(mstrip, date.rsplit('-', 2)))
 	return tuple(date) + (
 		('hour', hour),
@@ -118,8 +119,8 @@ parsers = {
 }
 
 def transform_iso8601(args,
-		get1 = operator.itemgetter(1),
-		Fraction = fractions.Fraction
+		get1=operator.itemgetter(1),
+		Fraction=fractions.Fraction, int=int
 	):
 	struct = args[1]
 	tzh, tzm = (struct['offset'] + x for x in struct['timezone'])
@@ -137,7 +138,7 @@ def transform_iso8601(args,
 		),
 	)
 
-def transform_rfc1123(args, int = int):
+def transform_rfc1123(args, int=int):
 	struct = args[1]
 	month = gregorian.month_name_to_number[struct['month'].lower()]
 	return args + (
@@ -159,7 +160,7 @@ transformers = {
 	'rfc1123' : transform_rfc1123,
 }
 
-def validate_rfc1123(args, weekdays = week.weekday_name_to_number):
+def validate_rfc1123(args, weekdays=week.weekday_name_to_number):
 	# check the integrity of the parse rfc1123 timestamp
 	src, struct, tup = args
 
@@ -247,7 +248,8 @@ def format_rfc1123(pitt, subsec, dow, _fmt = models['rfc1123'].format,
 	)
 
 def format_iso8601(pitt, subsec, dow,
-		_fmt=models['iso8601'].format, log=math.log10, str=str
+		_fmt=models['iso8601'].format,
+		log=math.log10, str=str
 	):
 	sub = str(subsec[0])
 	# justify according to precision
@@ -261,7 +263,7 @@ formatters = {
 	'iso8601' : format_iso8601,
 }
 
-def formatter(fmt, _deref = aliases.get):
+def formatter(fmt, _deref=aliases.get):
 	"""
 	# Given a format idenifier, return the function that can be used to format
 	# the Point in time.
@@ -277,10 +279,12 @@ def context(context):
 	for k, id in formats.items():
 		fmt = formatter(id)
 		par = parser(id)
+
 		def unpack_and_format(x, arg, fmt = fmt):
 			sub = (x.select(x.unit, 'second'), x.context.convert('second', x.unit, 1))
 			return fmt(x.select('datetime'), sub, x.select('day', 'week'))
 		def parse_and_unpack(typ, txt, par = par):
 			*datetime, subsec = par(txt)
 			return [('datetime', datetime), ('subsecond', subsec)]
+
 		context.container(k, unpack_and_format, parse_and_unpack)
