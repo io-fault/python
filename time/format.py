@@ -283,10 +283,10 @@ def context(context):
 		fmt = formatter(id)
 		par = parser(id)
 
-		def unpack_and_format(x, arg, fmt = fmt):
+		def unpack_and_format(x, arg, fmt=fmt):
 			sub = (x.select(x.unit, 'second'), x.context.convert('second', x.unit, 1))
 			return fmt(x.select('datetime'), sub, x.select('day', 'week'))
-		def parse_and_unpack(typ, txt, par = par):
+		def parse_and_unpack(typ, txt, par=par):
 			*datetime, subsec = par(txt)
 			return [('datetime', datetime), ('subsecond', subsec)]
 
