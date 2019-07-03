@@ -49,6 +49,7 @@ def parse_rfc1123(s,
 		if len(trail) > 1:
 			raise ValueError('unexpected data at end of string')
 		timezone = trail[0]
+
 	return (
 		('day_of_week', day_of_week),
 		('year', year),
@@ -124,6 +125,7 @@ def transform_iso8601(args,
 	):
 	struct = args[1]
 	tzh, tzm = (struct['offset'] + x for x in struct['timezone'])
+
 	return args + (
 		(
 			(
@@ -141,6 +143,7 @@ def transform_iso8601(args,
 def transform_rfc1123(args, int=int):
 	struct = args[1]
 	month = gregorian.month_name_to_number[struct['month'].lower()]
+
 	return args + (
 		(
 			(
@@ -181,7 +184,7 @@ validators = {
 aliases = {'http' : 'rfc1123'}
 
 def _parse(fun, format):
-	def EXCEPTION(src, fun = fun, format = format):
+	def EXCEPTION(src, fun=fun, format=format):
 		try:
 			return (src, dict(fun(src)))
 		except core.ParseError:
@@ -219,7 +222,7 @@ def _integrity(fun, format):
 	functools.update_wrapper(EXCEPTION, fun)
 	return EXCEPTION
 
-def parser(fmt, _deref = aliases.get, _getn1 = operator.itemgetter(-1)):
+def parser(fmt, _deref=aliases.get, _getn1=operator.itemgetter(-1)):
 	"""
 	# Given a format idenifier, return the function that can be used to parse
 	# the formatted string into a Point instance.
@@ -234,7 +237,7 @@ def parser(fmt, _deref = aliases.get, _getn1 = operator.itemgetter(-1)):
 		return integ(struct(parse(x)))[0]
 	return parser_composition
 
-def format_rfc1123(pitt, subsec, dow, _fmt = models['rfc1123'].format,
+def format_rfc1123(pitt, subsec, dow, _fmt=models['rfc1123'].format,
 		month_abbrev = gregorian.month_abbreviations.__getitem__,
 		dow_abbrev = week.weekday_abbreviations.__getitem__,
 	):
