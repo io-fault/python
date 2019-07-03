@@ -30,9 +30,9 @@ models = {
 }
 
 def parse_rfc1123(s,
-	abbrev_to_month = gregorian.month_abbreviations.__getitem__,
-	len = len
-):
+		abbrev_to_month = gregorian.month_abbreviations.__getitem__,
+		len = len
+	):
 	# be loose with the comma; don't break
 	# if there's whitespace between the DOW and comma.
 	comma = s.find(',')
@@ -118,9 +118,9 @@ parsers = {
 }
 
 def transform_iso8601(args,
-	get1 = operator.itemgetter(1),
-	Fraction = fractions.Fraction
-):
+		get1 = operator.itemgetter(1),
+		Fraction = fractions.Fraction
+	):
 	struct = args[1]
 	tzh, tzm = (struct['offset'] + x for x in struct['timezone'])
 	return args + (
@@ -234,9 +234,9 @@ def parser(fmt, _deref = aliases.get, _getn1 = operator.itemgetter(-1)):
 	return parser_composition
 
 def format_rfc1123(pitt, subsec, dow, _fmt = models['rfc1123'].format,
-	month_abbrev = gregorian.month_abbreviations.__getitem__,
-	dow_abbrev = week.weekday_abbreviations.__getitem__,
-):
+		month_abbrev = gregorian.month_abbreviations.__getitem__,
+		dow_abbrev = week.weekday_abbreviations.__getitem__,
+	):
 	y, m, d, h, min, s = pitt
 
 	return _fmt(
@@ -247,8 +247,8 @@ def format_rfc1123(pitt, subsec, dow, _fmt = models['rfc1123'].format,
 	)
 
 def format_iso8601(pitt, subsec, dow,
-	_fmt = models['iso8601'].format, log = math.log10, str = str
-):
+		_fmt=models['iso8601'].format, log=math.log10, str=str
+	):
 	sub = str(subsec[0])
 	# justify according to precision
 	sub = sub.rjust(int(log(subsec[1])), "0")
