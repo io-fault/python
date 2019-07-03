@@ -95,6 +95,15 @@ def test_errors(test):
 				with test/error as exc:
 					parser(x)
 
+def test_space_separated_iso(test):
+	"""
+	# - &module.parse_iso8601
+	"""
+	P = module.parser('iso8601')
+	p = (lambda x: tuple(P(x)))
+	test/p("2001-01-01 04:30:01") == (2001, 1, 1, 4, 30, 1, 0)
+	test/p("2001-01-01 4:30:1") == (2001, 1, 1, 4, 30, 1, 0)
+
 if __name__ == '__main__':
 	import sys; from ...test import library as libtest
 	libtest.execute(sys.modules[__name__])

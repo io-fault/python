@@ -61,9 +61,9 @@ def parse_rfc1123(s,
 	)
 
 def parse_iso8601(s, mstrip = operator.methodcaller('strip')):
-	s = s.lower()
+	s = s.lower().replace(' ', 't')
 	if 't' in s:
-		date, time = s.split('t', 1)
+		date, *ignored, time = s.split('t', 1)
 	else:
 		date = s
 		time = ''
