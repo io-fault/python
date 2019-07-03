@@ -12,6 +12,7 @@ import operator
 import itertools
 import typing
 import collections
+import collections.abc
 import builtins
 
 def inclusive_range_set(numbers):
@@ -275,7 +276,7 @@ class IRange(tuple):
 		else:
 			return range(self[0], self[1]-1, -step)
 
-@collections.Set.register
+@collections.abc.Set.register
 class Set(object):
 	"""
 	# A set of unique non-contiguous ranges.
@@ -647,7 +648,7 @@ class XRange(tuple):
 		else:
 			return range(self[0], self[1], -step)
 
-@collections.Mapping.register
+@collections.abc.Mapping.register
 class Mapping(object):
 	"""
 	# A set of ranges associated with arbitrary values.
