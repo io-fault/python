@@ -82,9 +82,9 @@ def parse_iso8601(s, mstrip=operator.methodcaller('strip')):
 		if time.endswith('z'):
 			time = time[:-1]
 			zone = '0:0'
-		elif '+' in time:
+		elif time.rfind('+') != -1:
 			time, zone = time.rsplit('+', 1)
-		elif '-' in time:
+		elif time.rfind('-') != -1:
 			_time, zone = time.rsplit('-', 1)
 			# cover cases like: 10:-24.2340
 			if ':' not in _time or ':' not in zone:
@@ -96,6 +96,7 @@ def parse_iso8601(s, mstrip=operator.methodcaller('strip')):
 				time = _time
 		else:
 			zone = '0:0'
+
 		zone = zone.split(':', 1)
 		if '.' in time:
 			hm, subsecond = time.rsplit('.', 1)
@@ -239,8 +240,8 @@ def parser(fmt, _deref=aliases.get, _getn1=operator.itemgetter(-1)):
 	return parser_composition
 
 def format_rfc1123(pitt, subsec, dow, _fmt=models['rfc1123'].format,
-		month_abbrev = gregorian.month_abbreviations.__getitem__,
-		dow_abbrev = week.weekday_abbreviations.__getitem__,
+		month_abbrev=gregorian.month_abbreviations.__getitem__,
+		dow_abbrev=week.weekday_abbreviations.__getitem__,
 	):
 	y, m, d, h, min, s = pitt
 
