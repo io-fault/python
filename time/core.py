@@ -362,69 +362,6 @@ class Point(Unit):
 		return self > lpit
 	proceeds = follows
 
-class Segment(tuple):
-	"""
-	# A line segment on the time continuum. Two points, inclusive on the start, but
-	# non-inclusive on the end.
-
-	# If the start is greater than the end, the direction is implied to be negative.
-	"""
-	__slots__ = ()
-
-	@property
-	def magnitude(self):
-		return abs(self.start.measure(self.stop))
-
-	@property
-	def direction(self):
-		return self.start.measure(self.stop) // abs(self.magnitude)
-
-	def __contains__(self, point):
-		return not (
-			point.precedes(self.start) \
-			or point.proceeds(self.stop)
-		)
-
-	@property
-	def start(self):
-		return self[0]
-
-	@property
-	def stop(self):
-		return self[1]
-
-	def leads(self, pit):
-		return self.stop.precedes(pit)
-	precedes = leads
-
-	def follows(self, pit):
-		return self.start.proceeds(pit)
-	proceeds = follows
-
-	def points(self, step = None):
-		"""
-		# Iterate through all the points between range according to the given step.
-		"""
-		start = self.start
-		stop = self.stop
-
-		if step is None:
-			# default to the start's type
-			step = start.Measure(start.magnitude)
-
-		if stop >= start:
-			# stop >= start
-			pos = start
-			while pos < stop:
-				yield pos
-				pos = pos.elapse(step)
-		else:
-			# stop < start
-			pos = start
-			while pos > stop:
-				yield pos
-				pos = pos.rollback(step)
-
 class Context(object):
 	"""
 	# A container for time units and transformations.

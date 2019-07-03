@@ -1,14 +1,14 @@
 import fractions
 from .. import types as module
 
-class_pairs = [
-	(module.Timestamp, module.Measure),
-	(module.Date, module.Days),
-	(module.Week, module.Weeks),
-	(module.GregorianMonth, module.Months),
-]
-
 def test_classes(test):
+	class_pairs = [
+		(module.Timestamp, module.Measure),
+		(module.Date, module.Days),
+		(module.Week, module.Weeks),
+		(module.GregorianMonth, module.Months),
+	]
+
 	# Check distinct inheritance lines.
 	for A, B in class_pairs:
 		with test/test.Absurdity as exc:
@@ -16,6 +16,19 @@ def test_classes(test):
 
 		with test/test.Absurdity as exc:
 			test.issubclass(B, A)
+
+def test_select(test):
+	"""
+	# - &module.select
+	"""
+	test.issubclass(module.select('hour'), module.Measure)
+	test.issubclass(module.select('minute'), module.Measure)
+	test.issubclass(module.select('second'), module.Measure)
+
+	test.issubclass(module.select('month'), module.Months)
+	test.issubclass(module.select('year'), module.Months)
+
+	test.issubclass(module.select('day'), module.Days)
 
 def test_instants(test):
 	ts = module.Timestamp(0)
@@ -197,7 +210,7 @@ def test_relative_times(test):
 	)
 	test/previous_day == rprevious_day
 
-def test_select(test):
+def test_Timestamp_select(test):
 	ts = module.Timestamp.of(iso="1599-03-02T03:23:10.003211")
 	test/3 == ts.select('hour', 'day')
 	test/10 == ts.select('second', 'minute')
@@ -209,7 +222,7 @@ def test_select(test):
 	test/1599 == ts.select('year')
 	test/99 == ts.select('year', 'century')
 
-def test_update(test):
+def test_Timestamp_update(test):
 	ts = module.Timestamp.of(iso="1599-03-02T03:23:10.003211")
 	test/ts.update('month', 0, 'year') == module.Timestamp.of(iso="1599-01-02T03:23:10.003211")
 	test/ts.update('month', 11, 'year') == module.Timestamp.of(iso="1599-12-02T03:23:10.003211")
