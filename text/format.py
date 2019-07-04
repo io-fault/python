@@ -17,7 +17,7 @@ import collections
 import typing
 
 from ..computation import library as libc
-from ..computation import string
+from ..context import string
 
 # This iterator exists solely for the purpose of handling
 # transitions from set/sequence items to another type.

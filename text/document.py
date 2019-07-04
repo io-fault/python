@@ -3,7 +3,7 @@
 """
 import itertools
 import typing
-from ..computation import string
+from ..context import string
 
 from . import core
 
