@@ -16,8 +16,8 @@ import itertools
 import collections
 import typing
 
-from ..computation import library as libc
 from ..context import string
+from ..context import tools
 
 # This iterator exists solely for the purpose of handling
 # transitions from set/sequence items to another type.
@@ -222,7 +222,7 @@ class Parser(object):
 		# the initial split is performed on a grave accent.
 		parts = line.split('`')
 
-		styled = list(chain(libc.interlace(
+		styled = list(chain(tools.interlace(
 				map(tuple, map(self.styles, parts[0:-1:2])),
 				[(('literal', x),) for x in parts[1::2]],
 			))
