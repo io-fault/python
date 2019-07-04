@@ -30,7 +30,7 @@ import typing
 import itertools
 import functools
 
-from ..computation import string
+from ..context import string
 
 Tokens = typing.Iterable[typing.Tuple[str,str,str]]
 
