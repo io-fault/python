@@ -3,7 +3,6 @@
 		&<http://if.fault.io/project/infrastructure>
 
 /Projects/
-	- &..daemon
 	- &..hkp
 	- &..kernel
 	- &..sectors
