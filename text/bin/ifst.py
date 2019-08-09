@@ -44,15 +44,19 @@ def emit(route, data):
 	# Store a template into the given route.
 	"""
 
-	for filename, content in data.items():
+	for subpath, content in data.items():
+		path = route.extend(subpath.split('/'))
+
 		if isinstance(content, (bytes, bytearray, memoryview)):
-			(route/filename).store(content)
+			(path).init('file')
+			(path).store(content)
 		elif isinstance(content, str):
-			(route/filename).set_text_content(content)
+			(path).init('file')
+			(path).set_text_content(content)
 		else:
 			assert isinstance(content, dict)
-			(route/filename).init('directory')
-			emit(route/filename, content)
+			(path).init('directory')
+			emit(path, content)
 
 def instantiate(target, source, section):
 	text = source.get_text_content()
