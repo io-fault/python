@@ -120,9 +120,7 @@ def Tokenization(
 		CRLF = http.CRLF, SP = http.SP,
 		PROTOCOLS = http.VERSIONS,
 
-		NO_BODY_RESPONSE_CODES = frozenset((
-			http.codes['NOT_MODIFIED'], http.codes['NO_CONTENT']
-		)),
+		NO_BODY_RESPONSE_CODES = frozenset([204, 304]),
 
 		SIZE_DESIGNATION = frozenset((
 			b'content-length', b'transfer-encoding',
