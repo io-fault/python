@@ -357,9 +357,6 @@ def structure(t, fieldproc=decode_percent_escapes, tuple=tuple, list=list, map=m
 	# Set `fieldproc` to `str` if the components' percent escapes should not be
 	# decoded.
 	"""
-	global parse_query
-	global split_netloc
-
 	d = {}
 
 	# type determines inclusion of scheme, so absence no
