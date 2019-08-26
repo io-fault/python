@@ -6,10 +6,10 @@
 """
 import itertools
 import functools
-from .data import http
+from .data import http as protocoldata
 
 # Raw binary header indicating chunking should be used.
-CHUNKED_TRANSFER = b'Transfer-Encoding: chunked' + http.CRLF
+CHUNKED_TRANSFER = b'Transfer-Encoding: chunked' + protocoldata.CRLF
 
 class Event(int):
 	"""
@@ -117,8 +117,8 @@ def Tokenization(
 		map = map, range = range,
 		max = max,
 
-		CRLF = http.CRLF, SP = http.SP,
-		PROTOCOLS = http.VERSIONS,
+		CRLF = protocoldata.CRLF, SP = protocoldata.SP,
+		PROTOCOLS = protocoldata.VERSIONS,
 
 		NO_BODY_RESPONSE_CODES = frozenset([204, 304]),
 
@@ -609,14 +609,14 @@ def disassembly(**config):
 	d.__next__()
 	return d
 
-def headers(headers, chain = itertools.chain.from_iterable, CRLF = http.CRLF, HFS = http.HFS):
+def headers(headers, chain = itertools.chain.from_iterable, CRLF = protocoldata.CRLF, HFS = protocoldata.HFS):
 	return chain(((x[0], HFS, x[1], CRLF) for x in headers))
 
 @functools.lru_cache(16)
-def chunk_size(length, CRLF=http.CRLF, hex=hex):
+def chunk_size(length, CRLF=protocoldata.CRLF, hex=hex):
 	return hex(length).encode('ascii')[2:] + CRLF
 
-def chunk(data, len=len, CRLF=http.CRLF):
+def chunk(data, len=len, CRLF=protocoldata.CRLF):
 	"""
 	# Returns a tuple of (chunk-size + CRLF, chunk-data, CRLF).
 
@@ -633,8 +633,8 @@ def chunk(data, len=len, CRLF=http.CRLF):
 trailers = headers
 
 def Serialization(
-		SP = http.SP, CRLF = http.CRLF,
-		HFS = http.HFS,
+		SP = protocoldata.SP, CRLF = protocoldata.CRLF,
+		HFS = protocoldata.HFS,
 		trailers_ev = Event.trailers,
 		headers_ev = Event.headers,
 		rline_ev = Event.rline,
