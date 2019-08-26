@@ -101,12 +101,12 @@ EOM = (Event.message, None)
 # Some notably relevant portions are:
 #  4.4 Message Length (chunked vs Content-Length)
 def Tokenization(
-		max_line_size : int = 0xFFFF*3, # maximum length of the Request-Line or Response-Line
+		max_line_size : int = 4096, # maximum length of the Request-Line or Response-Line
 		max_headers : int = 1024, # maximum number of headers to accept
 		max_trailers : int = 32, # maximum number of trailers to accept
 		max_header_size : int = 0xFFFF*2, # len(field-name) + len(field-value)
 		max_trailer_size : int = 0xFFFF*2, # len(field-name) + len(field-value)
-		max_chunk_line_size : int = 0xFFF, # chunk size portion, not the chunk data size
+		max_chunk_line_size : int = 1024, # chunk size portion, not the chunk data size
 
 		# local()-izations
 		len = len, tuple = tuple,
