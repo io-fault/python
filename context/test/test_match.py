@@ -1,30 +1,45 @@
 from .. import match as module
 
-def search_test(test, Type):
-	prefixes = [
-		'http://fault.io/src/',
-		'http://fault.io/src/project/',
-	]
+sample = [
+	'http://fault.io/src/',
+	'http://fault.io/src/project/',
+]
 
-	strset = Type(prefixes)
-	test/strset['http://fault.io/src/pkg'] == 'http://fault.io/src/'
-	test/strset['http://fault.io/src/project/python'] == 'http://fault.io/src/project/'
+def search_test(test, ss):
+	test/ss['http://fault.io/src/pkg'] == 'http://fault.io/src/'
+	test/ss['http://fault.io/src/project/python'] == 'http://fault.io/src/project/'
 	# exact prefix match
-	test/strset['http://fault.io/src/project/'] == 'http://fault.io/src/project/'
+	test/ss['http://fault.io/src/project/'] == 'http://fault.io/src/project/'
 
-	test/KeyError ^ (lambda: strset['noprefix'])
-	test/tuple(strset.matches('noprefix')) == ()
-	test/strset.get('noprefix', 'default') == 'default'
-	test/('noprefix' in strset) == False
-	test/set(strset.values()) == strset.sequences
+	test/KeyError ^ (lambda: ss['noprefix'])
+	test/tuple(ss.matches('noprefix')) == ()
+	test/ss.get('noprefix', 'default') == 'default'
+	test/('noprefix' in ss) == False
+	test/set(ss.values()) == ss.sequences
 
+def test_SubsequenceScan_matches(test):
+	ss = module.SubsequenceScan(sample)
+	search_test(test, ss)
+
+def test_SubsequenceScan_ascending(test):
 	# check reverse order; longest should never have first match...
-	strset = Type(prefixes, order=False)
-	test/strset['http://fault.io/src/project/python'] == 'http://fault.io/src/'
-	test/list(strset.matches('http://fault.io/src/project/python')) == prefixes
+	ss = module.SubsequenceScan(sample, order=False)
+	test/ss['http://fault.io/src/project/python'] == 'http://fault.io/src/'
+	test/list(ss.matches('http://fault.io/src/project/python')) == sample
 
-def test_SubsequenceScan(test):
-	search_test(test, module.SubsequenceScan)
+def test_SubsequenceScan_deltas(test):
+	ss = module.SubsequenceScan(sample)
+	ss.discard('http://fault.io/src/')
+
+	try:
+		search_test(test, ss)
+	except:
+		pass
+	else:
+		test.fail("search test passed with missing entry")
+
+	ss.add('http://fault.io/src/')
+	search_test(test, ss) # Re-introduced missing entry.
 
 if __name__ == '__main__':
 	from ...test import library as libtest; import sys

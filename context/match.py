@@ -53,6 +53,29 @@ class SubsequenceScan:
 		self.sizes = list(set(map(len, self.sequences))) # get unique sizes
 		self.sizes.sort(reverse=order) # largest to smallest
 		self.offset = offset
+		self.order = order
+
+	def add(self, *values):
+		"""
+		# Add new values to the set of sequences.
+
+		# ! WARNING:
+			# Implementation reconstructs the &sizes sequence every call.
+		"""
+		self.sequences.update(values)
+		self.sizes = list(set(map(len, self.sequences)))
+		self.sizes.sort(reverse=self.order) # largest to smallest
+
+	def discard(self, *values):
+		"""
+		# Remove values from the set of sequences.
+
+		# ! WARNING:
+			# Implementation reconstructs the &sizes sequence every call.
+		"""
+		self.sequences.difference_update(values)
+		self.sizes = list(set(map(len, self.sequences)))
+		self.sizes.sort(reverse=self.order) # largest to smallest
 
 	def matches(self, key):
 		"""
