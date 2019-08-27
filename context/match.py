@@ -30,7 +30,7 @@ class SubsequenceScan:
 		# usually zero.
 	"""
 
-	def __init__(self, sequences:typing.Sequence[typing.Hashable], offset=0, perspective=1, order=True):
+	def __init__(self, sequences:typing.Sequence[typing.Hashable], offset=0, order=True):
 		"""
 		# Create a SubsequenceScan from the given set of sequences.
 
@@ -57,7 +57,7 @@ class SubsequenceScan:
 	def matches(self, key):
 		"""
 		# Identify all strings in the set that match the given key based
-		# on the configured offset and perspective.
+		# on the configured offset.
 		"""
 
 		offset = self.offset
