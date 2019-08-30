@@ -9,16 +9,16 @@
 
 # [ Properties ]
 
-# /types
+# /types/
 	# A mapping of type names and file extensions to MIME type strings.
-# /filename_extensions
+# /filename_extensions/
 	# A mapping of filename extensions to type name.
-# /iana_registered_types
+# /iana_registered_types/
 	# The IRI of the set of media types registered with IANA.
 
 # [ Functions ]
 
-# /type_from_string
+# /type_from_string/
 	# Construct a &Type instance from a MIME type string.
 
 	# Code:
@@ -27,7 +27,7 @@
 		mt = media.type_from_string("text/xml")
 
 	# Equivalent to &Type.from_string, but cached.
-# /range_from_string
+# /range_from_string/
 	# Construct a &Range instance from a Media Range string like an Accept header.
 
 	# Equivalent to &Range.from_string, but cached.
