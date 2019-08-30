@@ -158,11 +158,14 @@ def Tokenization(
 	# Parse Request and Headers
 	message_number = -1
 	events = []
+	addev = events.append
 	fnf = -1
 
 	req = bytearray()
+	buflen = req.__len__
 	find = req.find
 	extend = req.extend
+	startswith = req.startswith
 
 	# initial next(g)
 	extend((yield None))
@@ -178,30 +181,33 @@ def Tokenization(
 			# flush EOM event
 			extend((yield events))
 			events = []
+			addev = events.append
 
 		# Read initial request/response line.
 		eof = fnf
 		pos = 0
 		line = None
 		while line is None:
-			eof = find(CRLF, pos, max_line_size)
+			eof = find(b"\r\n", pos, max_line_size)
 			if eof == -1:
 
-				if max_line_size is not None and len(req) > max_line_size:
-					events.append((
+				if buflen() > max_line_size:
+					addev((
 						violation_ev, ('limit', 'max_line_size', max_line_size)
 					))
-					events.append((bypass_ev, req))
+					addev((bypass_ev, req))
 
-					del find
+					del find, extend, buflen, startswith
 					req = (yield events)
+					del events, addev
 					while True:
 						req = (yield [(bypass_ev, req)])
 
 				# Need more data to complete the initial line.
-				pos = max(len(req) - 1, 0)
+				pos = max(buflen() - 1, 0)
 				extend((yield events))
 				events = []
+				addev = events.append
 			elif eof == 0:
 				# strip a preceding CRLF
 				del req[0:2]
@@ -210,15 +216,15 @@ def Tokenization(
 				# found it
 				line = bytes(req[:eof])
 				del req[:eof + 2]
-		line = tuple(line.split(SP, 2))
-		events.append((rline_ev, line))
+		line = tuple(line.split(b" ", 2))
+		addev((rline_ev, line))
 
 		# Override the possibility of a body.
 		# Methods must not contain slashes, but HTTP-Versions do.
 		if has_body is True and b'/' in line[0]:
 			# certain responses do not have bodies,
 			# toggle has_body to False in these cases.
-			if line[1] in NO_BODY_RESPONSE_CODES:
+			if line[1] in {b'204', b'304'}:
 				# rfc 10.2.5 204 No Content
 				# rfc 10.3.5 304 Not Modified
 				has_body = False
@@ -232,35 +238,36 @@ def Tokenization(
 		connection = None
 
 		startswith = req.startswith
-		while not startswith(CRLF):
-			eof = find(CRLF, pos, max_header_size)
+		while not startswith(b"\r\n"):
+			eof = find(b"\r\n", pos, max_header_size)
 			if eof == -1:
 				# no terminator, need more data
 				##
 				# update position to the end of the buffer
 				if headers:
-					events.append((headers_ev, headers))
+					addev((headers_ev, headers))
 					headers = []
 					add_header = headers.append
-				reqlen = len(req)
+				reqlen = buflen()
 				pos = max(reqlen - 1, 0)
 
-				if max_header_size is not None and reqlen > max_header_size:
-					events.append((
+				if reqlen > max_header_size:
+					addev((
 						violation_ev,
 						('limit', 'max_header_size', max_header_size)
 					))
-					events.append((bypass_ev, req))
+					addev((bypass_ev, req))
 
-					del find
-					del startswith
+					del find, extend, buflen, startswith
+					del headers, add_header
 					req = (yield events)
-					del events
+					del events, addev
 					while True:
 						req = (yield [(bypass_ev, req)])
 
 				extend((yield events))
 				events = []
+				addev = events.append
 				# continues; no double CRLF yet.
 			elif eof:
 				# EOF must be > 0, otherwise it's the end of the headers.
@@ -277,7 +284,9 @@ def Tokenization(
 				if field_name == b'connection':
 					# need to know this in order to handle responses without content-length
 					connection = header[1]
-				elif has_body is True and field_name in SIZE_DESIGNATION:
+				elif has_body is True and field_name in {
+						b'content-length', b'transfer-encoding',
+					}:
 					if size is not None:
 						# Size was already set; likely violation.
 						pass
@@ -287,18 +296,17 @@ def Tokenization(
 						except ValueError:
 							# Do NOT include the bogus Content-Length;
 							if headers:
-								events.append((headers_ev, headers))
-							del headers
-							events.append((
+								addev((headers_ev, headers))
+							addev((
 								violation_ev,
 								('protocol', 'Content-Length', header[1])
 							))
-							events.append((bypass_ev, req))
+							addev((bypass_ev, req))
 
-							del find
-							del startswith
-							del add_header
+							del find, extend, buflen, startswith, req
+							del headers, add_header
 							req = (yield events)
+							del events, addev
 							while True:
 								req = (yield [(bypass_ev, req)])
 
@@ -311,33 +319,30 @@ def Tokenization(
 				add_header(header)
 				nheaders += 1
 				pos = 0
-				if max_headers is not None and nheaders > max_headers:
-					events.append((headers_ev, headers))
-					events.append((
+				if nheaders > max_headers:
+					addev((headers_ev, headers))
+					addev((
 						violation_ev,
 						('limit', 'max_headers', nheaders, max_headers)
 					))
-					events.append((bypass_ev, req))
+					addev((bypass_ev, req))
 
-					del find
-					del startswith
-					del headers
-					del add_header
+					del find, extend, buflen, startswith, req
+					del headers, add_header
 					req = (yield events)
+					del events, addev
 					while True:
 						req = (yield [(bypass_ev, req)])
 
 		# Emit remaining headers.
 		if headers:
-			events.append((headers_ev, headers))
+			addev((headers_ev, headers))
 
 		# Avoid holding old references in case of future subsitution.
-		del headers
-		del add_header
-		del startswith
+		del headers, add_header
 
 		# Terminator
-		events.append(EOH)
+		addev(EOH)
 
 		# headers processed, redetermine has_body given &size.
 		if has_body is True and size is None:
@@ -353,29 +358,30 @@ def Tokenization(
 			while chunk_size == -1:
 				##
 				# Transfer-Encoding: chunked; read the chunk size line
-				eof = find(CRLF, pos, max_chunk_line_size)
+				eof = find(b"\r\n", pos, max_chunk_line_size)
 				if eof == -1:
 					# no terminator, need more data
 
 					# make sure we are not exceeding the max chunk line size
-					if max_chunk_line_size is not None and len(req) > max_chunk_line_size:
-						events.append((
+					if buflen() > max_chunk_line_size:
+						addev((
 							violation_ev,
-							('limit', 'max_chunk_line_size', len(req), max_chunk_line_size)
+							('limit', 'max_chunk_line_size', buflen(), max_chunk_line_size)
 						))
-						events.append((bypass_ev, req))
+						addev((bypass_ev, req))
 
-						del find
+						del find, extend, buflen, startswith, req
 						req = (yield events)
-						del events
+						del events, addev
 						while True:
 							req = (yield [(bypass_ev, req)])
 
 					# Update position to the end of buffer minus one so it's not
 					# scanning for CRLF through data that it has already scanned.
-					pos = max(len(req) - 1, 0)
+					pos = max(buflen() - 1, 0)
 					extend((yield events))
 					events = []
+					addev = events.append
 					# continues
 				else:
 					# found CRLF of chunk size line
@@ -393,12 +399,12 @@ def Tokenization(
 					try:
 						chunk_size = int(chunk_field, 16)
 					except ValueError:
-						events.append((violation_ev, ('protocol', 'chunk-field', chunk_field)))
-						events.append((bypass_ev, req))
+						addev((violation_ev, ('protocol', 'chunk-field', chunk_field)))
+						addev((bypass_ev, req))
 
-						del find
+						del find, extend, buflen, startswith, req
 						req = (yield events)
-						del events
+						del events, addev
 						while True:
 							req = (yield [(bypass_ev, req)])
 
@@ -406,45 +412,43 @@ def Tokenization(
 					size = chunk_size
 
 			# Transfer known size.
-			n = len(req)
+			n = buflen()
 			if n < size:
-				# Consume &size bytes emitting body events.
+				# Buffer size is less than remainder.
 				size = size - n
-				body_size += len(req)
-				events.append((body_ev, req))
+				body_size += n
+				addev((body_ev, req))
 
-				# Replace req entirely with input.
+				# Replace req entirely with the next input.
 				# Loop only needs the size to progress,
-				# so del find to get rid of the reference to req.
-				del find
+				req = find = extend = buflen = startswith = None
 				req = (yield events)
+				events = []
+				addev = events.append
 
 				# Act nearly as a passthrough here when the size is known.
 				n = len(req)
 				while n < size:
-					# len(req) < size == True
 					size = size - n
-					body_size += len(req)
-					events = ((body_ev, req),)
-					# get new data; all of req emitted prior
-					# so complete replacement here.
-					req = (yield events)
+					body_size += n
+					# Try to continue passing data through.
+					req = (yield [(body_ev, req)])
 					n = len(req)
 				else:
-					# req exceeded the remaining size, so its on the edge
-					events = []
-
-					# Make sure it's a bytearray, and update find()
+					# Exceeded the remaining size, so its on the edge
+					# Re-initialize buffer.
 					req = bytearray(req)
 					find = req.find
 					extend = req.extend
+					buflen = req.__len__
+					startswith = req.startswith
 
 			# &req is now larger than the remaining &size.
 			# There is enough data to complete the body or chunk.
 
 			if size:
 				body_size += size
-				events.append((body_ev, req[0:size]))
+				addev((body_ev, req[0:size]))
 				del req[0:size]
 				size = 0
 
@@ -459,26 +463,27 @@ def Tokenization(
 					break
 
 				# Process CRLF on each chunk end.
-				while not req.startswith(CRLF):
+				while not startswith(b"\r\n"):
 					# continue until we get a CRLF
-					if len(req) > 2:
+					if buflen() > 2:
 						# req has content but it's not a CRLF? bad
-						events.append((
+						addev((
 							violation_ev,
 							('protocol', 'bad-chunk-terminator', req[:2])
 						))
-						events.append((bypass_ev, req))
+						addev((bypass_ev, req))
 
-						del find
+						del find, extend, buflen, startswith
 						req = (yield events)
-						del events
+						del events, addev
 						while True:
 							req = (yield [(bypass_ev, req)])
 
 					extend((yield events))
 					events = []
+					addev = events.append
 
-				assert req[0:2] == CRLF
+				assert req[0:2] == b"\r\n"
 
 				del req[0:2]
 				# end of chunks?
@@ -491,23 +496,24 @@ def Tokenization(
 		# :while size
 		else:
 			if size is None and connection == b'close':
-				# no identified size and connection is close
-				del find
-				events.append(EOM)
+				# XXX: this should be transferring content messages.
+				del find, extend, buflen, startswith
+				addev(EOM)
 				while True:
 					# Everything is bypass after this point.
 					# The connection is closed and there's no body.
 					if req:
-						events.append((bypass_ev, req))
+						addev((bypass_ev, req))
 					req = (yield events)
 					events = []
+					addev = events.append
 
 		# Body termination indicator; but there may be trailers to parse.
 		if has_body:
 			# Used to signal the stream of EOF;
 			# primarily useful to signal compression
 			# transformations to flush the buffers.
-			events.append((body_ev, b''))
+			addev((body_ev, b""))
 
 		if chunk_size == 0:
 			# Chunking occurred, read and emit trailers.
@@ -515,27 +521,28 @@ def Tokenization(
 			# so it may be reasonable to thrown a violation.
 			ntrailers = 0
 			trailers = []
-			eof = find(CRLF, 0, max_header_size)
+			eof = find(b"\r\n", 0, max_header_size)
 			while eof != 0:
 				if eof == -1:
 					# No terminator, need more data.
 					if trailers:
-						events.append((trailers_ev, trailers))
+						addev((trailers_ev, trailers))
 						trailers = []
-					if max_trailer_size is not None and len(req) > max_trailer_size:
-						events.append((
-							violation_ev, ('limit', 'max_trailer_size', len(req))
+					if buflen() > max_trailer_size:
+						addev((
+							violation_ev, ('limit', 'max_trailer_size', buflen())
 						))
-						events.append((bypass_ev, req))
+						addev((bypass_ev, req))
 
-						del find
+						del find, extend, buflen, startswith
 						req = (yield events)
-						del events
+						del events, addev
 						while True:
 							req = (yield [(bypass_ev, req)])
 
 					extend((yield events))
 					events = []
+					addev = events.append
 					# look for eof again
 				elif eof:
 					# found the terminator
@@ -544,60 +551,61 @@ def Tokenization(
 					del req[0:eof+2]
 					trailers.append(trailer)
 
-					if max_trailer_size is not None and eof > max_trailer_size:
+					if eof > max_trailer_size:
 						# Limit Violation
-						events.append((trailers_ev, trailers))
+						addev((trailers_ev, trailers))
 						del trailers
-						events.append((
+						addev((
 							violation_ev, ('limit', 'max_trailer_size', eof)
 						))
-						events.append((bypass_ev, req))
+						addev((bypass_ev, req))
 
-						del find
+						del find, extend, buflen, startswith
 						req = (yield events)
-						del events
+						del events, addev
 						while True:
 							req = (yield [(bypass_ev, req)])
 
-					if max_trailers is not None and ntrailers > max_trailers:
+					if ntrailers > max_trailers:
 						# Limit Violation
-						events.append((trailers_ev, trailers))
+						addev((trailers_ev, trailers))
 						del trailers
-						events.append((
+						addev((
 							violation_ev, ('limit', 'max_trailers', ntrailers)
 						))
-						events.append((bypass_ev, req))
+						addev((bypass_ev, req))
 
-						del find
+						del find, extend, buflen, startswith
 						req = (yield events)
-						del events
+						del events, addev
 						while True:
 							req = (yield [(bypass_ev, req)])
 
 				# find next end of field.
-				eof = find(CRLF, 0, max_header_size)
+				eof = find(b"\r\n", 0, max_header_size)
 
 			# remove the trailing CRLF
 			del req[0:2]
 			# Emit remaining headers.
 			if trailers:
-				events.append((trailers_ev, trailers))
+				addev((trailers_ev, trailers))
 			# signals the end of trailers
 			trailers = ()
-			events.append((trailers_ev, trailers))
+			addev((trailers_ev, trailers))
 		# chunk_size == 0
 
 		# finish up by resetting size and emitting EOM on continuation
 		size = None
-		events.append(EOM)
+		addev(EOM)
 	else: # for message_number in range(...):
 		# too many messages
-		events.append((violation_ev, ('limit', 'max_messages', max_messages)))
-		del find
+		addev((violation_ev, ('limit', 'max_messages', max_messages)))
+		del find, extend, buflen, startswith
 		while True:
-			events.append((bypass_ev, req))
+			addev((bypass_ev, req))
 			req = (yield events)
 			events = []
+			addev = events.append
 Disassembler = Tokenization
 
 def disassembly(**config):
@@ -652,7 +660,7 @@ def Serialization(
 
 		for x in events:
 			if x[0] == rline_ev:
-				append(SP.join(x[1]))
+				append(b" ".join(x[1]))
 				append(CRLF)
 			elif x[0] in {trailers_ev, headers_ev}:
 				if not x[1]:
