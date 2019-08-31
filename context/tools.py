@@ -142,7 +142,7 @@ def unroll(f, Sequence=list, map=map):
 
 sum_lengths = compose(sum, partial(map, len))
 
-def group(condition, iterable, Sequence=list):
+def group(condition, iterable, initial=None, Sequence=list):
 	"""
 	# Structure the given &iterable by the given &condition.
 	# Returns a generator producing (grouping, sequence) pairs.
@@ -159,9 +159,13 @@ def group(condition, iterable, Sequence=list):
 	# /iterable/
 		# The sequence item in the tuple is a sequence of items
 		# where the result of the &condition was &False.
+
+	# /initial/
+		# Designate the initial grouping to be emitted.
+		# Defaults to &None.
 	"""
 
-	grouping = None
+	grouping = initial
 	contents = Sequence()
 	for item in iterable:
 		if condition(item):
