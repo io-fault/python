@@ -105,6 +105,7 @@ def Tokenization(
 		max_headers : int = 1024, # maximum number of headers to accept
 		max_trailers : int = 32, # maximum number of trailers to accept
 		max_header_size : int = 0xFFFF*2, # len(field-name) + len(field-value)
+		max_header_set_size : int = 1024*4*2, # maximum size to scan for EOH
 		max_trailer_size : int = 0xFFFF*2, # len(field-name) + len(field-value)
 		max_chunk_line_size : int = 1024, # chunk size portion, not the chunk data size
 
@@ -172,6 +173,7 @@ def Tokenization(
 	body_size = 0
 
 	while True:
+		ctl_headers = {}
 		body_ev = content_ev # in chunking cases, this get turned into chunk_ev
 		has_body = True
 		# Content-Length/is chunking
@@ -219,138 +221,149 @@ def Tokenization(
 		line = tuple(line.split(b" ", 2))
 		addev((rline_ev, line))
 
-		# Override the possibility of a body.
-		# Methods must not contain slashes, but HTTP-Versions do.
-		if has_body is True and b'/' in line[0]:
-			# certain responses do not have bodies,
-			# toggle has_body to False in these cases.
-			if line[1] in {b'204', b'304'}:
-				# rfc 10.2.5 204 No Content
-				# rfc 10.3.5 304 Not Modified
-				has_body = False
+		# Methods do not contain slashes, but HTTP-Versions do.
+		if line[1] in {b'204', b'304'} and b'/' in line[0]:
+			# rfc 10.2.5 204 No Content
+			# rfc 10.3.5 304 Not Modified
+			has_body = False
 
 		# Emit headers.
-		pos = 0
-		nheaders = 0
 		chunk_size = None
-		headers = []
-		add_header = headers.append
-		connection = None
 
-		startswith = req.startswith
-		while not startswith(b"\r\n"):
-			eof = find(b"\r\n", pos, max_header_size)
-			if eof == -1:
-				# no terminator, need more data
-				##
-				# update position to the end of the buffer
-				if headers:
-					addev((headers_ev, headers))
-					headers = []
-					add_header = headers.append
-				reqlen = buflen()
-				pos = max(reqlen - 1, 0)
+		eoh = find(b"\r\n\r\n", 0, max_header_set_size)
+		if eoh != -1:
+			# Fast path when full headers are present.
+			header = None
+			headers = bytes(req[:eoh]).split(b"\r\n")
+			nheaders = len(headers)
 
-				if reqlen > max_header_size:
-					addev((
-						violation_ev,
-						('limit', 'max_header_size', max_header_size)
-					))
-					addev((bypass_ev, req))
+			for i in range(nheaders):
+				header = headers[i].split(b":")
+				header = headers[i] = (bstrip(header[0]), bstrip(header[1]))
 
-					del find, extend, buflen, startswith
-					del headers, add_header
-					req = (yield events)
-					del events, addev
-					while True:
-						req = (yield [(bypass_ev, req)])
+				if has_body and len(ctl_headers) != 3:
+					field = header[0].lower()
+					if field in {b'connection', b'content-length', b'transfer-encoding'}:
+						ctl_headers[field] = header[1]
 
-				extend((yield events))
-				events = []
-				addev = events.append
-				# continues; no double CRLF yet.
-			elif eof:
-				# EOF must be > 0, otherwise it's the end of the headers.
-				# Got a header within the constraints (max_header_size).
-
-				# Spell out header tuple constructor for performance.
-				eoi = find(b':', 0, eof) # Use find rather than split to avoid list().
-				header = (bstrip(bytes(req[:eoi])), bstrip(bytes(req[eoi+1:eof])))
-				del req[:eof+2]
-
-				field_name = header[0].lower()
-
-				# Identify message size.
-				if field_name == b'connection':
-					# need to know this in order to handle responses without content-length
-					connection = header[1]
-				elif has_body is True and field_name in {
-						b'content-length', b'transfer-encoding',
-					}:
-					if size is not None:
-						# Size was already set; likely violation.
-						pass
-					elif field_name == b'content-length':
-						try:
-							size = int(header[1])
-						except ValueError:
-							# Do NOT include the bogus Content-Length;
-							if headers:
-								addev((headers_ev, headers))
-							addev((
-								violation_ev,
-								('protocol', 'Content-Length', header[1])
-							))
-							addev((bypass_ev, req))
-
-							del find, extend, buflen, startswith, req
-							del headers, add_header
-							req = (yield events)
-							del events, addev
-							while True:
-								req = (yield [(bypass_ev, req)])
-
-					elif field_name == b'transfer-encoding' and header[1].lower() == b'chunked':
-						# It's chunked. See section 4.4 of the protocol.
-						chunk_size = -1
-						size = -1
-						body_ev = chunk_ev
-
-				add_header(header)
-				nheaders += 1
-				pos = 0
-				if nheaders > max_headers:
-					addev((headers_ev, headers))
-					addev((
-						violation_ev,
-						('limit', 'max_headers', nheaders, max_headers)
-					))
-					addev((bypass_ev, req))
-
-					del find, extend, buflen, startswith, req
-					del headers, add_header
-					req = (yield events)
-					del events, addev
-					while True:
-						req = (yield [(bypass_ev, req)])
-
-		# Emit remaining headers.
-		if headers:
+			del req[:eoh+4]
+			# Terminator
 			addev((headers_ev, headers))
+			addev(EOH)
+			del headers, header
+		else:
+			pos = 0
+			nheaders = 0
+			headers = []
+			add_header = headers.append
 
-		# Avoid holding old references in case of future subsitution.
-		del headers, add_header
+			startswith = req.startswith
+			while not startswith(b"\r\n"):
+				eof = find(b"\r\n", pos, max_header_size)
+				if eof == -1:
+					# no terminator, need more data
+					##
+					# update position to the end of the buffer
+					if headers:
+						addev((headers_ev, headers))
+						headers = []
+						add_header = headers.append
+					reqlen = buflen()
+					pos = max(reqlen - 1, 0)
 
-		# Terminator
-		addev(EOH)
+					if reqlen > max_header_size:
+						addev((
+							violation_ev,
+							('limit', 'max_header_size', max_header_size)
+						))
+						addev((bypass_ev, req))
+
+						del find, extend, buflen, startswith
+						del headers, add_header
+						req = (yield events)
+						del events, addev
+						while True:
+							req = (yield [(bypass_ev, req)])
+
+					extend((yield events))
+					events = []
+					addev = events.append
+					# continues; no double CRLF yet.
+				elif eof:
+					# EOF must be > 0, otherwise it's the end of the headers.
+					# Got a header within the constraints (max_header_size).
+
+					# Spell out header tuple constructor for performance.
+					eoi = find(b':', 0, eof) # Use find rather than split to avoid list().
+					header = (bstrip(bytes(req[:eoi])), bstrip(bytes(req[eoi+1:eof])))
+					del req[:eof+2]
+
+					if has_body and len(ctl_headers) != 3:
+						field = header[0].lower()
+						if field in {b'connection', b'content-length', b'transfer-encoding'}:
+							ctl_headers[field] = header[1]
+
+					add_header(header)
+					nheaders += 1
+					pos = 0
+					if nheaders > max_headers:
+						addev((headers_ev, headers))
+						addev((
+							violation_ev,
+							('limit', 'max_headers', nheaders, max_headers)
+						))
+						addev((bypass_ev, req))
+
+						del find, extend, buflen, startswith, req
+						del headers, add_header
+						req = (yield events)
+						del events, addev
+						while True:
+							req = (yield [(bypass_ev, req)])
+			# :while not startswith(b"\r\n")
+
+			# Emit remaining headers.
+			if headers:
+				addev((headers_ev, headers))
+
+			# Avoid holding old references in case of future subsitution.
+			del headers, add_header
+
+			# Terminator
+			addev(EOH)
+
+			# Trim trailing CRLF.
+			del req[:2]
+		# : if eoh == -1
+
+		if b'content-length' in ctl_headers:
+			try:
+				size = int(ctl_headers[b'content-length'])
+			except ValueError:
+				addev((
+					violation_ev,
+					('protocol', 'Content-Length', ctl_headers[b'content-length'])
+				))
+				addev((bypass_ev, req))
+
+				del find, extend, buflen, startswith, req
+				req = (yield events)
+				del events, addev
+				while True:
+					req = (yield [(bypass_ev, req)])
+
+		if b'transfer-encoding' in ctl_headers:
+			if ctl_headers[b'transfer-encoding'] == b'chunked':
+				# If C-L was specified, ignore it.
+				chunk_size = -1
+				size = -1
+				body_ev = chunk_ev
 
 		# headers processed, redetermine has_body given &size.
 		if has_body is True and size is None:
 			# size was not initialized so it should assume there's no body
 			has_body = False
 
-		# Trim trailing CRLF.
-		del req[:2]
 		pos = 0
 
 		# End of headers; emit body, if any.
@@ -495,7 +508,7 @@ def Tokenization(
 
 		# :while size
 		else:
-			if size is None and connection == b'close':
+			if size is None and ctl_headers.get(b'connection') == b'close':
 				# XXX: this should be transferring content messages.
 				del find, extend, buflen, startswith
 				addev(EOM)

@@ -398,10 +398,15 @@ def test_Disassembler_invalid_content_length(test):
 	events = state.send(data)
 	x = [
 		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(module.Event.headers, [(b'Host', b'host')]),
+		(module.Event.headers, [
+			(b'Host', b'host'),
+			(b'Content-Length', b'vz@'),
+			(b'Connection', b'close'),
+		]),
+		(module.Event.headers, ()),
 		(module.Event.violation,
 			('protocol', 'Content-Length', bytearray(b'vz@'))),
-		(module.Event.bypass, b'Connection: close\r\n\r\nBYPASS'),
+		(module.Event.bypass, b'BYPASS'),
 	]
 	test/x == events
 	test/state.send(b'More') == [(module.Event.bypass, b'More')]
