@@ -93,7 +93,7 @@ module_path ()
 	echo "$relpath" | sed 's:/:.:g' | sed 's:.::'
 }
 
-for project in ./time ./system ./terminal
+for project in ./system
 do
 	cd "$fault_dir/$project"
 	root="$(dirname "$(pwd)")"
@@ -141,81 +141,6 @@ do
 			src/*.c
 
 		cd "$fault_dir/$project"
-	done
-
-	cd "$original"
-done
-
-# Duplicate handling an extra level of depth.
-for project in ./computation
-do
-	cd "$fault_dir/$project"
-	root="$(dirname "$(pwd)")"
-
-	if ! test -d ./extensions
-	then
-		cd "$original"
-		continue
-	fi
-
-	for subdir in ./extensions/*/
-	do
-		iscache="$(echo "$subdir" | grep '__pycache__\|__f-cache__\|__f-int__')"
-		if ! test x"$iscache" = x""
-		then
-			continue
-		fi
-
-		cd "$subdir"
-		pkgdir="$(basename "$(pwd)")"
-
-		if test "$pkgdir" = "__pycache__"
-		then
-			cd "$fault_dir/$project"
-			continue
-		fi
-
-		echo "$subdir"
-
-		for module in ./*/
-		do
-			iscache="$(echo "$module" | grep '__pycache__\|__f-cache__\|__f-int__')"
-			if ! test x"$iscache" = x""
-			then
-				continue
-			fi
-
-			cd "$module"
-			pwd
-			modname="$(basename "$(pwd)")"
-
-			fullname="$(module_path "$(pwd)")"
-			package="$(cd ..; module_path "$(pwd)")"
-			projectfactor="$(cd ../..; module_path "$(pwd)")"
-			targetname="$(echo "$fullname" | sed 's/.extensions//')"
-			pkgname="$(echo "$fullname" | sed 's/[.][^.]*$//')"
-
-			compile ${CC:-cc} -v -o "../../../${pkgdir}/${modname}.${platsuffix}" \
-				-I$sdk/python/include/src \
-				-I$sdk/posix/include/src \
-				-I../../../include/src \
-				-I$prefix/include \
-				-I$prefix/include/python$pyversion$pyabi \
-				"-DF_SYSTEM=$defsys" \
-				"-DF_TARGET_ARCHITECTURE=$defarch" \
-				"-DF_INTENTION=debug" \
-				"-DF_FACTOR_DOMAIN=system" \
-				"-DF_FACTOR_TYPE=extension" \
-				"-DFACTOR_BASENAME=$modname" \
-				"-DFACTOR_SUBPATH=$modname" \
-				"-DFACTOR_PROJECT=$projectfactor" \
-				"-DFACTOR_PACKAGE=$package" \
-				"-DFACTOR_QNAME=$fullname" \
-				-fwrapv \
-				src/*.c
-
-			cd ..
-		done
 	done
 
 	cd "$original"
