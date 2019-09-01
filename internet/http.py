@@ -229,7 +229,7 @@ def Tokenization(
 		addev((rline_ev, line))
 
 		# Methods do not contain slashes, but HTTP-Versions do.
-		if line[1] in {b'204', b'304'} and b'/' in line[0]:
+		if (line[1] in {b'204', b'304'} or line[1][:1] == b'1') and b'/' in line[0]:
 			# rfc 10.2.5 204 No Content
 			# rfc 10.3.5 304 Not Modified
 			has_body = False
