@@ -695,7 +695,7 @@ def Serialization(
 			Event.chunk: chunk,
 			Event.content: lambda x: (x,),
 			Event.bypass: lambda x: (x,),
-			Event.message: lambda x: (b'',),
+			Event.message: lambda x: (),
 		}
 	):
 	"""
@@ -706,6 +706,7 @@ def Serialization(
 	while True:
 		buf = bytearray()
 		append = buf.__iadd__
+		seq = (buf,)
 
 		for (t, v) in events:
 
@@ -724,7 +725,7 @@ def Serialization(
 					append(b"\r\n".join(y[0] + b": " + y[1] for y in v))
 					append(b"\r\n")
 
-		events = (yield (buf,))
+		events = (yield seq)
 Assembler = Serialization
 
 def assembly(**config):
