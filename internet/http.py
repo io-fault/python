@@ -630,12 +630,17 @@ def disassembly(**config):
 	d.__next__()
 	return d
 
-def headers(headers, chain = itertools.chain.from_iterable, CRLF = protocoldata.CRLF, HFS = protocoldata.HFS):
+def headers(headers, chain=itertools.chain.from_iterable, CRLF=protocoldata.CRLF, HFS=protocoldata.HFS):
+	"""
+	# Produce an iterator of &bytes instances making up a segment
+	# of headers that can be joined into a buffer.
+	"""
 	return chain(((x[0], HFS, x[1], CRLF) for x in headers))
+trailers = headers
 
 @functools.lru_cache(16)
 def chunk_size(length, CRLF=protocoldata.CRLF, hex=hex):
-	return hex(length).encode('ascii')[2:] + CRLF
+	return (b"%x\r\n" %(length,))
 
 def chunk(data, len=len, CRLF=protocoldata.CRLF):
 	"""
@@ -646,21 +651,21 @@ def chunk(data, len=len, CRLF=protocoldata.CRLF):
 	# In cases where a shared memory segment is referenced, this
 	# can be critical for proper performance.
 
+	# Currently, &Serialization will concatenate these, defeating
+	# some of the purpose.
+
 	#!/pl/python
-		assert chunk(b'data') == (b'4\\r\\n', b'data', b'\\r\\n')
+		assert chunk(b"data") == (b"4\\r\\n", b"data", b"\\r\\n")
 	"""
 	return (chunk_size(len(data)), data, CRLF)
 
-trailers = headers
-
 def Serialization(
-		SP = protocoldata.SP, CRLF = protocoldata.CRLF,
-		HFS = protocoldata.HFS,
-		trailers_ev = Event.trailers,
-		headers_ev = Event.headers,
-		rline_ev = Event.rline,
-		content_ev = Event.content,
-		chunk_map = {Event.chunk: chunk, Event.content: lambda x: (x,)}
+		chunk_map = {
+			Event.chunk: chunk,
+			Event.content: lambda x: (x,),
+			Event.bypass: lambda x: (x,),
+			Event.message: lambda x: (b'',),
+		}
 	):
 	"""
 	# Assemble HTTP events back into a sequences of bytes.
@@ -668,27 +673,27 @@ def Serialization(
 
 	events = (yield None)
 	while True:
-		buf = []
-		append = buf.append
+		buf = bytearray()
+		append = buf.__iadd__
 
-		for x in events:
-			if x[0] == rline_ev:
-				append(b" ".join(x[1]))
-				append(CRLF)
-			elif x[0] in {trailers_ev, headers_ev}:
-				if not x[1]:
+		for (t, v) in events:
+
+			if t in chunk_map:
+				# Default to concatenation of event payload.
+				for x in (chunk_map[t](v)):
+					append(x)
+			elif t == 0: # rline_ev
+				append(b" ".join(v))
+				append(b"\r\n")
+			else: # {heavers_ev, trailers_ev}
+				if not v:
 					# end of headers
-					append(CRLF)
+					append(b"\r\n")
 				else:
-					append(CRLF.join([y[0] + HFS + y[1] for y in x[1]]))
-					append(CRLF)
-			elif x == EOM:
-				pass
-			else:
-				# Default to concatenation of event payload
-				buf.extend(chunk_map[x[0]](x[1]))
+					append(b"\r\n".join(y[0] + b": " + y[1] for y in v))
+					append(b"\r\n")
 
-		events = (yield buf)
+		events = (yield (buf,))
 Assembler = Serialization
 
 def assembly(**config):

@@ -624,7 +624,7 @@ def test_assemble_ooo(test):
 	# out of order assembly
 	g = module.assembly()
 	r = g.send([(module.Event.content, b'data')])
-	test/r == [b'data']
+	test/r == (b'data',)
 
 if __name__ == '__main__':
 	import sys; from ...test import library as libtest
