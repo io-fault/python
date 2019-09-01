@@ -61,8 +61,9 @@ class Event(int):
 		'CHUNK',
 		'TRAILERS',
 		'MESSAGE',
-		'VIOLATION',
-		'BYPASS', # for indexing; names[Event.bypass==-1] == 'BYPASS'
+		'WARNING',
+		'BYPASS', # -2
+		'VIOLATION', # -1
 	)
 
 	codes = {
@@ -72,8 +73,9 @@ class Event(int):
 		'CHUNK': 3,
 		'TRAILERS': 4,
 		'MESSAGE': 5, # EOM: End of Message
-		'VIOLATION': 6,
-		'BYPASS': -1,
+		'WARNING': 6,
+		'VIOLATION': -1,
+		'BYPASS': -2,
 	}
 
 	def __repr__(self, format = "{0}.{1}.{2}".format, names = names):
@@ -89,7 +91,29 @@ Event.content = Event(Event.codes['CONTENT'])
 Event.chunk = Event(Event.codes['CHUNK'])
 Event.trailers = Event(Event.codes['TRAILERS'])
 Event.message = Event(Event.codes['MESSAGE'])
+Event.warning = Event(Event.codes['WARNING'])
 Event.violation = Event(Event.codes['VIOLATION'])
+
+ev_bypass = -2
+ev_violation = -1
+ev_rline = 0
+ev_headers = 1
+ev_content = 2
+ev_chunk = 3
+ev_trailers = 4
+ev_message = 5
+ev_warning = 6
+
+event_symbols = {
+	ev_bypass: 'bypass',
+	ev_violation: 'violation',
+	ev_rline: 'rline',
+	ev_headers: 'headers',
+	ev_content: 'content',
+	ev_chunk: 'chunk',
+	ev_trailers: 'trailers',
+	ev_message: 'message',
+}
 
 EOH = (Event.headers, ())
 EOM = (Event.message, None)
