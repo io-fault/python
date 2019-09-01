@@ -176,3 +176,21 @@ def group(condition, iterable, initial=None, Sequence=list):
 			contents.append(item)
 
 	yield (grouping, contents)
+
+class cachedproperty(object):
+	"""
+	# Attribute override for immutable property methods.
+
+	# Presumes the wrapped method name is consistent with the property name.
+	"""
+
+	def __init__(self, method, doc=None):
+		self.method = method
+		self.name = method.__name__
+		self.__doc__ = doc or method.__doc__
+
+	def __get__(self, instance, Class):
+		if instance is None:
+			return self
+		instance.__dict__[self.name] = result = self.method(instance)
+		return result
