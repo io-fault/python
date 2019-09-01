@@ -154,6 +154,13 @@ def Tokenization(
 
 	# In addition to giving structure to HTTP line and headers, it will handle the
 	# transfer encoding of the message's body. (*Not* at the entity level.)
+
+	# [ Engineering ]
+
+	# Currently, this does not properly manage the Transfer-Encoding header in
+	# if the client where to submit a TE header.
+	# This implementation only looks for a single chunked entry where a stack
+	# of applied encodings may be present.
 	"""
 
 	# Parse Request and Headers
