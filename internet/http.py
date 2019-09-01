@@ -113,6 +113,7 @@ event_symbols = {
 	ev_chunk: 'chunk',
 	ev_trailers: 'trailers',
 	ev_message: 'message',
+	ev_warning: 'warning',
 }
 
 EOH = (Event.headers, ())
@@ -158,6 +159,7 @@ def Tokenization(
 		chunk_ev = Event.chunk,
 		trailers_ev = Event.trailers,
 		violation_ev = Event.violation,
+		warning_ev = Event.warning,
 	):
 	"""
 	# An HTTP 1.0 and 1.1 message parser. Emits HTTP events from the given binary data.
