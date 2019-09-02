@@ -122,10 +122,9 @@ EOM = (Event.message, None)
 ###
 # Field extraction and transfer length handling.
 ##
-# http://www.faqs.org/rfcs/rfc2616.html
-# Some notably relevant portions are:
-#  4.4 Message Length (chunked vs Content-Length)
+# https://tools.ietf.org/html/rfc7230#section-3.3.3
 def Tokenization(
+		disposition:str='server',
 		max_line_size : int = 4096, # maximum length of the Request-Line or Response-Line
 		max_headers : int = 1024, # maximum number of headers to accept
 		max_trailers : int = 32, # maximum number of trailers to accept
@@ -145,12 +144,6 @@ def Tokenization(
 
 		CRLF = protocoldata.CRLF, SP = protocoldata.SP,
 		PROTOCOLS = protocoldata.VERSIONS,
-
-		NO_BODY_RESPONSE_CODES = frozenset([204, 304]),
-
-		SIZE_DESIGNATION = frozenset((
-			b'content-length', b'transfer-encoding',
-		)),
 
 		bypass_ev = Event.bypass,
 		rline_ev = Event.rline,
@@ -190,6 +183,7 @@ def Tokenization(
 	"""
 
 	# Parse Request and Headers
+	is_client = disposition == 'client'
 	message_number = -1
 	events = []
 	addev = events.append
@@ -206,7 +200,15 @@ def Tokenization(
 	body_size = 0
 
 	while True:
-		ctl_headers = {}
+		keep_alive = None # Unspecified keep-alive
+		cl = []
+		te = []
+		cn = []
+		ctl_headers = {
+			b'content-length': cl,
+			b'transfer-encoding': te,
+			b'connection': cn,
+		}
 		body_ev = content_ev # in chunking cases, this get turned into chunk_ev
 		has_body = True
 		# Content-Length/is chunking
@@ -255,7 +257,8 @@ def Tokenization(
 		addev((rline_ev, line))
 
 		# Methods do not contain slashes, but HTTP-Versions do.
-		if (line[1] in {b'204', b'304'} or line[1][:1] == b'1') and b'/' in line[0]:
+		if is_client and (line[1] in {b'204', b'304'} or line[1][:1] == b'1'):
+			# 1xx
 			# rfc 10.2.5 204 No Content
 			# rfc 10.3.5 304 Not Modified
 			has_body = False
@@ -274,10 +277,9 @@ def Tokenization(
 				header = headers[i].split(b":")
 				header = headers[i] = (bstrip(header[0]), bstrip(header[1]))
 
-				if has_body and len(ctl_headers) != 3:
-					field = header[0].lower()
-					if field in {b'connection', b'content-length', b'transfer-encoding'}:
-						ctl_headers[field] = header[1]
+				field = header[0].lower()
+				if field in ctl_headers:
+					ctl_headers[field].extend(x.strip() for x in header[1].split(b','))
 
 			del req[:eoh+4]
 			# Terminator
@@ -331,10 +333,9 @@ def Tokenization(
 					header = (bstrip(bytes(req[:eoi])), bstrip(bytes(req[eoi+1:eof])))
 					del req[:eof+2]
 
-					if has_body and len(ctl_headers) != 3:
-						field = header[0].lower()
-						if field in {b'connection', b'content-length', b'transfer-encoding'}:
-							ctl_headers[field] = header[1]
+					field = header[0].lower()
+					if field in ctl_headers:
+						ctl_headers[field].extend(x.strip() for x in header[1].split(b','))
 
 					add_header(header)
 					nheaders += 1
@@ -369,13 +370,23 @@ def Tokenization(
 			del req[:2]
 		# : if eoh == -1
 
-		if b'content-length' in ctl_headers:
+		keep_alive = b'keep-alive' in cn
+
+		if cl:
+			if len(cl) > 1:
+				addev((
+					warning_ev,
+					('protocol', 'multiple-content-lengths',
+						"multiple length values present", cl)
+				))
+
 			try:
-				size = int(ctl_headers[b'content-length'])
+				ctl_headers[b'content-length'] = cl = size = int(cl[0])
 			except ValueError:
 				addev((
 					violation_ev,
-					('protocol', 'Content-Length', ctl_headers[b'content-length'])
+					('protocol', 'invalid-header',
+						"Content-Length could not be interpreted as an integer", cl[0])
 				))
 				addev((bypass_ev, req))
 
@@ -385,21 +396,37 @@ def Tokenization(
 				while True:
 					req = (yield [(bypass_ev, req)])
 
-		if b'transfer-encoding' in ctl_headers:
-			if ctl_headers[b'transfer-encoding'] == b'chunked':
-				# If C-L was specified, ignore it.
+		if te:
+			if te[-1] == b'chunked':
+				# If C-L was specified, override it here.
 				chunk_size = -1
 				size = -1
 				body_ev = chunk_ev
+			elif b'chunked' in te:
+				addev((
+					warning_ev,
+					('protocol', 'misplaced-chunked-coding',
+						"chunked coding was present but not final", te)
+				))
 
 		# headers processed, redetermine has_body given &size.
+
 		if has_body is True and size is None:
 			# size was not initialized so it should assume there's no body
-			has_body = False
-
-		pos = 0
+			if keep_alive is not True and is_client:
+				del find, extend, buflen, startswith
+				addev((content_ev, req))
+				req = (yield events)
+				del events, addev
+				while True:
+					# Connection is closed
+					req = (yield [(content_ev, req)])
+			else:
+				has_body = False
+				size = 0
 
 		# End of headers; emit body, if any.
+		pos = 0
 		while size:
 			while chunk_size == -1:
 				##
@@ -538,21 +565,7 @@ def Tokenization(
 					chunk_size = -1
 					size = -1
 				# else assert chunk_size == size == 0
-
 		# :while size
-		else:
-			if size is None and ctl_headers.get(b'connection') == b'close':
-				# XXX: this should be transferring content messages.
-				del find, extend, buflen, startswith
-				addev(EOM)
-				while True:
-					# Everything is bypass after this point.
-					# The connection is closed and there's no body.
-					if req:
-						addev((bypass_ev, req))
-					req = (yield events)
-					events = []
-					addev = events.append
 
 		# Body termination indicator; but there may be trailers to parse.
 		if has_body:
@@ -643,6 +656,14 @@ def Tokenization(
 		# finish up by resetting size and emitting EOM on continuation
 		size = None
 		addev(EOM)
+		if keep_alive is not True:
+			if req:
+				addev((bypass_ev, req))
+			del find, extend, buflen, startswith, req
+			req = (yield events)
+			del events, addev
+			while True:
+				req = (yield [(bypass_ev, req)])
 	else: # for message_number in range(...):
 		# too many messages
 		addev((violation_ev, ('limit', 'max_messages', max_messages)))

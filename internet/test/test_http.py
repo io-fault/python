@@ -335,11 +335,13 @@ def test_Disassembler_crlf_prefix_strip(test):
 
 def test_Disassembler_pipelined(test):
 	mrequest = b'''GET /index.html HTTP/1.1\r
+Connection: keep-alive\r
 Host: localhost\r
 Content-Length: 20\r
 \r
 ''' + b'A' * 20 + b'''\r
 POST /data.html HTTP/1.1\r
+Connection: keep-alive\r
 Host: localhost\r
 Content-Length: 30\r
 \r
@@ -348,14 +350,20 @@ Content-Length: 30\r
 
 	x1 = [
 		(module.Event.rline, (b'GET', b'/index.html', b'HTTP/1.1')),
-		(module.Event.headers, [(b'Host', b'localhost'), (b'Content-Length', b'20')]),
+		(module.Event.headers, [
+			(b'Connection', b'keep-alive'),
+			(b'Host', b'localhost'), (b'Content-Length', b'20')
+		]),
 		(module.Event.headers, ()),
 		(module.Event.content, b'A' * 20),
 		(module.Event.content, b''),
 		module.EOM,
 
 		(module.Event.rline, (b'POST', b'/data.html', b'HTTP/1.1')),
-		(module.Event.headers, [(b'Host', b'localhost'), (b'Content-Length', b'30')]),
+		(module.Event.headers, [
+			(b'Connection', b'keep-alive'),
+			(b'Host', b'localhost'), (b'Content-Length', b'30')
+		]),
 		(module.Event.headers, ()),
 		(module.Event.content, b'Bad' * 10),
 		(module.Event.content, b''),
@@ -391,7 +399,7 @@ def test_Disassembler_limit_line_too_large_with_eof(test):
 
 def test_Disassembler_invalid_content_length(test):
 	"""
-	Check that the value error is properly reported.
+	# Check that the value error is properly reported.
 	"""
 	data = b"GET / HTTP/1.0\r\nHost: host\r\nContent-Length: vz@\r\nConnection: close\r\n\r\nBYPASS"
 	state = module.disassembly()
@@ -405,7 +413,8 @@ def test_Disassembler_invalid_content_length(test):
 		]),
 		(module.Event.headers, ()),
 		(module.Event.violation,
-			('protocol', 'Content-Length', bytearray(b'vz@'))),
+			('protocol', 'invalid-header',
+				"Content-Length could not be interpreted as an integer", b'vz@')),
 		(module.Event.bypass, b'BYPASS'),
 	]
 	test/x == events
@@ -517,7 +526,7 @@ ffffffds"""
 
 def test_Disassembler_limit_header_too_large(test):
 	output = []
-	data = b"GET / HTTP/1.1\r\nFoo: bar"
+	data = b"GET / HTTP/1.1\r\nHeader: value"
 	# feed it two while expecting one
 	g = module.disassembly(max_header_size = 2)
 	r = g.send(data)
@@ -528,7 +537,7 @@ def test_Disassembler_limit_header_too_large(test):
 	test/limitation == 'max_header_size'
 	test/limit == 2
 	test/byp[0] == module.Event.bypass
-	test/byp[1] == b"""Foo: bar"""
+	test/byp[1] == b"""Header: value"""
 	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
 
 def test_Disassembler_limit_header_too_large_with_eof(test):
@@ -549,7 +558,7 @@ def test_Disassembler_limit_header_too_large_with_eof(test):
 
 def test_Disassembler_limit_header_too_many(test):
 	output = []
-	data = b"GET / HTTP/1.1\r\nFoo: bar\r\n\r"
+	data = b"GET / HTTP/1.1\r\nHeader: value\r\n\r"
 	# feed it two while expecting one
 	g = module.disassembly(max_headers = 0)
 	r = g.send(data)
@@ -564,32 +573,32 @@ def test_Disassembler_limit_header_too_many(test):
 	test/byp[1] == b"\r"
 	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
 
-def test_Disassembler_exercise_zero_writes(test):
+def test_Disassembler_zero_writes(test):
 	output = []
-	data = b"HTTP/1.0 400 Bad Request\r\nFoo: bar\r\n\r"
-	g = module.disassembly()
+	data = b"HTTP/1.0 400 Bad Request\r\nHeader: value\r\n\r"
+	g = module.disassembly(disposition='client')
 	test/g.send(b'') == []
 	test/g.send(b'') == []
 	test/g.send(b'') == []
 	test/g.send(b'') == []
 	test/g.send(data) == [
 		(module.Event.rline, (b'HTTP/1.0', b'400', b'Bad Request')),
-		(module.Event.headers, [(b'Foo', b'bar')])
+		(module.Event.headers, [(b'Header', b'value')])
 	]
 
 def test_headers(test):
 	samples = [
-		(b'Foo: bar\r\n', [(b'Foo', b'bar')]),
-		(b'Foo: Bar\r\nContent-Length: 5\r\n',
-			[(b'Foo', b'Bar'), (b'Content-Length', b'5')])
+		(b'Header: value\r\n', [(b'Header', b'value')]),
+		(b'Header: Value\r\nContent-Length: 5\r\n',
+			[(b'Header', b'Value'), (b'Content-Length', b'5')])
 	]
 	for expected, sdata in samples:
 		test/expected == b''.join(module.headers(sdata))
 
 def test_chunk(test):
 	samples = [
-		(b'3\r\nfoo\r\n', b'foo'),
-		(b'6\r\nfoobar\r\n', b'foobar'),
+		(b'4\r\ndata\r\n', b'data'),
+		(b'8\r\nmoredata\r\n', b'moredata'),
 		(hex(100).encode('ascii')[2:] + b'\r\n' + (b'x' * 100) + b'\r\n', b'x' * 100),
 	]
 	for expected, data in samples:
@@ -598,8 +607,8 @@ def test_chunk(test):
 def test_assemble(test):
 	# out of order assembly
 	reqs = [
-		b"""GET /foo HTTP/1.1\r
-Foo: bar\r
+		b"""GET /resource HTTP/1.1\r
+Header: value\r
 \r
 """,
 		b"""POST / HTTP/1.1\r
