@@ -3,96 +3,49 @@
 
 # Provides protocol tokenization, field parsers, and protocol serialization for
 # implementing a server or a client.
+
+# [ Events ]
+
+# /(identifier)`BYPASS`/
+	# (&ev_bypass, &bytes)
+
+# /(identifier)`RLINE`/
+	# For requests: (&ev_rline, (method, uri, version))
+	# For responses: (&ev_rline, (version, response_code, description))
+
+# /(identifier)`CHUNK`/
+	# (&ev_chunk, &bytearray)
+
+# /(identifier)`CONTENT`/
+	# (&ev_content, &bytearray)
+
+# /(identifier)`HEADERS`/
+	# (&ev_headers, [(&bytes, &bytes),...])
+
+# /(identifier)`TRAILERS`/
+	# (&ev_trailers, [(&bytes, &bytes),...])
+
+# /(identifier)`MESSAGE`/
+	# (&ev_message, &None)
+	# End of message.
+
+# /(identifier)`VIOLATION`/
+	# (&ev_trailers, (type, identifier, message, context))
+
+	# Where `type` is:
+
+	# /`'limit'`/
+		# A configured limit was exceeded.
+
+	# /`'protocol'`/
+		# A protocol error occurred.
+
+# /(identifier)`WARNING`/
+	# (&ev_warning, (type, identifier, message, context))
 """
 import itertools
 import functools
 from .data import http as protocoldata
-
-# Raw binary header indicating chunking should be used.
-CHUNKED_TRANSFER = b'Transfer-Encoding: chunked' + protocoldata.CRLF
-
-class Event(int):
-	"""
-	# An HTTP event; essentially an enumeration, but kept as an integer subclass for
-	# backwards compatibility.
-
-	# Event Structure:
-
-	# /(identifier)`BYPASS`/
-		# (&Event.bypass, &bytes)
-
-	# /(identifier)`RLINE`/
-		# For requests: (&Event.rline, (method, uri, version))
-		# For responses: (&Event.rline, (version, response_code, description))
-
-	# /(identifier)`CHUNK`/
-		# (&Event.chunk, &bytearray)
-
-	# /(identifier)`CONTENT`/
-		# (&Event.content, &bytearray)
-
-	# /(identifier)`HEADERS`/
-		# (&Event.headers, [(&bytes, &bytes),...])
-
-	# /(identifier)`TRAILERS`/
-		# (&Event.trailers, [(&bytes, &bytes),...])
-
-	# /(identifier)`MESSAGE`/
-		# (&Event.message, &None)
-
-	# /(identifier)`VIOLATION`/
-		# (&Event.trailers, (type, ...))
-
-		# Where `type` is:
-
-		# /`'limit'`/
-			# A configured limit was exceeded.
-
-		# /`'protocol'`/
-			# A protocol error occurred.
-	"""
-
-	__slots__ = ()
-
-	names = (
-		'RLINE',
-		'HEADERS',
-		'CONTENT',
-		'CHUNK',
-		'TRAILERS',
-		'MESSAGE',
-		'WARNING',
-		'BYPASS', # -2
-		'VIOLATION', # -1
-	)
-
-	codes = {
-		'RLINE': 0,
-		'HEADERS': 1, # Terminated by a HEADERS event with an empty sequence.
-		'CONTENT': 2,
-		'CHUNK': 3,
-		'TRAILERS': 4,
-		'MESSAGE': 5, # EOM: End of Message
-		'WARNING': 6,
-		'VIOLATION': -1,
-		'BYPASS': -2,
-	}
-
-	def __repr__(self, format = "{0}.{1}.{2}".format, names = names):
-		return format(__name__, self.__class__.__name__, names[self].lower())
-
-	def __str__(self):
-		return self.names[self]
-
-Event.bypass = Event(Event.codes['BYPASS'])
-Event.rline = Event(Event.codes['RLINE'])
-Event.headers = Event(Event.codes['HEADERS'])
-Event.content = Event(Event.codes['CONTENT'])
-Event.chunk = Event(Event.codes['CHUNK'])
-Event.trailers = Event(Event.codes['TRAILERS'])
-Event.message = Event(Event.codes['MESSAGE'])
-Event.warning = Event(Event.codes['WARNING'])
-Event.violation = Event(Event.codes['VIOLATION'])
 
 ev_bypass = -2
 ev_violation = -1
@@ -101,7 +54,7 @@ ev_headers = 1
 ev_content = 2
 ev_chunk = 3
 ev_trailers = 4
-ev_message = 5
+ev_message = 5 # end of message
 ev_warning = 6
 
 event_symbols = {
@@ -116,8 +69,8 @@ event_symbols = {
 	ev_warning: 'warning',
 }
 
-EOH = (Event.headers, ())
-EOM = (Event.message, None)
+EOH = (ev_headers, ())
+EOM = (ev_message, None)
 
 ###
 # Field extraction and transfer length handling.
@@ -145,14 +98,14 @@ def Tokenization(
 		CRLF = protocoldata.CRLF, SP = protocoldata.SP,
 		PROTOCOLS = protocoldata.VERSIONS,
 
-		bypass_ev = Event.bypass,
-		rline_ev = Event.rline,
-		headers_ev = Event.headers,
-		content_ev = Event.content,
-		chunk_ev = Event.chunk,
-		trailers_ev = Event.trailers,
-		violation_ev = Event.violation,
-		warning_ev = Event.warning,
+		bypass_ev = ev_bypass,
+		rline_ev = ev_rline,
+		headers_ev = ev_headers,
+		content_ev = ev_content,
+		chunk_ev = ev_chunk,
+		trailers_ev = ev_trailers,
+		violation_ev = ev_violation,
+		warning_ev = ev_warning,
 	):
 	"""
 	# An HTTP 1.0 and 1.1 message parser. Emits HTTP events from the given binary data.
@@ -715,10 +668,10 @@ def chunk(data, len=len, CRLF=protocoldata.CRLF):
 
 def Serialization(
 		chunk_map = {
-			Event.chunk: chunk,
-			Event.content: lambda x: (x,),
-			Event.bypass: lambda x: (x,),
-			Event.message: lambda x: (),
+			ev_chunk: chunk,
+			ev_content: lambda x: (x,),
+			ev_bypass: lambda x: (x,),
+			ev_message: lambda x: (),
 		}
 	):
 	"""

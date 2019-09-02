@@ -12,8 +12,8 @@ def test_Disassembler_complete_request(test):
 	state = module.disassembly()
 	events = state.send(data)
 	x = [
-		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(module.Event.headers, [(b'Host', b'host')]),
+		(module.ev_rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.ev_headers, [(b'Host', b'host')]),
 		module.EOH,
 		module.EOM,
 	]
@@ -24,8 +24,8 @@ def test_Disassembler_complete_response(test):
 	state = module.disassembly()
 	events = state.send(data)
 	x = [
-		(module.Event.rline, (b'HTTP/1.0', b'200', b'OK')),
-		(module.Event.headers, [(b'Host', b'host')]),
+		(module.ev_rline, (b'HTTP/1.0', b'200', b'OK')),
+		(module.ev_headers, [(b'Host', b'host')]),
 		module.EOH,
 		module.EOM,
 	]
@@ -36,8 +36,8 @@ def test_Disassembler_response_nobody(test):
 	state = module.disassembly()
 	events = state.send(data)
 	x = [
-		(module.Event.rline, (b'HTTP/1.0', b'204', b'OK')),
-		(module.Event.headers, [(b'Host', b'host')]),
+		(module.ev_rline, (b'HTTP/1.0', b'204', b'OK')),
+		(module.ev_headers, [(b'Host', b'host')]),
 		module.EOH,
 		module.EOM,
 	]
@@ -52,14 +52,14 @@ def test_Disassembler_bypass(test):
 	state = module.disassembly()
 	events = state.send(data)
 	x = [
-		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(module.Event.headers, [(b'Host', b'host'), (b'Connection', b'close')]),
+		(module.ev_rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.ev_headers, [(b'Host', b'host'), (b'Connection', b'close')]),
 		module.EOH,
 		module.EOM,
-		(module.Event.bypass, b'BYPASS'),
+		(module.ev_bypass, b'BYPASS'),
 	]
 	test/x == events
-	test/state.send(b'More') == [(module.Event.bypass, b'More')]
+	test/state.send(b'More') == [(module.ev_bypass, b'More')]
 
 def test_Disassembler_chunked_1(test):
 	"""
@@ -77,15 +77,15 @@ fffff\r
 	state = module.disassembly()
 	output = state.send(data)
 	x = [
-		(module.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
-		(module.Event.headers, [
+		(module.ev_rline, (b'GET', b'/', b'HTTP/1.1')),
+		(module.ev_headers, [
 			(b'Transfer-Encoding', b'chunked'),
 			(b'Host', b'host')
 		]),
 		module.EOH,
-		(module.Event.chunk, b'fffff'),
-		(module.Event.chunk, b''),
-		(module.Event.trailers, ()),
+		(module.ev_chunk, b'fffff'),
+		(module.ev_chunk, b''),
+		(module.ev_trailers, ()),
 		module.EOM,
 	]
 	test/x == output
@@ -110,8 +110,8 @@ fff"""
 	eventseq2 = g.send(data2)
 	eventseq3 = g.send(data3)
 	x1 = [
-		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(module.Event.headers, [
+		(module.ev_rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.ev_headers, [
 				(b'Transfer-Encoding', b'chunked'),
 				(b'Host', b'host')
 			],
@@ -119,12 +119,12 @@ fff"""
 		module.EOH,
 	]
 	x2 = [
-		(module.Event.chunk, b'fff'),
+		(module.ev_chunk, b'fff'),
 	]
 	x3 = [
-		(module.Event.chunk, b'ff'),
-		(module.Event.chunk, b''),
-		(module.Event.trailers, ()),
+		(module.ev_chunk, b'ff'),
+		(module.ev_chunk, b''),
+		(module.ev_trailers, ()),
 		module.EOM,
 	]
 
@@ -149,16 +149,16 @@ Trailer: value\r
 	g = module.disassembly()
 	eventseq1 = g.send(data)
 	x1 = [
-		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(module.Event.headers, [
+		(module.ev_rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.ev_headers, [
 			(b'Transfer-Encoding', b'chunked'),
 			(b'Host', b'host')
 		]),
-		(module.Event.headers, ()),
-		(module.Event.chunk, b'fffff'),
-		(module.Event.chunk, b''),
-		(module.Event.trailers, [(b'Trailer', b'value')]),
-		(module.Event.trailers, ()),
+		(module.ev_headers, ()),
+		(module.ev_chunk, b'fffff'),
+		(module.ev_chunk, b''),
+		(module.ev_trailers, [(b'Trailer', b'value')]),
+		(module.ev_trailers, ()),
 		module.EOM,
 	]
 	test/x1 == eventseq1
@@ -183,23 +183,23 @@ Trailer: value\r
 	eventseq1 = g.send(data1)
 	eventseq2 = g.send(data2)
 	x1 = [
-		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(module.Event.headers, [
+		(module.ev_rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.ev_headers, [
 			(b'Transfer-Encoding', b'chunked'),
 			(b'Host', b'host')
 		]),
-		(module.Event.headers, ()),
-		(module.Event.chunk, b'fffff',),
-		(module.Event.chunk, b'',),
-		(module.Event.trailers, [
+		(module.ev_headers, ()),
+		(module.ev_chunk, b'fffff',),
+		(module.ev_chunk, b'',),
+		(module.ev_trailers, [
 				(b'Trailer', b'value')
 		]),
 	]
 	x2 = [
-		(module.Event.trailers, [
+		(module.ev_trailers, [
 			(b'Trailer', b'value2')
 		]),
-		(module.Event.trailers, ()),
+		(module.ev_trailers, ()),
 		module.EOM,
 	]
 	test/x1 == eventseq1
@@ -217,20 +217,20 @@ def test_Disassembler_trailers_limit_bypass(test):
 	g = module.disassembly(max_trailer_size=4)
 	eventseq1 = g.send(data)
 	x1 = [
-		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(module.Event.headers, [
+		(module.ev_rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.ev_headers, [
 			(b'Transfer-Encoding', b'chunked'),
 			(b'Host', b'host')
 		]),
-		(module.Event.headers, ()),
-		(module.Event.chunk, b'fffff'),
-		(module.Event.chunk, b''),
-		(module.Event.trailers, [(b'Trailer', b'value')]),
-		(module.Event.violation, ('limit', 'max_trailer_size', 14)),
-		(module.Event.bypass, b'\r\n'),
+		(module.ev_headers, ()),
+		(module.ev_chunk, b'fffff'),
+		(module.ev_chunk, b''),
+		(module.ev_trailers, [(b'Trailer', b'value')]),
+		(module.ev_violation, ('limit', 'max_trailer_size', 14)),
+		(module.ev_bypass, b'\r\n'),
 	]
 	test/x1 == eventseq1
-	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.ev_bypass, b'Bypassed')]
 
 	data = b"GET / HTTP/1.0\r\nTransfer-Encoding: chunked\r\nHost: host\r\n\r\n"
 	data += b"5\r\nfffff\r\n0\r\nTrailer: value"
@@ -239,19 +239,19 @@ def test_Disassembler_trailers_limit_bypass(test):
 	g = module.disassembly(max_trailer_size=4)
 	eventseq1 = g.send(data)
 	x2 = [
-		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(module.Event.headers, [
+		(module.ev_rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.ev_headers, [
 			(b'Transfer-Encoding', b'chunked'),
 			(b'Host', b'host')
 		]),
-		(module.Event.headers, ()),
-		(module.Event.chunk, b'fffff'),
-		(module.Event.chunk, b''),
-		(module.Event.violation, ('limit', 'max_trailer_size', 14)),
-		(module.Event.bypass, b'Trailer: value'),
+		(module.ev_headers, ()),
+		(module.ev_chunk, b'fffff'),
+		(module.ev_chunk, b''),
+		(module.ev_violation, ('limit', 'max_trailer_size', 14)),
+		(module.ev_bypass, b'Trailer: value'),
 	]
 	test/x2 == eventseq1
-	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.ev_bypass, b'Bypassed')]
 
 def test_Disassembler_max_trailers(test):
 	"""
@@ -265,20 +265,20 @@ def test_Disassembler_max_trailers(test):
 	g = module.disassembly(max_trailers=0)
 	eventseq1 = g.send(data)
 	x1 = [
-		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(module.Event.headers, [
+		(module.ev_rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.ev_headers, [
 			(b'Transfer-Encoding', b'chunked'),
 			(b'Host', b'host')
 		]),
-		(module.Event.headers, ()),
-		(module.Event.chunk, b'fffff'),
-		(module.Event.chunk, b''),
-		(module.Event.trailers, [(b'Trailer', b'value')]),
-		(module.Event.violation, ('limit', 'max_trailers', 1)),
-		(module.Event.bypass, b'\r\n'),
+		(module.ev_headers, ()),
+		(module.ev_chunk, b'fffff'),
+		(module.ev_chunk, b''),
+		(module.ev_trailers, [(b'Trailer', b'value')]),
+		(module.ev_violation, ('limit', 'max_trailers', 1)),
+		(module.ev_bypass, b'\r\n'),
 	]
 	test/x1 == eventseq1
-	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.ev_bypass, b'Bypassed')]
 
 def test_Disassembler_chunked_separated_size(test):
 	"""
@@ -301,27 +301,27 @@ Host: host\r
 
 	g = module.disassembly();
 	x1 = [
-		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(module.Event.headers, [(b'Transfer-Encoding', b'chunked'), (b'Host', b'host')]),
-		(module.Event.headers, ()),
+		(module.ev_rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.ev_headers, [(b'Transfer-Encoding', b'chunked'), (b'Host', b'host')]),
+		(module.ev_headers, ()),
 	]
 	test/x1 == g.send(data1)
 	test/[] == g.send(data2)
 	test/[] == g.send(data3)
 	test/[] == g.send(data4)
-	test/[(module.Event.chunk, b'')] == g.send(data5)
+	test/[(module.ev_chunk, b'')] == g.send(data5)
 
-	x2 = [(module.Event.chunk, b'X' * (0x10 - 5))]
+	x2 = [(module.ev_chunk, b'X' * (0x10 - 5))]
 	test/x2 == list(g.send(data6))
 
-	x3 = [(module.Event.chunk, b'Y' * (0x10 - (0x10 - 5)))]
+	x3 = [(module.ev_chunk, b'Y' * (0x10 - (0x10 - 5)))]
 	test/x3 == g.send(data7)
 	test/[] == g.send(data8)
 
-	x4 = [(module.Event.chunk, b'')]
+	x4 = [(module.ev_chunk, b'')]
 	test/x4 == g.send(data9)
 
-	x5 = [(module.Event.trailers, ()), module.EOM]
+	x5 = [(module.ev_trailers, ()), module.EOM]
 	test/x5 == g.send(data10)
 
 def test_Disassembler_crlf_prefix_strip(test):
@@ -329,7 +329,7 @@ def test_Disassembler_crlf_prefix_strip(test):
 	g = module.disassembly()
 	eventseq1 = g.send(data)
 	x1 = [
-		(module.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
+		(module.ev_rline, (b'GET', b'/', b'HTTP/1.1')),
 	]
 	test/x1 == eventseq1
 
@@ -349,24 +349,24 @@ Content-Length: 30\r
 	g = module.disassembly()
 
 	x1 = [
-		(module.Event.rline, (b'GET', b'/index.html', b'HTTP/1.1')),
-		(module.Event.headers, [
+		(module.ev_rline, (b'GET', b'/index.html', b'HTTP/1.1')),
+		(module.ev_headers, [
 			(b'Connection', b'keep-alive'),
 			(b'Host', b'localhost'), (b'Content-Length', b'20')
 		]),
-		(module.Event.headers, ()),
-		(module.Event.content, b'A' * 20),
-		(module.Event.content, b''),
+		(module.ev_headers, ()),
+		(module.ev_content, b'A' * 20),
+		(module.ev_content, b''),
 		module.EOM,
 
-		(module.Event.rline, (b'POST', b'/data.html', b'HTTP/1.1')),
-		(module.Event.headers, [
+		(module.ev_rline, (b'POST', b'/data.html', b'HTTP/1.1')),
+		(module.ev_headers, [
 			(b'Connection', b'keep-alive'),
 			(b'Host', b'localhost'), (b'Content-Length', b'30')
 		]),
-		(module.Event.headers, ()),
-		(module.Event.content, b'Bad' * 10),
-		(module.Event.content, b''),
+		(module.ev_headers, ()),
+		(module.ev_content, b'Bad' * 10),
+		(module.ev_content, b''),
 		module.EOM,
 	]
 	eventseq1 = g.send(mrequest)
@@ -382,20 +382,20 @@ def test_Disassembler_limit_line_too_large(test):
 	g = module.disassembly(max_line_size = 8)
 	r = g.send(data)
 	test/r == [
-		(module.Event.violation, ('limit', 'max_line_size', 8)),
-		(module.Event.bypass, data),
+		(module.ev_violation, ('limit', 'max_line_size', 8)),
+		(module.ev_bypass, data),
 	]
-	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.ev_bypass, b'Bypassed')]
 
 def test_Disassembler_limit_line_too_large_with_eof(test):
 	data = b'GET / HTTP/1.1\r\nHost: host\r\n\r\n'
 	g = module.disassembly(max_line_size = 4)
 	r = g.send(data)
 	test/r == [
-		(module.Event.violation, ('limit', 'max_line_size', 4)),
-		(module.Event.bypass, data),
+		(module.ev_violation, ('limit', 'max_line_size', 4)),
+		(module.ev_bypass, data),
 	]
-	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.ev_bypass, b'Bypassed')]
 
 def test_Disassembler_invalid_content_length(test):
 	"""
@@ -405,20 +405,20 @@ def test_Disassembler_invalid_content_length(test):
 	state = module.disassembly()
 	events = state.send(data)
 	x = [
-		(module.Event.rline, (b'GET', b'/', b'HTTP/1.0')),
-		(module.Event.headers, [
+		(module.ev_rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.ev_headers, [
 			(b'Host', b'host'),
 			(b'Content-Length', b'vz@'),
 			(b'Connection', b'close'),
 		]),
-		(module.Event.headers, ()),
-		(module.Event.violation,
+		(module.ev_headers, ()),
+		(module.ev_violation,
 			('protocol', 'invalid-header',
 				"Content-Length could not be interpreted as an integer", b'vz@')),
-		(module.Event.bypass, b'BYPASS'),
+		(module.ev_bypass, b'BYPASS'),
 	]
 	test/x == events
-	test/state.send(b'More') == [(module.Event.bypass, b'More')]
+	test/state.send(b'More') == [(module.ev_bypass, b'More')]
 
 def test_Disassembler_invalid_chunk_field(test):
 	output = []
@@ -433,15 +433,15 @@ fffff\r
 	g = module.disassembly()
 	r = g.send(data)
 	test/r == [
-		(module.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
-		(module.Event.headers,
+		(module.ev_rline, (b'GET', b'/', b'HTTP/1.1')),
+		(module.ev_headers,
 			[(b'Transfer-Encoding', b'chunked'), (b'Host', b'host')]),
-		(module.Event.headers, ()),
-		(module.Event.violation,
+		(module.ev_headers, ()),
+		(module.ev_violation,
 			('protocol', 'chunk-field', bytearray(b'zzz'))),
-		(module.Event.bypass, bytearray(b'fffff\r\n0\r\n\r')),
+		(module.ev_bypass, bytearray(b'fffff\r\n0\r\n\r')),
 	]
-	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.ev_bypass, b'Bypassed')]
 
 def test_Disassembler_chunk_no_terminator(test):
 	output = []
@@ -456,16 +456,16 @@ fffff
 	g = module.disassembly()
 	r = g.send(data)
 	test/r == [
-		(module.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
-		(module.Event.headers,
+		(module.ev_rline, (b'GET', b'/', b'HTTP/1.1')),
+		(module.ev_headers,
 			[(b'Transfer-Encoding', b'chunked'), (b'Host', b'host')]),
-		(module.Event.headers, ()),
-		(module.Event.chunk, b'fffff'),
-		(module.Event.violation,
+		(module.ev_headers, ()),
+		(module.ev_chunk, b'fffff'),
+		(module.ev_violation,
 			('protocol', 'bad-chunk-terminator', b'\n0')),
-		(module.Event.bypass, bytearray(b'\n0\r\n\r')),
+		(module.ev_bypass, bytearray(b'\n0\r\n\r')),
 	]
-	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.ev_bypass, b'Bypassed')]
 
 def test_Disassembler_limit_max_chunksize(test):
 	output = []
@@ -480,14 +480,14 @@ fffff\r
 	g = module.disassembly(max_chunk_line_size = 1)
 	r = g.send(data)
 	test/r == [
-		(module.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
-		(module.Event.headers,
+		(module.ev_rline, (b'GET', b'/', b'HTTP/1.1')),
+		(module.ev_headers,
 			[(b'Transfer-Encoding', b'chunked'), (b'Host', b'host')]),
-			(module.Event.headers, ()),
-		(module.Event.violation, ('limit', 'max_chunk_line_size', 15, 1)),
-		(module.Event.bypass, bytearray(b'50\r\nfffff\r\n0\r\n\r'))
+			(module.ev_headers, ()),
+		(module.ev_violation, ('limit', 'max_chunk_line_size', 15, 1)),
+		(module.ev_bypass, bytearray(b'50\r\nfffff\r\n0\r\n\r'))
 	]
-	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.ev_bypass, b'Bypassed')]
 
 def test_Disassembler_limit_max_chunksize_split(test):
 	output = []
@@ -495,14 +495,14 @@ def test_Disassembler_limit_max_chunksize_split(test):
 	g = module.disassembly(max_chunk_line_size = 1)
 	r = g.send(data)
 	test/r == [
-		(module.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
-		(module.Event.headers,
+		(module.ev_rline, (b'GET', b'/', b'HTTP/1.1')),
+		(module.ev_headers,
 			[(b'Transfer-Encoding', b'chunked'), (b'Host', b'host')]),
-			(module.Event.headers, ()),
-		(module.Event.violation, ('limit', 'max_chunk_line_size', 15, 1)),
-		(module.Event.bypass, bytearray(b'50\r\nfffff\r\n0\r\n\r'))
+			(module.ev_headers, ()),
+		(module.ev_violation, ('limit', 'max_chunk_line_size', 15, 1)),
+		(module.ev_bypass, bytearray(b'50\r\nfffff\r\n0\r\n\r'))
 	]
-	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.ev_bypass, b'Bypassed')]
 
 def test_Disassembler_limit_max_chunksize_split(test):
 	output = []
@@ -515,14 +515,14 @@ ffffffds"""
 	g = module.disassembly(max_chunk_line_size = 1)
 	r = g.send(data)
 	test/r == [
-		(module.Event.rline, (b'GET', b'/', b'HTTP/1.1')),
-		(module.Event.headers,
+		(module.ev_rline, (b'GET', b'/', b'HTTP/1.1')),
+		(module.ev_headers,
 			[(b'Transfer-Encoding', b'chunked'), (b'Host', b'host')]),
-			(module.Event.headers, ()),
-		(module.Event.violation, ('limit', 'max_chunk_line_size', 11, 1)),
-		(module.Event.bypass, bytearray(b'5\r\nffffffds')),
+			(module.ev_headers, ()),
+		(module.ev_violation, ('limit', 'max_chunk_line_size', 11, 1)),
+		(module.ev_bypass, bytearray(b'5\r\nffffffds')),
 	]
-	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.ev_bypass, b'Bypassed')]
 
 def test_Disassembler_limit_header_too_large(test):
 	output = []
@@ -532,13 +532,13 @@ def test_Disassembler_limit_header_too_large(test):
 	r = g.send(data)
 	vio, byp = r[-2:]
 	vio, (viotype, limitation, limit) = vio
-	test/vio == module.Event.violation
+	test/vio == module.ev_violation
 	test/viotype == 'limit'
 	test/limitation == 'max_header_size'
 	test/limit == 2
-	test/byp[0] == module.Event.bypass
+	test/byp[0] == module.ev_bypass
 	test/byp[1] == b"""Header: value"""
-	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.ev_bypass, b'Bypassed')]
 
 def test_Disassembler_limit_header_too_large_with_eof(test):
 	output = []
@@ -548,13 +548,13 @@ def test_Disassembler_limit_header_too_large_with_eof(test):
 	r = g.send(data)
 	vio, byp = r[-2:]
 	vio, (viotype, limitation, limit) = vio
-	test/vio == module.Event.violation
+	test/vio == module.ev_violation
 	test/viotype == 'limit'
 	test/limitation == 'max_header_size'
 	test/limit == 2
-	test/byp[0] == module.Event.bypass
+	test/byp[0] == module.ev_bypass
 	test/byp[1] == b"First: value\r\nSecond: value\r\n"
-	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.ev_bypass, b'Bypassed')]
 
 def test_Disassembler_limit_header_too_many(test):
 	output = []
@@ -564,14 +564,14 @@ def test_Disassembler_limit_header_too_many(test):
 	r = g.send(data)
 	vio, byp = r[-2:]
 	vio, (viotype, limitation, count, max) = vio
-	test/vio == module.Event.violation
+	test/vio == module.ev_violation
 	test/viotype == 'limit'
 	test/limitation == 'max_headers'
 	test/count == 1
 	test/max == 0
-	test/byp[0] == module.Event.bypass
+	test/byp[0] == module.ev_bypass
 	test/byp[1] == b"\r"
-	test/g.send(b'Bypassed') == [(module.Event.bypass, b'Bypassed')]
+	test/g.send(b'Bypassed') == [(module.ev_bypass, b'Bypassed')]
 
 def test_Disassembler_zero_writes(test):
 	output = []
@@ -582,8 +582,8 @@ def test_Disassembler_zero_writes(test):
 	test/g.send(b'') == []
 	test/g.send(b'') == []
 	test/g.send(data) == [
-		(module.Event.rline, (b'HTTP/1.0', b'400', b'Bad Request')),
-		(module.Event.headers, [(b'Header', b'value')])
+		(module.ev_rline, (b'HTTP/1.0', b'400', b'Bad Request')),
+		(module.ev_headers, [(b'Header', b'value')])
 	]
 
 def test_headers(test):
@@ -632,7 +632,7 @@ def test_assemble_ooo(test):
 	"""
 	# out of order assembly
 	g = module.assembly()
-	r = g.send([(module.Event.content, b'data')])
+	r = g.send([(module.ev_content, b'data')])
 	test/r == (b'data',)
 
 if __name__ == '__main__':
