@@ -672,7 +672,8 @@ def Serialization(
 			ev_content: lambda x: (x,),
 			ev_bypass: lambda x: (x,),
 			ev_message: lambda x: (),
-		}
+		},
+		bytearray=bytearray
 	):
 	"""
 	# Assemble HTTP events back into a sequences of bytes.
@@ -681,25 +682,24 @@ def Serialization(
 	events = (yield None)
 	while True:
 		buf = bytearray()
-		append = buf.__iadd__
 		seq = (buf,)
 
 		for (t, v) in events:
-
+			# keep content/chunks first to minimize transfer overhead
 			if t in chunk_map:
 				# Default to concatenation of event payload.
 				for x in (chunk_map[t](v)):
-					append(x)
-			elif t == 0: # rline_ev
-				append(b" ".join(v))
-				append(b"\r\n")
-			else: # {heavers_ev, trailers_ev}
+					buf += x
+			elif t == 0: # ev_rline
+				buf += (b" ".join(v))
+				buf += (b"\r\n")
+			else: # {ev_headers, ev_trailers}
 				if not v:
 					# end of headers
-					append(b"\r\n")
+					buf += (b"\r\n")
 				else:
-					append(b"\r\n".join(y[0] + b": " + y[1] for y in v))
-					append(b"\r\n")
+					buf += (b"\r\n".join(y[0] + b": " + y[1] for y in v))
+					buf += (b"\r\n")
 
 		events = (yield seq)
 Assembler = Serialization
