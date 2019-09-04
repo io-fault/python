@@ -43,6 +43,7 @@
 # /(identifier)`WARNING`/
 	# (&ev_warning, (type, identifier, message, context))
 """
+import typing
 import itertools
 import functools
 from .data import http as protocoldata
@@ -72,18 +73,16 @@ event_symbols = {
 EOH = (ev_headers, ())
 EOM = (ev_message, None)
 
-###
-# Field extraction and transfer length handling.
-##
-# https://tools.ietf.org/html/rfc7230#section-3.3.3
 def Tokenization(
 		disposition:str='server',
+		allocation:typing.Iterable[typing.Tuple[int,bool]]=None,
+		# Limits
 		max_line_size : int = 4096, # maximum length of the Request-Line or Response-Line
 		max_headers : int = 1024, # maximum number of headers to accept
 		max_trailers : int = 32, # maximum number of trailers to accept
-		max_header_size : int = 0xFFFF*2, # len(field-name) + len(field-value)
+		max_header_size : int = 1024*2, # len(field-name) + len(field-value)
 		max_header_set_size : int = 1024*4*2, # maximum size to scan for EOH
-		max_trailer_size : int = 0xFFFF*2, # len(field-name) + len(field-value)
+		max_trailer_size : int = 1024, # len(field-name) + len(field-value)
 		max_chunk_line_size : int = 1024, # chunk size portion, not the chunk data size
 
 		# local()-izations
@@ -109,50 +108,44 @@ def Tokenization(
 	):
 	"""
 	# An HTTP 1.0 and 1.1 message parser. Emits HTTP events from the given binary data.
+	# For proper response handling(HEAD), &allocation must be properly constructed to retrieve
+	# the identifier and body expectation from the shared state.
 
-	#!/matrix
-		# One of: (Method, Request-URI, HTTP-Version) | (HTTP-Version, Status-Code, Reason-Phrase)
-		# Zero or more of: [(field-name, field-value), ...]
-		# One of: ()
-		# Zero or more of: message-body-byte-parts
-		# One of: None # body terminator
-		# Zero or more of: [(field-name, field-value), ...] # Trailers
-		# One of: ()
+	# The generator is configured to continue as long as the given &allocation
+	# iterator produces items.
 
-	# The generator is configured to loop perpetually in order to handle pipelined
-	# requests.
-
-	# The contents of the above are all bytes() objects. No decoding is performed.
-
-	# In addition to giving structure to HTTP line and headers, it will handle the
-	# transfer encoding of the message's body. (*Not* at the entity level.)
-
-	# [ Engineering ]
-
-	# Currently, this does not properly manage the Transfer-Encoding header in
-	# if the client where to submit a TE header.
-	# This implementation only looks for a single chunked entry where a stack
-	# of applied encodings may be present.
+	# Primarily, this generator is concernced with:
+	# &<https://tools.ietf.org/html/rfc7230#section-3.3.3>
 	"""
 
 	# Parse Request and Headers
+	if allocation is None:
+		allocation = zip(
+			itertools.count(1),
+			itertools.repeat(True),
+		)
+
 	is_client = disposition == 'client'
 	message_number = -1
 	events = []
 	addev = events.append
 	fnf = -1
+	body_size = 0
 
 	req = bytearray()
 	buflen = req.__len__
 	find = req.find
-	extend = req.extend
 	startswith = req.startswith
 
-	# initial next(g)
-	extend((yield None))
-	body_size = 0
+	# Start generator and avoid entering loop before data arrives.
+	# If a custom &allocation is being used, entering the loop before
+	# data arrives might cause the loss of framing.
+	# This guard is repeated at the end of the main for-loop.
+	req += (yield None)
+	while not req:
+		req += (yield [])
 
-	while True:
+	for message_id, has_body in allocation:
 		keep_alive = None # Unspecified keep-alive
 		cl = []
 		te = []
@@ -163,7 +156,6 @@ def Tokenization(
 			b'connection': cn,
 		}
 		body_ev = content_ev # in chunking cases, this get turned into chunk_ev
-		has_body = True
 		# Content-Length/is chunking
 		size = None
 
@@ -226,13 +218,18 @@ def Tokenization(
 			headers = bytes(req[:eoh]).split(b"\r\n")
 			nheaders = len(headers)
 
-			for i in range(nheaders):
-				header = headers[i].split(b":")
-				header = headers[i] = (bstrip(header[0]), bstrip(header[1]))
+			if has_body:
+				for i in range(nheaders):
+					header = headers[i].split(b":")
+					header = headers[i] = (bstrip(header[0]), bstrip(header[1]))
 
-				field = header[0].lower()
-				if field in ctl_headers:
-					ctl_headers[field].extend(x.strip() for x in header[1].split(b','))
+					field = header[0].lower()
+					if field in ctl_headers:
+						ctl_headers[field].extend(x.strip() for x in header[1].split(b','))
+			else:
+				for i in range(nheaders):
+					header = headers[i].split(b":")
+					header = headers[i] = (bstrip(header[0]), bstrip(header[1]))
 
 			del req[:eoh+4]
 			# Terminator
@@ -286,9 +283,10 @@ def Tokenization(
 					header = (bstrip(bytes(req[:eoi])), bstrip(bytes(req[eoi+1:eof])))
 					del req[:eof+2]
 
-					field = header[0].lower()
-					if field in ctl_headers:
-						ctl_headers[field].extend(x.strip() for x in header[1].split(b','))
+					if has_body:
+						field = header[0].lower()
+						if field in ctl_headers:
+							ctl_headers[field].extend(x.strip() for x in header[1].split(b','))
 
 					add_header(header)
 					nheaders += 1
@@ -334,7 +332,7 @@ def Tokenization(
 				))
 
 			try:
-				ctl_headers[b'content-length'] = cl = size = int(cl[0])
+				ctl_headers[b'content-length'] = size = int(cl[0])
 			except ValueError:
 				addev((
 					violation_ev,
@@ -617,7 +615,16 @@ def Tokenization(
 			del events, addev
 			while True:
 				req = (yield [(bypass_ev, req)])
-	else: # for message_number in range(...):
+
+		# Don't continue the loop until there is some data.
+		# For clients that have provided a custom &allocation,
+		# it's important to avoid iterating early so that the
+		# request can properly configure &has_body.
+		while not req:
+			req += (yield events)
+			events = []
+			addev = events.append
+	else: # for message_id, has_body in allocation
 		# too many messages
 		addev((violation_ev, ('limit', 'max_messages', max_messages)))
 		del find, buflen, startswith
