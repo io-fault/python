@@ -169,7 +169,7 @@ def Tokenization(
 
 		if events and not req:
 			# flush EOM event
-			extend((yield events))
+			req += (yield events)
 			events = []
 			addev = events.append
 
@@ -187,7 +187,7 @@ def Tokenization(
 					))
 					addev((bypass_ev, req))
 
-					del find, extend, buflen, startswith
+					del find, buflen, startswith
 					req = (yield events)
 					del events, addev
 					while True:
@@ -195,7 +195,7 @@ def Tokenization(
 
 				# Need more data to complete the initial line.
 				pos = max(buflen() - 1, 0)
-				extend((yield events))
+				req += (yield events)
 				events = []
 				addev = events.append
 			elif eof == 0:
@@ -266,14 +266,14 @@ def Tokenization(
 						))
 						addev((bypass_ev, req))
 
-						del find, extend, buflen, startswith
+						del find, buflen, startswith
 						del headers, add_header
 						req = (yield events)
 						del events, addev
 						while True:
 							req = (yield [(bypass_ev, req)])
 
-					extend((yield events))
+					req += (yield events)
 					events = []
 					addev = events.append
 					# continues; no double CRLF yet.
@@ -301,7 +301,7 @@ def Tokenization(
 						))
 						addev((bypass_ev, req))
 
-						del find, extend, buflen, startswith, req
+						del find, buflen, startswith, req
 						del headers, add_header
 						req = (yield events)
 						del events, addev
@@ -343,7 +343,7 @@ def Tokenization(
 				))
 				addev((bypass_ev, req))
 
-				del find, extend, buflen, startswith, req
+				del find, buflen, startswith, req
 				req = (yield events)
 				del events, addev
 				while True:
@@ -367,7 +367,7 @@ def Tokenization(
 		if has_body is True and size is None:
 			# size was not initialized so it should assume there's no body
 			if keep_alive is not True and is_client:
-				del find, extend, buflen, startswith
+				del find, buflen, startswith
 				addev((content_ev, req))
 				req = (yield events)
 				del events, addev
@@ -396,7 +396,7 @@ def Tokenization(
 						))
 						addev((bypass_ev, req))
 
-						del find, extend, buflen, startswith, req
+						del find, buflen, startswith, req
 						req = (yield events)
 						del events, addev
 						while True:
@@ -405,7 +405,7 @@ def Tokenization(
 					# Update position to the end of buffer minus one so it's not
 					# scanning for CRLF through data that it has already scanned.
 					pos = max(buflen() - 1, 0)
-					extend((yield events))
+					req += (yield events)
 					events = []
 					addev = events.append
 					# continues
@@ -428,7 +428,7 @@ def Tokenization(
 						addev((violation_ev, ('protocol', 'chunk-field', chunk_field)))
 						addev((bypass_ev, req))
 
-						del find, extend, buflen, startswith, req
+						del find, buflen, startswith, req
 						req = (yield events)
 						del events, addev
 						while True:
@@ -499,13 +499,13 @@ def Tokenization(
 						))
 						addev((bypass_ev, req))
 
-						del find, extend, buflen, startswith
+						del find, buflen, startswith
 						req = (yield events)
 						del events, addev
 						while True:
 							req = (yield [(bypass_ev, req)])
 
-					extend((yield events))
+					req += (yield events)
 					events = []
 					addev = events.append
 
@@ -546,13 +546,13 @@ def Tokenization(
 						))
 						addev((bypass_ev, req))
 
-						del find, extend, buflen, startswith
+						del find, buflen, startswith
 						req = (yield events)
 						del events, addev
 						while True:
 							req = (yield [(bypass_ev, req)])
 
-					extend((yield events))
+					req += (yield events)
 					events = []
 					addev = events.append
 					# look for eof again
@@ -572,7 +572,7 @@ def Tokenization(
 						))
 						addev((bypass_ev, req))
 
-						del find, extend, buflen, startswith
+						del find, buflen, startswith
 						req = (yield events)
 						del events, addev
 						while True:
@@ -587,7 +587,7 @@ def Tokenization(
 						))
 						addev((bypass_ev, req))
 
-						del find, extend, buflen, startswith
+						del find, buflen, startswith
 						req = (yield events)
 						del events, addev
 						while True:
@@ -612,7 +612,7 @@ def Tokenization(
 		if keep_alive is not True:
 			if req:
 				addev((bypass_ev, req))
-			del find, extend, buflen, startswith, req
+			del find, buflen, startswith, req
 			req = (yield events)
 			del events, addev
 			while True:
@@ -620,7 +620,7 @@ def Tokenization(
 	else: # for message_number in range(...):
 		# too many messages
 		addev((violation_ev, ('limit', 'max_messages', max_messages)))
-		del find, extend, buflen, startswith
+		del find, buflen, startswith
 		while True:
 			addev((bypass_ev, req))
 			req = (yield events)
