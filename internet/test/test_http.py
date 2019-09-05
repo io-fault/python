@@ -7,6 +7,18 @@ def test_module_protocol(test):
 	'Assembler' in test/dir(module)
 	'assembly' in test/dir(module)
 
+def test_Disassembler_split_limit(test):
+	data = b"GET / HTTP/1.0\r\nLocation: https://test.fault.io/\r\n\r\n"
+	state = module.disassembly()
+	events = state.send(data)
+	x = [
+		(module.ev_rline, (b'GET', b'/', b'HTTP/1.0')),
+		(module.ev_headers, [(b'Location', b'https://test.fault.io/')]),
+		module.EOH,
+		module.EOM,
+	]
+	test/x == events
+
 def test_Disassembler_complete_request(test):
 	data = b"GET / HTTP/1.0\r\nHost: host\r\n\r\n"
 	state = module.disassembly()

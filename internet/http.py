@@ -220,15 +220,15 @@ def Tokenization(
 
 			if has_body:
 				for i in range(nheaders):
-					header = headers[i].split(b":")
-					header = headers[i] = (bstrip(header[0]), bstrip(header[1]))
+					h, v = headers[i].split(b":", 1)
+					header = headers[i] = (bstrip(h), bstrip(v))
 
 					field = header[0].lower()
 					if field in ctl_headers:
 						ctl_headers[field].extend(x.strip() for x in header[1].split(b','))
 			else:
 				for i in range(nheaders):
-					header = headers[i].split(b":")
+					header = headers[i].split(b":", 1)
 					header = headers[i] = (bstrip(header[0]), bstrip(header[1]))
 
 			del req[:eoh+4]
