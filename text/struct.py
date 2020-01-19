@@ -1,6 +1,9 @@
 """
 # Interpret a fault.text encoded data structure.
 # &protocol contains the supported types.
+
+# [ Engineering ]
+# Relocate to &..project.
 """
 import typing
 
