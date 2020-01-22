@@ -422,13 +422,15 @@ class Transform(object):
 		l = iter(sequence)
 		element = self.emit
 		escape = self.text
+		designation = sequence[-1].split(' ', 1)
 
 		yield from element('syntax',
 			chain([
 				element('line', escape(x))
 				for x in sequence[1]
 			]),
-			('type', sequence[-1])
+			('type', designation[0]),
+			('qualifier', designation[1] if designation[1:2] else None),
 		)
 
 	def process_admonition(self, tree, content):
