@@ -7,7 +7,7 @@ from ..context import string
 
 from . import core
 
-def export(paragraph):
+def export(paragraph, literal=None, reference=None):
 	"""
 	# Convert the given paragraph node into terms defined by &core.
 	"""
@@ -22,7 +22,7 @@ def export(paragraph):
 			l.append(core.Fragment(('text/emphasis/'+weight, x[1][0])))
 		elif x[0] == 'reference':
 			rtype = x[-1]['type']
-			cast = x[-1].get('cast')
+			cast = x[-1].get('cast') or reference
 
 			if rtype == 'hyperlink':
 				content = x[-1]['url']
@@ -41,7 +41,7 @@ def export(paragraph):
 
 			l.append(core.Fragment(('reference'+suffix+cast, content)))
 		elif x[0] == 'literal':
-			cast = x[-1].get('cast', '')
+			cast = x[-1].get('cast') or literal
 			if cast:
 				cast = '/' + cast
 			else:
