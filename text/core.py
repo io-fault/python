@@ -73,7 +73,7 @@ class Fragment(tuple):
 
 class Paragraph(list):
 	"""
-	# A sequenced of &Fragment instances forming a paragraph.
+	# A sequence of &Fragment instances forming a paragraph.
 	"""
 	__slots__ = ()
 
