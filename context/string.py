@@ -4,6 +4,12 @@
 import itertools
 import operator
 
+def ilevel(string:str, indentation='\t', take=itertools.takewhile, sum=sum) -> int:
+	"""
+	# Return the indentation level of the given string.
+	"""
+	return sum(1 for i in take(indentation.__eq__, string))
+
 def indent(string:str, level:int=1, indentwith:str='\t') -> str:
 	"""
 	# Indent the given &string using the &level * &indentwith.
