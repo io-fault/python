@@ -12,11 +12,21 @@ def export(paragraph, literal=None, reference=None):
 	# Convert the given paragraph node into terms defined by &core.
 	"""
 	l = []
+	former_type = None
 
 	for x in paragraph:
 		if isinstance(x, str):
-			if x:
-				l.append(core.Fragment(('text/normal', x)))
+			if not x:
+				former_type = 'text/normal'
+				continue
+
+			if x == ' ' and former_type == 'text/normal':
+				typ = 'text/line-break'
+			else:
+				typ = 'text/normal'
+			former_type = typ
+
+			l.append(core.Fragment((typ, x)))
 		elif x[0] == 'emphasis':
 			weight = str(x[-1].get('weight','1'))
 			l.append(core.Fragment(('text/emphasis/'+weight, x[1][0])))
