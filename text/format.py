@@ -8,7 +8,8 @@
 
 # [ Engineering ]
 # The current implementation of the parser failed to achieve a desired level
-# of simplicity. A rewrite is likely.
+# of simplicity. While it usually produces the desired result, the lack of
+# implementation coherency should result in a rewrite.
 """
 
 import builtins
@@ -18,6 +19,34 @@ import typing
 
 from ..context import string
 from ..context import tools
+
+# The node tree produced by parsing a document.
+Tree = typing.Tuple[str, 'Tree', dict]
+
+def parse_section_selector(string:str) -> typing.Tuple[int, typing.Sequence[str]]:
+	"""
+	# Given the contents of a section command or reference,
+	# return the depth and the section path specified within the
+	# given &string.
+	"""
+	depth = 0
+	rtitle = string.split(' ', 1)
+
+	if rtitle[0][:1] == ">":
+		# Relative
+		remainder = rtitle[0].replace('>', '')
+		shift_level = len(rtitle[0]) - len(remainder)
+		sl_multiple = int(remainder or '1') # Malformed Relative Section
+		depth += shift_level * sl_multiple
+
+		if len(rtitle) == 1 or rtitle[-1] == "":
+			path = ()
+		else:
+			path = tuple(map(str.strip, rtitle[-1].split(" >> ")))
+	else:
+		path = tuple(map(str.strip, string.split(" >> ")))
+
+	return (depth, path)
 
 # This iterator exists solely for the purpose of handling
 # transitions from set/sequence items to another type.
@@ -58,6 +87,12 @@ class Parser(object):
 		# A sequence representing the current working paragraph.
 	# /indentation/
 		# The current indentation level.
+	# /path/
+		# The current section path.
+	# /prefix/
+		# The designated bottom of the &path.
+		# Used to allow subchapter tokens to be introduced as an extension
+		# of the root chapter.
 	"""
 
 	def __init__(self):
@@ -303,29 +338,12 @@ class Parser(object):
 		if tail_length != (head_length + 1):
 			yield (lineno, 'warning', "section commands should end with an equal number of closing brackets")
 
-		depth = self.prefix
 		title = title.strip() # Strip title content.
 
 		if not title:
 			yield (lineno, 'select-section', self.prefix, ())
 		else:
-			rtitle = title.split(' ', 1)
-
-			if rtitle[0][:1] == ">":
-				# Relative
-				remainder = rtitle[0].replace('>', '')
-				shift_level = len(rtitle[0]) - len(remainder)
-				sl_multiple = int(remainder or '1') # Malformed Relative Section
-				depth += shift_level * sl_multiple
-
-				if len(rtitle) == 1 or rtitle[-1] == "":
-					path = ()
-				else:
-					path = tuple(map(str.strip, rtitle[-1].split('>>')))
-			else:
-				path = tuple(map(str.strip, title.split('>>')))
-
-			yield (lineno, 'select-section', depth, path)
+			yield (lineno, 'select-section',) + parse_section_selector(title)
 
 	def create_admonition(self, lineno, code, il, line):
 		"""
@@ -774,11 +792,7 @@ class Parser(object):
 			# exit-indentation-level causes breaks
 			pass
 
-	def parse(self,
-			source:str, newline:str='\n',
-			dictionary=collections.defaultdict,
-			set=set,
-		):
+	def parse(self, source:str, newline:str='\n') -> Tree:
 		"""
 		# Parse the source source into a tree structure.
 		"""
