@@ -67,6 +67,7 @@ class Parser(object):
 		"""
 		self.stack = [(self.__class__.process_paragraph_line, 0, self.default_commands)]
 		self.indentation = 0
+		self.path = ()
 
 	@property
 	def commands(self):
@@ -301,12 +302,22 @@ class Parser(object):
 		if tail_length != (head_length + 1):
 			yield (lineno, 'warning', "section commands should end with an equal number of closing brackets")
 
-		if title:
-			path = tuple(map(str.strip, title.split('>>')))
+		if not title:
+			yield (lineno, 'select-section', (), 1)
 		else:
-			path = ()
-
-		yield (lineno, 'select-section', path, 1)
+			rpart = [x for x in title.split(' ', 2) if x]
+			if rpart[0].startswith('>'):
+				# Relative
+				rpart.append('')
+				name = ' '.join(rpart[1:]).strip()
+				depth = rpart[0].count('>')
+				if len(rpart[0]) > depth:
+					depth = depth * int(rpart[0].replace('>', ''))
+				yield (lineno, 'select-relative-section', depth, name)
+			else:
+				# Absolute
+				path = tuple(map(str.strip, title.split('>>')))
+				yield (lineno, 'select-section', path, 1)
 
 	def create_admonition(self, lineno, code, il, line):
 		"""
@@ -710,6 +721,10 @@ class Parser(object):
 				node = block
 				ntype = 'syntax'
 				subnodes = block[1]
+			elif event == 'select-relative-section':
+				depth, name = params
+				absolute = (line, 'select-section', self.path[0:depth] + (name,), depth)
+				iterator.replay(absolute)
 			elif event == 'select-section':
 				if ntype in {'set', 'sequence'}:
 					trailing = subnodes[-1][1][-1][1]
@@ -736,6 +751,7 @@ class Parser(object):
 							sections[title[:-1]][1].append(section)
 						else:
 							root[1].append(section)
+					self.path = title
 
 					# switch to the new section context
 					ntype, subnodes, *nts = node = section
