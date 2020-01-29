@@ -68,6 +68,7 @@ class Parser(object):
 		self.stack = [(self.__class__.process_paragraph_line, 0, self.default_commands)]
 		self.indentation = 0
 		self.path = ()
+		self.prefix = 0
 
 	@property
 	def commands(self):
@@ -302,22 +303,29 @@ class Parser(object):
 		if tail_length != (head_length + 1):
 			yield (lineno, 'warning', "section commands should end with an equal number of closing brackets")
 
+		depth = self.prefix
+		title = title.strip() # Strip title content.
+
 		if not title:
-			yield (lineno, 'select-section', (), 1)
+			yield (lineno, 'select-section', self.prefix, ())
 		else:
-			rpart = [x for x in title.split(' ', 2) if x]
-			if rpart[0].startswith('>'):
+			rtitle = title.split(' ', 1)
+
+			if rtitle[0][:1] == ">":
 				# Relative
-				rpart.append('')
-				name = ' '.join(rpart[1:]).strip()
-				depth = rpart[0].count('>')
-				if len(rpart[0]) > depth:
-					depth = depth * int(rpart[0].replace('>', ''))
-				yield (lineno, 'select-relative-section', depth, name)
+				remainder = rtitle[0].replace('>', '')
+				shift_level = len(rtitle[0]) - len(remainder)
+				sl_multiple = int(remainder or '1') # Malformed Relative Section
+				depth += shift_level * sl_multiple
+
+				if len(rtitle) == 1 or rtitle[-1] == "":
+					path = ()
+				else:
+					path = tuple(map(str.strip, rtitle[-1].split('>>')))
 			else:
-				# Absolute
 				path = tuple(map(str.strip, title.split('>>')))
-				yield (lineno, 'select-section', path, 1)
+
+			yield (lineno, 'select-section', depth, path)
 
 	def create_admonition(self, lineno, code, il, line):
 		"""
@@ -721,10 +729,6 @@ class Parser(object):
 				node = block
 				ntype = 'syntax'
 				subnodes = block[1]
-			elif event == 'select-relative-section':
-				depth, name = params
-				absolute = (line, 'select-section', self.path[0:depth] + (name,), depth)
-				iterator.replay(absolute)
 			elif event == 'select-section':
 				if ntype in {'set', 'sequence'}:
 					trailing = subnodes[-1][1][-1][1]
@@ -740,7 +744,8 @@ class Parser(object):
 						event, line, indentation, params))
 				else:
 					# create or re-use a section
-					title = params[0] # tuple consisting of title path
+					depth, spath = params
+					title = self.path[self.prefix:self.prefix+depth] + spath
 
 					if title in sections:
 						section = sections[title]
@@ -751,6 +756,7 @@ class Parser(object):
 							sections[title[:-1]][1].append(section)
 						else:
 							root[1].append(section)
+
 					self.path = title
 
 					# switch to the new section context
