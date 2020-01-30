@@ -29,15 +29,16 @@ def parse_section_selector(string:str) -> typing.Tuple[int, typing.Sequence[str]
 	# return the depth and the section path specified within the
 	# given &string.
 	"""
-	depth = 0
+	shift_level = None
+	sl_multiple = None
 	rtitle = string.split(' ', 1)
 
 	if rtitle[0][:1] == ">":
 		# Relative
 		remainder = rtitle[0].replace('>', '')
 		shift_level = len(rtitle[0]) - len(remainder)
-		sl_multiple = int(remainder or '1') # Malformed Relative Section
-		depth += shift_level * sl_multiple
+		if remainder:
+			sl_multiple = int(remainder) # Malformed Relative Section
 
 		if len(rtitle) == 1 or rtitle[-1] == "":
 			path = ()
@@ -46,7 +47,7 @@ def parse_section_selector(string:str) -> typing.Tuple[int, typing.Sequence[str]
 	else:
 		path = tuple(map(str.strip, string.split(" >> ")))
 
-	return (depth, path)
+	return (shift_level, sl_multiple, path)
 
 # This iterator exists solely for the purpose of handling
 # transitions from set/sequence items to another type.
@@ -341,9 +342,9 @@ class Parser(object):
 		title = title.strip() # Strip title content.
 
 		if not title:
-			yield (lineno, 'select-section', self.prefix, ())
+			yield (lineno, 'select-section', (None, None, ()))
 		else:
-			yield (lineno, 'select-section',) + parse_section_selector(title)
+			yield (lineno, 'select-section', parse_section_selector(title))
 
 	def create_admonition(self, lineno, code, il, line):
 		"""
@@ -762,13 +763,15 @@ class Parser(object):
 						event, line, indentation, params))
 				else:
 					# create or re-use a section
-					depth, spath = params
-					title = self.path[self.prefix:self.prefix+depth] + spath
+					sl, sl_m, spath = params[0]
+					segment = (sl or 0) * (sl_m or 0)
+					prefix = self.path[self.prefix:self.prefix+segment]
+					title = prefix + spath
 
 					if title in sections:
 						section = sections[title]
 					else:
-						section = ('section', [], title)
+						section = ('section', [], (title, sl, sl_m, spath))
 						sections[title] = section
 						if len(title) > 1:
 							sections[title[:-1]][1].append(section)

@@ -7,7 +7,7 @@ from ..context import string
 
 from . import core
 
-def export(paragraph, literal=None, reference=None):
+def export(paragraph, literal=None, reference=None) -> core.Paragraph:
 	"""
 	# Convert the given paragraph node into terms defined by &core.
 	"""
@@ -460,16 +460,22 @@ class Transform(object):
 			yield from self.section_index[part[0]](self, tree, part)
 
 	def create_section(self, tree, section):
-		title = section[-1]
+		title, sl, sl_m, spath = (section[-1] or (None, None, None, None))
 		if title:
-			ident = '.'.join(string.normal(x.replace(':', ''), separator='-') for x in title)
+			abs_ident = '.'.join(string.normal(x.replace(':', ''), separator='-') for x in title)
+			abs_ident = self.identify(abs_ident)
+			ident = title[-1]
 		else:
+			abs_ident = None
 			ident = None
 
 		yield from self.emit('section',
 			self.process_section(tree, section),
-			('identifier', title[-1] if title else None),
-			('absolute', self.identify(ident) if ident is not None else None),
+			('identifier', ident),
+			('absolute', abs_ident),
+			('selector-path', spath),
+			('selector-level', sl),
+			('selector-multiple', sl_m),
 		)
 
 	def process_exception(self, tree, exception):
