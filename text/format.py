@@ -764,7 +764,7 @@ class Parser(object):
 				else:
 					# create or re-use a section
 					sl, sl_m, spath = params[0]
-					segment = (sl or 0) * (sl_m or 0)
+					segment = (sl or 0) * (1 if sl_m is None else 1)
 					prefix = self.path[self.prefix:self.prefix+segment]
 					title = prefix + spath
 

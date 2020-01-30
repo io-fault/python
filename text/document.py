@@ -462,8 +462,7 @@ class Transform(object):
 	def create_section(self, tree, section):
 		title, sl, sl_m, spath = (section[-1] or (None, None, None, None))
 		if title:
-			abs_ident = '.'.join(string.normal(x.replace(':', ''), separator='-') for x in title)
-			abs_ident = self.identify(abs_ident)
+			abs_ident = title
 			ident = title[-1]
 		else:
 			abs_ident = None
