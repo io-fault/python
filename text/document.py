@@ -1,5 +1,5 @@
 """
-# Document finalization and query tools for text node trees.
+# Document finalization and query tools for raw text node trees.
 """
 import itertools
 import typing

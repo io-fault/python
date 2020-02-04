@@ -1,10 +1,15 @@
 """
-# Parser implementation for the fault-text format.
+# Parser implementation and supporting tools for the fault-text format.
 
 # The parser is hand rolled in order to easily accommodate for grammar
 # violations, and as an attempt to display the format's simplicity. While the
 # tokenizer enjoys an easily understood implementation, syntactic analysis
 # (&Parser.structure) is hacked and nearly unreadable demanding a replacement.
+
+# [ Types ]
+
+# /Tree/
+	# The node tree produced by &Parser processing operations.
 
 # [ Engineering ]
 # The current implementation of the parser failed to achieve a desired level
