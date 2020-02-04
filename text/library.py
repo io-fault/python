@@ -3,7 +3,7 @@
 """
 
 # Paragraph primitive types.
-from .core import *
+from .types import *
 # Parser
 from . import document
 from . import format

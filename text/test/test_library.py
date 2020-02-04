@@ -1,6 +1,5 @@
 import sys
 from .. import library
-from .. import core
 
 def test_Parser_emphasis(test):
 	function = library.format.Parser.emphasis
