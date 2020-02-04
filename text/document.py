@@ -1,15 +1,16 @@
 """
-# Document querying for fault-text files.
+# Document finalization and query tools for text node trees.
 """
 import itertools
 import typing
 from ..context import string
 
 from . import core
+from . import types
 
-def export(paragraph, literal=None, reference=None) -> core.Paragraph:
+def export(paragraph, literal=None, reference=None) -> types.Paragraph:
 	"""
-	# Convert the given paragraph node into terms defined by &core.
+	# Convert the given paragraph node into terms defined by &types.
 	"""
 	l = []
 	former_type = None
@@ -26,10 +27,10 @@ def export(paragraph, literal=None, reference=None) -> core.Paragraph:
 				typ = 'text/normal'
 			former_type = typ
 
-			l.append(core.Fragment((typ, x)))
+			l.append(types.Fragment((typ, x)))
 		elif x[0] == 'emphasis':
 			weight = str(x[-1].get('weight','1'))
-			l.append(core.Fragment(('text/emphasis/'+weight, x[1][0])))
+			l.append(types.Fragment(('text/emphasis/'+weight, x[1][0])))
 		elif x[0] == 'reference':
 			rtype = x[-1]['type']
 			cast = x[-1].get('cast') or reference
@@ -49,16 +50,16 @@ def export(paragraph, literal=None, reference=None) -> core.Paragraph:
 			else:
 				cast = ''
 
-			l.append(core.Fragment(('reference'+suffix+cast, content)))
+			l.append(types.Fragment(('reference'+suffix+cast, content)))
 		elif x[0] == 'literal':
 			cast = x[-1].get('cast') or literal
 			if cast:
 				cast = '/' + cast
 			else:
 				cast = ''
-			l.append(core.Fragment(('literal/grave-accent'+cast, x[1][0])))
+			l.append(types.Fragment(('literal/grave-accent'+cast, x[1][0])))
 
-	return core.Paragraph(l)
+	return types.Paragraph(l)
 
 def sections(root) -> typing.Iterator[typing.Tuple[str, object]]:
 	"""
@@ -452,6 +453,7 @@ class Transform(object):
 		yield from element('admonition',
 			self.process_section(tree, ('admonition-content', content[1])),
 			('type', atype),
+			('title', title),
 		)
 
 	def process_section(self, tree, section):
