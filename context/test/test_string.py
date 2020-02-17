@@ -36,6 +36,10 @@ def test_varsplit(test):
 			'*', "Something" + ("*"*x) + "Following" + ("*"*x)
 		) == ["Something", x, "Following", x, '']
 
+def test_ilevel(test):
+	for i in range(12):
+		test/module.ilevel(i*"\t" + "String.") == i
+
 if __name__ == '__main__':
 	from ...test import library as libtest
 	import sys; libtest.execute(sys.modules[__name__])
