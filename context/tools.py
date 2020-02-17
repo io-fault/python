@@ -194,3 +194,21 @@ class cachedproperty(object):
 			return self
 		instance.__dict__[self.name] = result = self.method(instance)
 		return result
+
+def consistency(*iterables,
+		takewhile=itertools.takewhile,
+		zip=zip, sum=sum, len=len, set=set
+	) -> int:
+	"""
+	# Return the level of consistency among the elements produced by the given &iterables.
+	# The counting stops when an element is not equal to the others at the same index.
+
+	# More commonly, the common prefix depth or length of all the given iterables.
+	# Elements must be hashable; equality is indirectly performed by forming a set.
+	"""
+	return sum(
+		takewhile(
+			(1).__eq__,
+			(len(set(x)) for x in zip(*iterables))
+		)
+	)

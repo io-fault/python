@@ -34,6 +34,35 @@ def test_sum_lengths(test):
 	test/module.sum_lengths([(), ()]) == 0
 	test/module.sum_lengths(["a", "few", "bytes"]) == len("afewbytes")
 
+def test_consistency(test):
+	p0 = []
+	test/module.consistency(p0, p0) == 0
+
+	p1 = ['root']
+	test/module.consistency(p1, p1) == 1
+
+	p2 = ['root', 'segment-1']
+	p3 = ['root', 'segment-2']
+	test/module.consistency(p1, p2) == 1
+	test/module.consistency(p1, p3) == 1
+	test/module.consistency(p1, p2) == 1
+	test/module.consistency(p1, p2, p3) == 1
+
+	p4 = ['alt', 'segment-1']
+	test/module.consistency(p4, p2) == 0
+
+	p4 = ['alt', 'segment-1']
+	test/module.consistency(p2, p4) == 0
+
+	p5 = ['alt', 'segment-1', 'segment-2']
+	test/module.consistency(p5, p4) == 2
+
+	p6 = ['alt', 'segment-1', 'segment-2', 'segment-3']
+	test/module.consistency(p6, p5) == 3
+
+	for x in [p1, p2, p3, p4, p5]:
+		test/module.consistency(x, x) == len(x)
+
 if __name__ == '__main__':
 	from ...test import library as libtest
 	import sys; libtest.execute(sys.modules[__name__])
