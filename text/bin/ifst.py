@@ -45,25 +45,22 @@ def emit(route, data):
 	"""
 
 	for subpath, content in data.items():
-		path = route.extend(subpath.split('/'))
+		path = route + subpath.split('/')
 
 		if isinstance(content, (bytes, bytearray, memoryview)):
-			(path).init('file')
-			(path).store(content)
+			(path).fs_init(content)
 		elif isinstance(content, str):
-			(path).init('file')
+			(path).fs_init()
 			(path).set_text_content(content)
 		else:
 			assert isinstance(content, dict)
-			(path).init('directory')
+			(path).fs_mkdir()
 			emit(path, content)
 
 def instantiate(target, source, section):
 	text = source.get_text_content()
 	data = (transform(libtext.parse(text), section))
-	if not target.exists():
-		target.init('directory')
-
+	target.fs_mkdir()
 	emit(target, data)
 
 def main(inv:process.Invocation) -> process.Exit:
@@ -73,13 +70,13 @@ def main(inv:process.Invocation) -> process.Exit:
 		return inv.exit(os.EX_USAGE)
 
 	route = files.Path.from_path(target)
-	if route.exists() and not route.is_directory():
-		sys.stderr.write("! ERROR: path (%r) must be a directory.\n" %(str(route),))
+	if route.fs_type() not in {'void', 'directory'}:
+		sys.stderr.write("[!# ERROR: path (%r) must be a directory or void.]\n" %(str(route),))
 		return inv.exit(os.EX_NOINPUT)
 
 	sourcepath = files.Path.from_path(filepath)
-	if not sourcepath.exists() or sourcepath.is_directory():
-		sys.stderr.write("! ERROR: source (%r) does not exist or is a directory.\n" %(str(sourcepath),))
+	if sourcepath.fs_type() in {'void', 'directory'}:
+		sys.stderr.write("[!# ERROR: source (%r) does not exist or is a directory.]\n" %(str(sourcepath),))
 		return inv.exit(os.EX_NOINPUT)
 
 	instantiate(route, sourcepath, section)

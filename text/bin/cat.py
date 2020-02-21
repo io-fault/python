@@ -49,7 +49,7 @@ def main(inv:process.Invocation) -> process.Exit:
 		return inv.exit(os.EX_USAGE)
 
 	sourcepath = files.Path.from_path(filepath)
-	if not sourcepath.exists() or sourcepath.is_directory():
+	if sourcepath.fs_type() in {'void', 'directory'}:
 		sys.stderr.write("[!# ERROR: source (%r) does not exist or is a directory]\n" %(str(sourcepath),))
 		return inv.exit(os.EX_NOINPUT)
 
