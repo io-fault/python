@@ -102,6 +102,7 @@ class Area(rangetypes.IRange):
 	# Inclsuive Range of &Address instances. Usable with &rangetypes.Set and
 	# &rangetypes.Mapping instances.
 	"""
+	__slots__ = ()
 	Type = Address
 
 	@property
@@ -148,6 +149,7 @@ class Area(rangetypes.IRange):
 		"""
 		# Construct an &Area from the given string.
 		"""
+		T = Class.Type
 		pair = string.split(delimiter, 1)
 		if pair.__len__() == 2:
 			start_str, stop_str = pair
@@ -158,15 +160,15 @@ class Area(rangetypes.IRange):
 		start_column = '.' in start_str
 
 		if start_column:
-			start = Class.Type.from_string(start_str)
+			start = T.from_string(start_str)
 		else:
-			start = Class.Type((int(start_str), 0))
+			start = T((int(start_str), 0))
 
 		if stop_column:
-			stop = Class.Type.from_string(stop_str)
+			stop = T.from_string(stop_str)
 		else:
 			# Neither, Vertical range: "100-121"
-			stop = Class.Type((int(stop_str)+1, 0))
+			stop = T((int(stop_str)+1, 0))
 
 		return Class((start, stop))
 
