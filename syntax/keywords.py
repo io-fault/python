@@ -8,17 +8,18 @@
 # &Profile instances have limited information regarding languages and &Parser instances should
 # have naive processing algorithms. This intentional deficiency is a product of the goal to
 # keep Keywords based interpretations trivial to implement and their parameter set small so that the
-# the profile may be quickly and easily defined by users without requiring volumes of documentation.
+# the profile may be quickly and easily defined by users without requiring volumes of documentation
+# to be consumed.
 
 # [ Parser Process Methods ]
 
-# &Parser instances have two high-level methods for producing tokens: &Parser.processlines_x and
-# &Parser.processlines_c. The former resets the context provided to &Parser.delimit for each line,
+# &Parser instances have two high-level methods for producing tokens: &Parser.process_lines and
+# &Parser.process_document. The former resets the context provided to &Parser.delimit for each line,
 # and the latter maintains it throughout the lifetime of the generator.
 
-# While &Parser.processlines_c appears desireable in many cases, the limitations of &Profile instances
-# may make it reasonable to choose &Parser.processlines_x in order to avoid the effects of an
-# inaccruate profile.
+# While &Parser.process_document appears desireable in many cases, the limitations of &Profile instances
+# may make it reasonable to choose &Parser.process_lines in order to avoid the effects of an
+# inaccruate profile or a language that maintains ambiguities with respect to the parser's capabilities.
 
 # [ Engineering ]
 
@@ -353,7 +354,7 @@ class Parser(object):
 		# nested state of comments. &allocstack may be used to allocate an
 		# initial state.
 
-		# This is a relatively low-level method; &processlines_x or &processlines_c
+		# This is a relatively low-level method; &process_lines or &process_document
 		# should normally be used.
 		"""
 
@@ -429,7 +430,7 @@ class Parser(object):
 		# Tokenize a string of syntax using the language profile given to a constructor.
 
 		# Direct use of this is not recommended as boundaries are not signalled.
-		# &processlines_x or &processlines_c should be used.
+		# &process_lines or &process_document should be used.
 		# The raw tokens, however, are usable in contexts where boundary information is
 		# not desired or is not accurate enough for an application's use.
 		"""
