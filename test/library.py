@@ -212,12 +212,17 @@ class Fate(BaseException):
 		'core': ("cored", "The test caused a core image to be produced by the operating system",-1,90,"orange"),
 	}
 
-	def __init__(self, content):
+	def __init__(self, content, subtype=None):
 		self.content = content
+		self.subtype = subtype or self.name
 
 	@property
 	def descriptor(self):
-		return self.test_fate_descriptors[self.identifier]
+		return self.test_fate_descriptors[self.subtype]
+
+	@property
+	def impact(self):
+		return self.descriptor[2]
 
 	@property
 	def negative(self):
@@ -229,101 +234,6 @@ class Fate(BaseException):
 	@property
 	def contention(self):
 		pass
-
-class Pass(Fate):
-	abstract = "The test was explicitly passed by a raise."
-	impact = 1
-	name = "pass"
-	code = 0
-	color = "green"
-
-class Return(Pass):
-	abstract = "The test returned &None implying success."
-	impact = 1
-	name = "return"
-	code = 1
-	color = "green"
-
-class Explicit(Pass):
-	abstract = "The test must be explicitly invoked."
-	impact = 0
-	name = "explicit"
-	code = 2
-	color = "magenta"
-
-class Skip(Pass):
-	abstract = "The test was skipped for a specific reason."
-	impact = 0
-	name = "skip"
-	code = 3
-	color = "cyan"
-
-class Divide(Fate):
-	abstract = "The test is a container of a set of tests."
-	impact = 1 # This is positive as the division may have performed critical imports.
-	name = "divide"
-	code = 4
-	color = "blue"
-
-	def __init__(self, container, limit = 1):
-		self.content = container
-		self.tests = []
-		self.limit = limit
-
-class Fail(Fate):
-	abstract = "The test raised an exception or contended an absurdity."
-	impact = -1
-	name = "fail"
-	code = 5
-	color = "red"
-
-class Void(Fail):
-	abstract = "The coverage data of the test does not meet expectations."
-	name = "void"
-	code = 6
-	color = "red"
-
-class Expire(Fail):
-	abstract = "The test did not finish in the configured time."
-	name = "expire"
-	code = 8
-	color = "yellow"
-
-class Interrupt(Fail):
-	abstract = "The test was interrupted by a control exception."
-	name = "interrupt"
-	code = 9
-	color = "orange"
-
-class Core(Fail):
-	"""
-	# Failure cause by a process dropping a core image or similar uncontrollable crash.
-
-	# This exception is used by advanced test harnesses that execute tests in subprocesses to
-	# protect subsequent tests.
-	"""
-
-	abstract = 'The test caused a core image to be produced by the operating system.'
-	name = 'core'
-	code = 90
-	color = 'orange'
-
-fate_exceptions = {
-	x.name: x
-	for x in [
-		Fate,
-		Pass,
-		Return,
-		Explicit,
-		Skip,
-		Divide,
-		Fail,
-		Void,
-		Expire,
-		Interrupt,
-		Core,
-	]
-}
 
 class Test(object):
 	"""
@@ -354,23 +264,7 @@ class Test(object):
 	# the implementations.
 	Absurdity = Absurdity
 	Contention = Contention
-
 	Fate = Fate
-
-	Pass = Pass
-	Return = Return
-
-	Explicit = Explicit
-	Skip = Skip
-	Divide = Divide
-
-	Fail = Fail
-	Void = Void
-	Expire = Expire
-
-	# criticals
-	Interrupt = Interrupt
-	Core = Core
 
 	def __init__(self, identity, subject, *constraints, ExitStack=contextlib.ExitStack):
 		# allow explicit identity as the callable may be a wrapped function
@@ -410,7 +304,7 @@ class Test(object):
 
 		tb = None
 		if hasattr(self, 'fate'):
-			self.fail("test has already been sealed") # recursion protection
+			raise RuntimeError("test has already been sealed")
 
 		self.fate = None
 
@@ -419,29 +313,24 @@ class Test(object):
 			# Make an attempt at causing any deletions.
 			gc.collect()
 			if not isinstance(r, self.Fate):
-				self.fate = self.Return(r)
+				self.fate = self.Fate(r, subtype='return')
 			else:
 				self.fate = r
-		except (self.Pass, self.Divide) as exc:
-			tb = exc.__traceback__ = exc.__traceback__.tb_next
-			self.fate = exc
 		except BaseException as err:
-			# libtest traps any exception raised by a particular test.
-
-			if not isinstance(err, Exception) and not isinstance(err, Fate):
-				# a "control" exception.
-				# explicitly note as interrupt to consolidate identification
-				self.fate = self.Interrupt('test raised interrupt')
-				self.fate.__cause__ = err
-				raise err # e.g. kb interrupt
-			elif not isinstance(err, Fate):
-				# regular exception; a failure
-				tb = err.__traceback__ = err.__traceback__.tb_next
-				self.fate = self.Fail('test raised exception')
-				self.fate.__cause__ = err
-			else:
+			if isinstance(err, self.Fate):
 				tb = err.__traceback__ = err.__traceback__.tb_next
 				self.fate = err
+			elif not isinstance(err, Exception):
+				# a "control" exception.
+				# explicitly note as interrupt to consolidate identification
+				self.fate = self.Fate('test raised interrupt', subtype='interrupt')
+				self.fate.__cause__ = err
+				raise err # e.g. kb interrupt
+			else:
+				# regular exception; a failure
+				tb = err.__traceback__ = err.__traceback__.tb_next
+				self.fate = self.Fate('test raised exception', subtype='fail')
+				self.fate.__cause__ = err
 
 		if tb is not None:
 			self.fate.line = tb.tb_lineno
@@ -450,20 +339,20 @@ class Test(object):
 		"""
 		# Used by test subjects to inhibit runs of a particular test in aggregate runs.
 		"""
-		raise self.Explicit("test must be explicitly invoked in order to run")
+		raise self.Fate("test must be explicitly invoked in order to run", subtype='explicit')
 
 	def skip(self, condition):
 		"""
 		# Used by test subjects to skip the test given that the provided &condition is
 		# &True.
 		"""
-		if condition: raise self.Skip(condition)
+		if condition: raise self.Fate(condition, subtype='skip')
 
 	def fail(self, cause):
-		raise self.Fail(cause)
+		raise self.Fate(cause, subtype='fail')
 
 	def timeout(self, *args, cause='signal'):
-		raise self.Expire(cause)
+		raise self.Fate(cause, subtype='expire')
 
 	def trap(self):
 		"""
@@ -493,7 +382,7 @@ class Test(object):
 			if minimum is not None and (
 				unreachable < minimum
 			):
-				raise test.Fail('missed garbage collection expectation')
+				raise test.Fail("missed garbage collection expectation")
 		del collect
 	except ImportError:
 		def garbage(self, *args, **kw):
@@ -512,9 +401,6 @@ class Harness(object):
 	"""
 
 	Test = Test
-	Fail = Fail
-	Divide = Divide
-	Core = Core
 
 	def __init__(self, package):
 		"""
@@ -563,7 +449,7 @@ class Harness(object):
 			# allow module to skip the entire set
 			module.__test__(test)
 
-		raise self.Divide(module)
+		raise self.Test.Fate(module, subtype='divide')
 
 	def test_package(self, test):
 		"""
@@ -588,7 +474,7 @@ class Harness(object):
 			for x in seq if x[0]
 		])
 
-		raise self.Divide(module)
+		raise self.Test.Fate(module, subtype='divide')
 
 	def test_root(self, package):
 		"""
