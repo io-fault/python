@@ -6,7 +6,8 @@ def test_Test_fail(test):
 		local.fail("foo")
 	t = library.Test(None, test_function)
 	t.seal()
-	test.isinstance(t.fate, library.Fail)
+	test.isinstance(t.fate, library.Fate)
+	test/t.fate.subtype == 'fail'
 	test/"foo" == t.fate.content
 
 def test_Test_error(test):
@@ -14,7 +15,8 @@ def test_Test_error(test):
 		raise TypeError("foo")
 	t = library.Test(None, t)
 	t.seal()
-	test.isinstance(t.fate, library.Fail)
+	test.isinstance(t.fate, library.Fate)
+	test/t.fate.subtype == 'fail'
 
 def raise_parameter(excvalue):
 	raise excvalue
@@ -24,7 +26,8 @@ def test_Test_skip(test):
 		it.skip("test")
 	t = library.Test(None, f)
 	t.seal()
-	test.isinstance(t.fate, library.Skip)
+	test.isinstance(t.fate, library.Fate)
+	test/t.fate.subtype == 'skip'
 	test/"test" == t.fate.content
 
 def test_Contention(test, partial = functools.partial):
