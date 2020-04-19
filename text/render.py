@@ -103,7 +103,7 @@ def paragraph(para:types.Paragraph) -> Image:
 		line.append(pf)
 		l += len(pf)
 
-		if x == ('text', 'line-break'):
+		if f[0] == 'text/line-break':
 			yield line
 			line = []
 			l = 0
