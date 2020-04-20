@@ -74,7 +74,7 @@ _p_fragments = {
 	('reference', 'section'): section_reference,
 	('literal', 'grave-accent'): literal,
 	('text', 'normal'): (lambda x: x),
-	('text', 'line-break'): (lambda x: "\n"),
+	('text', 'line-break'): (lambda x: " "),
 	('text', 'emphasis'): (lambda x: x),
 }
 
