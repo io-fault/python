@@ -88,9 +88,9 @@ type_codes = {
 	"#Δ": 'report-snapshot-transfer',
 
 	# System processes, virtual processes, transfers, etc.
-	"->": 'transaction-started', # [-> (system/pid) parameters*]
-	"--": 'transaction-status', # [-- (system/pid) ...]
-	"<-": 'transaction-stopped', # [<- (system/pid) Status-Identifier Conclusion ...]
+	"->": 'transaction-started', # [-> ...]
+	"--": 'transaction-status', # [-- ...]
+	"<-": 'transaction-stopped', # [<- ...]
 
 	# Resource Content Manipulation
 	"+=": 'resource-inserted-units', # append
