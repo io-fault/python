@@ -81,7 +81,7 @@ type_codes = {
 
 	# System processes, virtual processes, transfers, etc.
 	"->": 'transaction-started', # [-> (system/pid) parameters*]
-	"::": 'transaction-pulsed', # [:: (system/pid) ...]
+	"--": 'transaction-status', # [-- (system/pid) ...]
 	"<-": 'transaction-stopped', # [<- (system/pid) Status-Identifier Conclusion ...]
 
 	# Resource Content Manipulation
