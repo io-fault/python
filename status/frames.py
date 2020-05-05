@@ -1,7 +1,7 @@
 """
-# Status frame (message) transport envelope formatting and parsing tools.
+# Formatting and parsing tools for status frame transport envelopes.
 
-# Module provides conceptual definitions for Status Frame events (&types.EStruct) and
+# This module provides conceptual definitions for Status Frame events (&types.EStruct) and
 # I/O operations supporting the transmission of those events.
 
 # Status Frames are &types.Message instances that can be serialized into and parsed from a data stream.
@@ -16,16 +16,24 @@
 
 # Frame envelopes may or may not have content (data extensions):
 # #!/pl/python
-	msg = types.Message.from_string_v1("message-application[!#]: ERROR: no such resource", protocol=frames.protocol)
+	msg = types.Message.from_string_v1(
+		"message-application[!#]: ERROR: no such resource",
+		protocol=frames.protocol)
 	sys.stdout.write(dumpframe((None, msg)))
+
 	"[!# ERROR: no such resource]\n"
 
 # Errors from a particular protocol have to be contained:
 # #!/pl/python
-	err = types.Failure.from_string_v1("NOT FOUND[404]: no such resource", protocol="http://ietf.org/../http")
-	msg = types.Message.from_string_v1("message-application[!#]: ERROR: no such resource", protocol=frames.protocol)
+	err = types.Failure.from_string_v1(
+		"NOT FOUND[404]: no such resource",
+		protocol="http://ietf.org/../http")
+	msg = types.Message.from_string_v1(
+		"message-application[!#]: ERROR: no such resource",
+		protocol=frames.protocol)
 	msg.msg_parameters['data'] = err
 	sys.stdout.write(dumpframe((None, msg)))
+
 	"[!# ERROR: no such resource (+)]" # base64 data extension omitted
 
 # Serialized messages are expected to include the trailing newline:
