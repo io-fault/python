@@ -80,15 +80,15 @@ def strict():
 	str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in reserved_chars] + list(range(0,33))})
 
 _uri_escape = (lambda x: ''.join(map(_pct_encode, x.encode('utf-8'))))
-_percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%"] + list(range(0,33))})
-_user_percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%@:/?#"] + list(range(0,33))})
-_password_percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%@/?#"] + list(range(0,33))})
+_mktrans = (lambda z: str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in z] + list(range(0,33))}))
+_percent_translations = _mktrans("%")
+_user_percent_translations = _mktrans("%@:/?#")
+_password_percent_translations = _mktrans("%@/?#")
 _host_percent_translations = _port_percent_translations = \
-_primary_percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%/?#"] + list(range(0,33))})
-_fragment_percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%?#"] + list(range(0,33))})
-
-_query_key_percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%&#="] + list(range(0,33))})
-_query_value_percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%&#"] + list(range(0,33))})
+_primary_percent_translations = _mktrans("%/?#")
+_fragment_percent_translations = _mktrans("%?#")
+_query_key_percent_translations = _mktrans("%&#=")
+_query_value_percent_translations = _mktrans("%&#")
 
 if 0:
 	percent_escapes = {}
