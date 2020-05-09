@@ -125,6 +125,7 @@ do
 		compile ${CC:-cc} -v -o "../../${modname}.${platsuffix}" \
 			-I$sdk/python/include/src \
 			-I$sdk/posix/include/src \
+			-I$fault_dir/system/include/src \
 			-I$prefix/include \
 			-I$prefix/include/python$pyversion$pyabi \
 			"-DF_SYSTEM=$defsys" \
