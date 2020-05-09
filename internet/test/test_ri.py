@@ -1,4 +1,4 @@
-from .. import ri as library
+from .. import ri as module
 
 def cmbx(t):
 	"""
@@ -461,14 +461,14 @@ def test_expectations(test):
 	for x in expectation_samples:
 		text, split, parsed = x
 
-		text_split = library.split(text)
-		text_parsed = library.parse(text)
+		text_split = module.split(text)
+		text_parsed = module.parse(text)
 
-		split_join = library.join(split)
-		split_structure = library.structure(split)
+		split_join = module.join(split)
+		split_structure = module.structure(split)
 
-		parsed_construct = library.construct(parsed)
-		parsed_serialize = library.serialize(parsed)
+		parsed_construct = module.construct(parsed)
+		parsed_serialize = module.serialize(parsed)
 
 		test/text_parsed == parsed
 		test/parsed_serialize == text
@@ -479,36 +479,50 @@ def test_expectations(test):
 
 def test_split_join_netloc(test):
 	for x in sample_join_netlocs:
-		sn = library.split_netloc(x)
-		usn = library.join_netloc(sn)
+		sn = module.split_netloc(x)
+		usn = module.join_netloc(sn)
 		test/usn == x
 
 def test_join_split_netloc(test):
 	for xx in sample_split_netlocs:
 		for x in cmbx(xx):
 			x = tuple(x)
-			un = library.join_netloc(x)
-			sn = tuple(library.split_netloc(un))
+			un = module.join_netloc(x)
+			sn = tuple(module.split_netloc(un))
 			test/sn == x
 
 def test_split_join_path(test):
 	for x in sample_join_paths:
-		s = library.split_path(x)
-		us = library.join_path(s)
+		s = module.split_path(x)
+		us = module.join_path(s)
 		test/us == x
 
 def test_join_split_path(test):
 	for x in sample_paths:
-		us = library.join_path(x)
-		s = library.split_path(us)
+		us = module.join_path(x)
+		s = module.split_path(us)
 		test/s == x
 
-def test_combinations(test, S = library.serialize, P = library.parse):
+def test_combinations(test, S=module.serialize, P=module.parse):
 	for x in samples():
 		s = S(x); p = P(s)
 		if p != x:
 			test.fail("%r -> %r != %r" %(x, s, p))
 
+def test_strict(test):
+	"""
+	# - &module.strict
+	"""
+	module.strict()
+	strtmp = "http://test/%s?%s=%s"
+	path = ";()@:"
+	query = "slash/"
+	setting = "+="
+	ri = module.parse(strtmp %(path, query, setting))
+	escaped = tuple(x.translate(module._percent_translations) for x in [path, query, setting])
+
+	test/module.serialize(ri) == (strtmp % escaped)
+
 if __name__ == '__main__':
 	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules['__name__'])
+	libtest.execute(sys.modules[__name__])

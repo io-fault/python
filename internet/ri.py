@@ -36,6 +36,7 @@
 import collections
 
 scheme_chars = '-.+0123456789'
+reserved_chars = "%!*'();:@&=+$,/?#[]"
 
 _pct_encode = '%%%0.2X'.__mod__
 
@@ -49,10 +50,40 @@ def _decode_parts(string, chr=chr, int=int):
 def decode_percent_escapes(string, parse=_decode_parts):
 	return ''.join(parse(string))
 
+def strict():
+	"""
+	# Enable strict serializations.
+	# When performed on a cached import, this will effect the entire process.
+
+	# In order to isolate the effect to a certain part of the process, the module should
+	# be created from the loader and &strict should be called relative to the local copy.
+	"""
+	global _percent_translations
+	global _primary_percent_translations
+	global _user_percent_translations
+	global _password_percent_translations
+	global _host_percent_translations
+	global _port_percent_translations
+	global _query_key_percent_translations
+	global _query_value_percent_translations
+	global _fragment_percent_translations
+
+	_percent_translations = \
+	_primary_percent_translations = \
+	_user_percent_translations = \
+	_password_percent_translations = \
+	_host_percent_translations = \
+	_port_percent_translations = \
+	_query_key_percent_translations = \
+	_query_value_percent_translations = \
+	_fragment_percent_translations = \
+	str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in reserved_chars] + list(range(0,33))})
+
 _uri_escape = (lambda x: ''.join(map(_pct_encode, x.encode('utf-8'))))
 _percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%"] + list(range(0,33))})
 _user_percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%@:/?#"] + list(range(0,33))})
 _password_percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%@/?#"] + list(range(0,33))})
+_host_percent_translations = _port_percent_translations = \
 _primary_percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%/?#"] + list(range(0,33))})
 _fragment_percent_translations = str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in "%?#"] + list(range(0,33))})
 
@@ -206,14 +237,14 @@ def split(iri, _scheme_char_set=set(scheme_chars)):
 
 	return Parts(type, scheme, netloc, path, query, fragment)
 
-def join_path(p, _escape_path=_primary_percent_translations):
+def join_path(p):
 	"""
 	# Join a list of paths(strings) on "/" *after* escaping them.
 	"""
 
 	if not p:
 		return None
-	return '/'.join([x.translate(_escape_path) for x in p])
+	return '/'.join([x.translate(_primary_percent_translations) for x in p])
 
 unsplit_path = join_path
 
@@ -313,12 +344,7 @@ def split_netloc(netloc, fieldproc=decode_percent_escapes):
 
 	return (user, password, addr, port)
 
-def join_netloc(t,
-		_escape_user=_user_percent_translations,
-		_escape_password=_password_percent_translations,
-		_escape_host=_primary_percent_translations,
-		_escape_port=_primary_percent_translations
-	):
+def join_netloc(t):
 	"""
 	# Create a netloc fragment from the given tuple(user,password,host,port).
 	"""
@@ -328,17 +354,17 @@ def join_netloc(t,
 
 	s = ''
 	if t[0] is not None:
-		s += t[0].translate(_escape_user)
+		s += t[0].translate(_user_percent_translations)
 		if t[1] is not None:
 			s += ':'
-			s += t[1].translate(_escape_password)
+			s += t[1].translate(_password_percent_translations)
 		s += '@'
 
 	if t[2] is not None:
-		s += t[2].translate(_escape_host)
+		s += t[2].translate(_host_percent_translations)
 		if t[3] is not None:
 			s += ':'
-			s += t[3].translate(_escape_port)
+			s += t[3].translate(_port_percent_translations)
 
 	return s
 
@@ -392,10 +418,7 @@ def structure(t, fieldproc=decode_percent_escapes, tuple=tuple, list=list, map=m
 		d['fragment'] = fieldproc(t[5])
 	return d
 
-def construct_query(x,
-		_key_escape=_query_key_percent_translations,
-		_value_escape=_query_value_percent_translations,
-	):
+def construct_query(x):
 	"""
 	# Given a sequence of (key, value) pairs, construct.
 	"""
@@ -403,10 +426,10 @@ def construct_query(x,
 	return '&'.join([
 		v is not None and \
 		'='.join((
-			k.translate(_key_escape),
-			v.translate(_value_escape),
+			k.translate(_query_key_percent_translations),
+			v.translate(_query_value_percent_translations),
 		)) or \
-		k.translate(_key_escape)
+		k.translate(_query_key_percent_translations)
 		for k, v in x
 	])
 
@@ -446,7 +469,7 @@ def construct(x):
 		p, q, f
 	)
 
-def parse(iri, structure = structure, split = split, fieldproc = decode_percent_escapes):
+def parse(iri, structure=structure, split=split, fieldproc=decode_percent_escapes):
 	"""
 	# Parse an RI into a dictionary object. Synonym for `structure(split(x))`.
 
@@ -456,7 +479,7 @@ def parse(iri, structure = structure, split = split, fieldproc = decode_percent_
 
 	return structure(split(iri), fieldproc = fieldproc)
 
-def serialize(x, join = join, construct = construct):
+def serialize(x, join=join, construct=construct):
 	"""
 	# Return an RI from a dictionary object. Synonym for `join(construct(x))`.
 	"""
@@ -481,10 +504,6 @@ def http(struct):
 
 def context_tokens(
 		scheme, type, user, password, host, port,
-		_escape_user=_user_percent_translations,
-		_escape_password=_password_percent_translations,
-		_escape_host=_primary_percent_translations,
-		_escape_port=_primary_percent_translations,
 		ri_type_delimiters = {
 			'relative': '//',
 			'authority': '://',
@@ -503,26 +522,23 @@ def context_tokens(
 
 	# Needs escaping.
 	if user is not None:
-		yield ('user', user.translate(_escape_user))
+		yield ('user', user.translate(_user_percent_translations))
 
 	if password is not None:
 		yield ('delimiter', ":")
-		yield ('delimiter', password.translate(_escape_password))
+		yield ('delimiter', password.translate(_password_percent_translations))
 
 	if user is not None or password is not None:
 		yield ('delimiter', "@")
 
 	if host is not None:
-		yield ('host', host.translate(_escape_host))
+		yield ('host', host.translate(_host_percent_translations))
 
 	if port is not None:
 		yield ('delimiter', ':')
-		yield ('port', port.translate(_escape_port))
+		yield ('port', port.translate(_port_percent_translations))
 
-def query_tokens(query,
-		_escape_key=_query_key_percent_translations,
-		_escape_value=_query_value_percent_translations,
-	):
+def query_tokens(query):
 	if query is None:
 		return
 	yield ('delimiter', "?")
@@ -532,28 +548,28 @@ def query_tokens(query,
 		if not k and v is None:
 			pass
 		else:
-			yield ('query-key', k.translate(_escape_key))
+			yield ('query-key', k.translate(_query_key_percent_translations))
 			if v is not None:
 				yield ('delimiter', "=")
-				yield ('query-value', (v or '').translate(_escape_value))
+				yield ('query-value', (v or '').translate(_query_value_percent_translations))
 
 	for k, v in query[1:]:
 		yield ('delimiter', "&")
 
 		if not k and v is None:
 			continue
-		yield ('query-key', k.translate(_escape_key))
+		yield ('query-key', k.translate(_query_key_percent_translations))
 		if v is not None:
 			yield ('delimiter', "=")
-			yield ('query-value', (v or '').translate(_escape_value))
+			yield ('query-value', (v or '').translate(_query_value_percent_translations))
 
-def fragment_tokens(fragment, _escape_fragment=_fragment_percent_translations):
+def fragment_tokens(fragment):
 	if fragment is None:
 		return
 	yield ('delimiter', "#")
-	yield ('fragment', fragment.translate(_escape_fragment))
+	yield ('fragment', fragment.translate(_fragment_percent_translations))
 
-def path_tokens(root, path, _escape_path=_primary_percent_translations):
+def path_tokens(root, path):
 	if path is None and root is None:
 		return
 
@@ -578,26 +594,26 @@ def path_tokens(root, path, _escape_path=_primary_percent_translations):
 	if roots:
 		yield ('delimiter-path-initial', "/")
 		for root in roots[:-1]:
-			yield ('path-root', root.translate(_escape_path))
+			yield ('path-root', root.translate(_primary_percent_translations))
 			yield ('delimiter-path-root', "/")
 		else:
-			yield ('path-root', roots[-1].translate(_escape_path))
+			yield ('path-root', roots[-1].translate(_primary_percent_translations))
 		if rsrc is None:
 			return
 
 	if segments:
 		if not roots:
 			yield ('delimiter-path-initial', "/")
-			yield ('path-segment', segments[0].translate(_escape_path))
+			yield ('path-segment', segments[0].translate(_primary_percent_translations))
 			del segments[0]
 
 		for segment in segments:
 			yield ('delimiter-path-segments', "/")
-			yield ('path-segment', segment.translate(_escape_path))
+			yield ('path-segment', segment.translate(_primary_percent_translations))
 
 	if rsrc is not None:
 		yield ('delimiter-path-final', "/")
-		yield ('resource', rsrc.translate(_escape_path))
+		yield ('resource', rsrc.translate(_primary_percent_translations))
 
 def tokens(struct, list=list, map=map):
 	"""
