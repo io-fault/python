@@ -49,44 +49,40 @@ class Profile(tuple):
 
 	@classmethod
 	def from_keywords_v1(Class,
-			metawords=(),
-			keywords=(),
-			corewords=(),
-			literals=(),
 			exclusions=(),
+			literals=(),
 			enclosures=(),
 			routers=(),
-			terminators=(),
 			operations=(),
+			terminators=(),
+			**wordtypes
 		):
-		return Class(map(set, (
-			metawords, keywords,
+		fields = list(map(set, (
+			map(tuple, exclusions),
 			map(tuple, literals),
 			map(tuple, enclosures),
-			terminators,
 			routers,
 			operations,
-
-			map(tuple, exclusions), corewords,
+			terminators,
 		)))
+		fields.append({k:set(v) for k, v in wordtypes.items()})
+		return Class(fields)
 
 	@property
-	def metawords(self) -> typing.Set[str]:
+	def words(self) -> typing.Mapping[str, typing.Set[str]]:
 		"""
-		# Preprocessing directives commonly available to the language.
-		# Used by C-like lanaguages, but limited to single forms. If the language
-		# allows directive-words to be formatted in multiple ways, no
-		# accommodation will be made by &Parser.
+		# Dictionary associating sets of identifier strings with a classification identifier.
+		"""
+		return self[-1]
+
+	@property
+	def exclusions(self) -> typing.Set[typing.Tuple[str,str]]:
+		"""
+		# Comment start and stop pairs delimiting an excluded area from the source.
+
+		# Exclusions are given the second highest priority by &Parser.
 		"""
 		return self[0]
-
-	@property
-	def keywords(self) -> typing.Set[str]:
-		"""
-		# Words reserved by the language.
-		# This should normally be the union of keywords from all versions of the language.
-		"""
-		return self[1]
 
 	@property
 	def literals(self) -> typing.Set[typing.Tuple[str,str]]:
@@ -97,16 +93,7 @@ class Profile(tuple):
 
 		# Literals are given the highest priority by &Parser.
 		"""
-		return self[2]
-
-	@property
-	def exclusions(self) -> typing.Set[typing.Tuple[str,str]]:
-		"""
-		# Comment start and stop pairs delimiting an excluded area from the source.
-
-		# Exclusions are given the second highest priority by &Parser.
-		"""
-		return self[-2]
+		return self[1]
 
 	@property
 	def enclosures(self) -> typing.Set[typing.Tuple[str,str]]:
@@ -115,21 +102,14 @@ class Profile(tuple):
 
 		# Enclosures have the highest precedence during expression processing.
 		"""
-		return self[3]
-
-	@property
-	def terminators(self) -> typing.Set[str]:
-		"""
-		# Operators used to designate the end of a statement, expression, or field.
-		"""
-		return self[4]
+		return self[2]
 
 	@property
 	def routers(self) -> typing.Set[str]:
 		"""
 		# Operators used to designate a resolution path for selecting an object to be used.
 		"""
-		return self[5]
+		return self[3]
 
 	@property
 	def operations(self) -> typing.Set[str]:
@@ -137,16 +117,14 @@ class Profile(tuple):
 		# Set of operators that can perform some manipulation to the objects associated
 		# with the adjacent identifiers.
 		"""
-		return self[6]
+		return self[4]
 
 	@property
-	def corewords(self) -> typing.Set[str]:
+	def terminators(self) -> typing.Set[str]:
 		"""
-		# Names of builtins used by the language.
-
-		# This set of identifiers has the lowest precedence.
+		# Operators used to designate the end of a statement, expression, or field.
 		"""
-		return self[-1]
+		return self[5]
 
 	@property
 	def operators(self) -> typing.Iterable[str]:
@@ -217,15 +195,12 @@ class Parser(object):
 		"""
 
 		# Identifier classification
-		def classify_identifier(word, MW=profile.metawords, KW=profile.keywords, CW=profile.corewords):
-			if word in KW:
-				return 'keyword'
-			elif word in CW:
-				return 'coreword'
-			elif word in MW:
-				return 'metaword'
-			else:
-				return 'identifier'
+		def classify_identifier(word, wtypes=profile.words):
+			for typid, wordset in wtypes.items():
+				if word in wordset:
+					return typid
+
+			return 'identifier'
 
 		# Assign integer identities for multi-character tokens and end-of-line.
 		opmap = {x[-1]: x for x in profile.operators}

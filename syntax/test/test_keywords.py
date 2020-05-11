@@ -6,16 +6,17 @@ from .. import keywords as module
 def mkcsubset(Type):
 	# C++ subset used by tests.
 	return Type.from_keywords_v1(
-		metawords = ['#ifdef', '#if', '#endif', '#pragma'],
-		keywords = ['return', 'goto'],
-		corewords = ["printf", "scanf"],
-
 		exclusions = [("/*", "*/"), ("//", "")],
 		literals = [('"', '"'), ("'", "'")],
 		enclosures = [("(", ")")],
 		terminators = [";", ","],
 		routers = [".", "->", "::"],
 		operations = ["+", "-", ">", "<", "--", "++"],
+
+		# Word types.
+		keyword = ['return', 'goto'],
+		coreword = ['printf', 'scanf'],
+		metaword = ['#ifdef', '#if', '#endif', '#pragma'],
 	)
 
 def test_Profile_constructors_v1(test):
@@ -26,27 +27,23 @@ def test_Profile_constructors_v1(test):
 
 	# Testing effect of improperly created instance.
 	x = Type(())
-	test/IndexError ^ (lambda: x.metawords)
-	test/IndexError ^ (lambda: x.keywords)
+	test/IndexError ^ (lambda: x.words)
 	test/IndexError ^ (lambda: x.literals)
 	test/IndexError ^ (lambda: x.exclusions)
 	test/IndexError ^ (lambda: x.enclosures)
 	test/IndexError ^ (lambda: x.routers)
 	test/IndexError ^ (lambda: x.terminators)
 	test/IndexError ^ (lambda: x.operations)
-	test/IndexError ^ (lambda: x.corewords)
 
 	# All fields should be sets.
 	emptied = Type.from_keywords_v1()
-	test.isinstance(emptied.metawords, set)
-	test.isinstance(emptied.keywords, set)
+	test.isinstance(emptied.words, dict)
 	test.isinstance(emptied.literals, set)
 	test.isinstance(emptied.exclusions, set)
 	test.isinstance(emptied.enclosures, set)
 	test.isinstance(emptied.routers, set)
 	test.isinstance(emptied.terminators, set)
 	test.isinstance(emptied.operations, set)
-	test.isinstance(emptied.corewords, set)
 
 	x = mkcsubset(Type)
 	test/(("(", ")") in x.enclosures) == True
