@@ -43,9 +43,11 @@ def structure(parts):
 	rpath, default_apath = _hash_pair(stem)
 
 	mirrors = [x[1:] for x in footer if x[:1] == '=']
+	rheader = rrecords[0] #* No representation header.
+
 	records = [
 		(x[0][:2], (x[0][2], x[1][0], x[1][1]))
-		for x in [_parse_rtype(y) for y in rrecords]
+		for x in [_parse_rtype(y) for y in rrecords[1:]]
 	]
 
 	# Find integrity specification
@@ -60,8 +62,10 @@ def structure(parts):
 		'canonical': root + rpath,
 		'root': root,
 		'path': rpath,
-		'integrity-method': hash_method,
-		'referent': (default_apath, int(isize), ihash),
+		'type-set': rheader[0].strip('[]'),
+		'resource-units': rheader[1],
+		'identification-method': rheader[2],
+
 		'representation': records,
 		'mirrors': mirrors,
 	}
@@ -76,7 +80,6 @@ def select(struct:dict, type:str=None, suffix:str=None) -> str:
 	# in the order that they appeared in the reference file.
 	"""
 
-	default_apath = struct['referent'][0]
 	xsuffix = ''
 	if type is None and suffix is None:
 		# Select first if no requirement is supplied.
@@ -95,7 +98,7 @@ def select(struct:dict, type:str=None, suffix:str=None) -> str:
 			yield None
 			return
 
-	yield (stype, ident[0] or default_apath, ident[1], ident[2])
+	yield (stype, ident[0], ident[1], ident[2])
 	yield struct['canonical'] + xsuffix
 	for m in struct.get('mirrors', ()):
 		yield m + iri
