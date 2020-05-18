@@ -80,33 +80,17 @@ def select(struct:dict, type:str=None, suffix:str=None) -> str:
 	# in the order that they appeared in the reference file.
 	"""
 
-	xsuffix = ''
-	if type is None and suffix is None:
-		# Select first if no requirement is supplied.
-		(stype, xsuffix), ident = struct['representation'][0]
-		iri = struct['path'] + xsuffix
-	else:
-		for (rtype, rsuffix), ident in struct['representation']:
-			rcmp = (rtype if type is None else type, rsuffix if suffix is None else suffix)
-			if rcmp == (rtype, rsuffix):
-				iri = struct['path'] + rsuffix
-				xsuffix = rsuffix
-				stype = rtype
-				break
-		else:
-			# No matching entries.
-			yield None
-			return
-
-	yield (stype, ident[0], ident[1], ident[2])
-	yield struct['canonical'] + xsuffix
-	for m in struct.get('mirrors', ()):
-		yield m + iri
+	for (rtype, rsuffix), ident in struct['representation']:
+		rcmp = (rtype if type is None else type, rsuffix if suffix is None else suffix)
+		if rcmp == (rtype, rsuffix):
+			iri = struct['path'] + rsuffix
+			mirrors = (m + iri for m in struct.get('mirrors', ()))
+			yield (rtype,) + ident, struct['canonical'] + rsuffix, mirrors
 
 if __name__ == '__main__':
 	import sys
 	y = (structure(split(sys.stdin.read())))
-	meta, ciri, *mirrors = select(y)
-	print(ciri)
-	if mirrors:
+	for (meta, ciri, mirrors) in select(y):
+		print(meta)
+		print(ciri)
 		print("\n".join(mirrors))
