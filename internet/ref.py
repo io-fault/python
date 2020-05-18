@@ -5,14 +5,13 @@
 def split(text, _filter=(lambda i: [x for x in i if x and not x[:1] == '#'])):
 	header, *body, footer = text.split('\n\t')
 	canonical, stem = _filter(header.split('\n'))
-	stem, isize, ihash = stem.split(' ', 2)
 
 	footer = footer.split('\n')
 	body.extend(footer[0:1])
 	del footer[0:1]
 	body = [tuple(x.rsplit(' ', 2)) for x in body if x and not x[:1] == '#']
 
-	return canonical, stem, isize, ihash, body, _filter(footer)
+	return canonical, stem, body, _filter(footer)
 
 def _hash_pair(s):
 	index = s.find('#')
@@ -39,11 +38,23 @@ def _parse_rtype(fields):
 	return (typ, suffix, lpath), fields[1:]
 
 def structure(parts):
-	canonical, stem, isize, ihash, rrecords, footer = parts
+	canonical, stem, rrecords, footer = parts
 	root, hash_method = _hash_pair(canonical[1:])
 	rpath, default_apath = _hash_pair(stem)
 
 	mirrors = [x[1:] for x in footer if x[:1] == '=']
+	records = [
+		(x[0][:2], (x[0][2], x[1][0], x[1][1]))
+		for x in [_parse_rtype(y) for y in rrecords]
+	]
+
+	# Find integrity specification
+	for i, r in zip(range(len(records)), records):
+		if r[0][0] is not None and r[0][0][:1] == '#':
+			del records[i:i+1]
+			hash_method = r[0][0][1:]
+			lpath, isize, ihash = r[1]
+			break
 
 	return {
 		'canonical': root + rpath,
@@ -51,10 +62,7 @@ def structure(parts):
 		'path': rpath,
 		'integrity-method': hash_method,
 		'referent': (default_apath, int(isize), ihash),
-		'representation': [
-			(x[0][:2], (x[0][2], x[1][0], x[1][1]))
-			for x in [_parse_rtype(y) for y in rrecords]
-		],
+		'representation': records,
 		'mirrors': mirrors,
 	}
 
