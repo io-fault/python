@@ -1,8 +1,6 @@
 """
-# fault core libraries and utilities.
+# fault core python libraries.
 """
-__factor_type__ = 'context'
-__canonical__ = 'fault' # canonical package name
 
 try:
 	from . import context
