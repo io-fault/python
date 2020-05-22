@@ -3,20 +3,15 @@
 		&<http://if.fault.io/project/information>
 
 /identifier/
-	`http://fault.io/python/status`
+	&<http://fault.io/python/status>
+/icon/
+	- (emoji)`🔻`
 /name/
 	`status`
 /abstract/
 	Structures and formats for Error and State reporting.
-/icon/
-	- (emoji)`🔻`
 
-/versioning/
-	continuous
-/status/
-	volatile
-
-/controller/
-	fault.io
+/authority/
+	`fault.io`
 /contact/
-	`http://fault.io/critical`
+	&<http://fault.io/critical>
