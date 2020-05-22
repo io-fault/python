@@ -4,14 +4,14 @@
 
 /identifier/
 	&<http://fault.io/python/test>
+/icon/
+	- (emoji)`🔬`
 /name/
 	`test`
 /abstract/
 	Testing primitives and engine for Python modules.
-/icon/
-	- (emoji)`🔬`
 
-/controller/
-	fault.io
+/authority/
+	`fault.io`
 /contact/
-	`http://fault.io/critical`
+	&<http://fault.io/critical>
