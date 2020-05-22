@@ -4,19 +4,14 @@
 
 /identifier/
 	&<http://fault.io/python/syntax>
+/icon/
+	- (category)`text`
 /name/
 	`syntax`
 /abstract/
 	Syntax query and manipulation tools
-/icon/
-	- (category)`text`
 
-/versioning/
-	continuous
-/status/
-	volatile
-
-/controller/
+/authority/
 	`fault.io`
 /contact/
 	&<http://fault.io/critical>
