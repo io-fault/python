@@ -35,14 +35,14 @@ class EStruct(tuple):
 	@property
 	def protocol(self) -> str:
 		"""
-		# The URI or symbol identifying the set of events that this instance belongs to.
+		# The IRI or symbol identifying the set of events that this instance belongs to.
 		# The authority specifying the semantics and metadata of the event.
 
-		# If the URI is real, it should contain routing information that will
-		# provide aid in properly formatting the event information. If the URI is not real,
+		# If the IRI is real, it should contain routing information that will
+		# provide aid in properly formatting the event information. If the IRI is not real,
 		# the application processing the event should have formatting rules available.
 
-		# Symbolic identifiers can be used, but should normally map to a URI
+		# Symbolic identifiers can be used, but should normally map to a IRI
 		# prior to serialization.
 
 		# This field *must not* be localized.
@@ -57,7 +57,7 @@ class EStruct(tuple):
 		# Formally referred to as "String Identifier".
 
 		# This must *not* be the symbolic name assigned to the &code.
-		# For instance, the POSIX errno define `'EINTR'` should be considered a &symbol,
+		# For instance, the POSIX errno define (id)`EINTR` should be considered a &symbol,
 		# not an &identifier.
 
 		# For events with integer identifiers, this is normally the decimal representation string.
@@ -95,7 +95,7 @@ class EStruct(tuple):
 
 		# Often, a class name. This is distinct from &identifer and &code in that
 		# it is usually how the &identifier was originally selected. For instance,
-		# for a POSIX system error, errno, this might be `'EAGAIN'` or `'EINTR'`.
+		# for a POSIX system error, errno, this might be (id)`EAGAIN` or (id)`EINTR`.
 
 		# In cases where an error is being represented that has a formless &protocol,
 		# the symbol may be the only field that can be used to identify the event.
@@ -407,8 +407,7 @@ class Parameters(object):
 	@classmethod
 	def from_pairs_v1(Class, iterpairs:typing.Iterable[typing.Tuple[str, object]]):
 		"""
-		# Create from a regular Python objects whose values imply the
-		# snapshot type.
+		# Create from a regular Python objects whose values imply the snapshot type.
 		"""
 
 		tf = Class.identify_object_typeform
