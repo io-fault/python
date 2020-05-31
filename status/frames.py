@@ -65,7 +65,7 @@ import functools
 
 from . import types
 
-# Type signature for frame messages.
+# Type signature for frame messages. (channel, message)
 Envelope = typing.Tuple[str, types.Message]
 
 # Protocol identity for envelope &types.Message instances.
@@ -80,17 +80,13 @@ type_codes = {
 	"!*": 'message-framework',
 	"!%": 'message-administrative',
 	"!>": 'message-entity',
-	"<>": 'message-application-checkpoint',
-
-	# Implies attached &types.Failure instance.
-	"><": 'failure-snapshot-transfer',
-	# Implies attached &types.Report instance.
-	"#Δ": 'report-snapshot-transfer',
 
 	# System processes, virtual processes, transfers, etc.
-	"->": 'transaction-started', # [-> ...]
-	"--": 'transaction-status', # [-- ...]
-	"<-": 'transaction-stopped', # [<- ...]
+	"->": 'transaction-started', # [-> ...(xid)]
+	"<>": 'transaction-cycle', # [<> ...(xid)]
+	"--": 'transaction-event', # [-- ...(xid)]
+	"<-": 'transaction-stopped', # [<- ...(xid)]
+	"><": 'transaction', # Aggregate; combined start and stop.
 
 	# Resource Content Manipulation
 	"+=": 'resource-inserted-units', # append
