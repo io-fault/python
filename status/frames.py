@@ -76,27 +76,29 @@ type_codes = {
 	# [!? PROTOCOL: http://if.fault.io/status/frames tty-notation-1] (optional declaration)
 	"!?": 'message-protocol',
 
+	# Warnings, Errors, and Information with respect to some conceptual level of a frame source.
 	"!#": 'message-application',
 	"!*": 'message-framework',
 	"!%": 'message-administrative',
 	"!>": 'message-entity',
 
 	# System processes, virtual processes, transfers, etc.
+	"><": 'transaction', # Aggregate transaction event; combined start and stop.
+	"<>": 'transaction-request', # [<> ...(xid)] Inverse frame: dispatch transaction.
 	"->": 'transaction-started', # [-> ...(xid)]
-	"<>": 'transaction-cycle', # [<> ...(xid)]
-	"--": 'transaction-event', # [-- ...(xid)]
+	"--": 'transaction-event', # [-- ...(xid)] Anonymous event; arbitrary status data.
 	"<-": 'transaction-stopped', # [<- ...(xid)]
-	"><": 'transaction', # Aggregate; combined start and stop.
 
 	# Resource Content Manipulation
 	"+=": 'resource-inserted-units', # append
 	"-=": 'resource-deleted-units', # partial truncation
 
+	# SCM Operation Reports
 	"Δ=": 'resource-delta',
 	"<=": 'resource-reverted',
 	"==": 'resource-committed',
 
-	# Resource Container Manipulation
+	# Resource Container Manipulations
 	"+.": 'resource-initialized',
 	"%.": 'resource-truncated',
 	"-.": 'resource-deleted',
