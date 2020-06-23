@@ -189,9 +189,8 @@ class Test(object):
 
 	# [ Properties ]
 
-	# /identity/
-		# A unique identifier for the &Test. Usually, a qualified name that can be used to
-		# locate &subject without having the actual object.
+	# /identifier/
+		# The key used to retrieve the test function from the container.
 
 	# /subject/
 		# The callable that performs a series of checks--using the &Test instance--that
@@ -204,7 +203,7 @@ class Test(object):
 		# A &contextlib.ExitStack for cleaning up allocations made during the test.
 		# The harness running the test decides when the stack's exit is processed.
 	"""
-	__slots__ = ('subject', 'identity', 'constraints', 'fate', 'exits',)
+	__slots__ = ('subject', 'identifier', 'constraints', 'fate', 'exits',)
 
 	# These referenced via Test instances to allow subclasses to override
 	# the implementations.
@@ -212,9 +211,9 @@ class Test(object):
 	Contention = Contention
 	Fate = Fate
 
-	def __init__(self, identity, subject, *constraints, ExitStack=contextlib.ExitStack):
-		# allow explicit identity as the callable may be a wrapped function
-		self.identity = identity
+	def __init__(self, identifier, subject, *constraints, ExitStack=contextlib.ExitStack):
+		# allow explicit identifier as the callable may be a wrapped function
+		self.identifier = identifier
 		self.subject = subject
 		self.constraints = constraints
 		self.exits = ExitStack()

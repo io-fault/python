@@ -40,14 +40,14 @@ class Harness(engine.Harness):
 	def _status_test_sealing(self, test):
 		self.status.write('{working} {tid} ...'.format(
 			working = working_fate_messages,
-			tid = color_identity(test.identity),
+			tid = color_identity(test.identifier),
 		))
 		self.status.flush() # need to see the test being ran right now
 
 	def _report_core(self, test):
 		self.status.write(report_core_message.format(
 			fate = color(test.fate.color, 'core'.ljust(8)),
-			tid = color_identity(test.identity),
+			tid = color_identity(test.identifier),
 			start = open_fate_message,
 			stop = close_fate_message
 		))
@@ -127,7 +127,7 @@ class Harness(engine.Harness):
 			signal.signal(signal.SIGALRM, signal.SIG_IGN)
 
 		faten = test.fate.subtype
-		parts = test.identity.split('.')
+		parts = test.identifier.split('.')
 		parts[0] = color('0x1c1c1c', parts[0])
 		if test.fate.impact >= 0:
 			parts[1:] = [color('gray', x) for x in parts[1:]]
@@ -143,14 +143,16 @@ class Harness(engine.Harness):
 		))
 
 		report = {
-			'test': test.identity,
+			'test': test.identifier,
 			'impact': test.fate.impact,
 			'fate': faten,
 			'interrupt': None,
 		}
 
 		if test.fate.subtype == 'divide':
-			self.process(test.fate.content, (), division = True)
+			ident = '/'.join((self.identity, test.identifier))
+			subharness = self.__class__(ident, test.subject, test.fate.content)
+			subharness.reveal()
 		elif test.fate.impact < 0:
 			if isinstance(test.fate.__cause__, KeyboardInterrupt):
 				report['interrupt'] = True
