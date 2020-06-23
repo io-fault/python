@@ -91,12 +91,12 @@ class Harness(object):
 		tests = [Class.Test(name, getattr(module, name)) for name in test_ids]
 		return Class(identity or module.__name__, module, tests)
 
-	def __init__(self, identity, module, tests):
+	def __init__(self, identity, container, tests):
 		"""
 		# Create a harness for running the tests in the &package.
 		"""
 		self.identity = identity
-		self.module = module
+		self.container = container
 		self.tests = tests
 
 	def dispatch(self, test):
