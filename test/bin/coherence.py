@@ -157,6 +157,8 @@ class Harness(engine.Harness):
 			if isinstance(test.fate.__cause__, KeyboardInterrupt):
 				report['interrupt'] = True
 			self._print_tb(test.fate)
+			return
+
 			import pdb
 			# error cases chain the exception
 			if test.fate.__cause__ is not None:
