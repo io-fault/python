@@ -12,7 +12,6 @@ import importlib
 from ...system import corefile
 from ...system import process
 from ...system import files
-from ...system import python
 
 from .. import engine
 
@@ -37,12 +36,6 @@ class Harness(engine.Harness):
 	# The collection and execution of a series of tests.
 	"""
 	concurrently = staticmethod(process.concurrently)
-
-	def __init__(self, context, package, status, intent='test'):
-		super().__init__(package)
-		self.context = context
-		self.status = status
-		self.selectors = []
 
 	def _status_test_sealing(self, test):
 		self.status.write('{working} {tid} ...'.format(
@@ -172,20 +165,25 @@ class Harness(engine.Harness):
 				tb = test.fate.__traceback__
 			pdb.post_mortem(tb)
 
-	def process(self, container, modules, division = None):
-		if division is None:
-			self.status.write(top_fate_messages + '\n')
-
-		super().process(container, modules)
-
-		if division is None:
-			self.status.write(bottom_fate_messages + '\n')
+	def reveal(self):
+		self.status.write(top_fate_messages + '\n')
+		super().reveal()
+		self.status.write(bottom_fate_messages + '\n')
 
 def main(inv:process.Invocation) -> process.Exit:
-	package, *modules = inv.args
-	p = Harness(None, package, sys.stderr)
-	p.process(p.test_root(python.Import.from_fullname(package)), modules)
+	module_path, *testslices = inv.args # Import target and start[:stop] tests.
+	slices = []
+	for s in testslices:
+		if ':' in s:
+			start, stop = s.split(':')
+		else:
+			start = s
+			stop = ''
+		slices.append((start or None, stop or None))
 
+	p = Harness.from_module(importlib.import_module(module_path), slices=slices)
+	p.status = sys.stderr
+	p.reveal()
 	return inv.exit(0)
 
 if __name__ == '__main__':

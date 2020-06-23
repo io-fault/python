@@ -30,150 +30,88 @@ def get_test_index(tester, int=int, set=set, AttributeError=AttributeError):
 	except AttributeError:
 		return None
 
-def test_order(kv):
+def test_order(module, name):
 	"""
 	# Key function used by &gather that uses &get_test_index in
 	# order to elevate a test's position given that it was explicitly listed.
 	"""
-	return get_test_index(kv[1])
+	return get_test_index(getattr(module, name))
 
-def gather(container, prefix = 'test_', key=test_order, getattr=getattr):
+def gather(container, prefix='test_', key=test_order, getattr=getattr):
 	"""
-	# Returns an ordered dictionary of attribute names associated with a &Test instance:
-
-	#!/pl/python
-		{k : core.Test(v, k) for k, v in container.items()}
-
-	# Collect the objects in the container whose name starts with "test_".
-	# The ordering is defined by the &test_order function.
+	# Returns an ordered list of attribute names that match the &prefix.
 	"""
 
-	tests = [
-		('#'.join((container.__name__, name)), getattr(container, name))
-		for name in dir(container)
-		if name.startswith(prefix)
-	]
-	tests.sort(key=key)
-
+	tests = [name for name in dir(container) if name.startswith(prefix)]
+	tests.sort() # Order by name first.
+	tests.sort(key=(lambda x: key(container, x))) # Re-sort using syntactic positioning.
 	return tests
+
+def select(tests, start, stop):
+	"""
+	# Slice the tests by comparing their identity to &start and &stop.
+	"""
+	t = None
+	i = iter(tests)
+
+	if start is not None:
+		for t in i:
+			# Skip until start.
+			if t == start:
+				break
+		else:
+			return
+
+		# Start of slice.
+		yield t
+
+	if stop is None:
+		yield from i
+	else:
+		for t in i:
+			yield t
+			if t == stop:
+				# Skip after stop.
+				break
 
 class Harness(object):
 	"""
-	# Manage the collection and execution of a set of tests.
-
-	# This is a Test Engine base class that finds and dispatches tests
-	# in a hierarchical pattern. Most test runners should subclass
-	# &Harness in order to control dispatch and status reporting.
+	# Execute a sequence of tests.
 	"""
 
 	Test = core.Test
+	collect = staticmethod(gather)
 
-	def __init__(self, package):
+	@classmethod
+	def from_module(Class, module, identity=None, slices=[]):
+		test_ids = Class.collect(module)
+		for start, stop in slices:
+			test_ids = select(test_ids, start, stop)
+
+		tests = [Class.Test(name, getattr(module, name)) for name in test_ids]
+		return Class(identity or module.__name__, module, tests)
+
+	def __init__(self, identity, module, tests):
 		"""
 		# Create a harness for running the tests in the &package.
 		"""
-		self.package = package
-
-	@staticmethod
-	def collect_subjects(container):
-		"""
-		# Prepare a collection of test subjects with their corresponding identifier
-		# for subsequent execution.
-		"""
-		return gather(container)
-
-	@staticmethod
-	def load_test_container(identifier):
-		"""
-		# Load a set of tests that can be addressed using the given &identifier.
-
-		# Default implementation uses &importlib.import_module.
-		"""
-		from importlib import import_module
-		return import_module(str(identifier))
-
-	@staticmethod
-	def listpkg(path):
-		"""
-		# List the modules contained by the given path.
-		"""
-
-		from pkgutil import iter_modules
-		for (importer, name, ispkg) in iter_modules(path) if path is not None else ():
-			yield (ispkg, name)
-
-	def test_module(self, test):
-		"""
-		# Test subject for loading modules and dividing their contained tests.
-		"""
-
-		module = self.load_test_container(test.identity)
-		test/module.__name__ == test.identity
-
-		module.__tests__ = self.collect_subjects(module)
-		if '__test__' in dir(module):
-			# allow module to skip the entire set
-			module.__test__(test)
-
-		raise self.Test.Fate(module, subtype='divide')
-
-	def test_package(self, test):
-		"""
-		# Test subject for loading packages and dividing their contained modules.
-		"""
-
-		module = self.load_test_container(test.identity)
-		test/module.__name__ == test.identity
-		name = module.__name__
-
-		if 'context' in dir(module):
-			module.context(self)
-
-		seq = list(self.listpkg(module.__path__))
-		module.__tests__ = [
-			('.'.join((name, x[1])), self.test_module)
-			for x in seq
-			if not x[0] and x[1][:5] == 'test_'
-		]
-		module.__tests__.extend([
-			('.'.join((name, x[1])), self.test_package)
-			for x in seq if x[0]
-		])
-
-		raise self.Test.Fate(module, subtype='divide')
-
-	def test_root(self, package):
-		"""
-		# Test subject for loading the root test package within a project.
-		"""
-
-		path = str(package)
-		project = self.load_test_container(path)
-
-		module = type(core)("test.root")
-		module.__tests__ = [(path + '.test', self.test_package)]
-
-		return module
+		self.identity = identity
+		self.module = module
+		self.tests = tests
 
 	def dispatch(self, test):
 		"""
 		# Dispatch the given &Test to resolve its fate.
 		# Subclasses controlling execution will often override this method.
 		"""
-
 		with test.exits:
 			test.seal()
 
-	def process(self, container, modules):
+	def reveal(self):
 		"""
-		# Dispatch the set of test subjects declared within the container's `__tests__` attribute.
-
-		# The tests attribute should be a sequence of identifier-subject pairs that can be
-		# used construct a &Test instance.
+		# Reveal the fate of the given tests.
 		"""
-
-		for tid, tcall in getattr(container, '__tests__', ()):
-			test = self.Test(tid, tcall)
+		for test in self.tests:
 			self.dispatch(test)
 
 def execute(module):
@@ -182,7 +120,8 @@ def execute(module):
 	# is printed and the exception of the first failure will be raised.
 	"""
 
-	for id, func in gather(module):
+	for id in gather(module):
+		func = getattr(module, id)
 		test = core.Test(id, func)
 		with test.exits:
 			test.seal()
