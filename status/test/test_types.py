@@ -67,6 +67,7 @@ def test_Failure_constructors_v1(test):
 	)
 
 	test/failure.f_error == esa
+	test/failure.event == esa
 	test/failure.f_context.t_route == []
 	test/failure.f_parameters.empty() == True
 
@@ -84,6 +85,7 @@ def test_Message_constructors_v1(test):
 	)
 
 	test/msg.msg_event == esa
+	test/msg.event == esa
 	test/msg.msg_context.t_route == []
 	test/msg.msg_parameters.empty() == True
 
@@ -101,6 +103,7 @@ def test_Report_constructors_v1(test):
 	)
 
 	test/re.r_event == esa
+	test/re.event == esa
 	test/re.r_context.t_route == []
 	test/re.r_parameters.empty() == True
 

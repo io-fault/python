@@ -529,7 +529,23 @@ def _from_string_constructor(Class, erstring:str,
 
 	return Class((es, parameters, context))
 
-class Failure(tuple):
+class EType(tuple):
+	"""
+	# Base class for &EStruct based structures.
+
+	# Provides a single generic attribute for accessing the &EStruct.
+	"""
+	__slots__ = ()
+
+	@property
+	def event(self) -> EStruct:
+		return self[0]
+
+	@property
+	def _status_type_corefields(self) -> tuple:
+		return self
+
+class Failure(EType):
 	"""
 	# Data structure referencing the &EStruct detailing the error that occurred causing
 	# an Identified Operation to fail. The &f_parameters contains additional information
@@ -537,10 +553,6 @@ class Failure(tuple):
 	"""
 	__slots__ = ()
 	_status_type_identifier = 'failure'
-
-	@property
-	def _status_type_corefields(self) -> tuple:
-		return self
 
 	@property
 	def f_context(self) -> Trace:
@@ -581,20 +593,12 @@ class Failure(tuple):
 			errcontext = Trace.from_nothing_v1()
 		return Class((error, Parameters.from_pairs_v1(parameters.items()), errcontext))
 
-class Message(tuple):
+class Message(EType):
 	"""
 	# Message event associated with an origin context and additional parameters.
 	"""
 	__slots__ = ()
 	_status_type_identifier = 'message'
-
-	@property
-	def _status_type_corefields(self) -> tuple:
-		return self
-
-	@property
-	def _corefields(self) -> tuple:
-		return self
 
 	@property
 	def msg_context(self) -> Trace:
@@ -630,17 +634,13 @@ class Message(tuple):
 			msgctx = Trace.from_nothing_v1()
 		return Class((msgid, Parameters.from_pairs_v1(parameters.items()), msgctx))
 
-class Report(tuple):
+class Report(EType):
 	"""
 	# Data structure referencing the &EStruct detailing the report that has been generated.
 	# The report's contents resides within the &r_parameters.
 	"""
 	__slots__ = ()
 	_status_type_identifier = 'report'
-
-	@property
-	def _status_type_corefields(self) -> tuple:
-		return self
 
 	@property
 	def r_context(self) -> Trace:
