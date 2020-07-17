@@ -434,18 +434,31 @@ def stdio() -> typing.Tuple[typing.Callable, typing.Callable]:
 	i, o = default_data_transport()
 	return (functools.partial(unpack, i), functools.partial(pack, o))
 
+def declaration(data=None, format='base64', compression='deflate', Message=types.Message):
+	"""
+	# Construct a custom protocol declaration message.
+	"""
+	return Message.from_arguments_v1(
+		None,
+		types.EStruct.from_fields_v1(
+			protocol=protocol,
+			symbol="protocol-message",
+			abstract="PROTOCOL: tty-notation-1",
+			identifier="!?",
+			code=type_integer_code("!?"),
+		),
+		**{
+			'envelope-fields': [
+				'PROTOCOL:', protocol,
+				'tty-notation-1',
+				'/'.join((format, compression)),
+			],
+			'data': data,
+		},
+	)
+
 # Structured protocol declaration.
-tty_notation_1_message = types.Message.from_arguments_v1(
-	None,
-	types.EStruct.from_fields_v1(
-		protocol=protocol,
-		symbol="protocol-message",
-		abstract="PROTOCOL: " + protocol + " tty-notation-1",
-		identifier="!?",
-		code=type_integer_code("!?"),
-	),
-	**{'envelope-fields':['PROTOCOL:', protocol, 'tty-notation-1']},
-)
+tty_notation_1_message = declaration()
 
 # Serialized protocol declaration.
 tty_notation_1_string = "[!? " + tty_notation_1_message.msg_event.abstract + "]\n"

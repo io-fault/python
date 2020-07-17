@@ -364,7 +364,7 @@ class Parameters(object):
 		# Set the parameter &key to &value identified as a
 		# represented &type. Retrieving this parameter will always
 		# give the represented form, but transports will likely
-		# convert it to a value upon reception given that it's a
+		# convert it to a value upon reception given that it is a
 		# recognized type.
 
 		# Primarily used to circumvent any conversion performed by

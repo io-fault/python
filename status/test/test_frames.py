@@ -254,6 +254,40 @@ def test_message_directed_areas(test):
 		n = module.message_directed_areas([a, "nothing", "something"], 0, 3)
 		test/n == (a, slice(0, 0), slice(1, 3))
 
+def test_declaration_constructor(test):
+	"""
+	# - &module.declaration
+	"""
+	unpack, pack = module.stdio()
+	std = module.declaration()
+	test/std == module.tty_notation_1_message
+
+	# Check compression override and format default.
+	lzma = module.declaration(compression='lzma')
+	channel, siom = unpack(pack((None, lzma)))
+	test/channel == None
+	test/siom.msg_parameters['envelope-fields'][-1] == 'base64/lzma'
+
+	# Check format override and compression default.
+	lzma = module.declaration(format='hex')
+	channel, siom = unpack(pack((None, lzma)))
+	test/channel == None
+	test/siom.msg_parameters['envelope-fields'][-1] == 'hex/deflate'
+
+def test_declaration_constructor_data(test):
+	"""
+	# - &module.declaration
+	"""
+	unpack, pack = module.stdio()
+
+	# Check format override and compression default.
+	dp = module.types.Parameters.from_nothing_v1()
+	dp['key'] = 'value'
+	withdata = module.declaration(data=dp)
+	channel, siom = unpack(pack((None, withdata)))
+	test/channel == None
+	test/siom.msg_parameters['data']['key'] == 'value'
+
 if __name__ == '__main__':
 	from ...test import library as libtest
 	import sys; libtest.execute(sys.modules[__name__])
