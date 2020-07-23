@@ -12,24 +12,89 @@ import importlib
 from ...system import corefile
 from ...system import process
 from ...system import files
+from ...transcripts import frames
+from ...time.sysclock import elapsed
+from ...status import python
 
 from .. import engine
+from .. import core
 
-def color(color, text):
-	return text
+status_identifiers = {
+	'skip': 'skipped',
+	'return': 'passed',
+	'pass': 'passed',
+	'fail': 'failed',
+	'core': 'failed',
+	'error': 'failed',
+}
 
-def color_identity(identity):
-	parts = identity.split('.')
-	parts[0] = color('0x1c1c1c', parts[0])
-	parts[:-1] = [color('gray', x) for x in parts[:-1]]
-	return color('red', '.').join(parts)
+def open_factor_transaction(time, factor, intention='unspecified', channel=''):
+	msg = frames.types.Message.from_string_v1(
+		"transaction-started[->]: " + factor,
+		protocol=frames.protocol
+	)
+	msg.msg_parameters['data'] = frames.types.Parameters.from_pairs_v1([
+		('time-offset', time),
+	])
 
-open_fate_message = color('0x1c1c1c', '|')
-close_fate_message = color('0x1c1c1c', '|')
-top_fate_messages = color('0x1c1c1c', '+' + ('-' * 10) + '+--')
-working_fate_messages = color('0x1c1c1c', '|' + (' execute  ') + '|')
-bottom_fate_messages = color('0x1c1c1c', '+' + ('-' * 10) + '+--')
-report_core_message = '\r{start} {fate!s} {stop} {tid}                \n'
+	return channel, msg
+
+def close_factor_transaction(time, factor, channel=''):
+	msg = frames.types.Message.from_string_v1(
+		"transaction-stopped[<-]: " + factor,
+		protocol=frames.protocol
+	)
+	msg.msg_parameters['data'] = frames.types.Parameters.from_pairs_v1([
+		('time-offset', time),
+	])
+
+	return channel, msg
+
+def open_test_transaction(time, identifier, pid, synopsis, channel=''):
+	msg = frames.types.Message.from_string_v1(
+		"transaction-started[->]: " + synopsis,
+		protocol=frames.protocol
+	)
+	msg.msg_parameters['data'] = frames.types.Parameters.from_pairs_v1([
+		('time-offset', time),
+		('test', identifier),
+		('process-identifier', pid),
+	])
+
+	return msg
+
+def test_metrics_signal(time, fate, rusage):
+	counts = {status_identifiers.get(fate, fate):1}
+	r = frames.metrics(time, {'usage': rusage.ru_stime + rusage.ru_utime}, counts)
+	msg = frames.types.Message.from_string_v1(
+		"transaction-event[--]: METRICS: test process data",
+		protocol=frames.protocol
+	)
+	msg.msg_parameters['data'] = r
+
+	return msg
+
+def sequence_failure(error):
+	while error is not None:
+		yield python.failure(error, error.__traceback__)
+		error = getattr(error, '__cause__', None) or getattr(error, '__context__', None)
+
+def close_test_transaction(time, identifier, pid, synopsis, failure, status, rusage):
+	msg = frames.types.Message.from_string_v1(
+		"transaction-stopped[<-]: " + synopsis,
+		protocol=frames.protocol
+	)
+	msg.msg_parameters['data'] = frames.types.Parameters.from_pairs_v1([
+		('time-offset', time),
+		('identifier', identifier),
+		('fate', synopsis),
+		('failure', failure),
+		('status', status),
+		('system', rusage.ru_stime),
+		('user', rusage.ru_utime),
+	])
+
+	return msg
 
 class Harness(engine.Harness):
 	"""
@@ -38,19 +103,10 @@ class Harness(engine.Harness):
 	concurrently = staticmethod(process.concurrently)
 
 	def _status_test_sealing(self, test):
-		self.status.write('{working} {tid} ...'.format(
-			working = working_fate_messages,
-			tid = color_identity(test.identifier),
-		))
-		self.status.flush() # need to see the test being ran right now
+		pass
 
 	def _report_core(self, test):
-		self.status.write(report_core_message.format(
-			fate = color(test.fate.color, 'core'.ljust(8)),
-			tid = color_identity(test.identifier),
-			start = open_fate_message,
-			stop = close_fate_message
-		))
+		pass
 
 	def _handle_core(self, corefile):
 		if corefile is None:
@@ -75,48 +131,57 @@ class Harness(engine.Harness):
 	def dispatch(self, test):
 		faten = None
 		self._status_test_sealing(test)
+		start_time = elapsed()
 
 		# seal fate in a child process
 		def manage():
 			nonlocal self
 			nonlocal test
 			with test.exits:
-				self.seal(test)
-		seal = self.concurrently(manage)
+				return self.seal(test)
+		pid, seal = self.concurrently(manage, waitpid=os.wait4)
+		channel = self.channel + '/' + test.identifier + '/system/' + str(pid)
 
 		l = []
+		start_message = open_test_transaction(
+			start_time, test.identifier, pid, 'start',
+		)
+		self.log.emit(channel, start_message)
+
 		report = seal(status_ref = l.append)
+		stop_time = elapsed()
 
 		if report is None:
 			report = {'fate': 'unknown', 'impact': -1, 'interrupt': None}
 
-		pid, status = l[0]
+		pid, status, rusage = l[0]
 
 		if os.WCOREDUMP(status):
 			faten = 'core'
 			report['fate'] = 'core'
-			test.fate = self.Core(None)
-			self._report_core(test)
+			test.fate = core.Fate('process core dump', subtype='core')
 			self._handle_core(corefile.location(pid))
 		elif not os.WIFEXITED(status):
-			# redrum
 			import signal
 			try:
 				os.kill(pid, signal.SIGKILL)
 			except OSError:
 				pass
 
-		report['exitstatus'] = os.WEXITSTATUS(status)
-
-		if False and report['impact'] < 0 or report['interrupt']:
-			sys.exit(report['exitstatus'])
-
+		es = report['exitstatus'] = os.WEXITSTATUS(status)
+		metrics = test_metrics_signal(stop_time - start_time, report['fate'], rusage)
+		stop_message = close_test_transaction(
+			stop_time, test.identifier, pid,
+			report['fate'], report.get('failure'),
+			es, rusage,
+		)
+		self.log.emit(channel, metrics)
+		self.log.emit(channel, stop_message)
+		self.log.flush()
 		return report
 
 	def seal(self, test):
-		sys.stderr.write('\b\b\b' + str(os.getpid()))
-		sys.stderr.flush() # want to see the test being ran
-
+		# Usually ran within the fork.
 		try:
 			signal.signal(signal.SIGALRM, test.timeout)
 			signal.alarm(8)
@@ -128,25 +193,19 @@ class Harness(engine.Harness):
 
 		faten = test.fate.subtype
 		parts = test.identifier.split('.')
-		parts[0] = color('0x1c1c1c', parts[0])
 		if test.fate.impact >= 0:
-			parts[1:] = [color('gray', x) for x in parts[1:]]
+			parts[1:] = [x for x in parts[1:]]
 		else:
-			parts[1:-1] = [color('gray', x) for x in parts[1:-1]]
+			parts[1:-1] = [x for x in parts[1:-1]]
 
-		ident = color('red', '.').join(parts)
-		sys.stderr.write('\r{start} {fate!s} {stop} {tid}                \n'.format(
-			fate = color(test.fate.color, faten.ljust(8)),
-			tid = ident,
-			start = open_fate_message,
-			stop = close_fate_message
-		))
+		ident = '.'.join(parts)
 
 		report = {
 			'test': test.identifier,
 			'impact': test.fate.impact,
 			'fate': faten,
 			'interrupt': None,
+			'failure': None,
 		}
 
 		if test.fate.subtype == 'divide':
@@ -154,10 +213,12 @@ class Harness(engine.Harness):
 			subharness = self.__class__(ident, test.subject, test.fate.content)
 			subharness.reveal()
 		elif test.fate.impact < 0:
-			if isinstance(test.fate.__cause__, KeyboardInterrupt):
+			report['failure'] = list(sequence_failure(test.fate.__cause__))
+
+			if isinstance(test.fate.__cause__, (KeyboardInterrupt, BrokenPipeError)):
 				report['interrupt'] = True
 			self._print_tb(test.fate)
-			return
+			return report
 
 			import pdb
 			# error cases chain the exception
@@ -168,13 +229,10 @@ class Harness(engine.Harness):
 			if tb is None:
 				tb = test.fate.__traceback__
 			pdb.post_mortem(tb)
-
-	def reveal(self):
-		self.status.write(top_fate_messages + '\n')
-		super().reveal()
-		self.status.write(bottom_fate_messages + '\n')
+		return report
 
 def main(inv:process.Invocation) -> process.Exit:
+	inv.imports(['FRAMECHANNEL'])
 	module_path, *testslices = inv.args # Import target and start[:stop] tests.
 	slices = []
 	for s in testslices:
@@ -185,9 +243,17 @@ def main(inv:process.Invocation) -> process.Exit:
 			stop = ''
 		slices.append((start or None, stop or None))
 
+	channel = inv.environ.get('FRAMECHANNEL') or 'test'
+
 	p = Harness.from_module(importlib.import_module(module_path), slices=slices)
+	p.channel = channel
 	p.status = sys.stderr
+	p.log = frames.Log.stdout()
+
+	p.log.emit(*open_factor_transaction(elapsed(), p.identity, channel=channel))
+	p.log.flush()
 	p.reveal()
+	p.log.emit(*close_factor_transaction(elapsed(), p.identity, channel=channel))
 	return inv.exit(0)
 
 if __name__ == '__main__':
