@@ -183,6 +183,11 @@ class EStruct(tuple):
 class Parameters(object):
 	"""
 	# A mutable finite-map whose values are associated with the typeform used by transports.
+	# The typeform is a form-type pair designating the value's type and form specify
+	# the type, naturally, the plurality of the value, and the how the value is stored.
+
+	# The plurality of a value is limited to one-dimensional sequences and sets. Additional
+	# dimensions must flattened for storage and interpreted upon retrieval by the application.
 
 	# [ Properties ]
 	# /Specification/
@@ -303,7 +308,7 @@ class Parameters(object):
 
 	def get_parameter(self, key:str) -> object:
 		"""
-		# Get the parameter identified by &key.
+		# Get the parameter value identified by &key.
 
 		# Represented values are *not* interpreted and only the subject is returned.
 		"""
@@ -313,7 +318,7 @@ class Parameters(object):
 		"""
 		# Set the parameter identified by &key to &value.
 		# If the parameter already exists, it will be overwritten and its
-		# typeform-value pair returned.
+		# original typeform-value pair returned.
 
 		# The given &value is checked by &identify_object_typeform in order
 		# to select a suitable typeform for the parameter.
