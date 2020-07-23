@@ -111,6 +111,11 @@ class Harness(object):
 		"""
 		# Reveal the fate of the given tests.
 		"""
+		if '__test__' in self.container.__dict__:
+			t = self.Test('__test__', self.container.__test__)
+			t.seal()
+			del t
+
 		for test in self.tests:
 			self.dispatch(test)
 
