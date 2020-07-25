@@ -19,3 +19,5 @@ def main(inv:process.Invocation) -> process.Exit:
 		channel, msg = unpack(line)
 		if channel is not None and channel.startswith(fchannel):
 			sys.stdout.write(line)
+
+	return inv.exit(0)
