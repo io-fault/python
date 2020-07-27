@@ -231,8 +231,24 @@ class Harness(engine.Harness):
 			pdb.post_mortem(tb)
 		return report
 
+def intercept(product, project, intention):
+	import sys
+	from ...system import factors
+	class ProjectFinder(factors.IntegralFinder):
+		def find_spec(self, name, path, target=None):
+			if name.startswith(self.project_prefix) or name == self.project_name:
+				return super().find_spec(name, path, target=target)
+			return None
+
+	sfif = ProjectFinder.create(intention)
+	sfif.project_name = project
+	sfif.project_prefix = project + '.'
+	sfif.connect(files.Path.from_absolute(product))
+	sys.meta_path.insert(0, sfif)
+
 def main(inv:process.Invocation) -> process.Exit:
-	inv.imports(['FRAMECHANNEL'])
+	inv.imports(['FRAMECHANNEL', 'INTENTION', 'PROJECT', 'PRODUCT'])
+
 	module_path, *testslices = inv.args # Import target and start[:stop] tests.
 	slices = []
 	for s in testslices:
@@ -244,6 +260,12 @@ def main(inv:process.Invocation) -> process.Exit:
 		slices.append((start or None, stop or None))
 
 	channel = inv.environ.get('FRAMECHANNEL') or 'test'
+	intention = inv.environ.get('INTENTION') or 'optimal'
+	project = inv.environ.get('PROJECT') or ''
+	product = inv.environ.get('PRODUCT') or ''
+
+	if project and product:
+		intercept(product, project, intention)
 
 	p = Harness.from_module(importlib.import_module(module_path), slices=slices)
 	p.channel = channel
