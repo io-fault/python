@@ -138,6 +138,8 @@ def _syn(depth, syntax):
 
 def _para(depth, node):
 	for l in paragraph(document.export(node[1])):
+		if l and l[-1] == ' ':
+			l[-1] = ''
 		yield (depth, l)
 	yield (0, [""])
 
