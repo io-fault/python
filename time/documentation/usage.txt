@@ -87,7 +87,7 @@ with the standard library's &datetime.datetime or many other datetime packages.
 Instead, &..time relies on the higher-level methods to perform delta
 calculation and point positioning.
 
-[ Eccentricites >> Day and Month Fields ]
+[ Eccentricities >> Day and Month Fields ]
 
 The `day` and `month` fields of the standard time context are **offsets** and
 are not consistent with the usual representation of gregorian day-of-month and
