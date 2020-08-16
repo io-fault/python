@@ -116,8 +116,8 @@ class Measure(Range):
 			measure = Measure.of(hour = 33, microsecond = 44)
 
 		# The above example only shows keyword use that is specific to the standard
-		# time context used by Chronometry. Variable position arguments, &times,
-		# are pre-existing &Measure instances.
+		# time context used by &..time. Variable position arguments, &times,
+		# must be pre-existing &Measure instances.
 
 		# [ Parameters ]
 
@@ -343,91 +343,4 @@ class Point(Range):
 		"""
 		# Returns whether or not the Point in Time, self,
 		# comes *after* the given argument, &pit.
-		"""
-
-class Clock(metaclass=abc.ABCMeta):
-	"""
-	# Provides access to clock functionality associated with some clockwork.
-
-	# Clockwork refers to the arbitrary internal foundation of a clock. Usually
-	# this is the defined by the Operating System, but an implementation
-	# could use contrived Clockwork.
-	"""
-
-	@abc.abstractproperty
-	def unit(self):
-		"""
-		# The precision of the clock and its methods.
-
-		# Hopefully, nanoseconds or microseconds.
-		"""
-
-	@abc.abstractmethod
-	def sleep(self, quantity):
-		"""
-		# Sleep, block the processing of code according to the given measure of
-		# time.
-		"""
-
-	@abc.abstractmethod
-	def meter(self):
-		"""
-		# Returns an iterator to the total measure of time that has elapsed since
-		# the first iteration of the returned object.
-
-		# If it is the first iteration, zero *must* be returned.
-		"""
-
-	@abc.abstractmethod
-	def delta(self):
-		"""
-		# Construct a new iterator to the measure of time that has elapsed since
-		# the previous iteration of the returned object. If it is the first
-		# iteration, zero *must* be returned.
-		"""
-
-	@abc.abstractmethod
-	def periods(self, quantity):
-		"""
-		# Construct a new iterator yielding a pair, (count, remainder).
-		# Where the `count` is the number of times that the period has passed
-		# since the last iteration and the `remainder` is the amount of time
-		# until another has elapsed.
-
-		# Period iterators are primarily used to poll for chunks of elapsed
-		# time. Whereas, &delta iterators only offer the finest
-		# grain available.
-		"""
-
-	@abc.abstractmethod
-	def stopwatch(self):
-		"""
-		# Return a context manager that measures the amount of time that has
-		# elapsed since the invocation of &__enter__. The yielded
-		# object is a reference to the elapsed time and can be referenced prior
-		# to the exit of the context manager.
-
-		# Once &__exit__ is called, the elapsed time must no longer
-		# be measured and the result is subsequently consistent.
-		"""
-
-	@abc.abstractmethod
-	def monotonic(self):
-		"""
-		# Return a Measure snapshot of the monotonic timer associated with the clock instance.
-		"""
-
-	@abc.abstractmethod
-	def demotic(self):
-		"""
-		# Return a snapshot of the clock in wall clock time according to the UTC
-		# timezone.
-
-		# In contrast to monotonic.
-		"""
-
-	@abc.abstractmethod
-	def adjust(self, units):
-		"""
-		# Adjust the demotic clock according to the given number of units.
 		"""

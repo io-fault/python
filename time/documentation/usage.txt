@@ -10,17 +10,17 @@ lists are the time classes created by that context.
 
 Point In Time types:
 
-	- &.library.Timestamp
-	- &.library.Date
-	- &.library.Week
-	- &.library.GregorianMonth
+	- &.types.Timestamp
+	- &.types.Date
+	- &.types.Week
+	- &.types.GregorianMonth
 
 Measure types:
 
-	- &.library.Measure
-	- &.library.Days
-	- &.library.Weeks
-	- &.library.Months
+	- &.types.Measure
+	- &.types.Days
+	- &.types.Weeks
+	- &.types.Months
 
 The interfaces are described by the abstract base classes in
 &.abstract. Primarily:
@@ -56,9 +56,10 @@ This has the effect that integers with the same value will be seen as the same
 key in dictionaries:
 
 #!/pl/python
-	>>> from fault.time import library as libtime
+	>>> from fault.time import types
+	>>> from fault.time import constants
 	>>> d = {}
-	>>> d[libtime.Date(0)] = 'Hello, World!'
+	>>> d[types.Date(0)] = 'Hello, World!'
 	>>> print d[0]
 	Hello, World!
 
@@ -66,15 +67,15 @@ If type based scoping is needed, the key can be qualified with the type:
 
 #!/pl/python
 	d = {}
-	d[(libtime.Date, libtime.Date(0))] = 'Hello, Date!'
-	d[(libtime.Timestamp, libtime.Timestamp(0))] = 'Hello, Timestamp!'
+	d[(types.Date, types.Date(0))] = 'Hello, Date!'
+	d[(types.Timestamp, types.Timestamp(0))] = 'Hello, Timestamp!'
 
 Or, nested dictionaries could be used:
 
 #!/pl/python
-	d = {libtime.Date: {}, libtime.Timestamp: {}}
-	d[libtime.Date][libtime.Date(0))] = 'Hello, Date!'
-	d[libtime.Timestamp][libtime.Timestamp(0))] = 'Hello, Timestamp!'
+	d = {types.Date: {}, types.Timestamp: {}}
+	d[types.Date][types.Date(0))] = 'Hello, Date!'
+	d[types.Timestamp][types.Timestamp(0))] = 'Hello, Timestamp!'
 
 [ Eccentricities >> Datetime Math ]
 
@@ -97,7 +98,7 @@ gregorian representation.
 More clearly:
 
 #!/pl/python
-	pit = libtime.Timestamp.of(iso="2002-01-01T00:00:00")
+	pit = types.Timestamp.of(iso="2002-01-01T00:00:00")
 	assert pit.select('day', 'month') == 0
 	assert pit.select('month', 'year') == 0
 
@@ -110,9 +111,9 @@ The implementation of month arithmetic is sensitive to the selected day:
 
 #!/pl/python
 	# working with a leap year
-	pit = libtime.Timestamp.of(iso='2012-01-31T18:55:33.946259')
+	pit = types.Timestamp.of(iso='2012-01-31T18:55:33.946259')
 	pit.elapse(month=1)
-	libtime.Timestamp.of(iso='2012-03-02T18:55:33.946259')
+	types.Timestamp.of(iso='2012-03-02T18:55:33.946259')
 
 The issue can be avoided by adjusting the PiT to the beginning of the month:
 
@@ -127,9 +128,9 @@ that a "year" in &..time is actually twelve gregorian months, which means
 *years are a subjective unit of time*.
 For *metric* measures--Python timedeltas analog--this
 poses a problem in that years should not be used to represent the span when working
-with &.library.Measure.
+with &.types.Measure.
 
-In order to compensate, the &.library.Month class provides a means to
+In order to compensate, the &.types.Month class provides a means to
 express such subjective time spans.
 
 [ Eccentricities >> Unit Aware Comparison ]
@@ -156,45 +157,45 @@ in order to avoid semantics involved with representation types.
 The list here points to the abstract base classes.
 Points *are* timestamps, datetimes,. Measures *are* intervals, timedeltas.
 
-/`timedelta() + timedelta()`/
+/(syntax/python)`timedelta() + timedelta()`/
 	&.abstract.Measure.increase:
 
 	#!/pl/python
-		m1 = libtime.Measure(second=0)
-		m2 = libtime.Measure(second=1)
+		m1 = types.Measure(second=0)
+		m2 = types.Measure(second=1)
 		m1.increase(m2)
 
-/`timedelta() - timedelta()`/
+/(syntax/python)`timedelta() - timedelta()`/
 	&.abstract.Measure.decrease:
 
 	#!/pl/python
-		m1 = libtime.Measure(second=2)
-		m2 = libtime.Measure(second=1)
+		m1 = types.Measure(second=2)
+		m2 = types.Measure(second=1)
 		m1.decrease(m2)
 
-/`datetime() + timedelta()`/
+/(syntax/python)`datetime() + timedelta()`/
 	&.abstract.Point.elapse:
 
 	#!/pl/python
-		ts = libtime.Timestamp.of(...)
-		measure = libtime.Measure(second=1)
+		ts = types.Timestamp.of(...)
+		measure = types.Measure(second=1)
 		ts.elapse(measure)
 
-/`datetime() - timedelta()`/
+/(syntax/python)`datetime() - timedelta()`/
 	Point in Time subtraction is handled with
 	&.abstract.Point.rollback:
 
 	#!/pl/python
-		ts = libtime.Timestamp.of()
-		measure = libtime.Measure(second=1)
+		ts = types.Timestamp.of()
+		measure = types.Measure(second=1)
 		ts.rollback(measure)
 
-/`datetime() - datetime()`/
+/(syntax/python)`datetime() - datetime()`/
 	&.abstract.Point.measure:
 
 	#!/pl/python
-		ts1 = libtime.Timestamp.of(...)
-		ts2 = libtime.Timestamp.of(...)
+		ts1 = types.Timestamp.of(...)
+		ts2 = types.Timestamp.of(...)
 		ts1.measure(ts2) # measure the distance between
 
 [ Calendar Representation ]
@@ -203,7 +204,7 @@ Points *are* timestamps, datetimes,. Measures *are* intervals, timedeltas.
 A Date can be used to represent the span of the entire day.
 
 #!/pl/python
-	date = libtime.Date.of(year=1982, month=4, day=17)
+	date = types.Date.of(year=1982, month=4, day=17)
 	assert date.select('day', 'month') == 17
 
 However, the above actually represents.
@@ -215,20 +216,20 @@ Usually, using the `date` keyword is best way to to work with
 literal dates.
 
 #!/pl/python
-	assert libtime.Date.of(date=(1982,5,18)) == date
+	assert types.Date.of(date=(1982,5,18)) == date
 
 The calendrical **representation** only takes effect through certain
 interfaces.
 
 #!/pl/python
-	ts = libtime.Timestamp.of(iso="2001-01-01T05:30:01")
+	ts = types.Timestamp.of(iso="2001-01-01T05:30:01")
 	print(repr(ts))
-	libtime.Timestamp.of(iso='2001-01-01T05:30:01.000000')
+	types.Timestamp.of(iso='2001-01-01T05:30:01.000000')
 
 And from a datetime tuple.
 
 #!/pl/python
-	ts2 = libtime.Timestamp.of(datetime = (2001, 1, 1, 5, 30, 1, 0))
+	ts2 = types.Timestamp.of(datetime = (2001, 1, 1, 5, 30, 1, 0))
 	assert ts == ts2
 
 &..time PiTs do not perform calendrical validation; rather, fields with excess
@@ -237,7 +238,7 @@ overflow. For &..time, this choice is deliberate and the user is expected to
 perform any desired validation.
 
 #!/pl/python
-	pit = libtime.Date.of(date=(1982,5,0))
+	pit = types.Date.of(date=(1982,5,0))
 
 The assigned `pit` now points to the last day of the month preceding the fifth
 month in the year 1982.
@@ -250,7 +251,7 @@ month in the year 1982.
 month of last year?".
 
 #!/pl/python
-	pit = libtime.now()
+	pit = sysclock.now()
 	pit = pit.update('day', 0, 'month') # set to the first day to avoid overflow
 	pit = pit.rollback(year=1) # subtract one gregorian year
 	pit = pit.update('month', 5-1, 'year') # set to the fifth month
@@ -262,7 +263,7 @@ of a given month.
 
 #!/pl/python
 	# move the beginning of month (to avoid possible day overflow)
-	pit = libtime.now().update('day', 0, 'month')
+	pit = sysclock.now().update('day', 0, 'month')
 	# to the next month and then to the end of the previous
 	pit = pit.elapse(month = 1).update('day', -1, 'month') # move to the end of the month.
 	# 0 is the beginning of the week, so -1 is the end of the prior week.
@@ -272,9 +273,9 @@ On day overflow, the following illustrates the effect:
 
 #!/pl/python
 	# working with a leap year
-	pit = libtime.Timestamp.of(iso='2012-01-31T18:55:33.946259')
+	pit = types.Timestamp.of(iso='2012-01-31T18:55:33.946259')
 	pit.elapse(month=1)
-	libtime.Timestamp.of(iso='2012-03-02T18:55:33.946259')
+	types.Timestamp.of(iso='2012-03-02T18:55:33.946259')
 
 Month arithmetic does not lose days in order to align the edge of a month.
 In order to keep overflow from causing invalid calculations, adjust to the
@@ -285,7 +286,7 @@ Things can get even more interesting when asking,
 alignment in order to be answered:
 
 #!/pl/python
-	pit = libtime.now()
+	pit = sysclock.now()
 	pit = pit.update('day', 0, 'month') # let's say this month
 	# but we need the end of the month
 	pit = pit.elapse(month=1)
@@ -307,8 +308,8 @@ day of the re-aligned week.
 Time zone adjustments are supported by zone objects:
 
 #!/pl/python
-	pit = libtime.now()
-	tz = libtime.zone('America/Los_Angeles')
+	pit = sysclock.now()
+	tz = views.Zone.open('America/Los_Angeles')
 	local_pit = tz.localize(pit)
 	print(local_pit.select('iso'))
 
@@ -317,30 +318,30 @@ Time zone adjustments are supported by zone objects:
 ====================================
 
 A Point is a Point in Time; like a date or a date and time of day. Usually, this
-is referring to instances of the &.library.Timestamp class. A Measure
+is referring to instances of the &.types.Timestamp class. A Measure
 is an arbitrary unit of time and is usually referring to instances the
-&.library.Measure class.
+&.types.Measure class.
 
 ! NOTE:
 	"Point" may be a misnomer considering that &..time allows these objects
 	to be treated as a vector.
 
 Constructing instances is usually performed with the class method
-&.library.Measure.of.
-Or, &.library.Timestamp.of for Points.
+&.types.Measure.of.
+Or, &.types.Timestamp.of for Points.
 
 [ Constructing Points and Measures >> Creating a Timestamp ]
 ------------------------------------------------------------
 
-The &.library.Timestamp type is the Point In Time Representation
+The &.types.Timestamp type is the Point In Time Representation
 Type with the finest precision available *by default*:
 
 #!/pl/python
-	near_y2k = libtime.Timestamp.of(date=(2000,1,1), hour=8, minute=24, second=15)
+	near_y2k = types.Timestamp.of(date=(2000,1,1), hour=8, minute=24, second=15)
 	>>> near_y2k
-	libtime.Timestamp.of(iso='2000-01-01T08:24:15.000000')
+	types.Timestamp.of(iso='2000-01-01T08:24:15.000000')
 
-Currently, The &.library.Timestamp and &.library.Measure types
+Currently, The &.types.Timestamp and &.types.Measure types
 use nanosecond precision.
 
 ! WARNING:
@@ -355,8 +356,8 @@ purpose of representing the point in which the specified day starts, *and* the
 period between that point and the start of the next day; non-inclusive:
 
 #!/pl/python
-	libtime.Date.of(year=1982, month=4, day=17) # month and day are offsets.
-	libtime.Date.of(iso='1982-05-18')
+	types.Date.of(year=1982, month=4, day=17) # month and day are offsets.
+	types.Date.of(iso='1982-05-18')
 
 While a little suprising, the above reveals an apparent inconsistency: the
 `month` keyword parameter acts as a month offset. To compensate,
@@ -366,18 +367,18 @@ increments of units. Subsequently, using the `date` container can more
 appropriate:
 
 #!/pl/python
-	>>> libtime.Date.of(date=(1982,5,18))
-	libtime.Date.of(iso='1982-05-18')
+	>>> types.Date.of(date=(1982,5,18))
+	types.Date.of(iso='1982-05-18')
 
 
 [ Constructing Points and Measures >> Getting the Current Point in Time ]
 -------------------------------------------------------------------------
 
 The primary interface for accessing the system clock is using the
-&.library.now callable:
+&.sysclock.now callable:
 
 #!/pl/python
-	current_time = libtime.now()
+	current_time = sysclock.now()
 
 The returned timestamp is a UTC timestamp.
 
@@ -390,17 +391,17 @@ The returned timestamp is a UTC timestamp.
 ------------------------------------------------------------------------------------
 
 While the &.format module manages the details, the
-&.library module provides access to the functionality:
+types have access to the functionality:
 
 #!/pl/python
-	ts = libtime.Timestamp.of(iso='2009-02-01T3:33:45.123321')
+	ts = types.Timestamp.of(iso='2009-02-01T3:33:45.123321')
 
 &..time provides parsers for both ISO-8601 and RFC-1123 datetime formats. The
 above example shows how to construct a Point in Time from an ISO-8601 string.
 The following shows RFC-1123, the format used by HTTP:
 
 #!/pl/python
-	ts = libtime.Timestamp.of(rfc='Sun, 19 Mar 2012 07:27:58')
+	ts = types.Timestamp.of(rfc='Sun, 19 Mar 2012 07:27:58')
 
 [ Constructing Points and Measures >> Formatting a Standard Timestamp ]
 -----------------------------------------------------------------------
@@ -408,29 +409,29 @@ The following shows RFC-1123, the format used by HTTP:
 Likewise, instances can be formatted by the standards:
 
 #!/pl/python
-	ts = libtime.Timestamp.of(iso='2009-01-01T7:30:0')
+	ts = types.Timestamp.of(iso='2009-01-01T7:30:0')
 	print(ts.select('iso'))
 
 And RFC as well:
 
 #!/pl/python
-	assert "Sat, 01 Jan 2000 00:00:00" == libtime.Timestamp(date=(2000,1,1)).select('rfc')
+	assert "Sat, 01 Jan 2000 00:00:00" == types.Timestamp(date=(2000,1,1)).select('rfc')
 
 [ Constructing Points and Measures >> Constructing a Timestamp from Parts ]
 ---------------------------------------------------------------------------
 
-A &.library.Timestamp can be constructed from time parts using the
+A &.types.Timestamp can be constructed from time parts using the
 &.abstract.Time.of class method. This method takes
 arbitrary positional parameters and keyword parameters whose keys are the name
 of a unit of time known by the time context:
 
 #!/pl/python
-	ts = libtime.Timestamp.of(hour = 55, second = 78)
+	ts = types.Timestamp.of(hour = 55, second = 78)
 
 Notably, the above is not particularly useful without a date:
 
 #!/pl/python
-	libtime.Timestamp.of(
+	types.Timestamp.of(
 		date = (2015, 1, 1),
 		hour = 13, minute = 7,
 		second = 4,
@@ -445,13 +446,13 @@ UNIX-epoch, "January 1, 1970". A timestamp can be made using the
 &.abstract.Time.of method:
 
 #!/pl/python
-	epoch = libtime.Timestamp.of(unix=0)
+	epoch = types.Timestamp.of(unix=0)
 
 Subseqently, a given PiT can yield a UNIX timestamp using the
 &.abstract.Time.select method:
 
 #!/pl/python
-	now = libtime.now()
+	now = sysclock.now()
 	unix = now.select('unix')
 
 And a contrived use-case where the file `f` contains lines containing unix timestamps:
@@ -476,7 +477,7 @@ With Timestamps and Dates aligned on the beginning of a week, an arbitrary
 day of week can be found by field modification:
 
 #!/pl/python
-	ts = libtime.Timestamp.of(iso="2000-01-01T3:30:00")
+	ts = types.Timestamp.of(iso="2000-01-01T3:30:00")
 	>>> print(ts.select('day', 'week'))
 	6
 	ts = ts.update('day', 1, 'week') # 0-6, Sun-Sat.
@@ -488,7 +489,7 @@ day of week can be found by field modification:
 By extension, to get the following Monday, just add seven:
 
 #!/pl/python
-	ts = libtime.Timestamp.of(iso="2000-01-01T3:30:00")
+	ts = types.Timestamp.of(iso="2000-01-01T3:30:00")
 	ts = ts.update('day', 8, 'week')
 	>>> print(ts)
 	'2000-01-03T03:30:00.000000'
@@ -498,7 +499,7 @@ By extension, to get the following Monday, just add seven:
 Or, to get the preceding Monday, just substract seven:
 
 #!/pl/python
-	>>> ts = libtime.Timestamp.of(iso="2000-01-01T3:30:00")
+	>>> ts = types.Timestamp.of(iso="2000-01-01T3:30:00")
 	>>> ts = ts.update('day', 1-7, 'week')
 	>>> print(ts)
 	1999-12-20T03:30:00.000000
@@ -517,7 +518,7 @@ month must first be adjusted to the beginning of the month:
 
 #!/pl/python
 	# Find the third Saturday of the month.
-	ts = libtime.Timestamp.of(...)
+	ts = types.Timestamp.of(...)
 
 	# Get the first of the month.
 	ts = ts.update('day', 0, 'month')
@@ -532,7 +533,7 @@ to designate that a particular weekday be the beginning or end of the week.
 Subsequently, allowing quick identification:
 
 #!/pl/python
-	ts = libtime.Timestamp.of(...)
+	ts = types.Timestamp.of(...)
 	# Get the last day of the Month.
 	ts = ts.elapse(month=1).update('day', -1, 'month')
 	ts.update('day', 0, 'week', align=-2)
@@ -542,8 +543,8 @@ Subsequently, allowing quick identification:
 ===============================
 
 &..time defines eternal units of time that are of Indefinite non-zero periods. These units are used to
-define the very beginning, the current, and the very end of time: &.library.Genesis,
-&.library.Present, &.library.Never. These points in time are ambiguous and have simple rules
+define the very beginning, the current, and the very end of time: &.constants.genesis,
+&.constants.present, &.constants.never. These points in time are ambiguous and have simple rules
 when used with finite points in time. Never is a point in the future that is greater than
 all other points, Genesis is a point in the past before all other points, and Present
 is a continually moving point representing the current point in time, which is a subjective concept normally
@@ -552,7 +553,7 @@ Like other Points in Time, there are corresponding measures: positive and negati
 not commonly referred to or used.
 
 Eternals also allow for the creation of indefinite segments. There are three built-in
-segments: &.library.Time, &.library.Past, &.library.Future. These segments
+segments: &.types.Time, &.types.Past, &.types.Future. These segments
 represent common concepts that can be used to identify whether or not a given point has
 already occurred or will occur as Present, the start or stop of the segments, is a
 continually moving point in time.
@@ -561,14 +562,14 @@ Indefinite points such as Never and Genesis are also useful for creating unbound
 segments from a particular point in time:
 
 #!/pl/python
-	pit = libtime.now().rollback(hour=1)
-	rfuture = libtime.Segment((pit, libtime.Never))
+	pit = sysclock.now().rollback(hour=1)
+	rfuture = types.Segment((pit, constants.never))
 
 The `rfuture` segment starts an hour in the past and never ends. Notably, iterators
 created by the segment are continuous in the future:
 
 #!/pl/python
-	hourly = rfuture.points(libtime.Measure.of(hour=1))
+	hourly = rfuture.points(types.Measure.of(hour=1))
 	for x, ts in zip(range(3), hourly):
 		print(x, ts)
 
@@ -618,8 +619,8 @@ Each situation has its own requirements for proper zone handling.
 
 In the first, the zone identifier should be associated with the PiT object.
 These objects should always be a type capable of designating a date and time of
-day, the &.library.Timestamp type. Representation types like
-&.library.Date don't require zone adjustments unless it
+day, the &.types.Timestamp type. Representation types like
+&.types.Date don't require zone adjustments unless it
 is ultimately intended to refer to the beginning of the day in that particular
 zone in UTC.
 
@@ -630,11 +631,11 @@ should be associated with the PiT object.
 -------------------------------------------------------------------------
 
 While &.views provides the implementation of Zone objects, high level
-access is provided via the &.library.zone function:
+access is provided via the &.views.Zone.open class method:
 
 #!/pl/python
-	tz = libtime.zone('America/Los_Angeles')
-	pit = libtime.now()
+	tz = views.Zone.open('America/Los_Angeles')
+	pit = sysclock.now()
 	offset = tz.find(pit)
 
 Once the &.views.Zone.Offset object has been found for a given point in
@@ -651,7 +652,7 @@ The examples in the previous section show the details of localization.
 single method, &.views.Zone.localize:
 
 #!/pl/python
-	pit, offset = libtime.zone().localize(libtime.now())
+	pit, offset = views.Zone.open().localize(sysclock.now())
 
 The offset applied to the point in time is returned with the adjusted point as it is
 often necessary in order to properly represent the timestamp:
@@ -668,8 +669,8 @@ a UTC timestamp and then localizing it. The &.views.Zone.normalize
 method has this functionality:
 
 #!/pl/python
-	pit, offset = libtime.zone().localize(libtime.now())
-	normalized_pit, new_offset = libtime.zone().normalize(offset, pit)
+	pit, offset = views.Zone.open().localize(sysclock.now())
+	normalized_pit, new_offset = views.Zone.open().normalize(offset, pit)
 
 Where `normalized_pit` and `new_offset` are the *exact* same objects if no change was
 necessary.

@@ -4,7 +4,7 @@
 # Aside from &Segment, all classes in this module are subclasses of &builtins.int.
 # Primarily, the time domain classes are constructed using (identifier)`of`:
 
-##!/pl/python
+#!/pl/python
 	y2k = types.Timestamp.of(year=2000)
 	two_hours = types.Measure.of(hour=2)
 
@@ -14,7 +14,7 @@
 	# Retrieve the most appropriate &core.Measure class available in &Context for use
 	# with given the identified unit. Takes one parameter, the unit name.
 
-	##!/pl/python
+	#!/pl/python
 		assert issubclass(types.select('hour'), types.Measure)
 		assert issubclass(types.select('day'), types.Days)
 		assert issubclass(types.select('month'), types.Months)
