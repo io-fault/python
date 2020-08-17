@@ -136,8 +136,13 @@ def _syn(depth, syntax):
 	for sl in syntax[1]:
 		yield (sld, sl[1])
 
-def _para(depth, node):
-	for l in paragraph(document.export(node[1])):
+def _para(depth, node, Paragraph=types.Paragraph):
+	if isinstance(node[1], Paragraph):
+		pg = node[1]
+	else:
+		pg = document.export(node[1])
+
+	for l in paragraph(pg):
 		if l and l[-1] == ' ':
 			l[-1] = ''
 		yield (depth, l)
