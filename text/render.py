@@ -227,6 +227,9 @@ _index = {
 	'set': _set,
 	'sequence': _sequence,
 	'dictionary': _dictionary,
+
+	# No-op element type often providing additional metadata.
+	'void': (lambda x, y: ()),
 }
 
 def _tree(depth, nodes):
