@@ -180,10 +180,13 @@ def _sequence(depth, node):
 def _set(depth, node):
 	return _list(depth, node, "- ")
 
-def _dictionary(depth, node):
+def _dictionary(depth, node, Paragraph=types.Paragraph):
 	for item in node[1]:
 		k, v = item[1]
-		kp = document.export(k[1])
+		if isinstance(k[1], Paragraph):
+			kp = k[1]
+		else:
+			kp = document.export(k[1])
 		kl = ["/"]
 		kl.extend(*paragraph(kp))
 		kl.append("/")
