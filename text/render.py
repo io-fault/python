@@ -57,15 +57,27 @@ def section_path(rdepth:int, rmultiple:typing.Optional[int], *path:str) -> Line:
 	return ["[ ", x, (" " if x else ""), " >> ".join(path), " ]"]
 
 def ambiguous_reference(string:str) -> Fragment:
+	"""
+	# Prefix the given string with an ampersand.
+	"""
 	return "&" + string
 
 def section_reference(section_selector:str) -> Fragment:
+	"""
+	# Prefix the given string with an ampersand after enclosing it with brackets.
+	"""
 	return "&[" + section_selector + "]"
 
 def hyperlink(url:str) -> Fragment:
+	"""
+	# Prefix the given string with an ampersand after enclosing it with angle brackets.
+	"""
 	return "&<" + url + ">"
 
 def literal(string:str) -> Fragment:
+	"""
+	# Surround the string with grave-accents and replace any grave-accent within with two.
+	"""
 	return "`" + string.replace("`", "``") + "`"
 
 _p_fragments = {
