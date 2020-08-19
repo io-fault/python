@@ -11,7 +11,7 @@ formats = {
 	'json': ('json', (lambda m,f,a: m.dump(a, f))),
 }
 
-def parse(source):
+def chapter(source):
 	dt=document.Tree()
 	dx = document.Transform(dt)
 	fp = format.Parser()
@@ -24,7 +24,7 @@ def main(inv:process.Invocation) -> process.Exit:
 	module = importlib.import_module(module_path)
 
 	# Parse chapter source.
-	ast = parse(sys.stdin.read())
+	ast = chapter(sys.stdin.read())
 
 	# Serialize AST.
 	process(module, sys.stdout, (('chapter', list(ast)), {}))
