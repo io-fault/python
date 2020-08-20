@@ -127,11 +127,17 @@ def inline_fragment(frag:types.Fragment) -> Fragment:
 	return ''.join(paragraph((frag,)))
 
 def _chapter(depth, node):
-	yield from _tree(depth, node[1])
+	nodes = node[1]
+	# First node is chapter content.
+	yield from _tree(depth, nodes[0][1])
+
+	for subnode in node[1][1:]:
+		typ, nodes, attr = subnode
+		yield from _index[typ](depth, subnode)
 
 def _section(depth, node):
 	sd = node[2]
-	p = section_path(sd['selector-level'], sd['selector-multiple'], *sd['selector-path'])
+	p = section_path(sd['selector-level'] or 0, sd['selector-multiple'], *(sd['selector-path'] or ()))
 	yield (depth, p)
 	yield (depth, [""])
 	yield from _tree(depth, node[1])
@@ -257,7 +263,7 @@ def tree(node, adjustment:int=0, indentation:str="\t", newline:str="\n") -> Imag
 	# /node/
 		# Any document node.
 	# /adjustment/
-		# The indendation difference to render Lines with. Zero by default.
+		# The indentation difference to render Lines with. Zero by default.
 	# /indentation/
 		# The indentation character or sequence to render lines with.
 	# /newline/
@@ -265,6 +271,26 @@ def tree(node, adjustment:int=0, indentation:str="\t", newline:str="\n") -> Imag
 		# May be an empty string to supress line terminators.
 	"""
 	for il, lc in _tree(0, node[1]):
+		lc.insert(0, (il+adjustment)*indentation)
+		lc.append(newline)
+		yield "".join(lc)
+
+def chapter(node, adjustment:int=0, indentation:str="\t", newline:str="\n") -> Image:
+	"""
+	# Produce the image representing the given chapter node including newline characters.
+
+	# [ Parameters ]
+	# /node/
+		# Any document node.
+	# /adjustment/
+		# The indentation difference to render Lines with. Zero by default.
+	# /indentation/
+		# The indentation character or sequence to render lines with.
+	# /newline/
+		# The character or sequence to append to each line in the image.
+		# May be an empty string to supress line terminators.
+	"""
+	for il, lc in _chapter(0, node):
 		lc.insert(0, (il+adjustment)*indentation)
 		lc.append(newline)
 		yield "".join(lc)
