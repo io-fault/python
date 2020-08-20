@@ -117,3 +117,6 @@ class Paragraph(list):
 					continue
 			else:
 				current.append(x)
+
+		if current:
+			yield current
