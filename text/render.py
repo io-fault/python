@@ -1,5 +1,11 @@
 """
-# Text rendering tools for creating (text) images from nodes and node data.
+# Format text elements into text images.
+
+# Paragraph level formatting functions usually return &Fragment while section-level
+# returns &Image.
+
+# &chapter and &elements are the primary entry points where chapter takes a single
+# (element/type)`chapter` node and elements takes a sequence of arbitrary nodes.
 
 # [ Types ]
 
@@ -271,6 +277,26 @@ def tree(node, adjustment:int=0, indentation:str="\t", newline:str="\n") -> Imag
 		# May be an empty string to supress line terminators.
 	"""
 	for il, lc in _tree(0, node[1]):
+		lc.insert(0, (il+adjustment)*indentation)
+		lc.append(newline)
+		yield "".join(lc)
+
+def elements(nodes, adjustment:int=0, indentation:str="\t", newline:str="\n") -> Image:
+	"""
+	# Produce the image representing the given &nodes sequence.
+
+	# [ Parameters ]
+	# /nodes/
+		# Sequence of arbitrary text elements.
+	# /adjustment/
+		# The indentation difference to render Lines with. Zero by default.
+	# /indentation/
+		# The indentation character or sequence to render lines with.
+	# /newline/
+		# The character or sequence to append to each line in the image.
+		# May be an empty string to supress line terminators.
+	"""
+	for il, lc in _tree(0, nodes):
 		lc.insert(0, (il+adjustment)*indentation)
 		lc.append(newline)
 		yield "".join(lc)
