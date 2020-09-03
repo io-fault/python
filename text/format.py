@@ -808,7 +808,7 @@ class Parser(object):
 
 		# Implicit section.
 		head = ('section', [('paragraph', [], None)], None) # initial section without title
-		root = ('document', [head], None)
+		root = ('chapter', [head], None)
 
 		tokens = self.tokenize(source.split(newline))
 		ctx = next(tokens)

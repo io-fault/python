@@ -234,7 +234,7 @@ class Transform(object):
 		self.text = self.serialization.escape
 
 	def process(self, tree):
-		assert tree[0] == 'document'
+		assert tree[0] == 'chapter'
 		for section in tree[1]:
 			yield from self.create_section(tree, section)
 
