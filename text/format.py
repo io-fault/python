@@ -282,22 +282,23 @@ class Parser(object):
 				structure.append(x + (cast,))
 				cast = None
 			else:
-				if x[0] == 'text' and x[1].count('*') > 1:
-					structure.extend(self.emphasis(x[1]))
+				typ = x[0]
+				txt = x[1]
+
+				if typ != 'text':
+					structure.append(x)
 					continue
 
-				if x[0] == 'text' and x[1].endswith(')'):
-					start = x[1].rfind('(')
+				if txt.endswith(')'):
+					start = txt.rfind('(')
+					if start != -1:
+						cast = txt[start+1:-1]
+						txt = txt[:start]
 
-					if start == -1:
-						# Not a cast.
-						structure.append(x)
-					else:
-						cast = x[1][start+1:-1]
-						structure.append((x[0], x[1][:start]))
+				if txt.count('*') > 1:
+					structure.extend(self.emphasis(txt))
 				else:
-					# No processing necessary.
-					structure.append(x)
+					structure.append((typ, txt) + x[2:])
 		else:
 			if cast is not None:
 				# cast at the end of the paragraph-line
