@@ -33,21 +33,21 @@ def clear_bootstrap_extensions(route):
 	names = route.absolute[len(pkg.absolute):]
 	pkg = pkg.container
 
-	if not pkg.exists():
+	if pkg.fs_type() == 'void':
 		return
 
 	print('[', str(route), ']')
-	link_target = pkg.file().container.extend(names)
-	final = link_target.suffix(ext_suffixes[0])
+	link_target = pkg.file().container + names
+	final = link_target.suffix_filename(ext_suffixes[0])
 
 	removals = []
 	for suf in ext_suffixes[1:] + ['.pyd', '.dylib']:
-		rmf = link_target.suffix(suf)
-		if rmf.exists():
+		rmf = link_target.suffix_filename(suf)
+		if rmf.fs_type() != 'void':
 			removals.append(rmf)
 
-	dsym = link_target.suffix('.so.dSYM')
-	if dsym.exists():
+	dsym = link_target.suffix_filename('.so.dSYM')
+	if dsym.fs_type() != 'void':
 		removals.append(dsym)
 
 	if removals:
@@ -56,12 +56,12 @@ def clear_bootstrap_extensions(route):
 			print('\t- ' + str(x))
 			os.unlink(str(x))
 
-	if final.exists():
+	if final.fs_type() != 'void':
 		print()
 		print('/Kept')
 		print('\t- ' + str(final))
 
-	if link_target.suffix('.py').exists():
+	if link_target.suffix_filename('.py').fs_type() != 'void':
 		print('! WARNING: Extension may conflict with Python module:', str(link_target))
 	print('')
 
