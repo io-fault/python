@@ -176,10 +176,11 @@ def _list(depth, node, list_type):
 	for i in node[1]:
 		assert i[0] == 'item'
 
+		# First node must be a paragraph; empty is fine.
 		i1 = i[1][0]
 		assert i1[0] == 'paragraph'
 
-		*init, last = list(_para(depth, i1))
+		*init, last = _para(depth, i1)
 		if not init:
 			yield (depth, [list_type])
 		else:
