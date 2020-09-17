@@ -1,5 +1,5 @@
 """
-# Validate library defined types and their integration with &..fault.range
+# Validate library defined types and their integration with &..range
 """
 import sys
 import pickle

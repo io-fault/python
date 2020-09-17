@@ -285,8 +285,9 @@ class Parser(object):
 		# &tokenize and &delimit multiple &lines resetting the context at the end of each line.
 
 		# This is the recommended method for extracting tokens from a file for syntax documents
-		# that are expected to restate line context or have inaccurate profiles. The iterators
-		# produced may be ran out of order as no parsing state is shared across lines.
+		# that are expected to restate line context, have inaccurate profiles, or are incomplete.
+
+		# The produced iterators may be ran out of order as no parsing state is shared across lines.
 		"""
 
 		tok = self.tokenize
@@ -303,8 +304,8 @@ class Parser(object):
 		# This is the recommended method for extracting tokens from a file for syntax documents
 		# that are expected to *not* restate line context *and* have accurate profiles.
 
-		# The produced iterators *must* be ran in the order as the context is shared across
-		# instances. Running iterators as they constructed is recommended.
+		# The produced iterators **must** be ran in the produced order as the context is shared across
+		# instances.
 		"""
 
 		ctx = self.allocstack()
@@ -402,7 +403,7 @@ class Parser(object):
 			varsplit=string.varsplit,
 		) -> Tokens:
 		"""
-		# Tokenize a string of syntax using the language profile given to a constructor.
+		# Tokenize a string of syntax according to the profile.
 
 		# Direct use of this is not recommended as boundaries are not signalled.
 		# &process_lines or &process_document should be used.
