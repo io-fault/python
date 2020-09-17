@@ -198,8 +198,7 @@ class Area(rangetypes.IRange):
 		subset = lines[lstart-1:lstop]
 
 		# Divide the beginning and the end by the column start/stop.
-		initial = subset[0]
-		prefix = initial[:cstart-1]
+		prefix = subset[0][:cstart-1]
 		final = subset[-1]
 		if cstop is None:
 			suffix = ""
