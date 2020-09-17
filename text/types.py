@@ -80,6 +80,13 @@ class Paragraph(list):
 	def __repr__(self):
 		return '%s(%s)' %(self.__class__.__name__, super().__repr__())
 
+	@classmethod
+	def of(Class, *sequence:Fragment):
+		"""
+		# Variable argument based &Paragraph constructor.
+		"""
+		return Class(sequence)
+
 	@property
 	def sole(self) -> Fragment:
 		"""
