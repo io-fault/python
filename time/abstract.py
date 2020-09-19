@@ -1,8 +1,12 @@
 """
 # Abstract base classes for time measures and points.
 
-# The inheritance hierarchy can get messy. These ABCs help to keep the inheritance
-# under control and provide easy access to the APIs.
+# Primarily, this module exists to document the interfaces to &Point and &Measure.
+# The redundant method declarations are intentional.
+
+# ! WARNING:
+	# There is some bitrot and conceptual conflicts.
+	# &Range is likely misnamed and its role is not well clarified.
 """
 import abc
 
@@ -258,10 +262,10 @@ class Point(Range):
 		"""
 
 	@abc.abstractproperty
-	def Measure(self):
+	def Measure(self) -> Measure:
 		"""
 		# The Point's corresponding scalar class used to measure deltas.
-		# This provides access to a &Measure with consistent precision.
+		# This provides access to a &Measure whose precision is consistent with the &Point.
 
 		# [ Invariants ]
 		#!/syntax/python
@@ -334,8 +338,6 @@ class Point(Range):
 		"""
 		# Returns whether or not the Point in Time, self,
 		# comes *before* the given argument, &pit.
-
-		# Essentially, this is a &Unit aware comparison.
 		"""
 
 	@abc.abstractmethod
