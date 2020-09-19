@@ -1,10 +1,9 @@
 [ Overview ]
-------------
 
-Chronometry is a time library based on the built-in Python &int.
+&..time is a time library based on the built-in Python &int.
 By default, timestamps have nanosecond precision granting common applications
 more than enough detail about a point in time. For specialized purposes, the
-units handled by chronometry can be arbitrarily extended--the &int subclasses
+units handled can be arbitrarily extended--the &int subclasses
 represent a designated unit and a common Time Context, group of unit classes,
 provides the necessary linkage and transformations for conversion across
 classes.
@@ -13,65 +12,19 @@ Calendar Support:
 
 	- Proleptic Gregorian
 
-chronometry's APIs are *not* compatible with the standard library's datetime module.
+#!/syntax/python
+	from fault.time.types import Date, Timestamp, Measure
 
-&.library will be referred to as `libtime` throughout the examples in this documentation.
-
-The surface functionality is provided &.library:
-
-#!/pl/python
-	import fault.time.library as libtime
-
-Current date and time as a &.library.Timestamp.
-
-#!/pl/python
-	now = libtime.now() # UTC
-
-
-[ Defense ]
-===========
-
-This section details arguments for chronometry's existence.
-
-[ Development ]
-===============
-
-chronometry strives to isolate functionality as much as possible. However, in early
-implementations, difficulty came when managing distinct units as separate
-classes. Even with a common superclass, greater integration was necessary to
-provide a cohesive programmer interface. Notably, when using time classes
-interchangeably.
-
-[ Structure ]
-=============
-
-chronometry exposes most functionality via the &.library module. The underlying
-unit modules are rarely accessed directly and are primarily used by the
-&.core module which provides &.library with most of its
-functionality.
-
-&.core is a module that defines unit base classes and defines the
-standard time context that creates classes for common units--Measures and Points In Time.
-The Time Context is the center of chronometry as it provides the
-necessary mappings for converting unlike units. All unit-qualified Time objects have a
-reference to this context.
-
-Primarily, chronometry works with two classes that store units defined in a context: Measures
-and Points. Measures are measurements of time, and Points are points in time.
-
-[ Requirements ]
-================
-
-A functioning Python interpreter and a C compiler capable of compiling Python
-extension modules, clock and sleep access.
+#!/syntax/python
+	from fault.time import sysclock
+	now = sysclock.now() # Always UTC
 
 [ Unit Knowledge ]
-==================
 
-All of the following units are defined in the default Time Context. However, the
-emphasized units are the only units with designated classes by default.
+All of the following units are defined in the default Time Context.
+The emphasized units are the only units that have associated classes allocated by default.
 
-/earth
+/earth/
 	- second
 	- minute
 	- hour
@@ -79,14 +32,14 @@ emphasized units are the only units with designated classes by default.
 	- *week*
 	- annum (Julian Year)
 
-/gregorian
+/gregorian/
 	- *month*
 	- year
 	- decade
 	- century
 	- millennium
 
-/metric subseconds
+/metric subseconds/
 	- decisecond
 	- centisecond
 	- millisecond
@@ -98,7 +51,7 @@ emphasized units are the only units with designated classes by default.
 	- zeptosecond
 	- yoctosecond
 
-/metric seconds
+/metric seconds/
 	- decasecond
 	- hectosecond
 	- kilosecond
@@ -109,6 +62,3 @@ emphasized units are the only units with designated classes by default.
 	- exasecond
 	- zettasecond
 	- yottasecond
-
-The emphasized units are the units associated with actual Python types. All other units
-are expressed in terms of those units unless the time context is explicitly extended.

@@ -43,7 +43,7 @@ class Range(Time):
 		# Determines whether or not the given `pit` is completely contained by the
 		# Range.
 
-		#!/pl/python
+		#!/syntax/python
 			assert self.start >= pit and pit < self.stop
 		"""
 
@@ -84,7 +84,7 @@ class Measure(Range):
 		"""
 		# For Measure instances, this property *must* be zero.
 
-		#!/pl/python
+		#!/syntax/python
 			assert measure.start == 0
 		"""
 
@@ -93,7 +93,7 @@ class Measure(Range):
 		"""
 		# For Measure instances, this property *must* be the instance, &self:
 
-		#!/pl/python
+		#!/syntax/python
 			assert measure.stop is measure
 		"""
 
@@ -102,7 +102,7 @@ class Measure(Range):
 		"""
 		# The magnitude of the Time instance. For Measures, this is their integer value:
 
-		#!/pl/python
+		#!/syntax/python
 			assert int(measure) == measure.magnitude
 		"""
 
@@ -112,7 +112,7 @@ class Measure(Range):
 		# Create an instance of the type from the sum of the quantities
 		# specified by &times and &parts:
 
-		#!/pl/python
+		#!/syntax/python
 			measure = Measure.of(hour = 33, microsecond = 44)
 
 		# The above example only shows keyword use that is specific to the standard
@@ -121,9 +121,9 @@ class Measure(Range):
 
 		# [ Parameters ]
 
-		# /&times
+		# /times/
 			# A sequence of &Time instances.
-		# /&parts
+		# /parts/
 			# Keyword names designate the unit of the corresponding value.
 			# The time context dictates what that is.
 		"""
@@ -138,14 +138,14 @@ class Measure(Range):
 
 		# This is equivalent to:
 
-		#!/pl/python
+		#!/syntax/python
 			assert self.increase(*units, **parts) == self.of(self, *units, **parts)
 
 		# [ Parameters ]
 
-		# /&units
+		# /units/
 			# Variable number of &Measure instances.
-		# /&parts
+		# /parts/
 			# Variable keywords whose keys designate the unit.
 		"""
 
@@ -159,7 +159,7 @@ class Measure(Range):
 
 		# This is equivalent to:
 
-		#!/pl/python
+		#!/syntax/python
 			neg_units = [-unit for unit in units]
 			neg_parts = {k:-v for (k,v) in parts}
 
@@ -167,9 +167,9 @@ class Measure(Range):
 
 		# [ Parameters ]
 
-		# /&units
+		# /units/
 			# Variable number of &Measure instances.
-		# /&parts
+		# /parts/
 			# Variable keywords whose keys designate the unit.
 		"""
 
@@ -184,7 +184,7 @@ class Measure(Range):
 
 		# Common cases:
 
-		#!/pl/python
+		#!/syntax/python
 			h = x.select('hour', 'day')
 			m = x.select('minute', 'hour')
 			s = x.select('second', 'minute')
@@ -192,12 +192,12 @@ class Measure(Range):
 
 		# [ Parameters ]
 
-		# /&part
+		# /part/
 			# The unit whose count is to be returned.
-		# /&of
+		# /of/
 			# The unit whose total wholes are subtracted
 			# from `self` in order to find the correct total parts.
-		# /&align
+		# /align/
 			# How to align the given part.
 			# Trivially, this is a difference that is applied
 			# prior to removing wholes: `value = self - align`.
@@ -211,7 +211,7 @@ class Measure(Range):
 
 		# The following holds true:
 
-		#!/pl/python
+		#!/syntax/python
 			updated = pit.update(part, replacement, of, align)
 			adjusted = this.adjust(**{part: replacement - pit.select(part, of, align)})
 			assert updated == adjusted
@@ -220,13 +220,13 @@ class Measure(Range):
 
 		# [ Parameters ]
 
-		# /&part
+		# /part/
 			# The name of the Part unit to set.
-		# /&replacement
+		# /replacement/
 			# The new value to set.
-		# /&of
+		# /of/
 			# The name of the Whole unit that defines the boundary of the part.
-		# /&align
+		# /align/
 			# Defaults to zero; the adjustment applied to the boundary.
 		"""
 
@@ -238,7 +238,7 @@ class Measure(Range):
 
 		# [ Parameters ]
 
-		# /&unit
+		# /unit/
 			# The minimum unit size to allow in the new time instance.
 		"""
 
@@ -247,7 +247,7 @@ class Point(Range):
 	# A Point in Time; a &Range relative to an understood datum.
 	# Points isolate a position in time *with* a mangitude of one unit.
 	# The purpose of the &Range superclass is primarily practical as allowing
-	# &.library.Date instances to be perceived as the span of
+	# &.types.Date instances to be perceived as the span of
 	# the entire day is frequently useful.
 	"""
 
@@ -264,7 +264,7 @@ class Point(Range):
 		# This provides access to a &Measure with consistent precision.
 
 		# [ Invariants ]
-		#!/pl/python
+		#!/syntax/python
 			assert point.Measure.unit == point.unit
 			assert issubclass(point.Measure, Measure)
 		"""
@@ -275,7 +275,7 @@ class Point(Range):
 		# Points *must* return the instance, &self:
 
 		# [ Invariants ]
-		#!/pl/python
+		#!/syntax/python
 			assert point.start is point
 		"""
 
@@ -285,7 +285,7 @@ class Point(Range):
 		# The next Point according to the unit:
 
 		# [ Invariants ]
-		#!/pl/python
+		#!/syntax/python
 			assert point.stop == point.elapse(point.Measure(1))
 		"""
 
@@ -294,7 +294,7 @@ class Point(Range):
 		"""
 		# The magnitude of the Point. For Points, this *must* be one::
 
-		#!/pl/python
+		#!/syntax/python
 			assert pit.magnitude == 1
 		"""
 
@@ -313,7 +313,7 @@ class Point(Range):
 		# Essentially, this is a call to the &of
 		# method with the instance as the first parameter.
 
-		# This is shorthand for `T.of(T, *units, **parts)`.
+		# This is shorthand for `t.of(t, *units, **parts)`.
 		"""
 
 	@abc.abstractmethod
@@ -325,7 +325,7 @@ class Point(Range):
 
 		# [ Invariants ]
 
-		#!/pl/python
+		#!/syntax/python
 			pit == (pit.rollback(*measures, **units)).elapse(*measures, **units)
 		"""
 
