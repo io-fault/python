@@ -18,7 +18,7 @@ def test_Paragraph_of(test):
 	sole = module.Paragraph.of(module.Fragment(('text/normal', 'data')))
 	test/sole[0] == module.Fragment(('text/normal', 'data'))
 
-	many = module.Paragraph.of(module.Fragment(('text', str(x))) for x in range(10))
+	many = module.Paragraph.of(*(module.Fragment(('text', str(x))) for x in range(10)))
 	test/[f[1] for f in many] == [str(i) for i in range(10)]
 
 def test_Paragraph_sole(test):
