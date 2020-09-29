@@ -84,7 +84,7 @@ class Tokens(object):
 
 class Parser(object):
 	"""
-	# Configuration and state class for parsing eclectic markdown.
+	# Configuration and state class for parsing kleptic text.
 
 	# [ Properties ]
 	# /stack/
@@ -128,8 +128,8 @@ class Parser(object):
 		# the indicator removed.
 
 		#!text
-			# &*<...>
-			# &*[Parameters(...)]
+			# &<...>
+			# &[Parameters(...)]
 			# (int *)`3928+23192-203`
 		"""
 		label = None
@@ -807,11 +807,10 @@ class Parser(object):
 		"""
 
 		# Implicit section.
-		head = ('section', [('paragraph', [], None)], None) # initial section without title
-		root = ('chapter', [head], None)
+		root = ('chapter', [('paragraph', [], None)], {})
 
 		tokens = self.tokenize(source.split(newline))
 		ctx = next(tokens)
-		self.structure(dict(), root, head, 0, Tokens(tokens))
+		self.structure(dict([((), root)]), root, root, 0, Tokens(tokens))
 
 		return root

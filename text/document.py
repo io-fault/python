@@ -5,7 +5,6 @@ import itertools
 import typing
 from ..context import string
 
-from . import core
 from . import types
 
 def export(paragraph, literal=None, reference=None) -> types.Paragraph:
@@ -235,8 +234,7 @@ class Transform(object):
 
 	def process(self, tree):
 		assert tree[0] == 'chapter'
-		for section in tree[1]:
-			yield from self.create_section(tree, section)
+		return ('chapter', list(self.process_section(tree, tree)), tree[2])
 
 	def process_paragraph_text(self, tree, text, cast=None):
 		yield from self.text(text)
@@ -457,7 +455,7 @@ class Transform(object):
 		)
 
 	def process_section(self, tree, section):
-		assert section[0] in ('section', 'variable-content', 'admonition-content', 'set-item')
+		assert section[0] in ('chapter', 'section', 'variable-content', 'admonition-content', 'set-item')
 		for part in section[1]:
 			yield from self.section_index[part[0]](self, tree, part)
 

@@ -7,13 +7,14 @@ import sys
 from ...system import process
 from ...system import files
 
-from ...text import library as libtext
+from .. import document
+from . import parse
 
 def pairs(items):
 	# Identify the key-value pairs of dictionaries.
-	for k, v in libtext.document.dictionary_pairs(items):
+	for k, v in document.dictionary_pairs(items):
 		if v[0] == 'syntax':
-			data = ''.join(libtext.document.concatenate(v))
+			data = ''.join(document.concatenate(v))
 		else:
 			data = mapping(v[1])
 
@@ -23,7 +24,7 @@ def mapping(content):
 	return dict(pairs(content))
 
 def transform(tree, section):
-	section_content = libtext.document.section(tree, section)
+	section_content = document.section(tree, section)
 	if section_content is None:
 		raise Exception("section not found " + section)
 
@@ -39,7 +40,7 @@ def transform(tree, section):
 
 def structure(source, section):
 	text = source.get_text_content()
-	data = (transform(libtext.parse(text), section))
+	data = (transform(parse.chapter(text), section))
 	return data
 
 def main(inv:process.Invocation) -> process.Exit:

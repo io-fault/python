@@ -9,13 +9,14 @@ import sys
 from ...system import process
 from ...system import files
 
-from ...text import library as libtext
+from . import parse
+from .. import document
 
 def pairs(items):
 	# Identify the key-value pairs of dictionaries.
-	for k, v in libtext.document.dictionary_pairs(items):
+	for k, v in document.dictionary_pairs(items):
 		if v[0] == 'syntax':
-			data = ''.join(libtext.document.concatenate(v))
+			data = ''.join(document.concatenate(v))
 		else:
 			data = mapping(v[1])
 
@@ -25,7 +26,7 @@ def mapping(content):
 	return dict(pairs(content))
 
 def transform(tree, section):
-	section_content = libtext.document.section(tree, section)
+	section_content = document.section(tree, section)
 	if section_content is None:
 		raise Exception("section not found " + section)
 
@@ -59,7 +60,7 @@ def emit(route, data):
 
 def instantiate(target, source, section):
 	text = source.get_text_content()
-	data = (transform(libtext.parse(text), section))
+	data = (transform(parse.chapter(text), section))
 	target.fs_mkdir()
 	emit(target, data)
 

@@ -1,9 +1,13 @@
 """
-# Emit the element tree JSON of the text.
+# Parse the text file from standard input and serialize the element tree into standard output.
+
+# The format of the output is designated using the first argument: print, json.
 """
 import sys
 import importlib
-from fault.system import process
+
+from ...system import process
+
 from .. import format
 from .. import document
 
@@ -16,13 +20,12 @@ def chapter(source):
 	dt=document.Tree()
 	dx = document.Transform(dt)
 	fp = format.Parser()
-	g = dx.process(fp.parse(source))
-	return ('chapter', list(g), {})
+	return dx.process(fp.parse(source))
 
 def main(inv:process.Invocation) -> process.Exit:
 	format, = inv.argv # 'json' or 'print'
 	module_path, process = formats[format]
-	module = importlib.import_module(module_path)
+	module = importlib.import_module(module_path, __package__)
 
 	# Parse chapter source.
 	ast = chapter(sys.stdin.read())

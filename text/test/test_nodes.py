@@ -54,23 +54,22 @@ def test_no_filter_error(test):
 
 def test_select_query_sanity(test):
 	r = cursor.select('/section')
-	test/len(r) == 5
+	test/len(r) == 4
 	ids = [x[-1]['identifier'] for x in r]
-	test/ids == [None, "Section Name", "Objects", "] Odd Section [", "Final Section"]
+	test/ids == ["Section Name", "Objects", "] Odd Section [", "Final Section"]
 
 def test_select_indexing(test):
-	test/cursor.select('/section#1')[0][-1]['identifier'] == None
-	test/cursor.select('/section#2')[0][-1]['identifier'] == "Section Name"
-	test/cursor.select('/section#3')[0][-1]['identifier'] == "Objects"
-	test/cursor.select('/section#4')[0][-1]['identifier'] == "] Odd Section ["
-	test/cursor.select('/section#5')[0][-1]['identifier'] == "Final Section"
+	test/cursor.select('/section#1')[0][-1]['identifier'] == "Section Name"
+	test/cursor.select('/section#2')[0][-1]['identifier'] == "Objects"
+	test/cursor.select('/section#3')[0][-1]['identifier'] == "] Odd Section ["
+	test/cursor.select('/section#4')[0][-1]['identifier'] == "Final Section"
 
 def test_export_paragraph(test):
 	para, = cursor.export("/section[Section Name]/p#1")
 	test/para.sole[1] == "First paragraph."
 
 def test_export_syntax(test):
-	syntax, = cursor.export("/section#5/syntax#1")
+	syntax, = cursor.export("/section#4/syntax#1")
 	test/syntax[0] == '/text'
 	test/syntax[1] == 'parameter-data'
 	test/syntax[2][0] == "Subtext Paragraph"

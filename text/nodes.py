@@ -222,8 +222,7 @@ class Cursor(object):
 
 		# The nodes are set as the content of a new chapter node.
 		"""
-		chapter = [('chapter', nodes, {'identifier':identifier})]
-		return Class(chapter)
+		return Class([nodes])
 
 	@classmethod
 	def from_chapter_text(Class, text:str, identifier=None):
