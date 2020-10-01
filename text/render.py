@@ -133,11 +133,7 @@ def inline_fragment(frag:types.Fragment) -> Fragment:
 	return ''.join(paragraph((frag,)))
 
 def _chapter(depth, node):
-	nodes = node[1]
-	# First node is chapter content.
-	yield from _tree(depth, nodes[0][1])
-
-	for subnode in node[1][1:]:
+	for subnode in node[1]:
 		typ, nodes, attr = subnode
 		yield from _index[typ](depth, subnode)
 
