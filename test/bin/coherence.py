@@ -12,7 +12,7 @@ import importlib
 from ...system import corefile
 from ...system import process
 from ...system import files
-from ...transcripts import frames
+from ...transcript import frames
 from ...time.sysclock import elapsed
 from ...status import python
 
