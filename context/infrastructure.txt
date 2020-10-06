@@ -11,6 +11,7 @@
 	- &..security
 	- &..syntax
 	- &..system
+	- &..transcript
 	- &..terminal
 	- &..text
 	- &..time
