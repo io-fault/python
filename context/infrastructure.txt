@@ -5,7 +5,6 @@
 /Projects/
 	- &..hkp
 	- &..kernel
-	- &..sectors
 	- &..internet
 	- &..web
 	- &..route
