@@ -8,7 +8,7 @@
 	- &..sectors
 	- &..internet
 	- &..web
-	- &..routes
+	- &..route
 	- &..security
 	- &..syntax
 	- &..system
