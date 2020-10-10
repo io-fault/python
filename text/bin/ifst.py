@@ -26,7 +26,7 @@ def mapping(content):
 	return dict(pairs(content))
 
 def transform(tree, section):
-	section_content = document.section(tree, section)
+	section_content = document.section(tree[1], section)
 	if section_content is None:
 		raise Exception("section not found " + section)
 
