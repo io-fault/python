@@ -65,7 +65,8 @@ def sections(root) -> typing.Iterator[typing.Tuple[str, object]]:
 	# Iterator producing (section-identifier, section) pairs.
 	"""
 	for x in root:
-		yield (x[-1]['identifier'], x)
+		if x[0] == 'section':
+			yield (x[-1]['identifier'], x)
 
 def section(root, identifier) -> object:
 	"""
