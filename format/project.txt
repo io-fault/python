@@ -1,0 +1,17 @@
+! CONTEXT:
+	/protocol/
+		&<http://if.fault.io/project/information>
+
+/identifier/
+	&<http://fault.io/python/print>
+/icon/
+	- (emoji)`💎`
+/name/
+	`print`
+/abstract/
+	Rendering tools for *very* pretty printing to the terminal.
+
+/authority/
+	`fault.io`
+/contact/
+	&<http://fault.io/critical>
