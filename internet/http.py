@@ -6,30 +6,30 @@
 
 # [ Events ]
 
-# /(identifier)`BYPASS`/
+# /(id)`BYPASS`/
 	# (&ev_bypass, &bytes)
 
-# /(identifier)`RLINE`/
+# /(id)`RLINE`/
 	# For requests: (&ev_rline, (method, uri, version))
 	# For responses: (&ev_rline, (version, response_code, description))
 
-# /(identifier)`CHUNK`/
+# /(id)`CHUNK`/
 	# (&ev_chunk, &bytearray)
 
-# /(identifier)`CONTENT`/
+# /(id)`CONTENT`/
 	# (&ev_content, &bytearray)
 
-# /(identifier)`HEADERS`/
+# /(id)`HEADERS`/
 	# (&ev_headers, [(&bytes, &bytes),...])
 
-# /(identifier)`TRAILERS`/
+# /(id)`TRAILERS`/
 	# (&ev_trailers, [(&bytes, &bytes),...])
 
-# /(identifier)`MESSAGE`/
+# /(id)`MESSAGE`/
 	# (&ev_message, &None)
 	# End of message.
 
-# /(identifier)`VIOLATION`/
+# /(id)`VIOLATION`/
 	# (&ev_trailers, (type, identifier, message, context))
 
 	# Where `type` is:
@@ -40,12 +40,13 @@
 	# /`'protocol'`/
 		# A protocol error occurred.
 
-# /(identifier)`WARNING`/
+# /(id)`WARNING`/
 	# (&ev_warning, (type, identifier, message, context))
 """
 import typing
 import itertools
 import functools
+from dataclasses import dataclass
 from .data import http as protocoldata
 
 ev_bypass = -2
@@ -57,6 +58,7 @@ ev_chunk = 3
 ev_trailers = 4
 ev_message = 5 # end of message
 ev_warning = 6
+ev_wire = -3 # Serialization event for signalling raw transfer.
 
 event_symbols = {
 	ev_bypass: 'bypass',
@@ -73,17 +75,43 @@ event_symbols = {
 EOH = (ev_headers, ())
 EOM = (ev_message, None)
 
+@dataclass
+class Limits(object):
+	"""
+	# A set of numeric values used to define the limitations that should be enforced upon
+	# protocol elements when interpreting HTTP data as events.
+
+	# [ Properties ]
+
+	# /max_line_size/
+		# Maximum length of the Request-Line or Response-Line.
+	# /max_headers/
+		# Maximum number of headers to accept.
+	# /max_trailers/
+		# Maximum number of trailers to accept.
+	# /max_header_size/
+		# len(field-name) + len(field-value)
+	# /max_header_set_size/
+		# Maximum size to scan for EOH.
+	# /max_trailer_size/
+		# len(field-name) + len(field-value)
+	# /max_chunk_line_size/
+		# Chunk size portion, not the chunk data size.
+	"""
+
+	# http/1.1
+	max_line_size: int = 4096
+	max_headers: int = 1024
+	max_trailers: int = 32
+	max_header_size: int = 1024*4
+	max_header_set_size: int = 1024*8*2
+	max_trailer_size: int = 1024
+	max_chunk_line_size: int = 1024
+
 def Tokenization(
 		disposition:str='server',
 		allocation:typing.Iterable[typing.Tuple[int,bool]]=None,
-		# Limits
-		max_line_size : int = 4096, # maximum length of the Request-Line or Response-Line
-		max_headers : int = 1024, # maximum number of headers to accept
-		max_trailers : int = 32, # maximum number of trailers to accept
-		max_header_size : int = 1024*2, # len(field-name) + len(field-value)
-		max_header_set_size : int = 1024*4*2, # maximum size to scan for EOH
-		max_trailer_size : int = 1024, # len(field-name) + len(field-value)
-		max_chunk_line_size : int = 1024, # chunk size portion, not the chunk data size
+		constraints:Limits=Limits(),
 
 		# local()-izations
 		len = len, tuple = tuple,
@@ -117,6 +145,14 @@ def Tokenization(
 	# Primarily, this generator is concernced with:
 	# &<https://tools.ietf.org/html/rfc7230#section-3.3.3>
 	"""
+
+	max_line_size = constraints.max_line_size
+	max_headers = constraints.max_headers
+	max_trailers = constraints.max_trailers
+	max_header_size = constraints.max_header_size
+	max_header_set_size = constraints.max_header_set_size
+	max_trailer_size = constraints.max_trailer_size
+	max_chunk_line_size = constraints.max_chunk_line_size
 
 	# Parse Request and Headers
 	if allocation is None:
@@ -680,7 +716,7 @@ def Serialization(
 			ev_bypass: lambda x: (x,),
 			ev_message: lambda x: (),
 		},
-		bytearray=bytearray
+		bytearray=bytearray, iter=iter
 	):
 	"""
 	# Assemble HTTP events back into a sequences of bytes.
@@ -697,6 +733,10 @@ def Serialization(
 				# Default to concatenation of event payload.
 				for x in (chunk_map[t](v)):
 					buf += x
+			elif t == -3: # ev_wire
+				assert len(buf) == 0
+				seq = v
+				del buf # Trigger exception if events follow.
 			elif t == 0: # ev_rline
 				buf += (b" ".join(v))
 				buf += (b"\r\n")

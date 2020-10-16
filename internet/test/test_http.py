@@ -226,7 +226,7 @@ def test_Disassembler_trailers_limit_bypass(test):
 	data += b"5\r\nfffff\r\n0\r\nTrailer: value\r\n\r\n"
 
 	# Case where the trailer EOF is known.
-	g = module.disassembly(max_trailer_size=4)
+	g = module.disassembly(constraints=module.Limits(max_trailer_size=4))
 	eventseq1 = g.send(data)
 	x1 = [
 		(module.ev_rline, (b'GET', b'/', b'HTTP/1.0')),
@@ -248,7 +248,7 @@ def test_Disassembler_trailers_limit_bypass(test):
 	data += b"5\r\nfffff\r\n0\r\nTrailer: value"
 
 	# Case where the trailer EOF is *not* known.
-	g = module.disassembly(max_trailer_size=4)
+	g = module.disassembly(constraints=module.Limits(max_trailer_size=4))
 	eventseq1 = g.send(data)
 	x2 = [
 		(module.ev_rline, (b'GET', b'/', b'HTTP/1.0')),
@@ -274,7 +274,7 @@ def test_Disassembler_max_trailers(test):
 	data += b"5\r\nfffff\r\n0\r\nTrailer: value\r\n\r\n"
 
 	# Case where the trailer EOF is known.
-	g = module.disassembly(max_trailers=0)
+	g = module.disassembly(constraints=module.Limits(max_trailers=0))
 	eventseq1 = g.send(data)
 	x1 = [
 		(module.ev_rline, (b'GET', b'/', b'HTTP/1.0')),
@@ -391,7 +391,7 @@ def test_Disassembler_type_error(test):
 
 def test_Disassembler_limit_line_too_large(test):
 	data = b'GET / HTTP/1.1'
-	g = module.disassembly(max_line_size = 8)
+	g = module.disassembly(constraints=module.Limits(max_line_size = 8))
 	r = g.send(data)
 	test/r == [
 		(module.ev_violation, ('limit', 'max_line_size', 8)),
@@ -401,7 +401,7 @@ def test_Disassembler_limit_line_too_large(test):
 
 def test_Disassembler_limit_line_too_large_with_eof(test):
 	data = b'GET / HTTP/1.1\r\nHost: host\r\n\r\n'
-	g = module.disassembly(max_line_size = 4)
+	g = module.disassembly(constraints=module.Limits(max_line_size = 4))
 	r = g.send(data)
 	test/r == [
 		(module.ev_violation, ('limit', 'max_line_size', 4)),
@@ -489,7 +489,7 @@ Host: host\r
 fffff\r
 0\r
 \r"""
-	g = module.disassembly(max_chunk_line_size = 1)
+	g = module.disassembly(constraints=module.Limits(max_chunk_line_size = 1))
 	r = g.send(data)
 	test/r == [
 		(module.ev_rline, (b'GET', b'/', b'HTTP/1.1')),
@@ -504,7 +504,7 @@ fffff\r
 def test_Disassembler_limit_max_chunksize_split(test):
 	output = []
 	data = b"GET / HTTP/1.1\r\nTransfer-Encoding: chunked\r\nHost: host\r\n\r10"
-	g = module.disassembly(max_chunk_line_size = 1)
+	g = module.disassembly(constraints=module.Limits(max_chunk_line_size = 1))
 	r = g.send(data)
 	test/r == [
 		(module.ev_rline, (b'GET', b'/', b'HTTP/1.1')),
@@ -524,7 +524,7 @@ Host: host\r
 \r
 5\r
 ffffffds"""
-	g = module.disassembly(max_chunk_line_size = 1)
+	g = module.disassembly(constraints=module.Limits(max_chunk_line_size = 1))
 	r = g.send(data)
 	test/r == [
 		(module.ev_rline, (b'GET', b'/', b'HTTP/1.1')),
@@ -540,7 +540,7 @@ def test_Disassembler_limit_header_too_large(test):
 	output = []
 	data = b"GET / HTTP/1.1\r\nHeader: value"
 	# feed it two while expecting one
-	g = module.disassembly(max_header_size = 2)
+	g = module.disassembly(constraints=module.Limits(max_header_size = 2))
 	r = g.send(data)
 	vio, byp = r[-2:]
 	vio, (viotype, limitation, limit) = vio
@@ -556,7 +556,7 @@ def test_Disassembler_limit_header_too_large_with_eof(test):
 	output = []
 	data = b"GET / HTTP/1.1\r\nFirst: value\r\nSecond: value\r\n"
 	# feed it two while expecting one
-	g = module.disassembly(max_header_size = 2)
+	g = module.disassembly(constraints=module.Limits(max_header_size = 2))
 	r = g.send(data)
 	vio, byp = r[-2:]
 	vio, (viotype, limitation, limit) = vio
@@ -572,7 +572,7 @@ def test_Disassembler_limit_header_too_many(test):
 	output = []
 	data = b"GET / HTTP/1.1\r\nHeader: value\r\n\r"
 	# feed it two while expecting one
-	g = module.disassembly(max_headers = 0)
+	g = module.disassembly(constraints=module.Limits(max_headers = 0))
 	r = g.send(data)
 	vio, byp = r[-2:]
 	vio, (viotype, limitation, count, max) = vio
