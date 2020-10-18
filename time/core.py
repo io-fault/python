@@ -412,7 +412,7 @@ class Context(object):
 
 	def bridge(self, from_unit, to_unit, transformer):
 		"""
-		# Note a "bridge" between two units.
+		# Assign a "bridge" between two units.
 
 		# In the case where a unit cannot not be resolved from its definitions,
 		# bridges can be used to perform the conversion.
@@ -580,6 +580,8 @@ class Context(object):
 def standard_context(qname):
 	"""
 	# Construct the standard time context from the local modules.
+
+	# Normally called by &.types during import to initialize the primary data types.
 	"""
 	from . import earth
 	from . import metric

@@ -1,10 +1,9 @@
 """
-# Container for Perspective implementations.
+# Access to timezone views for adjusting timestamps in and out of local forms.
 
-# [ Timezones ]
 # Usage:
 
-##!/pl/python
+#!syntax/python
 	from fault.time import types, views
 	z = views.Zone.open(types.from_unix_timestamp, "America/Los_Angeles")
 """
@@ -16,12 +15,8 @@ from . import abstract
 
 class Zone(object):
 	"""
-	# Zones consist of a sequence of transition times whose ranges correspond to a
+	# An ordered sequence of transition times whose ranges correspond to a
 	# particular offset.
-
-	# A mapping of transition times to their corresponding offset.
-
-	# &Zone instances manage the selection of a particular &Offset.
 
 	# [ Properties ]
 	# /default/
