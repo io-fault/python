@@ -265,12 +265,11 @@ class Point(Range):
 	def Measure(self) -> Measure:
 		"""
 		# The Point's corresponding scalar class used to measure deltas.
-		# This provides access to a &Measure whose precision is consistent with the &Point.
+		# This provides access to a &.abstract.Measure whose precision is consistent with the &Point.
 
 		# [ Invariants ]
 		#!/syntax/python
 			assert point.Measure.unit == point.unit
-			assert issubclass(point.Measure, Measure)
 		"""
 
 	@abc.abstractproperty

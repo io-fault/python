@@ -9,7 +9,7 @@
 /name/
 	`time`
 /abstract/
-	An integer based time solution with selectable precision
+	An integer based time solution.
 
 /authority/
 	`fault.io`

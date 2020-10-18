@@ -1,16 +1,21 @@
 """
-# Various &types constants.
+# Various constants.
 
 # [ Properties ]
 
-# /genesis/
-	# The earliest Point in time. Negative infinity.
 # /never/
 	# The latest Point in time. Positive infinity.
 # /present/
-	# The point between &genesis and &never.
+	# The midpoint point of &genesis and &never.
+	# Intended for symbolic references the current time.
+# /genesis/
+	# The earliest Point in time. Negative infinity.
 # /continuum/
 	# A segment whose start is &genesis and end is &never.
+# /unix_epoch/
+	# &types.Timestamp instance referring to 1970.
+# /local_datum/
+	# &types.Timestamp instance refrerring to the datum used by the project.
 """
 from . import types
 
