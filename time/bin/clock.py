@@ -5,10 +5,11 @@
 """
 import sys
 from .. import sysclock
-from .. import library
+from .. import views
+from .. import types
 
 def print_local_timestamp(now=sysclock.now):
-	localtime = library.zone()
+	localtime = views.Zone.open(types.from_unix_timestamp)
 	try:
 		while not None:
 			ts = now()
