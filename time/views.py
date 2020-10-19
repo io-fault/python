@@ -228,7 +228,7 @@ class Zone(object):
 		)
 
 	@classmethod
-	def open(Class, construct, fp = None, _fsjoin = os.path.join):
+	def open(Class, construct, fp=None, _fsjoin=os.path.join):
 		if not fp:
 			fp = os.environ.get(tzif.tzenviron)
 

@@ -19,9 +19,9 @@ header_fields = (
 	'tzh_ttisgmtcnt',  # The number of UTC/local indicators stored in the file.
 	'tzh_ttisstdcnt',  # The number of standard/wall indicators stored in the file.
 	'tzh_leapcnt',     # The number of leap seconds for which data is stored in the file.
-	'tzh_timecnt',     # The number of ``transition times'' for which data is stored in the file.
-	'tzh_typecnt',     # The number of ``local time types'' for which data is stored in the file (must not be zero).
-	'tzh_charcnt',     # The number of characters of ``time zone abbreviation strings'' stored in the file.
+	'tzh_timecnt',     # The number of `transition times` for which data is stored in the file.
+	'tzh_typecnt',     # The number of `local time types` for which data is stored in the file (must not be zero).
+	'tzh_charcnt',     # The number of characters of `time zone abbreviation strings` stored in the file.
 )
 tzinfo_header = collections.namedtuple('tzinfo_header', header_fields)
 header_struct_v1 = struct.Struct("!" + (len(header_fields) * "l"))
@@ -111,7 +111,7 @@ def parse_version_2(data):
 	# parse the raw data from a version 2 TZif file. 8-byte longs.
 
 	# Returns tuple of: (transtimes, types, timetypinfo, leaps, isstd, isgmt, abbr)
-	# See &tzfile(5) for information about the fields(it's cryptically fun).
+	# See &tzfile(5) for information about the fields.
 	"""
 	x = data[:header_struct_v2.size]
 	y = data[header_struct_v2.size:]
@@ -204,7 +204,7 @@ def structure(tzif):
 	r.sort(key = lambda x: x[0])
 	return tuple(ltt), r, leaps
 
-def system_timezone_file(relativepath, tzdir = tzdir, _join = os.path.join):
+def system_timezone_file(relativepath, tzdir=tzdir, _join=os.path.join):
 	return _join(tzdir, relativepath)
 
 def get_timezone_data(filepath):
