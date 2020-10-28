@@ -7,9 +7,9 @@
 /icon/
 	- (emoji)`🔋`
 /name/
-	`context`
+	`fault`
 /abstract/
-	Core Python Projects
+	Python application framework supporting &<http://fault.io> initiatives.
 
 /authority/
 	`fault.io`
