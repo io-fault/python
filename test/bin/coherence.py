@@ -232,18 +232,33 @@ class Harness(engine.Harness):
 		return report
 
 def intercept(product, project, intention):
-	import sys
+	# Finder for test's target intention.
 	from ...system import factors
+
 	class ProjectFinder(factors.IntegralFinder):
 		def find_spec(self, name, path, target=None):
-			if name.startswith(self.project_prefix) or name == self.project_name:
-				return super().find_spec(name, path, target=target)
-			return None
+			spec = None
+			if name[:self.project_length] in self.project_set:
+				spec = super().find_spec(name, path, target=target)
+			if spec is None:
+				return None
+
+			if hasattr(spec.loader, '_bytecode'):
+				image = spec.loader._bytecode
+			else:
+				image = spec.loader.path
+
+			if not os.path.exists(image):
+				# Exception is desired here as it is likely *not* desired to run
+				# tests using the source loader's bytecode.
+				raise ImportError("intention specific image not available for test")
+
+			return spec
 
 	sfif = ProjectFinder.create(intention)
-	sfif.project_name = project
-	sfif.project_prefix = project + '.'
 	sfif.connect(files.Path.from_absolute(product))
+	sfif.project_set = {project, project + '.'}
+	sfif.project_length = len(project) + 1
 	sys.meta_path.insert(0, sfif)
 
 def main(inv:process.Invocation) -> process.Exit:
