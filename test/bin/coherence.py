@@ -264,7 +264,7 @@ def intercept(product, project, intention):
 def main(inv:process.Invocation) -> process.Exit:
 	inv.imports(['FRAMECHANNEL', 'INTENTION', 'PROJECT', 'PRODUCT'])
 
-	module_path, *testslices = inv.args # Import target and start[:stop] tests.
+	project, rfpath, *testslices = inv.args # Import target and start[:stop] tests.
 	slices = []
 	for s in testslices:
 		if ':' in s:
@@ -276,12 +276,14 @@ def main(inv:process.Invocation) -> process.Exit:
 
 	channel = inv.environ.get('FRAMECHANNEL') or 'test'
 	intention = inv.environ.get('INTENTION') or 'optimal'
-	project = inv.environ.get('PROJECT') or ''
 	product = inv.environ.get('PRODUCT') or ''
+	os.environ['PROJECT'] = project
 
-	if project and product:
+	if product:
+		# Add intercept for this project's modules.
 		intercept(product, project, intention)
 
+	module_path = '.'.join((project, rfpath))
 	p = Harness.from_module(importlib.import_module(module_path), slices=slices)
 	p.channel = channel
 	p.status = sys.stderr
@@ -291,6 +293,7 @@ def main(inv:process.Invocation) -> process.Exit:
 	p.log.flush()
 	p.reveal()
 	p.log.emit(*close_factor_transaction(elapsed(), p.identity, channel=channel))
+
 	return inv.exit(0)
 
 if __name__ == '__main__':
