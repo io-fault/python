@@ -16,3 +16,12 @@
 	- &..text
 	- &..time
 	- &..web
+
+/*.c/
+	- (type)&<http://if.fault.io/factors/system#c>
+
+/*.txt/
+	- (type)&<http://if.fault.io/factors/chapter#kleptic>
+
+/*.py/
+	- (type)&<http://if.fault.io/factors/python-module#v3>
