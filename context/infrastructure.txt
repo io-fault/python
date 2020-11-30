@@ -19,6 +19,8 @@
 
 /*.c/
 	- (type)&<http://if.fault.io/factors/system#c>
+/*.h/
+	- (type)&<http://if.fault.io/factors/system#c-header>
 
 /*.txt/
 	- (type)&<http://if.fault.io/factors/chapter#kleptic>
