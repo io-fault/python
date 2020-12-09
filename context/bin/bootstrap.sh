@@ -6,14 +6,14 @@
 fault="$1"; shift 1
 if ! test -d "$fault"
 then
-	echo >&2 "first parameter must be the 'fault' context package root directory."
+	echo >&2 "first parameter must be the 'fault' (python) context package root directory."
 	exit 1
 fi
 
-sdk="$1"; shift 1
-if ! test -d "$sdk"
+sysint="$1"; shift 1
+if ! test -d "$sysint"
 then
-	echo >&2 "second parameter must be the 'sdk' context package root directory."
+	echo >&2 "second parameter must be the 'system' (integration) context package root directory."
 	exit 1
 fi
 
@@ -93,6 +93,7 @@ module_path ()
 	echo "$relpath" | sed 's:/:.:g' | sed 's:.::'
 }
 
+# Inside fault/; Only fault.system has extensions.
 for project in ./system
 do
 	cd "$fault_dir/$project"
@@ -123,8 +124,8 @@ do
 		pkgname="$(echo "$fullname" | sed 's/[.][^.]*$//')"
 
 		compile ${CC:-cc} -v -o "../../${modname}.${platsuffix}" \
-			-I$sdk/python/include/src \
-			-I$sdk/posix/include/src \
+			-I$sysint/python/include/src \
+			-I$sysint/machine/include/src \
 			-I$fault_dir/system/include/src \
 			-I$prefix/include \
 			-I$prefix/include/python$pyversion$pyabi \
