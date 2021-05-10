@@ -27,3 +27,6 @@
 
 /*.py/
 	- (type)&<http://if.fault.io/factors/python-module#v3>
+
+/*.pyi/
+	- (type)&<http://if.fault.io/factors/python-interface#v3>
