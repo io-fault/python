@@ -1,6 +1,44 @@
 """
-# Parse and query locator reference files.
+# Parse and query reference composition files.
 """
+
+def form(records):
+	rec = []
+	for il, r in records:
+		if il == 0:
+			yield rec
+			rec = list(r)
+		elif il == 1:
+			rec.extend(r)
+		elif il > 1:
+			rec[-1] = rec[-1] + ' ' + ' '.join(r)
+		else:
+			# Discard.
+			pass
+
+	if rec:
+		yield rec
+
+def context(rheader):
+	"""
+	# Extract the record prefix, qualifiers, and attributes from the header.
+	"""
+	prefix = rheader[0]
+	rattr = []
+	rquals = []
+	rcurrent = rquals
+	for field in rheader[1:]:
+		if field[:1] == '[':
+			field = field.lstrip('[')
+			rcurrent = rattr
+
+		if field[-1:] == ']':
+			rcurrent.append(field[:-1])
+			rcurrent = rquals
+		else:
+			rcurrent.append(field)
+
+	return rheader[0], rattr, rquals
 
 def split(text, _filter=(lambda i: [x for x in i if x and not x[:1] == '#'])):
 	header, *body, footer = text.split('\n\t')
@@ -8,89 +46,51 @@ def split(text, _filter=(lambda i: [x for x in i if x and not x[:1] == '#'])):
 
 	footer = footer.split('\n')
 	body.extend(footer[0:1])
+	body = [(x[:2].count('\t'), x.split()) for x in body]
 	del footer[0:1]
-	body = [tuple(x.rsplit(' ', 2)) for x in body if x and not x[:1] == '#']
 
 	return canonical, stem, body, _filter(footer)
 
-def _hash_pair(s):
-	index = s.find('#')
-	if index == -1:
-		return (s, None)
-	else:
-		return (s[:index], s[index+1:])
-
-def _parse_rtype(fields):
-	if len(fields) != 3:
-		return (None, None, None), fields
-	s = fields[0]
-
-	if s[:1] == '[':
-		# Extract resource type.
-		typ, suffix = s.split(']', 1) # Type Area not closed.
-		typ = typ[1:].strip() # Remove leading '['
-	else:
-		# No type area.
-		suffix = s
-		typ = None
-
-	suffix, lpath = _hash_pair(suffix)
-	return (typ, suffix, lpath), fields[1:]
-
 def structure(parts):
 	canonical, stem, rrecords, footer = parts
-	root, hash_method = _hash_pair(canonical[1:])
-	rpath, default_apath = _hash_pair(stem)
 
 	mirrors = [x[1:] for x in footer if x[:1] == '=']
-	rheader = rrecords[0] #* No representation header.
-
-	records = [
-		(x[0][:2], (x[0][2], x[1][0], x[1][1]))
-		for x in [_parse_rtype(y) for y in rrecords[1:]]
-	]
-
-	# Find integrity specification
-	for i, r in zip(range(len(records)), records):
-		if r[0][0] is not None and r[0][0][:1] == '#':
-			del records[i:i+1]
-			hash_method = r[0][0][1:]
-			lpath, isize, ihash = r[1]
-			break
+	rheader = rrecords[0][1] #* No representation header.
+	prefix, rattr, rquals = context(rheader)
+	annotations, *reprs = form(rrecords[1:])
 
 	return {
-		'canonical': root + rpath,
-		'root': root,
-		'path': rpath,
-		'type-set': rheader[0].strip('[]'),
-		'resource-units': rheader[1],
-		'identification-method': rheader[2],
+		'canonical': canonical[1:],
+		'path': stem,
+		'prefix': prefix,
 
-		'representation': records,
+		'qualifiers': rquals,
+		'annotations': annotations,
+
+		'representation': reprs,
+		'resource-attributes': rattr,
 		'mirrors': mirrors,
 	}
 
-def select(struct:dict, type:str=None, suffix:str=None) -> str:
+def select(struct:dict, req:dict, *fields:str) -> str:
 	"""
-	# Select the representation resource to use.
-	# If no constraint is supplied, the first representation entry is used.
-
-	# On a match, emits representation metadata followed by the canonical form.
-	# If any mirrors are defined, the IRI is constructed against them and emitted
-	# in the order that they appeared in the reference file.
+	# Select fields from the representation records.
 	"""
 
-	for (rtype, rsuffix), ident in struct['representation']:
-		rcmp = (rtype if type is None else type, rsuffix if suffix is None else suffix)
-		if rcmp == (rtype, rsuffix):
-			iri = struct['path'] + rsuffix
-			mirrors = (m + iri for m in struct.get('mirrors', ()))
-			yield (rtype,) + ident, struct['canonical'] + rsuffix, mirrors
+	keys = {k: i+1 for i, k in enumerate(struct['resource-attributes'])}
+	keys['suffix'] = 0
+	filters = (lambda x, k: not req[k] == x[keys[k]])
+
+	for record in struct['representation']:
+		for k in req:
+			if filters(record, k):
+				break
+		else:
+			yield tuple(record[keys[k]] for k in fields)
 
 if __name__ == '__main__':
 	import sys
 	y = (structure(split(sys.stdin.read())))
-	for (meta, ciri, mirrors) in select(y):
-		print(meta)
-		print(ciri)
-		print("\n".join(mirrors))
+	print(y)
+	for r in select(y, {'suffix': '.img'}, 'suffix', 'octets'):
+		print(r)
