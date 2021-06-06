@@ -255,7 +255,13 @@ def intercept(product, project, intention):
 
 			return spec
 
-	sfif = ProjectFinder.create(intention)
+	# Mirror the default finder's configuration.
+	sfif = ProjectFinder.create(
+		factors.finder.python_bytecode_variants['system'],
+		factors.finder.python_bytecode_variants['architecture'],
+		factors.finder.extension_variants['architecture'],
+		intention
+	)
 	sfif.connect(files.Path.from_absolute(product))
 	sfif.project_set = {project, project + '.'}
 	sfif.project_length = len(project) + 1
