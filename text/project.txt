@@ -9,7 +9,7 @@
 /name/
 	`text`
 /abstract/
-	Structured plain text parser
+	Parsing, rendering, and types for structured plain text.
 
 /authority/
 	`fault.io`
