@@ -4,18 +4,18 @@
 """
 unit = 'eternal'
 
-#: Sorted by index use: -1 is genesis (past), 0 is now (present), and 1 is never (future).
+# Sorted by index use: -1 is always, 0 is whenever, and 1 is never.
 points = (
-	'now',
+	'whenever', # Any point in time.
 	'never',
-	'genesis',
+	'always',
 )
 
-#: Sorted by index use: -1 is "ineternity", 0 is eternity, and 1 is eternity.
+# Sorted by index use: -1 is negative, 0 is zero, and 1 is positive.
 measures = (
 	'zero',
-	'eternity',
-	'ineternity'
+	'positive',
+	'negative',
 )
 
 def days_from_current_factory(clock, ICE):
@@ -37,6 +37,8 @@ def eternal_from_days(days):
 	return 0
 
 def context(ctx, qname = ''):
+	measure_instances = None
+	point_instances = None
 	from . import core
 
 	# eternal units are indifferent to the datum.
@@ -54,40 +56,35 @@ def context(ctx, qname = ''):
 		__name__ = '.'.join((qname, name))
 		liketerm = 'eternal'
 
-		@classmethod
-		def _init(cls, identifiers = (0, 1, -1)):
-			# unorderable is a hack to keep tuple comparisons away
-			cls.__cache = tuple(core.Measure.__new__(cls, x) for x in identifiers)
-
-		def __new__(cls, val):
+		def __new__(Class, val):
 			# Reduce superfluous quantities.
 			if val > 0:
-				return cls.__cache[1]
+				return measure_instances[1]
 			elif val < 0:
-				return cls.__cache[-1]
+				return measure_instances[-1]
 			else:
-				return cls.__cache[0]
+				return measure_instances[0]
 
 		def __float__(self, choice = (0, float('inf'), float('-inf'),)):
-			return choice[int(self)]
+			return choice[+self]
+
+		def __neg__(self):
+			return measure_instances[-1 * self]
 
 		def __repr__(self, choice = measures):
-			return '{0}.{1}'.format(self.__name__, choice[int(self)])
+			return '{0}.{1}'.format(self.__name__, choice[+self])
 
 		def __str__(self, choice = measures):
-			return choice[int(self)]
+			return choice[+self]
 
-		def __eq__(self, ob):
-			if ob.unit != self.unit:
-				return int(self)== 0 and int(ob) == 0
-	Eternals._init()
+	measure_instances = tuple(core.Measure.__new__(Eternals, x) for x in (0, 1, -1))
 
 	class Indefinite(core.Point):
 		__slots__ = ()
 		unit = unit
 		kind = 'indefinite'
 		magnitude = 0
-		datum = Eternals(0) # now
+		datum = Eternals(0) # whenever
 		context = ctx
 
 		Measure = Eternals
@@ -96,13 +93,11 @@ def context(ctx, qname = ''):
 		__name__ = '.'.join((qname, name))
 		liketerm = 'eternal'
 
-		@classmethod
-		def _init(cls, identifiers = (0, 1, -1)):
-			# unorderable is a hack to keep tuple comparisons away
-			cls.__cache = tuple(core.Point.__new__(cls, x) for x in identifiers)
+		def __new__(Class, val):
+			return point_instances[val] # -1 0 +1
 
-		def __new__(cls, val):
-			return cls.__cache[val]
+		def __neg__(self):
+			return point_instances[-1 * self]
 
 		def __float__(self, choice = (0, float('inf'), float('-inf'),)):
 			return choice[int(self)]
@@ -123,9 +118,9 @@ def context(ctx, qname = ''):
 			else:
 				assert self in (0, 1, -1)
 				return (
-					None, # now
+					None, # whenever
 					False, # never
-					True, # genesis
+					True, # always
 				)[self]
 		precedes = leads
 
@@ -138,12 +133,13 @@ def context(ctx, qname = ''):
 			else:
 				assert self in (0, 1, -1)
 				return (
-					None, # now
+					None, # whenever
 					True, # never
-					False, # genesis
+					False, # always
 				)[self]
 		proceeds = follows
-	Indefinite._init()
+
+	point_instances = tuple(core.Point.__new__(Indefinite, x) for x in (0, 1, -1))
 
 	ctx.register_measure_class(Eternals, default = True)
 	ctx.register_point_class(Indefinite, default = True)

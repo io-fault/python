@@ -60,7 +60,7 @@ GregorianMonth = PointTypes[3]
 # Infinite measure unit.
 Eternals = Context.measures['eternal'][None]
 
-# Infinite unit points. Class used for genesis, never, and now.
+# Infinite unit points. Class used for inception, never, and whenever.
 Indefinite = Context.points['eternal'][None]
 
 def from_unix_timestamp(unix_timestamp, Timestamp=Timestamp.of):
