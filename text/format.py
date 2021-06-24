@@ -580,6 +580,7 @@ class Parser(object):
 				assert params[0] > 0 # indentation always > 0 on exit
 
 				if ntype == 'variable-content' and subnodes and subnodes[-1] and subnodes[-1][1]:
+					# Trim implicitly created paragraphs.
 					paras = subnodes[-1]
 					if paras[1][-1] == ('eol', ''):
 						empty_addr = -2
@@ -759,9 +760,6 @@ class Parser(object):
 					trailing = subnodes[-1][1][-1][1]
 					if trailing and trailing[-1][0] == 'text' and trailing[-1][1] == ' ':
 						del trailing[-1]
-
-					iterator.replay(token)
-					return True
 
 				if indentation != 0:
 					subnodes.append(('exception', (),
