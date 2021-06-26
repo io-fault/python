@@ -345,12 +345,12 @@ class Cursor(object):
 	def _cached_prepare(Class, path):
 		ps = list(Class.prepare(path))
 
-		if ps[1][0][0] == (ps[1][0], 'partition', '/'):
+		postinit = ps[0][1:] + ps[1][:1]
+		if postinit[0] == (postinit[0][0], 'partition', '/'):
 			# Leading / selecting from root.
 			rootctx = True
 		else:
 			rootctx = False
-			ps.insert(0, None) # Maintain invariant; provide false init entry to be skipped.
 
 		return rootctx, ps
 
@@ -358,19 +358,20 @@ class Cursor(object):
 		"""
 		# Retrieve nodes relative to the context node using &path.
 		"""
-		final = {'paragraph', 'line'}
+		final = {'paragraph', 'line', 'key'}
 		rootctx, ps = self._cached_prepare(path)
 
 		if rootctx:
 			nodes = self.root
+			start = 1
 		else:
 			nodes = self._context_node
+			start = 0
 
-		for series in ps[1:-1]:
+		for series in ps[start:-1]:
 			series = series[1:]
 			if series:
 				nodes = list(chain(x[1] for x in nodes if x[0] not in final))
-			origin = nodes
 
 			for x in series:
 				nodes = list(self._apply_method(nodes, x))
@@ -387,6 +388,7 @@ class Cursor(object):
 
 	_exports = {
 		'paragraph': _paragraph_struct,
+		'key': _paragraph_struct,
 		'syntax': _syntax_struct,
 	}
 
