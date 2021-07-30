@@ -38,11 +38,12 @@ def unique(iterable, *existing, set=set):
 	# but only allow an item to be emitted once.
 
 	# ! WARNING:
-		# The implementation used a &set to track which items have transpired.
+		# The implementation uses a &set to track which items have transpired.
 		# It is never reset internally, so the generator can allocate
 		# arbitrary quantities of memory.
 
 	# [ Parameters ]
+
 	# /iterable/
 		# The iterable whose duplicate items should be eliminated.
 	# /existing/
@@ -70,7 +71,7 @@ def interlace(*iters, next=next, cycle=itertools.cycle, map=map):
 
 	# Interlace produces an iterator following the pattern:
 
-	#!/text
+	#!text
 		interlace(i1, i2, ..., in) -> (
 			i1-0, i2-0, ..., in-0,
 			i1-1, i2-1, ..., in-1,
@@ -134,7 +135,7 @@ def unroll(f, Sequence=list, map=map):
 	# that maps the callable against a sequence.
 
 	# Equivalence:
-	#!/pl/python
+	#!syntax/python
 		unroll(f)(iterable) == [f(x) for x in iterable]
 	"""
 
