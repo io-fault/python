@@ -18,15 +18,15 @@
 	- &..web
 
 /*.c/
-	- (type)&<http://if.fault.io/factors/system#c>
+	- (type)&<http://if.fault.io/factors/system#c.2011>
 /*.h/
-	- (type)&<http://if.fault.io/factors/system#c-header>
+	- (type)&<http://if.fault.io/factors/system#c.header>
 
 /*.txt/
-	- (type)&<http://if.fault.io/factors/chapter#kleptic>
+	- (type)&<http://if.fault.io/factors/text.chapter#kleptic>
 
 /*.py/
-	- (type)&<http://if.fault.io/factors/python-module#v3>
+	- (type)&<http://if.fault.io/factors/python.module#python.psf-v3>
 
 /*.pyi/
-	- (type)&<http://if.fault.io/factors/python-interface#v3>
+	- (type)&<http://if.fault.io/factors/python.interface#python.psf-v3>
