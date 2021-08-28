@@ -1,0 +1,17 @@
+! CONTEXT:
+	/protocol/
+		&<http://if.fault.io/project/information>
+
+/identifier/
+	&<http://fault.io/python/vector>
+/icon/
+	- (emoji)`⛓️`
+/name/
+	`vector`
+/abstract/
+	System argument vector formulation and recognition tools.
+
+/authority/
+	`fault.io`
+/contact/
+	&<http://fault.io/critical>
