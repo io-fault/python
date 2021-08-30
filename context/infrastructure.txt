@@ -3,6 +3,7 @@
 		&<http://if.fault.io/project/infrastructure>
 
 /Projects/
+	- &..vector
 	- &..hkp
 	- &..internet
 	- &..kernel
@@ -23,7 +24,7 @@
 	- (type)&<http://if.fault.io/factors/system#c.header>
 
 /*.txt/
-	- (type)&<http://if.fault.io/factors/text.chapter#kleptic>
+	- (type)&<http://if.fault.io/factors/text.chapter#kleptic.fault-1>
 
 /*.py/
 	- (type)&<http://if.fault.io/factors/python.module#python.psf-v3>
