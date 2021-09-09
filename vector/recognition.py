@@ -5,7 +5,7 @@
 
 # [ Events ]
 # /`mismatch-unrecognized`/
-	# The option signal did not appear in either index.
+	# The signalled option did not appear in either index.
 # /`mismatch-parameter-restricted`/
 	# The long option was given a parameter, but the option takes none.
 # /`mismatch-parameter-required`/
@@ -15,7 +15,7 @@
 	# Append the option's arguments to the slots.
 # /`set-add`/
 	# Add the option's argument to the set identified by the slot.
-# /`field-replace/
+# /`field-replace`/
 	# Assign the option's argument to the field identified by the slot.
 # /`integer-add`/
 	# Add a positive or negative integer to the field identified by the slot.
@@ -54,8 +54,9 @@ def legacy(restricted, required, options, trap=None, offset=0, signal='-', assig
 	# the excess fields that could not be translated. If all fields were processed
 	# as options, the remainder will be an empty list.
 
-	# In the case of an error, the event prior to the remainder will be called
-	# a mismatch.
+	# In the case of an error, the event prior to the remainder will be identified
+	# as a mismatch operation with the slot identifying the option that failed
+	# to match an index entry.
 
 	# [ Parameters ]
 	# /restricted/
