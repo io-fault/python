@@ -129,7 +129,7 @@ def legacy(restricted, required, options, trap=None, offset=0, signal='-', assig
 
 					break
 				elif trap is not None:
-					yield ('sequence-append', trap, long_opt[2:], long_arg, i+offset)
+					yield ('sequence-append', trap, (long_opt[2:], long_arg), i+offset)
 				else:
 					# long_opt was not in any translation index.
 					yield ('mismatch-unrecognized', long_opt, long_arg, i+offset)
