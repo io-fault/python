@@ -3,11 +3,11 @@
 		&<http://if.fault.io/project/information>
 
 /identifier/
-	&<http://fault.io/python/print>
+	&<http://fault.io/python/format>
 /icon/
 	- (emoji)`💎`
 /name/
-	`print`
+	`format`
 /abstract/
 	Rendering tools for *very* pretty printing to the terminal.
 
