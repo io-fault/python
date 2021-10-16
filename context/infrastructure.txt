@@ -3,11 +3,11 @@
 		&<http://if.fault.io/project/infrastructure>
 
 /Projects/
+	- &..format
 	- &..vector
 	- &..hkp
 	- &..internet
 	- &..kernel
-	- &..print
 	- &..route
 	- &..security
 	- &..syntax
