@@ -119,7 +119,7 @@ def legacy(restricted, required, options, trap=None, offset=0, signal='-', assig
 						break
 
 					operation, value, slot = restricted[long_opt]
-					yield (operation, slot, value)
+					yield (operation, slot, value, i+offset)
 				elif long_opt == signal:
 					# Termination
 					if fields:
