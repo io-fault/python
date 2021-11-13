@@ -45,7 +45,7 @@ class Contention(object):
 	# Usually, contention instances are made by the true division operator of
 	# &Test instances passed into unit test subjects.
 
-	#!/pl/python
+	#!syntax/python
 		import featurelib
 
 		def test_feature(test):
@@ -110,7 +110,7 @@ class Contention(object):
 		"""
 		# Contend that the &subject raises the given exception when it is called::
 
-		#!/pl/python
+		#!syntax/python
 			test/Exception ^ (lambda: subject())
 
 		# Reads: "Test that 'Exception' is raised by 'subject'".
@@ -124,7 +124,7 @@ class Contention(object):
 		"""
 		# Contend that the parameter is contained by the object, &Container::
 
-		#!/pl/python
+		#!syntax/python
 			test/Container << subject
 
 		# Reads: "Test that 'Container' contains 'subject'".
@@ -303,7 +303,7 @@ class Test(object):
 		"""
 		# Set a trap for exceptions converting a would-be &Error fate on exit to a &Failure.
 
-		#!/pl/python
+		#!syntax/python
 			with test.trap():
 				...
 
