@@ -4,6 +4,7 @@
 # &legacy is the only implemented method and should cover most use cases.
 
 # [ Events ]
+
 # /`mismatch-unrecognized`/
 	# The signalled option did not appear in either index.
 # /`mismatch-parameter-restricted`/
@@ -19,12 +20,33 @@
 	# Assign the option's argument to the field identified by the slot.
 # /`integer-add`/
 	# Add a positive or negative integer to the field identified by the slot.
-# /`subdirectory-field-replace`/
-	# Using a mapping identified by the slot, assign the key and value extracted
+# /`subfield-replace`/
+	# Using the mapping identified by the slot, assign the key and value extracted
 	# from the argument.
+# /`sequence-append-assignment`/
+	# Using the sequence identified by the slot, append the tuple representing
+	# assignment provided as the argument to the option.
 """
 
 class UsageViolation(Exception):
+	"""
+	# Exception signalling that options were not properly expressed.
+
+	# [ Properties ]
+	# /mismatch/
+		# /`'mismatch-unrecognized'`/
+			# The option could not be mapped to an action and configuration slot.
+		# /`'mismatch-parameter-required'`/
+			# The option required a parameter and the argument vector had no more elements.
+		# /`'mismatch-parameter-restricted'`/
+			# The option was given an argument, but takes zero.
+	# /origin/
+		# The location of the option as cited by the mismatch event.
+	# /option/
+		# The identified option being processed.
+	# /argument/
+		# The option's identified argument if any.
+	"""
 	def __init__(self, mismatch, origin, option, argument=None):
 		self.mismatch = mismatch
 		self.origin = origin
@@ -32,16 +54,14 @@ class UsageViolation(Exception):
 		self.argument = argument
 
 	def __str__(self):
-		if self.mismatch == 'mismatch-unrecognized':
-			msg = f"option {self.option} at index {self.origin} not recognized"
-		elif self.mismatch == 'mismatch-parameter-required':
-			msg = f"option {self.option} at index {self.origin} requires additional arguments"
-		elif self.mismatch == 'mismatch-parameter-restricted':
-			msg = f"option {self.option} at index {self.origin} does not take parameters"
-		else:
-			msg = f"option {self.option} at index {self.origin} caused {self.mismatch!r}"
+		leading = "option {self.option} at index {self.origin} "
+		msg = ({
+			'mismatch-unrecognized': "is not a recognized option",
+			'mismatch-parameter-required': "requires additional arguments",
+			'mismatch-parameter-restricted': "does not take parameters",
+		}).get(self.mismatch, "caused {self.mismatch!r}")
 
-		return msg
+		return (leading + msg).format(self=self)
 
 def legacy(restricted, required, options, trap=None, offset=0, signal='-', assignment='='):
 	"""
@@ -116,6 +136,7 @@ def legacy(restricted, required, options, trap=None, offset=0, signal='-', assig
 				elif long_opt in restricted:
 					if long_arg is not None:
 						yield ('mismatch-parameter-restricted', long_opt, long_arg, i+offset)
+						i += 1
 						break
 
 					operation, value, slot = restricted[long_opt]
@@ -175,25 +196,57 @@ def legacy(restricted, required, options, trap=None, offset=0, signal='-', assig
 
 	yield ('remainder', None, options[i:], i+offset)
 
+def _sfr(t, k, i, v):
+	subkey, subv = v.split('=', 1)
+	t[k][subkey] = i((k, subkey), subv)
+
+def _seq(t, k, i, v):
+	subkey, subv = v.split('=', 1)
+	t[k].append((subkey, i((k, subkey), subv)))
+
 # The default supported operations.
 operations = {
-	'field-replace': (lambda t, k, v: t.__setitem__(k, v)),
-	'sequence-append': (lambda t, k, v: t[k].append(v)),
-	'set-add': (lambda t, k, v: t[k].add(v)),
-	'subdirectory-field-replace': (lambda t, k, v: t[k].__setitem__(*v.split('='))),
-	'integer-add': (lambda t, k, v: t[k].__setitem__(k, t.get(k, 0) + int(v))),
+	'field-replace': (lambda t, k, i, v: t.__setitem__(k, i(k, v))),
+	'sequence-append': (lambda t, k, i, v: t[k].append(i(k, v))),
+	'set-add': (lambda t, k, i, v: t[k].add(i(k, v))),
+	'integer-add': (lambda t, k, i, v: t.__setitem__(k, t.get(k, 0) + int(i(k, v)))),
+	'subfield-replace': _sfr,
+	'sequence-append-assignment': _seq,
 }
+del _sfr, _seq
 
-def merge(target, events, Operations=operations):
+def merge(target, events, Interpreter=(lambda k,s: s), Operations=operations):
 	"""
 	# Apply the values provided by &events into &target using
 	# the event's operation to select the merge method provided in &Operations.
+
+	# [ Parameters ]
+	# /target/
+		# The object that the interpreted options and arguments are being
+		# inserted into. A configuration dictionary.
+	# /events/
+		# An iterable producing recognized option events.
+		# Normally, constructed by &legacy.
+	# /Interpreter/
+		# A function called with the slot being assigned and value that needs
+		# to be interpreted prior to the storage operation.
+
+		# Defaults to a reflection of the given value(no-op).
+	# /Operations/
+		# A mapping designating how an assignment operation is to be
+		# performed against the &target.
+
+		# Defaults to &operations.
 	"""
 	r = None
 
 	for op, slot, value, origin in events:
 		if op in Operations:
-			Operations[op](target, slot, value)
+			try:
+				Operations[op](target, slot, Interpreter, value)
+			except Exception as err:
+				# &slot is the identified option string for mismatches.
+				raise UsageViolation(op, origin, slot, value) from err
 		elif op == 'remainder':
 			r = value
 		elif op == 'ignore':
