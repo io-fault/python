@@ -10,12 +10,12 @@
 
 # The operation used to serialize and load the data extension is decoupled, so an allocation
 # function is provided to apply the defaults for the data extension transport:
-# #!/pl/python
+# #!syntax/python
 	from fault.status import types, frames
 	loadframe, dumpframe = frames.stdio()
 
 # Frame envelopes may or may not have content (data extensions):
-# #!/pl/python
+# #!syntax/python
 	msg = types.Message.from_string_v1(
 		"message-application[!#]: ERROR: no such resource",
 		protocol=frames.protocol)
@@ -24,7 +24,7 @@
 	"[!# ERROR: no such resource]\n"
 
 # Errors from a particular protocol have to be contained:
-# #!/pl/python
+# #!syntax/python
 	err = types.Failure.from_string_v1(
 		"NOT FOUND[404]: no such resource",
 		protocol="http://ietf.org/../http")
@@ -37,7 +37,7 @@
 	"[!# ERROR: no such resource (+)]" # base64 data extension omitted
 
 # Serialized messages are expected to include the trailing newline:
-# #!/pl/python
+# #!syntax/python
 	for line in sys.stdin.readlines():
 		envelope_channel, msg = loadframe(line)
 		assert msg.msg_event.protocol == frames.protocol
