@@ -289,6 +289,8 @@ def _unpack(transport, line:str, offset:int, limit:int, context=None,
 		_exit_fields_len=len(_tty_exit_fields),
 		_enter_data_len=len(_tty_data_extension),
 		_exit_extension_len=len(_tty_exit_extension),
+		_ext_offset=-(len(_tty_exit_extension)+2),
+		_ext_indicator=_tty_exit_extension,
 		_create_message=types.Message.from_arguments_v1,
 		_create_estruct=types.EStruct.from_fields_v1,
 		_get_type_symbol=type_codes.get,
@@ -298,6 +300,12 @@ def _unpack(transport, line:str, offset:int, limit:int, context=None,
 	"""
 
 	assert line[offset+2] == ' ' # [XX ...]
+	if line[-1:] == '\n':
+		_ext_offset -= 1
+	if line[-3:-2] != ')':
+		# No channel.
+		_ext_offset += 1
+
 	idstr = line[offset:offset+2]
 	offset += 3
 	code = type_integer_code(idstr)
@@ -309,7 +317,7 @@ def _unpack(transport, line:str, offset:int, limit:int, context=None,
 	sof = offset + _enter_fields_len
 
 	# Extract structured fields.
-	if line[offset:sof] == _tty_field_lengths:
+	if line[_ext_offset:_ext_offset+_exit_extension_len] == _ext_indicator:
 		# Structured.
 		end_fs = line.find(_tty_exit_fields, sof)
 		assert end_fs != -1 # Malformed Length Area
