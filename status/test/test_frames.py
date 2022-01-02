@@ -21,23 +21,6 @@ def test_code_conversion(test):
 		fst, snd = map(ord, k)
 		test/hex(icode) == (hex(fst) + hex(snd)[2:].rjust(4, "0"))
 
-def test_select_fields(test):
-	"""
-	# - &module._select_fields
-	"""
-	samples = [
-		["Single Field"],
-		["ERROR:", "useful details"],
-		["first", "second", "third"],
-		["first ", "maintains", "space"],
-	]
-
-	offset = 0
-	for s in samples:
-		sizes = [len(x) for x in s]
-		sd = " ".join(s)
-		test/list(module._select_fields(sd, offset, sizes)) == s
-
 def test_unpack_unstructured(test):
 	"""
 	# - &module.unpack
@@ -173,7 +156,7 @@ def test_frame_channel_only(test):
 	test/channel == 'test-channel'
 	test/s[:4] == "[!# "
 	signal = ''.join(module._tty_extension_signal)
-	suffix = module._tty_data_extension + " " + module._tty_exit_extension
+	suffix = module._tty_data_extension + "" + module._tty_exit_extension
 	test/s.endswith(" render envelope message (test-channel%s%s)]\n" %(signal, suffix,)) == True
 
 def test_frame_failure_snapshot(test):

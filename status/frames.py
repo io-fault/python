@@ -183,9 +183,9 @@ ttyn1_minimum_overhead = \
 	len(_tty_exit_extension) + \
 	len("[-- ]\n")
 
-_loaded_frame_start = "[{ts} {fieldmap}{fields}"
+_loaded_frame_start = "[{ts} {fields}"
 _loaded_frame_partition = " ({channel}{wrap[0]}{signal}{wrap[1]}{hidden}"
-_loaded_frame_stop = " {reveal})]\n"
+_loaded_frame_stop = "{reveal})]\n"
 _empty_frame_stop = "{hidden}{reveal}]\n"
 
 def pack_inner(
@@ -220,7 +220,6 @@ def pack_inner(
 	if fields is None:
 		fields = list(frame.msg_event.abstract.split())
 
-	fmap = list(map(len, fields))
 	fstr = ' '.join(fields)
 
 	if data or channel:
@@ -241,17 +240,11 @@ def pack_inner(
 			wrap=_tty_extension_signal
 		)
 
-		fmap.extend((len(partd)-2, len(load)))
-		fm = _tty_field_lengths + ' '.join(map(str, fmap)) + _tty_exit_fields
-
-		start = _fmt_lframe_start(ts=ts, fieldmap=fm, fields=fstr) + partd
+		start = _fmt_lframe_start(ts=ts, fields=fstr) + partd
 		end = _fmt_lframe_stop(reveal=_tty_exit_extension)
 	else:
 		load = b""
-		fmap.extend((0, 0)) # Zero channel area and data extension.
-		fm = _tty_field_lengths + ' '.join(map(str, fmap)) + _tty_exit_fields
-
-		start = _fmt_lframe_start(ts=ts, fieldmap=fm, fields=fstr)
+		start = _fmt_lframe_start(ts=ts, fields=fstr)
 		end = _fmt_eframe_stop(hidden=_tty_data_extension, reveal=_tty_exit_extension)
 
 	return (start, load, end)
@@ -271,18 +264,6 @@ def pack(transport:typing.Callable, fspec:Envelope) -> str:
 	"""
 	s1, s2, s3 = pack_inner(transport, fspec)
 	return s1 + s2.decode('ascii') + s3
-
-def _select_fields(string, offset, sizes):
-	"""
-	# Extract fields according to the sequences of &sizes from &string starting at &offset.
-	"""
-	current = offset
-
-	for size in sizes:
-		end = current + size
-		yield string[current:end]
-
-		current = end + 1
 
 def _unpack(transport, line:str, offset:int, limit:int, context=None,
 		_enter_fields_len=len(_tty_field_lengths),
@@ -318,14 +299,18 @@ def _unpack(transport, line:str, offset:int, limit:int, context=None,
 
 	# Extract structured fields.
 	if line[_ext_offset:_ext_offset+_exit_extension_len] == _ext_indicator:
-		# Structured.
-		end_fs = line.find(_tty_exit_fields, sof)
-		assert end_fs != -1 # Malformed Length Area
+		prefix, ext_data = line.rsplit(_tty_data_extension, 1)
+		# Trim the data extension exit.
+		ext_data = ext_data[:_ext_offset]
 
-		lengths = list(map(int, line[sof:end_fs].strip().split()))
+		try:
+			image, channel_area = prefix.split('(', 1)
+		except ValueError:
+			image = prefix
+			channel_area = ''
 
-		sofd = end_fs + _exit_fields_len
-		*fields, channel_area, ext_data = list(_select_fields(line, end_fs + _exit_fields_len, lengths))
+		image = image.strip()
+		fields = image.split(' ')
 
 		try:
 			channel, loadsignal = channel_area.split(":", 1)
