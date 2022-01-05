@@ -183,7 +183,7 @@ ttyn1_minimum_overhead = \
 	len(_tty_exit_extension) + \
 	len("[-- ]\n")
 
-_loaded_frame_start = "[{ts} {fields}"
+_loaded_frame_start = "[{ts} {image}"
 _loaded_frame_partition = " ({channel}{wrap[0]}{signal}{wrap[1]}{hidden}"
 _loaded_frame_stop = "{reveal})]\n"
 _empty_frame_stop = "{hidden}{reveal}]\n"
@@ -215,12 +215,9 @@ def pack_inner(
 		channel = ''
 
 	ts = frame.msg_event.identifier
-	fields = p.get('envelope-fields')
-
-	if fields is None:
-		fields = list(frame.msg_event.abstract.split())
-
-	fstr = ' '.join(fields)
+	envelope = p.get('envelope-image') or ' '.join(p.get('envelope-field', ()))
+	if not envelope:
+		envelope = frame.msg_event.abstract
 
 	if data or channel:
 		if data is None:
@@ -240,11 +237,11 @@ def pack_inner(
 			wrap=_tty_extension_signal
 		)
 
-		start = _fmt_lframe_start(ts=ts, fields=fstr) + partd
+		start = _fmt_lframe_start(ts=ts, image=envelope) + partd
 		end = _fmt_lframe_stop(reveal=_tty_exit_extension)
 	else:
 		load = b""
-		start = _fmt_lframe_start(ts=ts, fields=fstr)
+		start = _fmt_lframe_start(ts=ts, image=envelope)
 		end = _fmt_eframe_stop(hidden=_tty_data_extension, reveal=_tty_exit_extension)
 
 	return (start, load, end)
@@ -266,8 +263,6 @@ def pack(transport:typing.Callable, fspec:Envelope) -> str:
 	return s1 + s2.decode('ascii') + s3
 
 def _unpack(transport, line:str, offset:int, limit:int, context=None,
-		_enter_fields_len=len(_tty_field_lengths),
-		_exit_fields_len=len(_tty_exit_fields),
 		_enter_data_len=len(_tty_data_extension),
 		_exit_extension_len=len(_tty_exit_extension),
 		_ext_offset=-(len(_tty_exit_extension)+2),
@@ -295,8 +290,6 @@ def _unpack(transport, line:str, offset:int, limit:int, context=None,
 	channel = None
 	loadsignal = None
 
-	sof = offset + _enter_fields_len
-
 	# Extract structured fields.
 	if line[_ext_offset:_ext_offset+_exit_extension_len] == _ext_indicator:
 		prefix, ext_data = line.rsplit(_tty_data_extension, 1)
@@ -310,7 +303,6 @@ def _unpack(transport, line:str, offset:int, limit:int, context=None,
 			channel_area = ''
 
 		image = image.strip()
-		fields = image.split(' ')
 
 		try:
 			channel, loadsignal = channel_area.split(":", 1)
@@ -324,22 +316,20 @@ def _unpack(transport, line:str, offset:int, limit:int, context=None,
 	else:
 		# Unstructured.
 		ext_data = None
-		fields = line[offset:limit].split(' ')
-		last = fields[-1]
+		if line[-3:-1] == ')]':
+			soc = line.rfind('(')
+			image = line[offset:soc].strip()
+			channel_area = line[soc+1:-3]
 
-		if not last:
-			del fields[-1]
-		elif last[0] == "(" and last[-1] == ")":
 			try:
-				channel, loadsignal = last.split(":", 1)
+				channel, loadsignal = channel_area.split(":", 1)
 			except:
-				channel = last
+				channel = channel_area
 				loadsignal = None
-
-			channel = channel.strip('()')
-			del fields[-1]
 		else:
-			pass
+			image = line[offset:-2].strip()
+			channel = None
+			loadsignal = None
 
 	# Clean the load signal of the SGR codes.
 	if loadsignal is not None:
@@ -359,11 +349,11 @@ def _unpack(transport, line:str, offset:int, limit:int, context=None,
 			identifier=idstr,
 			code=code,
 			symbol=_get_type_symbol(idstr, 'unrecognized'),
-			abstract=' '.join(fields)
+			abstract=image
 		),
 		data=data
 	)
-	msg.msg_parameters['envelope-fields'] = fields
+	msg.msg_parameters['envelope-image'] = image
 
 	return (channel or None, msg)
 
@@ -441,11 +431,11 @@ def declaration(data=None, format='base64', compression='deflate', Message=types
 			code=type_integer_code("!?"),
 		),
 		**{
-			'envelope-fields': [
+			'envelope-image': ' '.join([
 				'PROTOCOL:', protocol,
 				'tty-notation-1',
 				'/'.join((format, compression)),
-			],
+			]),
 			'data': data,
 		},
 	)

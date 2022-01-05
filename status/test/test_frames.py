@@ -28,15 +28,15 @@ def test_unpack_unstructured(test):
 
 	channel, msg = module.unpack(None, "[!# ERROR: error message]\n")
 	test/channel == None
-	test/msg.msg_parameters['envelope-fields'] == ["ERROR:", "error", "message"]
+	test/msg.msg_parameters['envelope-image'] == "ERROR: error message"
 
 	channel, msg = module.unpack(None, "[!# ERROR: error message (chan:)]\n")
 	test/channel == 'chan'
-	test/msg.msg_parameters['envelope-fields'] == ["ERROR:", "error", "message"]
+	test/msg.msg_parameters['envelope-image'] == "ERROR: error message"
 
 	channel, msg = module.unpack(None, "[!# ERROR: error message (chan-no-colon)]\n")
 	test/channel == 'chan-no-colon'
-	test/msg.msg_parameters['envelope-fields'] == ["ERROR:", "error", "message"]
+	test/msg.msg_parameters['envelope-image'] == "ERROR: error message"
 
 def test_unpack_unstructured_channel_escape(test):
 	"""
@@ -45,7 +45,7 @@ def test_unpack_unstructured_channel_escape(test):
 
 	channel, msg = module.unpack(None, "[!# ERROR: error message (chan) ]\n")
 	test/channel == None
-	test/msg.msg_parameters['envelope-fields'] == ["ERROR:", "error", "message", "(chan)"]
+	test/msg.msg_parameters['envelope-image'] == "ERROR: error message (chan)"
 
 def test_frame_reference_data(test):
 	"""
@@ -249,13 +249,13 @@ def test_declaration_constructor(test):
 	lzma = module.declaration(compression='lzma')
 	channel, siom = unpack(pack((None, lzma)))
 	test/channel == None
-	test/siom.msg_parameters['envelope-fields'][-1] == 'base64/lzma'
+	test/siom.msg_parameters['envelope-image'].split()[-1] == 'base64/lzma'
 
 	# Check format override and compression default.
 	lzma = module.declaration(format='hex')
 	channel, siom = unpack(pack((None, lzma)))
 	test/channel == None
-	test/siom.msg_parameters['envelope-fields'][-1] == 'hex/deflate'
+	test/siom.msg_parameters['envelope-image'].split()[-1] == 'hex/deflate'
 
 def test_declaration_constructor_data(test):
 	"""
