@@ -1,4 +1,21 @@
+import dataclasses
 from .. import tools as module
+
+def test_struct(test):
+	"""
+	# Validate that struct provides the expected defaults for &dataclasses.dataclass.
+	"""
+	@module.struct()
+	class T:
+		a: int
+		b: str
+
+	t = T(a=1, b="s")
+	test/t.a == 1
+	test/t.b == "s"
+
+	test/dataclasses.FrozenInstanceError ^ (lambda: setattr(t, "a", 2))
+	test/t == T(a=1, b="s")
 
 def test_compose(test):
 	function = module.compose

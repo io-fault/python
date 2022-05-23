@@ -4,6 +4,7 @@
 import functools
 import itertools
 import typing
+import dataclasses
 
 cachedcalls = functools.lru_cache
 partial = functools.partial
@@ -19,6 +20,15 @@ def reflect(obj):
 	# Callable that returns the single argument that it was given.
 	"""
 	return obj
+
+# Create the dataclass constructor commonly used by fault projects.
+try:
+	reflect(dataclasses.dataclass(slots=True))
+except TypeError:
+	# Pre-3.10
+	struct = partial(dataclasses.dataclass, eq=True, frozen=True)
+else:
+	struct = partial(dataclasses.dataclass, slots=True, eq=True, frozen=True)
 
 @cachedcalls(16)
 def constant(obj, partial=partial):
