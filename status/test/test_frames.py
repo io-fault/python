@@ -3,6 +3,9 @@
 """
 from .. import frames as module
 
+def io(frame) -> module.types.Frame:
+	return module.structure(module.sequence(frame))
+
 def test_identifier_set_limits(test):
 	"""
 	# - &module.type_codes
@@ -23,50 +26,26 @@ def test_code_conversion(test):
 
 def test_unpack_unstructured(test):
 	"""
-	# - &module.unpack
+	# - &module.structure
 	"""
 
-	channel, msg = module.unpack(None, "[!# ERROR: error message]\n")
-	test/channel == None
-	test/msg.msg_parameters['envelope-image'] == "ERROR: error message"
+	msg = module.structure("[!# ERROR: error message]\n")
+	test/msg.f_image == "ERROR: error message"
 
-	channel, msg = module.unpack(None, "[!# ERROR: error message (chan:)]\n")
-	test/channel == 'chan'
-	test/msg.msg_parameters['envelope-image'] == "ERROR: error message"
+	msg = module.structure("[!# ERROR: error message (chan:)]\n")
+	test/msg.f_image == "ERROR: error message"
 
-	channel, msg = module.unpack(None, "[!# ERROR: error message (chan-no-colon)]\n")
-	test/channel == 'chan-no-colon'
-	test/msg.msg_parameters['envelope-image'] == "ERROR: error message"
+	msg = module.structure("[!# ERROR: error message (chan-no-colon)]\n")
+	test/msg.f_image == "ERROR: error message"
 
 def test_unpack_unstructured_channel_escape(test):
 	"""
 	# - &module.unpack
 	"""
 
-	channel, msg = module.unpack(None, "[!# ERROR: error message (chan) ]\n")
-	test/channel == None
-	test/msg.msg_parameters['envelope-image'] == "ERROR: error message (chan)"
-
-def test_frame_reference_data(test):
-	"""
-	# - &module
-	"""
-	from .. import types
-
-	readframe, writeframe = module.stdio()
-	data = "a raw string"
-
-	msg = types.Message.from_string_v1(
-		"message-application[!#]: render envelope message",
-	)
-	msg.msg_parameters['data'] = data
-
-	s = writeframe((None, msg))
-	channel, out_msg = readframe(s)
-
-	test/channel == None
-	test/('&' in s) == True
-	test/out_msg.msg_parameters["data"] == data
+	msg = module.structure("[!# ERROR: error message (chan) ]\n")
+	test/msg.f_channel == None
+	test/msg.f_image == "ERROR: error message (chan)"
 
 def test_frame_structured(test):
 	"""
@@ -74,9 +53,7 @@ def test_frame_structured(test):
 	"""
 	from .. import types
 
-	readframe, writeframe = module.stdio()
-
-	msg = types.Message.from_arguments_v1(
+	msg = types.Frame((
 		None,
 		types.EStruct.from_fields_v1(
 			symbol="message-application",
@@ -85,14 +62,15 @@ def test_frame_structured(test):
 			code=module.type_integer_code("!#"),
 			protocol=module.protocol,
 		),
-	)
+		None,
+	))
 
-	s = writeframe((None, msg))
-	channel, out_msg = readframe(s)
+	s = module.sequence(msg)
+	out_msg = module.structure(s)
 
-	test/channel == None
+	test/out_msg.f_channel == None
 	test/s[:4] == "[!# "
-	suffix = module._tty_data_extension + module._tty_exit_extension
+	suffix = ""
 	test/s.endswith(" render envelope message%s]\n" %(suffix,)) == True
 
 def test_frame_data_extension(test):
@@ -101,19 +79,7 @@ def test_frame_data_extension(test):
 	"""
 	from .. import types
 
-	readframe, writeframe = module.stdio()
-
-	failure = types.Failure.from_arguments_v1(
-		None, types.EStruct.from_fields_v1(
-			protocol="TFP",
-			symbol="ERROR",
-			abstract="internal abstract",
-			identifier="TE1",
-			code=1
-		),
-	)
-
-	msg = types.Message.from_arguments_v1(
+	msg = types.Frame((
 		None,
 		types.EStruct.from_fields_v1(
 			protocol="TMP",
@@ -122,14 +88,21 @@ def test_frame_data_extension(test):
 			identifier="!#",
 			code=module.type_integer_code("!#"),
 		),
-		data = failure
-	)
+		{
+			'k0': [''],
+			'k1': ['value'],
+			'k2': ['v1', 'v2'],
+		},
+	))
 
-	s = writeframe((None, msg))
-	channel, out_msg = readframe(s)
+	s = module.sequence(msg)
+	out_msg = module.structure(s)
 
-	test/channel == None
-	test/out_msg.msg_parameters["data"] == failure
+	test/out_msg.f_channel == None
+	test/out_msg.f_extension['k0'] == ['']
+	test/out_msg.f_extension['k1'] == ['value']
+	test/out_msg.f_extension['k2'] == ['v1', 'v2']
+	test/out_msg.f_event.abstract == msg.f_event.abstract
 
 def test_frame_channel_only(test):
 	"""
@@ -137,10 +110,8 @@ def test_frame_channel_only(test):
 	"""
 	from .. import types
 
-	readframe, writeframe = module.stdio()
-
-	msg = types.Message.from_arguments_v1(
-		None,
+	msg = types.Frame((
+		'test-channel',
 		types.EStruct.from_fields_v1(
 			symbol="message-application",
 			abstract="render envelope message",
@@ -148,74 +119,18 @@ def test_frame_channel_only(test):
 			code=module.type_integer_code("!#"),
 			protocol=module.protocol,
 		),
-	)
+		None,
+	))
 
-	s = writeframe(('test-channel', msg))
-	channel, out_msg = readframe(s)
+	s = module.sequence(msg)
+	out_msg = module.structure(s)
+	test/out_msg.f_channel == 'test-channel'
 
-	test/channel == 'test-channel'
+	'test-channel' in test/s
 	test/s[:4] == "[!# "
 	signal = ''.join(module._tty_extension_signal)
-	suffix = module._tty_data_extension + "" + module._tty_exit_extension
+	suffix = module._tty_open_extension + "" + module._tty_exit_extension
 	test/s.endswith(" render envelope message (test-channel%s%s)]\n" %(signal, suffix,)) == True
-
-def test_frame_failure_snapshot(test):
-	"""
-	# - &module
-
-	# Message.from_string_v1("ENOENT[intid]: abstract", parameters={}, protocol="...", context="...")
-	# Validate [>< ...] failure expectations.
-	"""
-	from .. import types
-
-	readframe, writeframe = module.stdio()
-	channel, msg = readframe("[>< exit summary]\n")
-	f = types.Failure.from_arguments_v1(
-		None,
-		types.EStruct.from_fields_v1(
-			protocol="test",
-			symbol="ERR_TEST",
-			identifier="7",
-			code=7,
-		), **{
-			'failure-data': "<data>",
-			'failure-data-sequence': list(range(10)),
-		}
-	)
-	msg.msg_parameters['data'] = f
-
-	msgstr = writeframe((None, msg))
-	test/msgstr.startswith("[>< ") == True
-
-	outchannel, outmsg = readframe(msgstr)
-	test/outmsg.msg_event.identifier == "><"
-	test/outmsg.msg_event.code == msg.msg_event.code
-
-	fdata = outmsg.msg_parameters['data'].f_parameters
-	test/fdata['failure-data'] == "<data>"
-	test/fdata['failure-data-sequence'] == list(range(10))
-
-def test_message_qualification(test):
-	"""
-	# - &module.message_qualification
-	"""
-
-	n = module.message_qualification(["nothing"])
-	test/n == None
-
-	n = module.message_qualification(["QUAL:", "nothing"])
-	test/n == "QUAL:"
-
-def test_message_subject_field(test):
-	"""
-	# - &module.message_subject_field
-	"""
-
-	n = module.message_subject_field(["nothing"])
-	test/n == None
-
-	n = module.message_subject_field(["(/path/to/resource/)", "second"])
-	test/n == "(/path/to/resource/)"
 
 def test_message_directed_areas(test):
 	"""
@@ -241,35 +156,20 @@ def test_declaration_constructor(test):
 	"""
 	# - &module.declaration
 	"""
-	unpack, pack = module.stdio()
 	std = module.declaration()
 	test/std == module.tty_notation_1_message
 
 	# Check compression override and format default.
 	lzma = module.declaration(compression='lzma')
-	channel, siom = unpack(pack((None, lzma)))
-	test/channel == None
-	test/siom.msg_parameters['envelope-image'].split()[-1] == 'base64/lzma'
+	siom = io(lzma)
+	test/siom.f_channel == None
+	'base64/lzma' in test/siom.f_image
 
 	# Check format override and compression default.
 	lzma = module.declaration(format='hex')
-	channel, siom = unpack(pack((None, lzma)))
-	test/channel == None
-	test/siom.msg_parameters['envelope-image'].split()[-1] == 'hex/deflate'
-
-def test_declaration_constructor_data(test):
-	"""
-	# - &module.declaration
-	"""
-	unpack, pack = module.stdio()
-
-	# Check format override and compression default.
-	dp = module.types.Parameters.from_nothing_v1()
-	dp['key'] = 'value'
-	withdata = module.declaration(data=dp)
-	channel, siom = unpack(pack((None, withdata)))
-	test/channel == None
-	test/siom.msg_parameters['data']['key'] == 'value'
+	siom = io(lzma)
+	test/siom.f_channel == None
+	test/siom.f_image.split()[-1] == 'hex/deflate'
 
 if __name__ == '__main__':
 	from ...test import library as libtest

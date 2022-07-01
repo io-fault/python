@@ -4,55 +4,28 @@
 # This module provides conceptual definitions for Status Frame events (&types.EStruct) and
 # I/O operations supporting the transmission of those events.
 
-# Status Frames are &types.Message instances that can be serialized into and parsed from a data stream.
+# Status Frames are &types.Frame instances that can be serialized into and parsed from a data stream.
 
 # [ Usage ]
 
 # The operation used to serialize and load the data extension is decoupled, so an allocation
 # function is provided to apply the defaults for the data extension transport:
 # #!syntax/python
-	from fault.status import types, frames
-	loadframe, dumpframe = frames.stdio()
+	from fault.status import frames
 
 # Frame envelopes may or may not have content (data extensions):
 # #!syntax/python
-	msg = types.Message.from_string_v1(
-		"message-application[!#]: ERROR: no such resource",
-		protocol=frames.protocol)
-	sys.stdout.write(dumpframe((None, msg)))
+	msg = compose('!#', "ERROR: no such resource")
+	sys.stdout.write(frames.sequence(msg))
 
 	"[!# ERROR: no such resource]\n"
-
-# Errors from a particular protocol have to be contained:
-# #!syntax/python
-	err = types.Failure.from_string_v1(
-		"NOT FOUND[404]: no such resource",
-		protocol="http://ietf.org/../http")
-	msg = types.Message.from_string_v1(
-		"message-application[!#]: ERROR: no such resource",
-		protocol=frames.protocol)
-	msg.msg_parameters['data'] = err
-	sys.stdout.write(dumpframe((None, msg)))
-
-	"[!# ERROR: no such resource (+)]" # base64 data extension omitted
 
 # Serialized messages are expected to include the trailing newline:
 # #!syntax/python
 	for line in sys.stdin.readlines():
-		envelope_channel, msg = loadframe(line)
-		assert msg.msg_event.protocol == frames.protocol
-
-# [ Message Types ]
-
-# The recognized message types and their symbolic name are stored in &type_codes.
+		msg = frames.structure(line)
 
 # [ Properties ]
-
-# /Envelope/
-	# Tuple type signature holding channel string and Status Frame message.
-
-	# # &str
-	# # &types.Message
 
 # /protocol/
 	# String identifying the status frames protocols.
@@ -62,32 +35,63 @@
 """
 import typing
 import functools
+import base64
+import zlib
 
+from . import transport
 from . import types
 
-# Type signature for frame messages. (channel, message)
-Envelope = typing.Tuple[str, types.Message]
+protocol = 'http://if.fault.io/status/frames'
 
-# Protocol identity for envelope &types.Message instances.
+def compose(ftype:str, synopsis:str,
+		channel:str=None, extension=None,
+		Class=types.Frame, Event=types.EStruct.from_fields_v1,
+	) -> types.Frame:
+	"""
+	# Create a status frame using the envelope's symbol and synopsis.
+	"""
+	eid = type_codes[ftype] #* Recognize identifier.
+	ev = Event(protocol, eid, synopsis, ftype, type_integer_code(ftype))
+	return Class((channel, ev, extension))
+
+def _frame_pack_extension(data,
+		b64e=base64.b64encode,
+		deflate=zlib.compress,
+		sequence=transport.sequence,
+	) -> bytes:
+	return b64e(deflate(sequence(data).encode('utf-8')))
+
+def _frame_unpack_extension(data:str,
+		b64d=base64.b64decode,
+		inflate=zlib.decompress,
+		structure=transport.structure,
+	) -> object:
+	return structure(inflate(b64d(data)).decode('utf-8'))
+
+# Protocol identity for &types.Frame instances.
 protocol = "http://if.fault.io/status/frames"
 
 # Two-Character EStruct.identifier.
 type_codes = {
-	# [!? PROTOCOL: http://if.fault.io/status/frames tty-notation-1] (optional declaration)
+	# [!? PROTOCOL: http://if.fault.io/status/frames tty-notation-1 base64/deflate]
 	"!?": 'message-protocol',
+	"!&": 'reference',
+
+	# Abstract Transaction progress.
+	"><": 'transaction-failed',
+	"<>": 'transaction-executed',
+	"->": 'transaction-started',
+	"--": 'transaction-event',
+	"<-": 'transaction-stopped',
 
 	# Warnings, Errors, and Information with respect to some conceptual level of a frame source.
 	"!#": 'message-application',
 	"!*": 'message-framework',
+	"!~": 'message-trace',
+
+	# Messages sent by user entities.
 	"!%": 'message-administrative',
 	"!>": 'message-entity',
-
-	# System processes, virtual processes, transfers, etc.
-	"><": 'transaction', # Aggregate transaction event; combined start and stop.
-	"<>": 'transaction-request', # [<> ...(xid)] Inverse frame: dispatch transaction.
-	"->": 'transaction-started', # [-> ...(xid)]
-	"--": 'transaction-event', # [-- ...(xid)] Anonymous event; arbitrary status data.
-	"<-": 'transaction-stopped', # [<- ...(xid)]
 
 	# Resource Content Manipulation
 	"+=": 'resource-inserted-units', # append
@@ -161,36 +165,30 @@ def type_identifier_string(typcode:int) -> str:
 # Second parameter is padding to discourage keyboard modifier identification if ever parsed.
 # Third parameter is an internal channel identifier.
 
-# OSC (internal channel 1 for field header) followed with STX.
-_tty_field_lengths = "\x1b]8;1;1-x\x02"
-# ST followed with backspace and space (ensure \< matches)
-_tty_exit_fields = "\x1b\\\x08 "
-
 # OSC (internal channel 2 for data extension)
-_tty_data_extension = "\x1b]8;1;2-x"
+_tty_open_extension = "\x1b]8;1;2-x"
 # ETX followed with ST
 _tty_exit_extension = "\x03\x1b\\"
 
 # Highlight data presence indicator.
-_tty_extension_signal = ("\x1b[32m", "\x1b[39m") # Green.
+_tty_extension_signal = ("\x1b[32;2m", "\x1b[39;22m") # Green.
 
 # Extension Signal SGR not included as it's only present if data is attached.
 # This is the minimum size for frames including a header and data extension.
 ttyn1_minimum_overhead = \
-	len(_tty_field_lengths) + \
-	len(_tty_exit_fields) + \
-	len(_tty_data_extension) + \
+	len(_tty_open_extension) + \
 	len(_tty_exit_extension) + \
 	len("[-- ]\n")
 
-_loaded_frame_start = "[{ts} {image}"
-_loaded_frame_partition = " ({channel}{wrap[0]}{signal}{wrap[1]}{hidden}"
+_frame_open = "[{ts} "
+_frame_exit = "]\n"
+_loaded_frame_start = _frame_open + "{image}"
+_loaded_frame_partition = " ({channel}{wrap[0]}{signal}{size}{wrap[1]}{hidden}"
 _loaded_frame_stop = "{reveal})]\n"
 _empty_frame_stop = "{hidden}{reveal}]\n"
 
-def pack_inner(
-		transport:typing.Callable, fspec:Envelope,
-
+def _pack(
+		frame:types.Frame, channel=None,
 		_fmt_lframe_start=_loaded_frame_start.format,
 		_fmt_lframe_part=_loaded_frame_partition.format,
 		_fmt_lframe_stop=_loaded_frame_stop.format,
@@ -204,49 +202,46 @@ def pack_inner(
 	# the encoded bytes of data extending the frame and the terminating trailer.
 	"""
 
-	channel, frame = fspec
-	p = frame.msg_parameters
-	data = p.get('data')
+	if channel is None:
+		channel = frame.f_channel or ''
+	ext = frame.f_extension
+	ts = frame.f_event.identifier
+	image = frame.f_image
 
-	if channel:
-		if data is not None:
-			channel += ":"
-	else:
-		channel = ''
-
-	ts = frame.msg_event.identifier
-	envelope = p.get('envelope-image') or ' '.join(p.get('envelope-field', ()))
-	if not envelope:
-		envelope = frame.msg_event.abstract
-
-	if data or channel:
-		if data is None:
+	if ext or channel:
+		if ext is None:
 			signal = ""
 			load = b""
-		elif isinstance(data, str):
-			signal = "&"
-			load = data.encode('utf-8')
+			size = ""
 		else:
-			assert isinstance(data, (types.Message, types.Failure, types.Report, types.Parameters))
+			load = _frame_pack_extension(ext.items())
 			signal = "+"
-			load = transport(data)
+			size = str(len(load))
 
 		partd = _fmt_lframe_part(
-			channel=channel, signal=signal,
-			hidden=_tty_data_extension,
+			channel=channel,
+			signal=signal,
+			size=size,
+			hidden=_tty_open_extension,
 			wrap=_tty_extension_signal
 		)
 
-		start = _fmt_lframe_start(ts=ts, image=envelope) + partd
+		start = _fmt_lframe_start(ts=ts, image=image) + partd
 		end = _fmt_lframe_stop(reveal=_tty_exit_extension)
 	else:
+		# Neither extension or channel.
 		load = b""
-		start = _fmt_lframe_start(ts=ts, image=envelope)
-		end = _fmt_eframe_stop(hidden=_tty_data_extension, reveal=_tty_exit_extension)
+		start = _fmt_lframe_start(ts=ts, image=image)
+
+		if image.endswith(')'):
+			# Escape close.
+			end = _fmt_eframe_stop(hidden=_tty_open_extension, reveal=_tty_exit_extension)
+		else:
+			end = _frame_exit
 
 	return (start, load, end)
 
-def pack(transport:typing.Callable, fspec:Envelope) -> str:
+def sequence(frame:types.Frame, channel=None) -> str:
 	"""
 	# Pack a status frame into a &str for transmission.
 
@@ -254,36 +249,35 @@ def pack(transport:typing.Callable, fspec:Envelope) -> str:
 
 	# [ Parameters ]
 
-	# /transport/
-		# Function used to serialize the data extension of the frame.
-	# /fspec/
-		# The channel-message pair to serialize.
+	# /frame/
+		# The status frame to be represented in serial form.
 	"""
-	s1, s2, s3 = pack_inner(transport, fspec)
+	s1, s2, s3 = _pack(frame, channel=channel)
 	return s1 + s2.decode('ascii') + s3
 
-def _unpack(transport, line:str, offset:int, limit:int, context=None,
-		_enter_data_len=len(_tty_data_extension),
+def _unpack(line:str, offset:int, limit:int,
+		_enter_data_len=len(_tty_open_extension),
 		_exit_extension_len=len(_tty_exit_extension),
 		_ext_offset=-(len(_tty_exit_extension)+2),
 		_ext_indicator=_tty_exit_extension,
-		_create_message=types.Message.from_arguments_v1,
+		_ext_signal=_tty_extension_signal[0]+'+',
+		_create_message=types.Frame,
 		_create_estruct=types.EStruct.from_fields_v1,
 		_get_type_symbol=type_codes.get,
-	) -> Envelope:
+	) -> types.Frame:
 	"""
 	# Unpack a serialized status frame.
 	"""
 
-	assert line[offset+2] == ' ' # [XX ...]
 	if line[-1:] == '\n':
 		_ext_offset -= 1
 	if line[-3:-2] != ')':
 		# No channel.
 		_ext_offset += 1
 
-	idstr = line[offset:offset+2]
-	offset += 3
+	typarea = line.find(' ', offset)
+	idstr = line[offset:typarea]
+	offset = typarea + 1
 	code = type_integer_code(idstr)
 
 	data = None
@@ -292,23 +286,22 @@ def _unpack(transport, line:str, offset:int, limit:int, context=None,
 
 	# Extract structured fields.
 	if line[_ext_offset:_ext_offset+_exit_extension_len] == _ext_indicator:
-		prefix, ext_data = line.rsplit(_tty_data_extension, 1)
+		prefix, ext_data = line.rsplit(_tty_open_extension, 1)
 		# Trim the data extension exit.
 		ext_data = ext_data[:_ext_offset]
 
 		try:
-			image, channel_area = prefix.split('(', 1)
+			image, channel_area = prefix.rsplit('(', 1)
 		except ValueError:
 			image = prefix
 			channel_area = ''
 
-		image = image.strip()
+		image = image[offset:]
 
 		try:
-			channel, loadsignal = channel_area.split(":", 1)
+			channel, loadsignal = channel_area.split(_ext_signal, 1)
 			channel = channel.strip('()')
 		except:
-			channel = None
 			if ext_data:
 				loadsignal = channel_area
 			else:
@@ -318,155 +311,69 @@ def _unpack(transport, line:str, offset:int, limit:int, context=None,
 		ext_data = None
 		if line[-3:-1] == ')]':
 			soc = line.rfind('(')
-			image = line[offset:soc].strip()
-			channel_area = line[soc+1:-3]
-
-			try:
-				channel, loadsignal = channel_area.split(":", 1)
-			except:
-				channel = channel_area
-				loadsignal = None
+			image = line[offset:soc]
+			channel = line[soc+1:-3]
+			loadsignal = None
 		else:
-			image = line[offset:-2].strip()
-			channel = None
+			image = line[offset:-2]
 			loadsignal = None
 
 	# Clean the load signal of the SGR codes.
-	if loadsignal is not None:
+	if ext_data:
 		loadsignal = loadsignal.strip("\x1b;0123456789-mx[]()")
-		if loadsignal == "+":
-			data = transport(ext_data) # unpack
-		else:
-			# Usually reference.
-			data = ext_data
+		data = dict(_frame_unpack_extension(ext_data))
 	else:
 		data = None
 
-	msg = _create_message(
-		context,
+	return types.Frame((
+		channel or None,
 		_create_estruct(
 			protocol=protocol,
 			identifier=idstr,
 			code=code,
 			symbol=_get_type_symbol(idstr, 'unrecognized'),
-			abstract=image
+			abstract=image.strip()
 		),
-		data=data
-	)
-	msg.msg_parameters['envelope-image'] = image
+		data,
+	))
 
-	return (channel or None, msg)
-
-def unpack(
-		transport:typing.Callable[[str], types.Roots],
-		line:str,
-		context:types.Trace=None
-	) -> Envelope:
+def structure(line:str) -> types.Frame:
 	"""
-	# Extract a status frames &types.Message from the serialized &line.
-	# Returns a tuple whose first item is the envelope's channel and the second
-	# is the &types.Roots instance.
+	# Extract a status frame, &types.Frame, from the given &line.
 
 	# [ Parameters ]
 
-	# /transport/
-		# Function used to extract the data extension of the frame.
 	# /line/
 		# A single serialized line.
-	# /context/
-		# Optional &types.Trace instance to use as the returned Message's context.
 	"""
-	return _unpack(transport, line, 1, len(line)-2, context=context)
+	return _unpack(line, 1, len(line)-2)
 
-def default_data_transport() -> typing.Tuple[typing.Callable, typing.Callable]:
-	"""
-	# Create the default transport composition supporting frame data extension I/O.
-	"""
-	# status.types.* <-> objects.Transport <-> JSON <-> DEFLATE <-> base64 <-> Rendered Frame
-	import json
-	import base64
-	import zlib
-	from . import objects
-
-	objtransport = objects.allocate()
-
-	def _frame_pack_data(message:object,
-			b64e=base64.b64encode,
-			deflate=zlib.compress,
-			serial=json.dumps,
-			prepare=objtransport.prepare
-		) -> bytes:
-		return b64e(deflate(serial(prepare(message)).encode('utf-8')))
-
-	def _frame_unpack_data(data:str,
-			b64d=base64.b64decode,
-			inflate=zlib.decompress,
-			structure=json.loads,
-			interpret=objtransport.interpret
-		) -> object:
-		return interpret(structure(inflate(b64d(data))))
-
-	return _frame_unpack_data, _frame_pack_data
-
-def stdio() -> typing.Tuple[typing.Callable, typing.Callable]:
-	"""
-	# Construct message I/O functions for parsing and serializing Status Frames.
-
-	# The returned pair should be cached for repeat use.
-	"""
-	i, o = default_data_transport()
-	return (functools.partial(unpack, i), functools.partial(pack, o))
-
-def declaration(data=None, format='base64', compression='deflate', Message=types.Message):
+def declaration(channel=None, extension=None,
+		format='base64', compression='deflate', Frame=types.Frame):
 	"""
 	# Construct a custom protocol declaration message.
 	"""
-	return Message.from_arguments_v1(
-		None,
+	return types.Frame((
+		channel,
 		types.EStruct.from_fields_v1(
 			protocol=protocol,
 			symbol="protocol-message",
-			abstract="PROTOCOL: tty-notation-1",
-			identifier="!?",
-			code=type_integer_code("!?"),
-		),
-		**{
-			'envelope-image': ' '.join([
+			abstract=' '.join([
 				'PROTOCOL:', protocol,
 				'tty-notation-1',
 				'/'.join((format, compression)),
 			]),
-			'data': data,
-		},
-	)
+			identifier="!?",
+			code=type_integer_code("!?"),
+		),
+		extension,
+	))
 
 # Structured protocol declaration.
 tty_notation_1_message = declaration()
 
 # Serialized protocol declaration.
-tty_notation_1_string = "[!? " + tty_notation_1_message.msg_event.abstract + "]\n"
-
-def message_qualification(fields:typing.Sequence[str]):
-	"""
-	# Returns the first item in &fields if the string ends with a colon.
-	# &None otherwise.
-	"""
-
-	if fields[0][-1] == ':':
-		return fields[0]
-
-	return None
-
-def message_subject_field(fields:typing.Sequence[str]):
-	"""
-	# Returns the first item in &fields if the string is surrounded with parenthesis.
-	# &None otherwise.
-	"""
-
-	if fields[0][0] == "(" and fields[0][-1] == ")":
-		return fields[0]
-
-	return None
+tty_notation_1_string = "[!? " + tty_notation_1_message.f_event.abstract + "]\n"
 
 def message_directed_areas(fields:typing.Sequence[str], start, end, arrows={'<-', '<->', '->'}):
 	"""

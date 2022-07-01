@@ -16,7 +16,8 @@ def main(inv:process.Invocation) -> process.Exit:
 	unpack, pack = frames.stdio()
 
 	for line in sys.stdin.readlines():
-		channel, msg = unpack(line)
+		msg = unpack(line)
+		channel = msg.f_channel
 		if channel is not None and channel.startswith(fchannel):
 			sys.stdout.write(line)
 

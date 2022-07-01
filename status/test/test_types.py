@@ -53,159 +53,34 @@ def test_EStruct_immutable(test):
 	for x in ('protocol', 'identifier', 'symbol', 'abstract'):
 		test/AttributeError ^ (lambda: estruct.__setattr__(x, 'rejected-value'))
 
-def test_Failure_constructors_v1(test):
+def test_Frame_constructors_v1(test):
 	"""
-	# - &types.Failure.from_arguments_v1
-	# - &types.Failure.f_error
-	# - &types.Failure.f_context
-	# - &types.Failure.f_parameters
-	"""
-	esa = types.EStruct.from_fields_v1('protocol-field')
-
-	failure = types.Failure.from_arguments_v1(
-		types.Trace.from_nothing_v1(), esa,
-	)
-
-	test/failure.f_error == esa
-	test/failure.event == esa
-	test/failure.f_context.t_route == []
-	test/failure.f_parameters.empty() == True
-
-def test_Message_constructors_v1(test):
-	"""
-	# - &types.Message.from_arguments_v1
-	# - &types.Message.msg_event
-	# - &types.Message.msg_context
-	# - &types.Message.msg_parameters
+	# - &types.Frame.from_event_v1
+	# - &types.Frame.f_event
+	# - &types.Frame.f_extension
 	"""
 	esa = types.EStruct.from_fields_v1('protocol-field')
+	f = types.Frame.from_event_v1(esa, None, None)
 
-	msg = types.Message.from_arguments_v1(
-		types.Trace.from_nothing_v1(), esa,
-	)
+	test/f.f_event == esa
+	test/bool(f.f_extension) == False
+	test/f.f_channel == None
 
-	test/msg.msg_event == esa
-	test/msg.event == esa
-	test/msg.msg_context.t_route == []
-	test/msg.msg_parameters.empty() == True
-
-def test_Report_constructors_v1(test):
+def test_string_constructor(test):
 	"""
-	# - &types.Report.from_arguments_v1
-	# - &types.Report.r_event
-	# - &types.Report.r_context
-	# - &types.Report.r_parameters
-	"""
-	esa = types.EStruct.from_fields_v1('protocol-field')
-
-	re = types.Report.from_arguments_v1(
-		types.Trace.from_nothing_v1(), esa,
-	)
-
-	test/re.r_event == esa
-	test/re.event == esa
-	test/re.r_context.t_route == []
-	test/re.r_parameters.empty() == True
-
-def test_Parameters_typeform_detection(test):
-	"""
-	# - &types.Parameters.identify_object_typeform
+	# - &types.EStruct.from_string_v1
+	# - &types.Frame.from_string_v1
 	"""
 
-	iotfx = types.Parameters.identify_object_typeform
-	iotfn = [
-		(lambda x: iotfx(x)[1]),
-		(lambda x: iotfx([x])[1]),
-		(lambda x: iotfx(set([x]))[1]),
-	]
-
-	for iotf in iotfn:
-		test/iotf(None) == 'void'
-		test/iotf(-1) == 'integer'
-		test/iotf(1) == 'integer'
-		test/iotf("string") == 'string'
-		test/iotf(True) == 'boolean'
-		test/iotf(False) == 'boolean'
-		test/iotf(1.2) == 'rational'
-		test/iotf(b'') == 'octets'
-
-	test/iotfx({}) == ('value', 'parameters')
-	test/iotfx([{}]) == ('v-sequence', 'parameters')
-
-def test_Parameters_constructors_v1(test):
-	"""
-	# - &types.Parameters.from_nothing_v1
-	# - &types.Parameters.from_pairs_v1
-	# - &types.Parameters.from_specifications_v1
-	# - &types.Parameters.from_relation_v1
-	"""
-
-	empty = types.Parameters.from_nothing_v1()
-	test/empty.empty() == True
-	test/set(empty.iterspecs()) == set()
-
-	iprimitives = types.Parameters.from_pairs_v1([
-		('i-field', 1),
-		('s-field', "string"),
-		('b-field', True),
-	])
-
-	xprimitives = types.Parameters.from_specifications_v1([
-		('value', 'integer', 'i-field', 1),
-		('value', 'string', 's-field', "string"),
-		('value', 'boolean', 'b-field', True),
-	])
-	test/iprimitives == xprimitives
-
-	rel = types.Parameters.from_relation_v1(
-		['id', 'name'],
-		['integer', 'string'],
-		[
-			(1, "first"),
-			(2, "second"),
-			(3, "third"),
-		]
-	)
-	test/rel.get_parameter('id') == [1,2,3]
-	test/rel.get_parameter('name') == ["first", "second", "third"]
-
-def test_Parameters_relation_storage(test):
-	tuples = [
-		(1, "first"),
-		(2, "second"),
-		(3, "third"),
-	]
-	rel = types.Parameters.from_relation_v1(
-		['id', 'name'],
-		['integer', 'string'],
-		tuples,
-	)
-
-	test/list(rel.select(None)) == tuples
-	test/list(rel.select(['id', 'name'])) == tuples
-	rel.insert([
-		(4, "fourth"),
-	])
-
-	test/list(rel.select(['id', 'name'])) == (tuples + [(4, "fourth")])
-
-def test_packet_string_constructor(test):
-	"""
-	# - &types._from_string_constructor
-	# - &types.Message.from_string_v1
-	# - &types.Failure.from_string_v1
-	# - &types.Report.from_string_v1
-	"""
-
-	typset = [types.Message, types.Failure, types.Report]
+	typset = [types.Frame]
 	for Class in typset:
 		packet = Class.from_string_v1("QUAL[200]: abstract")
 		test.isinstance(packet, Class)
 
-		es, params, tr = types.corefields(packet)
-		test/es.identifier == "200"
-		test/es.code == 200
-		test/es.abstract == "abstract"
+		ev = packet.f_event
+		test/ev.identifier == "200"
+		test/ev.code == 200
+		test/ev.abstract == "abstract"
 
 if __name__ == '__main__':
 	from ...test import library as libtest
