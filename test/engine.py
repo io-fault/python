@@ -1,6 +1,7 @@
 """
 # Harness implementation and support functions.
 """
+import itertools
 from . import core
 
 def get_test_index(tester, int=int, set=set, AttributeError=AttributeError):
@@ -47,7 +48,7 @@ def gather(container, prefix='test_', key=test_order, getattr=getattr):
 	tests.sort(key=(lambda x: key(container, x))) # Re-sort using syntactic positioning.
 	return tests
 
-def select(tests, start, stop):
+def select(tests, start, stop, limit=None, /, islice=itertools.islice):
 	"""
 	# Slice the tests by comparing their identity to &start and &stop.
 	"""
@@ -64,6 +65,9 @@ def select(tests, start, stop):
 
 		# Start of slice.
 		yield t
+
+	# Use limit to allow single selections.
+	i = islice(i, 0, limit)
 
 	if stop is None:
 		yield from i
@@ -85,15 +89,22 @@ class Harness(object):
 	@classmethod
 	def from_module(Class, module, identity=None, slices=[]):
 		test_ids = Class.collect(module)
-		for start, stop in slices:
-			test_ids = select(test_ids, start, stop)
+		for triple in slices:
+			test_ids = select(test_ids, *triple)
 
 		tests = [Class.Test(name, getattr(module, name)) for name in test_ids]
 		return Class(identity or module.__name__, module, tests)
 
+	@property
+	def count(self) -> int:
+		"""
+		# Number of tests that have been prepared for execution.
+		"""
+		return len(self.tests)
+
 	def __init__(self, identity, container, tests):
 		"""
-		# Create a harness for running the tests in the &package.
+		# Initialize the members of the Harness.
 		"""
 		self.identity = identity
 		self.container = container
@@ -102,7 +113,6 @@ class Harness(object):
 	def dispatch(self, test):
 		"""
 		# Dispatch the given &Test to resolve its fate.
-		# Subclasses controlling execution will often override this method.
 		"""
 		with test.exits:
 			test.seal()

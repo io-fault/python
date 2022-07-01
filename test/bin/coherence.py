@@ -12,14 +12,16 @@ import importlib
 from ...system import corefile
 from ...system import process
 from ...system import files
-from ...transcript import frames
-from ...time.sysclock import elapsed
 from ...status import python
+from ...time.sysclock import elapsed
+from ...transcript import metrics
+from ...transcript.io import Log
 
 from .. import engine
 from .. import core
 
 status_identifiers = {
+	'explicit': 'skipped',
 	'skip': 'skipped',
 	'return': 'passed',
 	'pass': 'passed',
@@ -27,74 +29,6 @@ status_identifiers = {
 	'core': 'failed',
 	'error': 'failed',
 }
-
-def open_factor_transaction(time, factor, intention='unspecified', channel=''):
-	msg = frames.types.Message.from_string_v1(
-		"transaction-started[->]: " + factor,
-		protocol=frames.protocol
-	)
-	msg.msg_parameters['data'] = frames.types.Parameters.from_pairs_v1([
-		('time-offset', time),
-	])
-
-	return channel, msg
-
-def close_factor_transaction(time, factor, channel=''):
-	msg = frames.types.Message.from_string_v1(
-		"transaction-stopped[<-]: " + factor,
-		protocol=frames.protocol
-	)
-	msg.msg_parameters['data'] = frames.types.Parameters.from_pairs_v1([
-		('time-offset', time),
-	])
-
-	return channel, msg
-
-def open_test_transaction(time, identifier, pid, synopsis, channel=''):
-	msg = frames.types.Message.from_string_v1(
-		"transaction-started[->]: " + synopsis,
-		protocol=frames.protocol
-	)
-	msg.msg_parameters['data'] = frames.types.Parameters.from_pairs_v1([
-		('time-offset', time),
-		('test', identifier),
-		('process-identifier', pid),
-	])
-
-	return msg
-
-def test_metrics_signal(time, fate, rusage):
-	counts = {status_identifiers.get(fate, fate):1}
-	r = frames.metrics(time, {'usage': rusage.ru_stime + rusage.ru_utime}, counts)
-	msg = frames.types.Message.from_string_v1(
-		"transaction-event[--]: METRICS: test process data",
-		protocol=frames.protocol
-	)
-	msg.msg_parameters['data'] = r
-
-	return msg
-
-def sequence_failure(error):
-	while error is not None:
-		yield python.failure(error, error.__traceback__)
-		error = getattr(error, '__cause__', None) or getattr(error, '__context__', None)
-
-def close_test_transaction(time, identifier, pid, synopsis, failure, status, rusage):
-	msg = frames.types.Message.from_string_v1(
-		"transaction-stopped[<-]: " + synopsis,
-		protocol=frames.protocol
-	)
-	msg.msg_parameters['data'] = frames.types.Parameters.from_pairs_v1([
-		('time-offset', time),
-		('identifier', identifier),
-		('fate', synopsis),
-		('failure', failure),
-		('status', status),
-		('system', rusage.ru_stime),
-		('user', rusage.ru_utime),
-	])
-
-	return msg
 
 class Harness(engine.Harness):
 	"""
@@ -134,53 +68,85 @@ class Harness(engine.Harness):
 		start_time = elapsed()
 
 		# seal fate in a child process
-		def manage():
-			nonlocal self
-			nonlocal test
+		def manage(harness=self, test=test):
 			with test.exits:
-				return self.seal(test)
+				return harness.execute(test)
 		pid, seal = self.concurrently(manage, waitpid=os.wait4)
-		channel = self.channel + '/' + test.identifier + '/system/' + str(pid)
+
+		xact_metrics = metrics.Procedure(
+			work=metrics.Work(1, 0, 0, 0),
+			msg=metrics.Advisory(),
+			usage=metrics.Resource(),
+		)
+		ext = {
+			'@timestamp': [str(start_time)],
+			'@type': ['system'],
+			'@metrics': [xact_metrics.sequence()],
+			'system-process-id': [str(pid)],
+		}
+
+		xid = '/'.join((self.project, self.factor, test.identifier))
+		self.log.xact_open(xid, xid + ": dispatched", ext)
+		self.log.flush()
 
 		l = []
-		start_message = open_test_transaction(
-			start_time, test.identifier, pid, 'start',
-		)
-		self.log.emit(channel, start_message)
 
 		report = seal(status_ref = l.append)
-		stop_time = elapsed()
+		try:
+			stop_time = elapsed()
 
-		if report is None:
-			report = {'fate': 'unknown', 'impact': -1, 'interrupt': None}
+			if report is None:
+				report = {'fate': 'unknown', 'impact': -1, 'interrupt': None}
 
-		pid, status, rusage = l[0]
+			pid, status, rusage = l[0]
 
-		if os.WCOREDUMP(status):
-			faten = 'core'
-			report['fate'] = 'core'
-			test.fate = core.Fate('process core dump', subtype='core')
-			self._handle_core(corefile.location(pid))
-		elif not os.WIFEXITED(status):
-			import signal
-			try:
-				os.kill(pid, signal.SIGKILL)
-			except OSError:
-				pass
+			if os.WCOREDUMP(status):
+				faten = 'core'
+				report['fate'] = 'core'
+				test.fate = core.Fate('process core dump', subtype='core')
+				self._handle_core(corefile.location(pid))
+			elif not os.WIFEXITED(status):
+				import signal
+				try:
+					os.kill(pid, signal.SIGKILL)
+				except OSError:
+					pass
+		finally:
+			failure = None
+			if report['fate'] == 'skip':
+				work = metrics.Work(0, 0, 1, 0)
+			elif report['impact'] < 0:
+				work = metrics.Work(0, 0, 0, 1)
+				failure = report.get('failure')
+			else:
+				work = metrics.Work(0, 1, 0, 0)
 
-		es = report['exitstatus'] = os.WEXITSTATUS(status)
-		metrics = test_metrics_signal(stop_time - start_time, report['fate'], rusage)
-		stop_message = close_test_transaction(
-			stop_time, test.identifier, pid,
-			report['fate'], report.get('failure'),
-			es, rusage,
-		)
-		self.log.emit(channel, metrics)
-		self.log.emit(channel, stop_message)
-		self.log.flush()
+			# Construct metrics for reporting fate and resource usage.
+			usage = metrics.Resource(
+				1, int(rusage.ru_maxrss),
+				# Nanosecond precision.
+				int((rusage.ru_stime + rusage.ru_utime) * (10**9)),
+				stop_time - start_time,
+			)
+			xact_metrics = metrics.Procedure(work=work, msg=metrics.Advisory(), usage=usage)
+
+			ext = {
+				'@timestamp': [str(stop_time)],
+				'@metrics': [xact_metrics.sequence()],
+				'fate': [report['fate']],
+				'impact': [str(report['impact'])],
+			}
+			if failure:
+				ext['@failure-image'] = ['python-exception']
+				ext['@failure-image'].extend(x[:-1] for x in python.format(failure))
+
+			fate = status_identifiers.get(report['fate'], 'unknown')
+			self.log.xact_close(xid, xid + ": " + fate, ext)
+			self.log.flush()
+
 		return report
 
-	def seal(self, test):
+	def execute(self, test):
 		# Usually ran within the fork.
 		try:
 			signal.signal(signal.SIGALRM, test.timeout)
@@ -213,22 +179,20 @@ class Harness(engine.Harness):
 			subharness = self.__class__(ident, test.subject, test.fate.content)
 			subharness.reveal()
 		elif test.fate.impact < 0:
-			report['failure'] = list(sequence_failure(test.fate.__cause__))
+			ferror = test.fate.__cause__
+			report['failure'] = list(python.failure(ferror, ferror.__traceback__))
 
 			if isinstance(test.fate.__cause__, (KeyboardInterrupt, BrokenPipeError)):
 				report['interrupt'] = True
-			self._print_tb(test.fate)
 			return report
 
 			import pdb
 			# error cases chain the exception
-			if test.fate.__cause__ is not None:
-				tb = test.fate.__cause__.__traceback__
+			if ferror is not None:
+				tb = ferror.__traceback__
 			else:
 				tb = None
-			if tb is None:
-				tb = test.fate.__traceback__
-			pdb.post_mortem(tb)
+			pdb.post_mortem(tb or test.fate.__traceback__)
 		return report
 
 def intercept(product, project, intention):
@@ -268,19 +232,28 @@ def intercept(product, project, intention):
 	sys.meta_path.insert(0, sfif)
 
 def main(inv:process.Invocation) -> process.Exit:
+	sys.excepthook = python.hook
 	inv.imports(['FRAMECHANNEL', 'INTENTION', 'PROJECT', 'PRODUCT'])
 
 	project, rfpath, *testslices = inv.args # Import target and start[:stop] tests.
 	slices = []
 	for s in testslices:
+		limit = None
+
 		if ':' in s:
 			start, stop = s.split(':')
+			if stop.isdigit():
+				limit = int(stop)
+				stop = None
 		else:
+			# Require colon for slice.
 			start = s
 			stop = ''
-		slices.append((start or None, stop or None))
+			limit = 1
 
-	channel = inv.environ.get('FRAMECHANNEL') or 'test'
+		slices.append((start or None, stop or None, limit))
+
+	channel = inv.environ.get('FRAMECHANNEL') or None
 	intention = inv.environ.get('INTENTION') or 'optimal'
 	product = inv.environ.get('PRODUCT') or ''
 	os.environ['PROJECT'] = project
@@ -293,12 +266,25 @@ def main(inv:process.Invocation) -> process.Exit:
 	p = Harness.from_module(importlib.import_module(module_path), slices=slices)
 	p.channel = channel
 	p.status = sys.stderr
-	p.log = frames.Log.stdout()
+	p.project = project
+	p.factor = rfpath
+	p.log = log = Log.stdout(channel=inv.environ.get('FRAMECHANNEL') or None)
+	log.declare()
 
-	p.log.emit(*open_factor_transaction(elapsed(), p.identity, channel=channel))
-	p.log.flush()
+	xid = '/'.join((project, rfpath))
+	ext = {
+		'@timestammp': [str(elapsed())],
+		'@work': [str(p.count)],
+	}
+	log.xact_open(xid, xid + ": sealing fates of " + str(p.count) + " tests", ext)
+	log.flush()
+	del ext
+
 	p.reveal()
-	p.log.emit(*close_factor_transaction(elapsed(), p.identity, channel=channel))
+	ext = {
+		'@timestammp': [str(elapsed())],
+	}
+	log.xact_close(xid, xid + ": fates revealed", ext)
 
 	return inv.exit(0)
 

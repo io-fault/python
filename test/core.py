@@ -80,7 +80,7 @@ class Contention(object):
 			else:
 				opname = k
 
-			def check(self, ob, opname = opname, operator = v):
+			def check(self, ob, opname = opname, operator = v, /, __traceframe__ = 'fault-contention'):
 				test, x, y = self.test, self.object, ob
 				if self.inverse:
 					if operator(x, y): raise self.test.Absurdity(opname, x, y, inverse=True)
