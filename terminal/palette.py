@@ -129,9 +129,6 @@ colors = {
 	'purple': -54,
 	'violet': -141,
 
-	# Hard references to the sixteen color palette.
-	'background-limit': -512, # The "black" slot.
-
 	# Normal
 	'relative-red': -513,
 	'relative-green': -514,
@@ -139,9 +136,6 @@ colors = {
 	'relative-blue': -516,
 	'relative-magenta': -517,
 	'relative-cyan': -518,
-
-	'foreground-adjacent': -519, # The "white" slot.
-	'background-adjacent': -520, # The "bright black" slot.
 
 	# Brights
 	'absolute-red': -521,
@@ -151,7 +145,11 @@ colors = {
 	'absolute-magenta': -525,
 	'absolute-cyan': -526,
 
+	# Hard references to the sixteen color palette.
 	'foreground-limit': -527, # The "bright white" slot.
+	'background-limit': -512, # The "black" slot.
+	'foreground-adjacent': -519, # The "white" slot.
+	'background-adjacent': -520, # The "bright black" slot.
 }
 
 remapped = {
