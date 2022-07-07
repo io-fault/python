@@ -77,19 +77,21 @@ def test_RenderParameters(test):
 	"""
 
 	rp = module.RenderParameters.from_colors(0, 0)
+	test/rp.linecolor == -1024
 	test/rp.textcolor == 0
 	test/rp.cellcolor == 0
 	test/rp.traits == 0
 
-	test/rp.update(cellcolor=1) == (0, 1, 0)
-	test/rp.update(textcolor=1) == (1, 0, 0)
+	test/rp.update(cellcolor=1) == (0, 0, 1, -1024)
+	test/rp.update(textcolor=1) == (0, 1, 0, -1024)
+	test/rp.update(linecolor=1) == (0, 0, 0, 1)
 
 def test_RenderParameters_apply(test):
 	"""
 	# - &module.RenderParamters.apply
 	"""
 	t = module.NoTraits
-	r = module.RenderParameters((None, None, t))
+	r = module.RenderParameters((t, None, None, None))
 	test/r.apply('underline').traits.test('underline') == True
 	test/r.apply('underline', 'bold').traits.test('underline') == True
 	test/r.apply('underline', 'bold').traits.test('bold') == True
@@ -104,7 +106,7 @@ def test_RenderParameters_traits(test):
 	"""
 
 	# Sanity
-	rp = module.RenderParameters((0, 0, module.Traits(0)))
+	rp = module.RenderParameters((module.Traits(0), 0, 0, 0))
 	ul = module.Traits.construct('underline')
 	dul = module.Traits.construct('double-underline')
 
@@ -119,9 +121,9 @@ def test_RenderParameters_equality(test):
 	"""
 	# - &module.RenderParameters
 	"""
-	rp = module.RenderParameters((0, 0, module.Traits(0)))
-	rp1 = module.RenderParameters((0, 0, module.Traits(1)))
-	rp2 = module.RenderParameters((0, 1, module.Traits(0)))
+	rp = module.RenderParameters((module.Traits(0), 0, 0, 0))
+	rp1 = module.RenderParameters((module.Traits(1), 0, 0, 0))
+	rp2 = module.RenderParameters((module.Traits(0), 0, 1, 0))
 
 	test/rp == rp
 	test/rp != rp1
@@ -595,7 +597,7 @@ def test_Phrase_join(test):
 	"""
 	# - &module.Phrase.join
 	"""
-	normal = module.RenderParameters((0xFFFFFF, 0x000000, module.Traits(0)))
+	normal = module.RenderParameters((module.Traits(0), 0xFFFFFF, 0x000000, None))
 	tab = module.Phrase(normal.form("<TAB>"))
 
 	# Three elements.
@@ -633,8 +635,8 @@ def test_Constructors(test):
 	# - &module.RenderParameters.form
 	# - &module.Phrase.from_words
 	"""
-	rp1 = module.RenderParameters((0xFFFFFF, 0x000000, module.Traits(0)))
-	rp2 = module.RenderParameters((-1024, 0x000000, module.Traits(0)))
+	rp1 = module.RenderParameters((module.Traits(0), 0xFFFFFF, 0x000000, None))
+	rp2 = module.RenderParameters((module.Traits(0), -1024, 0x000000, None))
 	test/len(list(rp1.form("first", "second"))) == 2
 
 	ph = module.Phrase.from_words(

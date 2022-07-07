@@ -17,34 +17,65 @@ def test_Type(test):
 def test_Type_transition(test):
 	"""
 	# - &module.Type.transition_render_parameters
+	# - &module.Type.select_transition
 	"""
 	t = module.Type('utf-8')
 	transition = t.transition_render_parameters
 	notraits = core.NoTraits
 
-	leading = (0, 0, notraits)
-	following = (1, 0, notraits)
+	leading = (notraits, 0, 0, 0)
+	following = (notraits, 1, 0, 0)
 	test/(transition(leading, following)) == b'\x1b[38;2;0;0;1m'
 
 	# No transition.
-	leading = (1, 0, notraits)
-	following = (1, 0, notraits)
+	leading = (notraits, 1, 0, 0)
+	following = (notraits, 1, 0, 0)
 	test/(transition(leading, following)) == b''
 
 	# elimation (underline)
-	leading = (1, 0, core.Traits.construct('underline'))
-	following = (1, 0, notraits)
+	leading = (core.Traits.construct('underline'), 1, 0, 0)
+	following = (notraits, 1, 0, 0)
 	test/(transition(leading, following)) == b'\x1b[24m'
 
 	# transition in (underline)
-	leading = (1, 0, notraits)
-	following = (1, 0, core.Traits.construct('underline'))
+	leading = (notraits, 1, 0, 0)
+	following = (core.Traits.construct('underline'), 1, 0, 0)
 	test/(transition(leading, following)) == b'\x1b[4m'
 
 	# transition in underline from double
-	leading = (1, 0, core.Traits.construct('double-underline'))
-	following = (1, 0, core.Traits.construct('underline'))
+	leading = (core.Traits.construct('double-underline'), 1, 0, 0)
+	following = (core.Traits.construct('underline'), 1, 0, 0)
 	test/(transition(leading, following)) == b'\x1b[24;4m'
+
+def test_Type_linecolor_transition(test):
+	"""
+	# - &module.Type.transition_render_parameters
+	# - &module.Type.select_transition
+	"""
+	t = module.Type('utf-8')
+	transition = t.transition_render_parameters
+
+	rp = core.RenderParameters.from_colors(0, 0)
+	lc24 = rp.update(linecolor=0)
+	lc8 = rp.update(linecolor=-1)
+
+	# 24-bit
+	test/(transition(rp, lc24)) == b'\x1b[58;2;0;0;0m'
+
+	# No transition needed.
+	test/(transition(lc24, lc24)) == b''
+
+	# Reset
+	test/(transition(lc24, rp)) == b'\x1b[59m'
+
+	# 8-bit, xterm-256
+	test/(transition(rp, lc8)) == b'\x1b[58;5;0m'
+
+	# No transition needed.
+	test/(transition(lc8, lc8)) == b''
+
+	# Reset
+	test/(transition(lc8, rp)) == b'\x1b[59m'
 
 def test_Context_render_transitions(test):
 	"""
@@ -56,27 +87,27 @@ def test_Context_render_transitions(test):
 
 	# Underline to bold.
 	ph = core.Phrase.construct([
-		("Simple", -1024, -1024, s.Traits.construct('underline')),
-		(" ", -1024, -1024, s.Traits.construct('bold')),
-		("phrase.", -1024, -1024, s.Traits.construct('bold')),
+		("Simple", s.Traits.construct('underline'), -1024, -1024, -1024),
+		(" ", s.Traits.construct('bold'), -1024, -1024, -1024),
+		("phrase.", s.Traits.construct('bold'), -1024, -1024, -1024),
 	])
 	rph = list(s.render(ph))
 	test/rph == [b'\x1b[4m', b'Simple', b'\x1b[24;1m', b' ', b'', b'phrase.']
 
 	# Underline to far bold.
 	ph = core.Phrase.construct([
-		("Simple", -1024, -1024, s.Traits.construct('underline')),
-		(" ", -1024, -1024, s.Traits.construct('underline')),
-		("phrase.", -1024, -1024, s.Traits.construct('bold')),
+		("Simple", s.Traits.construct('underline'), -1024, -1024, -1024),
+		(" ", s.Traits.construct('underline'), -1024, -1024, -1024),
+		("phrase.", s.Traits.construct('bold'), -1024, -1024, -1024),
 	])
 	rph = list(s.render(ph))
 	test/rph == [b'\x1b[4m', b'Simple', b'', b' ', b'\x1b[24;1m', b'phrase.']
 
 	# New text.
 	ph = core.Phrase.construct([
-		("Simple", -1024, -1024, s.Traits.construct('underline')),
-		(" ", -1024, -1024, s.Traits.none()),
-		("phrase.", -1024, -1024, s.Traits.construct('bold')),
+		("Simple", s.Traits.construct('underline'), -1024, -1024, -1024),
+		(" ", s.Traits.none(), -1024, -1024, -1024),
+		("phrase.", s.Traits.construct('bold'), -1024, -1024, -1024),
 	])
 	rph = list(s.render(ph))
 	test/rph == [b'\x1b[4m', b'Simple', b'\x1b[24m', b' ', b'\x1b[1m', b'phrase.']
@@ -85,23 +116,27 @@ def test_Context_stored_colors(test):
 	"""
 	# - &module.Context.context_set_text_color
 	# - &module.Context.context_set_cell_color
+	# - &module.Context.context_set_line_color
 	# - &module.Context.set_text_color
 	# - &module.Context.set_cell_color
+	# - &module.Context.set_line_color
 	# - &module.Context.reset_colors
 	# - &module.Context.render
 	"""
 	s = module.Screen()
-	test/s.reset_colors() == b'\x1b[39;49m'
+	test/s.reset_colors() == b'\x1b[39;49;59m'
 
 	test/s.context_set_cell_color(-513)
 	test/s.context_set_text_color(-513)
-	test/s.reset_colors() == b'\x1b[31;41m'
+	test/s.context_set_line_color(-8) # Only xterm-256 and 24-bit colors.
+
+	test/s.reset_colors() == b'\x1b[31;41;58;5;7m'
 
 	# Check that render considers the default; transition filters.
 	ph = s.Phrase.construct([
-		("Simple", -513, -513, core.Traits(0)),
-		(" ", -513, -513, core.Traits(0)),
-		("phrase.", -513, -513, core.Traits(0)),
+		("Simple", core.Traits(0), -513, -513, -8),
+		(" ", core.Traits(0), -513, -513, -8),
+		("phrase.", core.Traits(0), -513, -513, -8),
 	])
 	rph = list(s.render(ph))
 	test/rph == [b'', b'Simple', b'', b' ', b'', b'phrase.']

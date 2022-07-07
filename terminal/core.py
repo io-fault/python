@@ -263,27 +263,35 @@ class RenderParameters(tuple):
 
 	_cc_none = -1024
 	_tc_none = -1024
-
-	@property
-	def textcolor(self) -> int:
-		"""
-		# The RGB color to use as the text color.
-		"""
-		return self[0]
-
-	@property
-	def cellcolor(self) -> int:
-		"""
-		# The RGB color to use as the cell's background color.
-		"""
-		return self[1]
+	_lc_none = -1024
 
 	@property
 	def traits(self) -> Traits:
 		"""
 		# The set of &Traits used to style displayed text.
 		"""
+		return self[0]
+
+	@property
+	def textcolor(self) -> int:
+		"""
+		# The color to use as the text color.
+		"""
+		return self[1]
+
+	@property
+	def cellcolor(self) -> int:
+		"""
+		# The color to use as the cell's background color.
+		"""
 		return self[2]
+
+	@property
+	def linecolor(self) -> int:
+		"""
+		# The color to use for the line when the underline trait is present.
+		"""
+		return self[3]
 
 	@property
 	def font(self) -> None:
@@ -295,40 +303,38 @@ class RenderParameters(tuple):
 
 	@classmethod
 	def from_colors(Class, textcolor:int, cellcolor:int):
-		return Class((textcolor, cellcolor, NoTraits))
+		return Class((NoTraits, textcolor, cellcolor, -1024))
 
 	def set(self, traits:Traits):
 		"""
 		# Create a new instance with the given &traits added to
 		# the traits present in &self.
 		"""
-		return self.__class__((
-			self[0], self[1], traits | self[2], *self[3:]
-		))
+		return self.__class__((traits | self[0], *self[1:]))
 
 	def clear(self, traits:Traits):
 		"""
 		# Create a new instance with the given &traits removed
 		# from the traits present in &self.
 		"""
-		c = self[2]
+		c = self[0]
+		return self.__class__((((traits & c) ^ c), *self[1:],))
+
+	def apply(self, *traits, textcolor=None, cellcolor=None, linecolor=None):
 		return self.__class__((
-			self[0], self[1], ((c & traits) ^ c), *self[3:]
+			self[0].construct(*traits, From=int(self[0])) if traits else self[0],
+			textcolor if textcolor is not None else self[1],
+			cellcolor if cellcolor is not None else self[2],
+			linecolor if linecolor is not None else self[3],
+			*self[4:]
 		))
 
-	def apply(self, *traits, textcolor=None, cellcolor=None):
+	def update(self, textcolor=None, cellcolor=None, linecolor=None, traits=None):
 		return self.__class__((
-			textcolor if textcolor is not None else self[0],
-			cellcolor if cellcolor is not None else self[1],
-			self[2].construct(*traits, From=int(self[2])) if traits else self[2],
-			*self[3:]
-		))
-
-	def update(self, textcolor=None, cellcolor=None, traits=None):
-		return self.__class__((
-			textcolor if textcolor is not None else self[0],
-			cellcolor if cellcolor is not None else self[1],
-			traits if traits is not None else self[2],
+			traits if traits is not None else self[0],
+			textcolor if textcolor is not None else self[1],
+			cellcolor if cellcolor is not None else self[2],
+			linecolor if linecolor is not None else self[3],
 		))
 
 	def form(self, *strings, cells=text.cells):
@@ -424,7 +430,7 @@ class Phrase(tuple):
 	__slots__ = ()
 
 	@staticmethod
-	def default(text, traits=(None,None,Traits(0))):
+	def default(text, traits=(Traits(0), None, None, None)):
 		"""
 		# Construct a Word Specification with default text attributes.
 		"""

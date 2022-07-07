@@ -29,7 +29,7 @@ class Type(object):
 	# Currently unstable API. It was quickly ripped out of &Context.
 	"""
 
-	normal_render_parameters = core.RenderParameters((-1024, -1024, core.NoTraits))
+	normal_render_parameters = core.RenderParameters((core.NoTraits, -1024, -1024, -1024))
 
 	_escape_character = b'\x1b'
 	_field_separator = b';'
@@ -38,6 +38,7 @@ class Type(object):
 	_osc_init = _escape_character + b']'
 	_st = _escape_character = b'\\' # String Terminator
 	_wm = b't'
+	_ul_color = (b'58', b'59')
 
 	# Private Modes
 	_pm_set = b'h'
@@ -63,8 +64,10 @@ class Type(object):
 
 	select_foreground_256 = b'38;5'
 	select_background_256 = b'48;5'
+	select_underline_256 = b'58;5'
 	select_foreground_rgb = b'38;2'
 	select_background_rgb = b'48;2'
+	select_underline_rgb = b'58;2'
 
 	# Pairs are of the form: (Initiate, Terminate)
 	style_codes = {
@@ -202,9 +205,18 @@ class Type(object):
 		"""
 		return self.csi(b'T', self.cached_integer_encode(count))
 
-	def select_color(self, target, color_code,
-			targets_rgb={True:select_foreground_rgb,False:select_background_rgb},
-			targets_256={True:select_foreground_256,False:select_background_256},
+	def select_color(self, target, color_code, /,
+			targets_rgb={
+				'text':select_foreground_rgb,
+				'cell':select_background_rgb,
+				'line':select_underline_rgb,
+			},
+			targets_256={
+				'text':select_foreground_256,
+				'cell':select_background_256,
+				'line':select_underline_256,
+			},
+			targets_reset={'text': 39, 'cell': 49, 'line': 59},
 			str=str, map=map
 		):
 		"""
@@ -227,19 +239,18 @@ class Type(object):
 				return (targets_256[target], cie(color_code-1))
 			elif color_code == 1024:
 				# Special code for defaults.
-				if target:
-					return (cie(39),)
-				else:
-					return (cie(49),)
+				return (cie(targets_reset[target]),)
 			else:
 				# Sixteen colors offset at 512.
 				color_code -= 512
 				assert color_code < 16
 
-				if target:
+				if target == 'text':
 					return (cie(self.select_foreground_16(color_code)),)
-				else:
+				elif target == 'cell':
 					return (cie(self.select_background_16(color_code)),)
+				else:
+					raise ValueError("tty-16 colors not available for target: " + target)
 
 	@staticmethod
 	def transition_traits(style_codes, from_traits, to_traits, chain=itertools.chain):
@@ -271,23 +282,29 @@ class Type(object):
 			# Identical; no transition.
 			return
 
-		# text color
+		# text traits
 		current = former[0]
 		target = latter[0]
 		if current != target:
-			yield from self.select_color(True, target)
+			yield from self.transition_traits(self.style_codes, current, target)
 
-		# cell color
+		# text color
 		current = former[1]
 		target = latter[1]
 		if current != target:
-			yield from self.select_color(False, target)
+			yield from self.select_color('text', target)
 
-		# text traits
+		# cell color
 		current = former[2]
 		target = latter[2]
 		if current != target:
-			yield from self.transition_traits(self.style_codes, current, target)
+			yield from self.select_color('cell', target)
+
+		# line color
+		current = former[3]
+		target = latter[3]
+		if current != target:
+			yield from self.select_color('line', target) #* No tty-16 colors!
 
 	def transition_render_parameters(self, former, latter):
 		return self.csi_filter_empty(b'm', *self.select_transition(former, latter))
@@ -295,8 +312,8 @@ class Type(object):
 	def reset_render_parameters(self, state):
 		return self.csi(b'm',
 			self.cached_integer_encode(0),
-			*self.select_color(True, state.textcolor),
-			*self.select_color(False, state.cellcolor),
+			*self.select_color('text', state.textcolor),
+			*self.select_color('cell', state.cellcolor),
 			*self.change_text_traits(state.traits),
 		)
 
@@ -395,21 +412,30 @@ class Context(object):
 
 		self._context_text_color = -1024
 		self._context_cell_color = -1024
+		self._context_line_color = -1024
 		self._context_cursor = (0, 0)
 
 		self.encode = type.cached_integer_encode
 
 	@property
 	def _context_traits(self):
-		return self.RenderParameters((self._context_text_color, self._context_cell_color, self.Traits(0)))
+		return self.RenderParameters((
+			self.Traits(0),
+			self._context_text_color,
+			self._context_cell_color,
+			self._context_line_color,
+		))
 
 	@property
 	def context_render_parameters(self):
 		return self.RenderParameters((
-			self._context_text_color, self._context_cell_color, self.Traits.none()
+			self.Traits.none(),
+			self._context_text_color,
+			self._context_cell_color,
+			self._context_line_color,
 		))
 
-	def context_set_position(self, point:typing.Tuple[int, int]) -> 'Context':
+	def context_set_position(self, point:typing.Tuple[int, int]):
 		"""
 		# Designate the absolute positioning of the character matrix.
 		# Appropriate interface to use to set &self.point.
@@ -417,7 +443,7 @@ class Context(object):
 		self.point = point
 		return self
 
-	def context_set_dimensions(self, dimensions) -> 'Context':
+	def context_set_dimensions(self, dimensions):
 		"""
 		# Designate the width and height of the character matrix being targeted.
 		# Initializes &Context.dimensions, &width, and &height.
@@ -426,7 +452,7 @@ class Context(object):
 		self.dimensions = dimensions
 		return self
 
-	def context_set_text_color(self, color_id) -> 'Context':
+	def context_set_text_color(self, color_id):
 		"""
 		# Configure the default text color.
 		# Used by &reset_text and &reset_text_color.
@@ -434,12 +460,20 @@ class Context(object):
 		self._context_text_color = color_id
 		return self
 
-	def context_set_cell_color(self, color_id) -> 'Context':
+	def context_set_cell_color(self, color_id):
 		"""
 		# Configure the default cell color.
-		# used by &reset_text and &reset_cell_color.
+		# Used by &reset_text and &reset_cell_color.
 		"""
 		self._context_cell_color = color_id
+		return self
+
+	def context_set_line_color(self, color_id):
+		"""
+		# Configure the default cell color.
+		# Used by &reset_text and &reset_line_color.
+		"""
+		self._context_line_color = color_id
 		return self
 
 	def draw_unit_vertical(self, character):
@@ -467,17 +501,23 @@ class Context(object):
 	def draw_segment_horizontal(self, unit, length):
 		return self.draw_unit_horizontal(unit) * length
 
-	def set_cell_color(self, color:int):
-		"""
-		# Construct the escape sequence for selecting a different cell (background) color.
-		"""
-		return self._csi(b'm', *self.terminal_type.select_color(False, color))
-
 	def set_text_color(self, color:int):
 		"""
 		# Construct the escape sequence for selecting a different text (foreground) color.
 		"""
-		return self._csi(b'm', *self.terminal_type.select_color(True, color))
+		return self._csi(b'm', *self.terminal_type.select_color('text', color))
+
+	def set_cell_color(self, color:int):
+		"""
+		# Construct the escape sequence for selecting a different cell (background) color.
+		"""
+		return self._csi(b'm', *self.terminal_type.select_color('cell', color))
+
+	def set_line_color(self, color:int):
+		"""
+		# Construct the escape sequence for selecting a different line (underline) color.
+		"""
+		return self._csi(b'm', *self.terminal_type.select_color('line', color))
 
 	def set_render_parameters(self, rp:RenderParameters):
 		return self._transition((None, None, None), rp)
@@ -486,13 +526,19 @@ class Context(object):
 		"""
 		# Use the text color configured with &context_set_text_color.
 		"""
-		return self._csi(b'm', *self.terminal_type.select_color(True, self._context_text_color))
+		return self._csi(b'm', *self.terminal_type.select_color('text', self._context_text_color))
 
 	def reset_cell_color(self):
 		"""
 		# Use the cell color configured with &context_set_cell_color.
 		"""
-		return self._csi(b'm', *self.terminal_type.select_color(False, self._context_cell_color))
+		return self._csi(b'm', *self.terminal_type.select_color('cell', self._context_cell_color))
+
+	def reset_line_color(self):
+		"""
+		# Use the cell color configured with &context_set_cell_color.
+		"""
+		return self._csi(b'm', *self.terminal_type.select_color('line', self._context_line_color))
 
 	def reset_colors(self):
 		"""
@@ -500,8 +546,9 @@ class Context(object):
 		# a sequence to instruct the terminal to use those colors.
 		"""
 		return self._csi(b'm', *(
-			self.terminal_type.select_color(True, self._context_text_color) + \
-			self.terminal_type.select_color(False, self._context_cell_color)
+			self.terminal_type.select_color('text', self._context_text_color) + \
+			self.terminal_type.select_color('cell', self._context_cell_color) + \
+			self.terminal_type.select_color('line', self._context_line_color)
 		))
 
 	def reset_text(self):
@@ -510,8 +557,9 @@ class Context(object):
 		"""
 		return self._csi(b'm', *(
 			(b'0',) + \
-			self.terminal_type.select_color(True, self._context_text_color) + \
-			self.terminal_type.select_color(False, self._context_cell_color)
+			self.terminal_type.select_color('text', self._context_text_color) + \
+			self.terminal_type.select_color('cell', self._context_cell_color) + \
+			self.terminal_type.select_color('line', self._context_line_color)
 		))
 
 	def draw_words(self, phrasewordtext, control_map=control_table):
@@ -534,7 +582,6 @@ class Context(object):
 			# be retrievable at (index)`1` and the rendering parameters
 			# must be retrievable at (index)`2`.
 		# /rparams/
-			# &rparams is a triple used by phrasewords to describe the text's properties.
 			# If &None is given, the configured text and cell colors are used for
 			# identifying the initial transition into the Phrase.
 			# When rendering multiple &Phrase instances, the final triple of a phrase can be
