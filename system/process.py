@@ -763,7 +763,6 @@ def concurrently(controller:typing.Callable, exe=Fork.dispatch, waitpid=os.waitp
 	def execute_controller(call = controller, rw = rw):
 		os.close(rw[0])
 		try:
-			atexit._clear()
 			result = call()
 		except SystemExit:
 			result = None
