@@ -316,6 +316,9 @@ class Set(object):
 		self.starts = list(st)
 		self.stops = list(sp)
 
+	def __repr__(self):
+		return self.__class__.__name__ + '.from_normal_sequence(' + repr(list(self)) + ')'
+
 	def __reduce__(self):
 		return (self.from_normal_sequence, (list(self),))
 
@@ -420,7 +423,7 @@ class Set(object):
 		start_position_slice = slice(max(0, start-1), start+1)
 
 		stop = self._search(self.stops, range[1])
-		stop_position_slice = slice(max(0, stop-1), stop+1) # XXX: Likely OB1 bug near here.
+		stop_position_slice = slice(max(0, stop-1), stop+1) #* WARNING: Possible OB1
 
 		replacement = slice(
 			start_position_slice.start,
@@ -434,8 +437,10 @@ class Set(object):
 		else:
 			new_ranges = x
 
-		self.starts[replacement] = [range.Type(x[0]) for x in new_ranges]
-		self.stops[replacement] = [range.Type(x[1]) for x in new_ranges]
+		nstarts = self.starts[replacement] = [range.Type(x[0]) for x in new_ranges]
+		nstops = self.stops[replacement] = [range.Type(x[1]) for x in new_ranges]
+
+		return zip(nstarts, nstops)
 
 	def intersection(self, range_set, iter=iter, Queue=collections.deque):
 		"""
@@ -554,6 +559,7 @@ class XRange(tuple):
 	"""
 
 	__slots__ = ()
+	Type:(type) = int
 
 	@property
 	def direction(self):
@@ -651,14 +657,100 @@ class XRange(tuple):
 @collections.abc.Mapping.register
 class Mapping(object):
 	"""
-	# A set of ranges associated with arbitrary values.
+	# A tiered, finite map of ranges explicitly associated with values.
+
+	# ! WARNING:
+		# Implementation is sensitive to the order in which items are set.
+		# Keys intending to contain other Ranges must be set before the
+		# narrow range is set.
+
+	# [ Engineering ]
+	# Rewrite by vectorizing k-index and v-index to eliminate the recursive implementation.
+	# In cases of instances with large depths, a vectorized form should help with
+	# execution (fewer stack frames) and memory (fewer instances) performance.
 	"""
-	from bisect import bisect
 
-	def __init__(self, combine = operator.methodcaller("__add__")):
-		self.set = Set(((),()))
-		self.association = {}
-		self.combine = combine
+	def __init__(self, default=None):
+		self.default = default
+		self.k_index = Set(((),()))
+		self.v_index = {}
 
-	def get(self, key):
-		index = self.bisect(self.ranges, (key, key))
+	def keys(self):
+		yield from self.k_index
+		for v in self.v_index.values():
+			yield from v.keys()
+
+	def values(self):
+		for v in self.v_index.values():
+			yield v.default
+
+		for v in self.v_index.values():
+			yield from v.values()
+
+	def items(self):
+		return zip(self.keys(), self.values())
+
+	def get(self, key, default=None):
+		level, (isect, rm) = self.last(key)
+		if level == -1:
+			return default
+
+		return rm.default
+
+	def __getitem__(self, key):
+		l, (value, rm) = self.last(key)
+		if l == -1:
+			raise KeyError(key)
+
+		return rm.default
+
+	def __setitem__(self, key, value):
+		level, (isect, rm) = self.last(key)
+		rm.k_index.add(key)
+		rm.v_index[key] = self.__class__(default=value)
+		return level
+
+	def update(self, vs):
+		if isinstance(vs, Mapping):
+			i = vs.items()
+		else:
+			i = iter(vs)
+
+		for k, v in i:
+			self[k] = v
+
+	def __delitem__(self, key):
+		# Only trims the areas.
+		prev = self
+		for isect, rm in list(self.levels(key)):
+			v = prev.v_index.pop(isect)
+			nr, = prev.k_index.discard(key)
+			prev.v_index[nr] = v
+			prev = rm
+		# Final range map does not need to be altered as it has no configured range.
+
+	def path(self, key):
+		"""
+		# For the given key, identify the containing range and its associated value
+		# at each level in the mapping.
+		"""
+		for isect, rm in self.levels(key):
+			yield isect, rm.default
+
+	def levels(self, key):
+		cur = self
+		while cur is not None:
+			for isect in cur.k_index.intersecting(key):
+				if key not in isect:
+					return
+				cur = cur.v_index[isect]
+				yield isect, cur
+				break
+			else:
+				cur = None
+
+	def last(self, key):
+		r = (-1, (None, self))
+		for x in enumerate(self.levels(key)):
+			r = x
+		return r

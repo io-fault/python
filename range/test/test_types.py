@@ -170,8 +170,137 @@ def test_Set_pickle(test):
 	restored = pickle.loads(binary)
 	test/restored == original
 
-def test_RangeMapping(test):
-	pass
+def test_Mapping_narrow_indexing(test):
+	"""
+	# - &module.Mapping.__setitem__
+	# - &module.Mapping.__getitem__
+
+	# Check single level siblings access.
+	"""
+	Type = module.Mapping
+	i = Type(-1)
+	k1 = module.IRange.from_string('100-500')
+	k2 = module.IRange.from_string('600-700')
+
+	i[k1] = 'first'
+	i[k2] = 'second'
+	test/i[k1] == 'first'
+	test/i[k2] == 'second'
+	test/i[module.IRange.from_string('200-300')] == 'first'
+	test/i[module.IRange.from_string('650-675')] == 'second'
+
+def test_Mapping_get(test):
+	"""
+	# - &module.Mapping.__setitem__
+	# - &module.Mapping.get
+
+	# Check single level siblings access.
+	"""
+	Type = module.Mapping
+	i = Type(-1)
+	k1 = module.IRange.from_string('100-500')
+	k2 = module.IRange.from_string('505-600')
+	test/i.get(k1) == None
+	test/i.get(k1, default=None) == None
+
+	i[k1] = 'first'
+	test/i.get(k1) == 'first'
+	test/i.get(k2) == None
+
+def test_Mapping_depth_indexing(test):
+	"""
+	# - &module.Mapping.__getitem__
+	# - &module.Mapping.__setitem__
+
+	# Check that inner values set after override initial values.
+	"""
+	Type = module.Mapping
+	i = Type(-1)
+	k1 = module.IRange.from_string('100-500')
+	k2 = module.IRange.from_string('300-400')
+
+	i[k1] = 'first'
+	i[k2] = 'second'
+	test/i[k1] == 'first'
+	test/i[k2] == 'second'
+	test/i[module.IRange.from_string('110-150')] == 'first'
+	test/i[module.IRange.from_string('450-490')] == 'first'
+	test/i[module.IRange.from_string('330-360')] == 'second'
+
+def test_Mapping_path(test):
+	"""
+	# - &module.Mapping.path
+
+	# Check that range paths are properly nested.
+	"""
+	Type = module.Mapping
+	i = Type(-1)
+	k1 = module.IRange.from_string('100-500')
+	k2 = module.IRange.from_string('300-400')
+	k3 = module.IRange.from_string('350-360')
+
+	test/[x[1] for x in i.path(k1)] == []
+
+	i[k1] = 'first'
+	test/[x[1] for x in i.path(k2)] == ['first']
+
+	i[k2] = 'second'
+	test/[x[1] for x in i.path(k1)] == ['first']
+	test/[x[1] for x in i.path(k2)] == ['first', 'second']
+
+	i[k3] = 'third'
+	test/[x[1] for x in i.path(k3)] == ['first', 'second', 'third']
+	test/[x[1] for x in i.path(k2)] == ['first', 'second']
+	test/[x[1] for x in i.path(k1)] == ['first']
+
+def test_Mapping_kv_query(test):
+	"""
+	# - &module.Mapping.keys
+	# - &module.Mapping.values
+	# - &module.Mapping.items
+	"""
+	Type = module.Mapping
+	i = Type(-1)
+	k1 = module.IRange.from_string('100-500')
+	k2 = module.IRange.from_string('300-400')
+	k3 = module.IRange.from_string('350-360')
+
+	test/list(i.keys()) == []
+	test/list(i.values()) == []
+
+	i[k1] = 'first'
+	i[k2] = 'second'
+	test/list(i.keys()) == [k1, k2]
+	test/list(i.values()) == ['first', 'second']
+
+	i[k3] = 'third'
+	test/list(i.values()) == ['first', 'second', 'third']
+	test/list(i.keys()) == [k1, k2, k3]
+
+	test/list(i.items()) == [(k1, 'first'), (k2, 'second'), (k3, 'third')]
+
+def test_Mapping_update(test):
+	"""
+	# - &module.Mapping.update
+	# - &module.Mapping.items
+	"""
+	Type = module.Mapping
+	i = Type(-1)
+	i2 = Type(-2)
+	k1 = module.IRange.from_string('100-500')
+	k2 = module.IRange.from_string('300-400')
+	k3 = module.IRange.from_string('350-360')
+
+	i.update([
+		(k1, 'first'),
+	])
+	test/list(i.items()) == [(k1, 'first')]
+	i2.update([
+		(k2, 'second')
+	])
+
+	i.update(i2)
+	test/list(i.items()) == [(k1, 'first'), (k2, 'second')]
 
 if __name__ == '__main__':
 	from ...test import library as libtest
