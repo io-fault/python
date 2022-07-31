@@ -231,27 +231,28 @@ def intercept(product, project, intention):
 	sfif.project_length = len(project) + 1
 	sys.meta_path.insert(0, sfif)
 
+def slicing(spec):
+	limit = None
+
+	if ':' in s:
+		start, stop = spec.split(':')
+		if stop.isdigit():
+			limit = int(stop)
+			stop = None
+	else:
+		# Require colon for slice.
+		start = spec
+		stop = ''
+		limit = 1
+
+	return (start or None, stop or None, limit)
+
 def main(inv:process.Invocation) -> process.Exit:
 	sys.excepthook = python.hook
 	inv.imports(['FRAMECHANNEL', 'INTENTION', 'PROJECT', 'PRODUCT'])
 
-	project, rfpath, *testslices = inv.args # Import target and start[:stop] tests.
-	slices = []
-	for s in testslices:
-		limit = None
-
-		if ':' in s:
-			start, stop = s.split(':')
-			if stop.isdigit():
-				limit = int(stop)
-				stop = None
-		else:
-			# Require colon for slice.
-			start = s
-			stop = ''
-			limit = 1
-
-		slices.append((start or None, stop or None, limit))
+	project, rfpath, *testslices = inv.args # Factor and optional test identifiers.
+	slices = list(map(slicing, testslices))
 
 	channel = inv.environ.get('FRAMECHANNEL') or None
 	intention = inv.environ.get('INTENTION') or 'optimal'
