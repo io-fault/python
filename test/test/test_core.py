@@ -155,6 +155,99 @@ def test_isinstance(test):
 	test/t.isinstance(C(), C) == None
 	test/module.Absurdity ^ (lambda: t.isinstance(C(), B))
 
+def test_itertimer_values(test):
+	"""
+	# - &module.Test.itertimer
+	"""
+	t = module.Test(None, None)
+	iv = list(t.itertimer(count=100))
+	test/iv == list(range(1, len(iv)+1))
+
+def test_itertimer_count_limit(test):
+	"""
+	# - &module.Test.itertimer
+	"""
+	t = module.Test(None, None)
+	for i in t.itertimer(count=10):
+		pass
+	test/t.metrics['iterations'] == 10
+
+def test_itertimer_time_limit(test):
+	"""
+	# - &module.Test.itertimer
+	"""
+	t = module.Test(None, None)
+	for i in t.itertimer(time=0):
+		pass
+	test/t.metrics['iterations'] == 0
+
+def test_function_timer(test):
+	"""
+	# - &module.Test.time
+
+	# Validate function timer variant.
+	"""
+	count = 0
+	def invoke():
+		nonlocal count
+		count += 1
+
+	t = module.Test(None, None)
+	t.time(invoke, time=0)
+	test/t.metrics.get('iterations', 0) == 0
+	t.time(invoke, count=10)
+	test/t.metrics['iterations'] == 10
+
+def test_itertimer_Clock(test):
+	"""
+	# - &module.Test.itertimer
+
+	# Validate clock influence.
+	"""
+	ns = 1000000000
+	time_index = ()
+
+	class LTest(module.Test):
+		@staticmethod
+		def Clock():
+			nonlocal time_index
+			for x in time_index:
+				return x
+			raise Exception("end of time")
+	t = LTest(None, None)
+
+	# Check clock first.
+	time_index = iter((0, 4 * ns,))
+	test/(t.Clock(), t.Clock()) == (0, 4 * ns)
+
+	time_index = iter((0, 4 * ns,))
+	for x in t.itertimer():
+		pass
+	test/t.metrics['iterations'] == 1
+	test/t.metrics['timer'] == 4 * ns
+
+	t.metrics['iterations'] == 0
+	t.metrics['timer'] == 0
+	# Clock is read twice per cycle, so construct pairs of values.
+	time_index = iter(map(ns.__mul__, [0, 1, 1, 2, 2, 3, 3, 4]))
+	for x in t.itertimer():
+		pass
+	# Four cycles. scale == 2
+	test/t.metrics['iterations'] == (1 + 2 + 4 + 8)
+	test/t.metrics['timer'] == 4 * ns
+
+	# Check the rate based constraint where the loop count is reduced
+	# by the expected loop time.
+	t.metrics['iterations'] = 0
+	t.metrics['timer'] = 0
+	time_index = iter(map(ns.__mul__, [0, 1, 1, 2, 2, 3, 3, 4]))
+	for x in t.itertimer(count=2, time=2):
+		pass
+	test/t.metrics['iterations'] == 2
+	test/t.metrics['timer'] == 2 * ns
+	test/LTest.Clock() == 2 * ns
+	test/LTest.Clock() == 3 * ns
+
 if __name__ == '__main__':
 	import sys
 	from .. import engine

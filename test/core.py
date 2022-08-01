@@ -7,6 +7,23 @@ import operator
 import functools
 import contextlib
 
+try:
+	from ..system import clocks
+except ImportError:
+	try:
+		from time import monotonic as _python_time
+	except AttributeError:
+		try:
+			from time import time as _python_time
+		except:
+			# Issue warning.
+			_python_time = (lambda: 0)
+
+	system_time_clock = (lambda: int(_python_time() * 1000000000))
+else:
+	_python_time = None
+	system_time_clock = clocks.Monotonic().get
+
 class Absurdity(Exception):
 	"""
 	# Exception raised by &Contention instances designating a failed assertion.
@@ -202,41 +219,126 @@ class Test(object):
 	# /exits/
 		# A &contextlib.ExitStack for cleaning up allocations made during the test.
 		# The harness running the test decides when the stack's exit is processed.
+
+	# /metrics/
+		# A set of measurements included in the test's report.
+		# Primarily, `'duration'`, `'usage'`, `'contentions'`, `'timer'`, `'iterations'`.
 	"""
-	__slots__ = ('subject', 'identifier', 'constraints', 'fate', 'exits',)
+	__slots__ = ('subject', 'identifier', 'constraints', 'fate', 'exits', 'metrics',)
 
 	# These referenced via Test instances to allow subclasses to override
 	# the implementations.
+	Clock = system_time_clock
 	Absurdity = Absurdity
 	Contention = Contention
 	Fate = Fate
 
-	def __init__(self, identifier, subject, *constraints, ExitStack=contextlib.ExitStack):
+	def __init__(self, identifier, subject, *constraints,
+			ExitStack=contextlib.ExitStack, Metrics=dict,
+		):
 		# allow explicit identifier as the callable may be a wrapped function
 		self.identifier = identifier
 		self.subject = subject
 		self.constraints = constraints
 		self.exits = ExitStack()
+		self.metrics = Metrics()
+
+	def _icontention(self, by=1):
+		self.metrics['contentions'] = self.metrics.get('contentions', 0) + by
 
 	def __truediv__(self, object):
+		self._icontention()
 		return self.Contention(self, object)
 
 	def __rtruediv__(self, object):
+		self._icontention()
 		return self.Contention(self, object)
 
 	def __floordiv__(self, object):
+		self._icontention()
 		return self.Contention(self, object, True)
 
 	def __rfloordiv__(self, object):
+		self._icontention()
 		return self.Contention(self, object, True)
 
 	def isinstance(self, *args):
+		self._icontention()
 		if not builtins.isinstance(*args):
 			raise self.Absurdity("isinstance", *args, inverse=True)
 
 	def issubclass(self, *args):
+		self._icontention()
 		if not builtins.issubclass(*args):
 			raise self.Absurdity("issubclass", *args, inverse=True)
+
+	def itertimer(self, units=1, /,
+			count=5**10, time=4, scale=2, cycle=100000,
+			identity=('iterations', 'timer'),
+			min=min, range=range, int=int,
+		):
+		"""
+		# Measure the relative performance of a loop's iterations.
+
+		# [ Parameters ]
+		# /units/
+			# The factor to increase the iteration count by.
+			# Used when the for-loop contains repeated statements for
+			# improved precision.
+		# /count/
+			# The maximum number of iterations to perform.
+		# /time/
+			# The maximum duration of the timer in seconds.
+		# /scale/
+			# The factor to increase the cycle loop count by.
+		# /cycle/
+			# The maximum number of iterations to perform within a cycle.
+			# Used to limit the effects of the &scale factor.
+		"""
+		# nanoseconds
+		time *= 1000000000
+
+		ti = 0
+		ci = 0
+		loops = 1
+
+		tell = self.Clock
+
+		try:
+			# Run until either time or count limit is reached.
+			while ci < count and ti < time:
+				iloops = min(loops, count - ci)
+				irange = range(ci+1, ci+iloops+1)
+
+				before = tell()
+				yield from irange
+				after = tell()
+
+				delta = after - before
+				ci += (iloops * units)
+				ti += delta
+
+				# Progressively perform more iterations, but
+				# limit to the cycle maximum.
+				loops = int(scale * loops)
+				loops = min(loops, cycle)
+
+				# Given the current rate and remaining duration, identify whether or not
+				# to reduce the cycle's loop count further.
+				remainder = time - ti
+				rate = ci / (ti or 1)
+				loops = min(loops, int(remainder / rate))
+		finally:
+			self.metrics[identity[0]] = ci
+			self.metrics[identity[1]] = ti
+			self.metrics['ips'] = (ci / ((ti or 1) / 1000000000))
+
+	def time(self, callable, **kw):
+		"""
+		# Measure the relative performance of the given callable.
+		"""
+		for i in self.itertimer(1, **kw):
+			callable()
 
 	def seal(self, isinstance=builtins.isinstance, BaseException=BaseException, Exception=Exception, Fate=Fate):
 		"""
