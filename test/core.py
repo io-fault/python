@@ -242,33 +242,32 @@ class Test(object):
 		self.constraints = constraints
 		self.exits = ExitStack()
 		self.metrics = Metrics()
-
-	def _icontention(self, by=1):
-		self.metrics['contentions'] = self.metrics.get('contentions', 0) + by
+		self.metrics['duration'] = 0
+		self.metrics['contentions'] = 0
 
 	def __truediv__(self, object):
-		self._icontention()
+		self.metrics['contentions'] += 1
 		return self.Contention(self, object)
 
 	def __rtruediv__(self, object):
-		self._icontention()
+		self.metrics['contentions'] += 1
 		return self.Contention(self, object)
 
 	def __floordiv__(self, object):
-		self._icontention()
+		self.metrics['contentions'] += 1
 		return self.Contention(self, object, True)
 
 	def __rfloordiv__(self, object):
-		self._icontention()
+		self.metrics['contentions'] += 1
 		return self.Contention(self, object, True)
 
 	def isinstance(self, *args):
-		self._icontention()
+		self.metrics['contentions'] += 1
 		if not builtins.isinstance(*args):
 			raise self.Absurdity("isinstance", *args, inverse=True)
 
 	def issubclass(self, *args):
-		self._icontention()
+		self.metrics['contentions'] += 1
 		if not builtins.issubclass(*args):
 			raise self.Absurdity("issubclass", *args, inverse=True)
 
@@ -329,9 +328,8 @@ class Test(object):
 				rate = ci / (ti or 1)
 				loops = min(loops, int(remainder / rate))
 		finally:
-			self.metrics[identity[0]] = ci
-			self.metrics[identity[1]] = ti
-			self.metrics['ips'] = (ci / ((ti or 1) / 1000000000))
+			for k, v in zip(identity, (ci, ti)):
+				self.metrics[k] = self.metrics.get(k, 0) + v
 
 	def time(self, callable, **kw):
 		"""

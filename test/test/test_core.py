@@ -226,8 +226,8 @@ def test_itertimer_Clock(test):
 	test/t.metrics['iterations'] == 1
 	test/t.metrics['timer'] == 4 * ns
 
-	t.metrics['iterations'] == 0
-	t.metrics['timer'] == 0
+	t.metrics['iterations'] = 0
+	t.metrics['timer'] = 0
 	# Clock is read twice per cycle, so construct pairs of values.
 	time_index = iter(map(ns.__mul__, [0, 1, 1, 2, 2, 3, 3, 4]))
 	for x in t.itertimer():
