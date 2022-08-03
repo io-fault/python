@@ -8,6 +8,7 @@ import signal
 import functools
 import types
 import importlib
+import resource
 
 from ...system import corefile
 from ...system import process
@@ -36,12 +37,6 @@ class Harness(engine.Harness):
 	"""
 	concurrently = staticmethod(process.concurrently)
 
-	def _status_test_sealing(self, test):
-		pass
-
-	def _report_core(self, test):
-		pass
-
 	def _handle_core(self, corefile):
 		if corefile is None:
 			return
@@ -64,7 +59,6 @@ class Harness(engine.Harness):
 
 	def dispatch(self, test):
 		faten = None
-		self._status_test_sealing(test)
 		start_time = elapsed()
 
 		# seal fate in a child process
@@ -112,50 +106,73 @@ class Harness(engine.Harness):
 				except OSError:
 					pass
 		finally:
-			failure = None
+			failure = report.get('failure', None)
+			if failure:
+				fail_image = ['python-exception']
+				fail_image.extend(x[:-1] for x in python.format(failure))
+			else:
+				fail_image = ()
+
 			if report['fate'] == 'skip':
 				work = metrics.Work(0, 0, 1, 0)
 			elif report['impact'] < 0:
 				work = metrics.Work(0, 0, 0, 1)
-				failure = report.get('failure')
 			else:
 				work = metrics.Work(0, 1, 0, 0)
 
 			# Construct metrics for reporting fate and resource usage.
-			usage = metrics.Resource(
-				1, int(rusage.ru_maxrss),
-				# Nanosecond precision.
-				int((rusage.ru_stime + rusage.ru_utime) * (10**9)),
-				stop_time - start_time,
-			)
+			ut = int((rusage.ru_stime + rusage.ru_utime) * (10**9))
+			rt = stop_time - start_time
+			usage = metrics.Resource(1, int(rusage.ru_maxrss), ut, rt)
 			xact_metrics = metrics.Procedure(work=work, msg=metrics.Advisory(), usage=usage)
 
 			ext = {
 				'@timestamp': [str(stop_time)],
 				'@metrics': [xact_metrics.sequence()],
+				'@failure-image': fail_image,
 				'fate': [report['fate']],
 				'impact': [str(report['impact'])],
 			}
-			if failure:
-				ext['@failure-image'] = ['python-exception']
-				ext['@failure-image'].extend(x[:-1] for x in python.format(failure))
 
 			fate = status_identifiers.get(report['fate'], 'unknown')
 			self.log.xact_close(xid, xid + ": " + fate, ext)
 			self.log.flush()
 
+		report['failure-image'] = fail_image
+		rm = report['metrics']
+		rm['duration'] = rt
+		rm['processing'].append(ut)
+		rm['memory'].append(rusage.ru_maxrss)
 		return report
 
-	def execute(self, test):
-		# Usually ran within the fork.
+	def execute(self, test, count=1):
+		os.environ['METRICS_IDENTITY'] += '/' + test.identifier
+		test.metrics['processing'] = []
+		test.metrics['memory'] = []
+
+		before = resource.getrusage(resource.RUSAGE_SELF)
 		try:
 			signal.signal(signal.SIGALRM, test.timeout)
-			signal.alarm(8)
 
-			test.seal()
+			for i in range(count):
+				signal.alarm(8)
+				test.seal()
 		finally:
+			# Disable alarm as soon as possible.
 			signal.alarm(0)
 			signal.signal(signal.SIGALRM, signal.SIG_IGN)
+		after = resource.getrusage(resource.RUSAGE_SELF)
+
+		test.metrics['executions'] = count
+
+		# Deltas.
+		ptime = (after.ru_stime + after.ru_utime) - (before.ru_stime + before.ru_utime)
+		test.metrics['processing'].append(ptime * (10**9))
+		test.metrics['memory'].append(after.ru_maxrss - before.ru_maxrss)
+
+		# Final snapshot.
+		test.metrics['processing'].append((after.ru_stime + after.ru_utime) * (10**9))
+		test.metrics['memory'].append(after.ru_maxrss)
 
 		faten = test.fate.subtype
 		parts = test.identifier.split('.')
@@ -172,6 +189,7 @@ class Harness(engine.Harness):
 			'fate': faten,
 			'interrupt': None,
 			'failure': None,
+			'metrics': test.metrics,
 		}
 
 		if test.fate.subtype == 'divide':
@@ -247,32 +265,74 @@ def slicing(spec):
 
 	return (start or None, stop or None, limit)
 
+def trapped_report(source):
+	"""
+	# Reform the report into the common join protocol.
+	"""
+	return [
+		source.get('test', None), # Element Identity
+		source['impact'],
+		source['fate'],
+		source['metrics'],
+		source.get('status', None),
+		source.get('failure') or [],
+	]
+
 def main(inv:process.Invocation) -> process.Exit:
 	sys.excepthook = python.hook
-	inv.imports(['FRAMECHANNEL', 'INTENTION', 'PROJECT', 'PRODUCT'])
+	inv.imports([
+		'FRAMECHANNEL', 'INTENTION', 'PROJECT', 'PRODUCT',
+		'METRICS_CAPTURE',
+		'METRICS_IDENTITY', 'DISPATCH_IDENTITY', 'PROCESS_IDENTITY',
+	])
 
 	project, rfpath, *testslices = inv.args # Factor and optional test identifiers.
 	slices = list(map(slicing, testslices))
 
+	xid = '/'.join((project, rfpath))
+
 	channel = inv.environ.get('FRAMECHANNEL') or None
 	intention = inv.environ.get('INTENTION') or 'optimal'
 	product = inv.environ.get('PRODUCT') or ''
+	pid = inv.environ.get('PROCESS_IDENTITY', None)
+
+	if pid is None:
+		# Conditionally initialize process identity.
+		# PROCESS_IDENTITY is how parallel writes are supported when
+		# capturing metrics. It must be unique across the processes
+		# collecting data.
+		if inv.environ.get('DISPATCH_IDENTITY', None):
+			# If &fault.transcript controller is running the test.
+			pid = inv.environ['DISPATCH_IDENTITY']
+		else:
+			pid = str(os.getpid())
+
 	os.environ['PROJECT'] = project
+	os.environ['PROCESS_IDENTITY'] = pid
+	os.environ['METRICS_IDENTITY'] = xid
 
 	if product:
 		# Add intercept for this project's modules.
 		intercept(product, project, intention)
 
+	log = Log.stdout(channel=channel)
+	log.declare()
+
 	module_path = '.'.join((project, rfpath))
-	p = Harness.from_module(importlib.import_module(module_path), slices=slices)
-	p.channel = channel
+	tm = importlib.import_module(module_path)
+
+	# When configured in the target module, write the test reports.
+	rtrap = getattr(tm, '__metrics_trap__', None)
+	if rtrap is not None:
+		rpath = (files.root@rtrap)/'.fault-test-fates'
+	else:
+		rpath = None
+
+	p = Harness.from_module(tm, slices=slices)
 	p.status = sys.stderr
 	p.project = project
 	p.factor = rfpath
-	p.log = log = Log.stdout(channel=inv.environ.get('FRAMECHANNEL') or None)
-	log.declare()
-
-	xid = '/'.join((project, rfpath))
+	p.log = log
 	ext = {
 		'@timestammp': [str(elapsed())],
 		'@work': [str(p.count)],
@@ -281,7 +341,16 @@ def main(inv:process.Invocation) -> process.Exit:
 	log.flush()
 	del ext
 
-	p.reveal()
+	if rpath is not None:
+		reports = list(map(trapped_report, p.reveal()))
+		import json
+		rpath.fs_alloc()
+		with rpath.fs_open('w') as f:
+			json.dump(reports, f)
+	else:
+		for tr in p.reveal():
+			pass
+
 	ext = {
 		'@timestammp': [str(elapsed())],
 	}

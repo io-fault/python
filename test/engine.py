@@ -127,7 +127,7 @@ class Harness(object):
 			del t
 
 		for test in self.tests:
-			self.dispatch(test)
+			yield self.dispatch(test)
 
 def execute(module):
 	"""
