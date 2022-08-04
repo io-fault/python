@@ -115,7 +115,7 @@ inv_spawn(PyObj self, PyObj args, PyObj kw)
 		PyLoop_End(fdmap)
 	}
 
-	#if __DARWIN__
+	#if __APPLE__
 		/*
 			// Might remove this due to portability issues.
 		*/
