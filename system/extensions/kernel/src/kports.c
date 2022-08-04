@@ -208,9 +208,9 @@ kports_concat(PyObj self, PyObj x)
 	Py_ssize_t al = KPorts_GetLength(a);
 
 	kp = (KPorts) Py_TYPE(self)->tp_alloc(Py_TYPE(self), al + KPorts_GetLength(b));
-	Py_SIZE(kp) = al + KPorts_GetLength(b);
 	if (kp == NULL)
 		return(NULL);
+	assert(Py_SIZE(kp) >= al + KPorts_GetLength(b));
 
 	memcpy(KPorts_GetArray(kp), KPorts_GetArray(a), sizeof(kport_t) * KPorts_GetLength(a));
 	memcpy(&(KPorts_GetArray(kp)[al]), KPorts_GetArray(b), sizeof(kport_t) * KPorts_GetLength(b));

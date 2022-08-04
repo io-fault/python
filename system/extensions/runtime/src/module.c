@@ -85,7 +85,12 @@ trace(PyObj self, PyObj args)
 				ts->c_profilefunc = NULL;
 				Py_XDECREF(ts->c_profileobj);
 				ts->c_profileobj = NULL;
-				ts->use_tracing = 1;
+
+				#if (PY_MAJOR_VERSION == 3) && (PY_MINOR_VERSION >= 10)
+					ts->cframe->use_tracing = 1;
+				#else
+					ts->use_tracing = 1;
+				#endif
 			}
 		}
 	}
