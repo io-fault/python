@@ -166,6 +166,7 @@ interrupt(PyObj self, PyObj args)
 			"Apply the trace function to the given thread identifiers. " \
 			"Normally used by Context injections that take over the process for debugging.")
 
+#include <fault/metrics.h>
 #include <fault/python/module.h>
 INIT(module, 0, PyDoc_STR("Runtime control interfaces.\n"))
 {

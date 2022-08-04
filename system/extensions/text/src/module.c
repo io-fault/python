@@ -118,6 +118,7 @@ get_encoding(PyObj self)
 	PYMETHOD(setlocale, dsetlocale, METH_NOARGS, \
 		"limited setlocale(2) interface providing access to setting the native environment locale.")
 
+#include <fault/metrics.h>
 #include <fault/python/module.h>
 INIT(module, 0, PyDoc_STR("interfaces to system text services: wcswidth and setlocale."))
 {

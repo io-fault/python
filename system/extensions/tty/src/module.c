@@ -412,6 +412,7 @@ DeviceType = {
 
 #define MODULE_FUNCTIONS()
 
+#include <fault/metrics.h>
 #include <fault/python/module.h>
 INIT(module, 0, PyDoc_STR("tty device controls"))
 {

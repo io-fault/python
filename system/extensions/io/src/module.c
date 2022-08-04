@@ -3649,8 +3649,8 @@ _talloc_octets_socket(PyObj module, PyObj param)
 		alloc_octets, _talloc_octets_socket, METH_O, \
 		"Allocate an Octets pair for the given socket file descriptor.")
 
+#include <fault/metrics.h>
 #include <fault/python/module.h>
-
 INIT(module, 0, NULL)
 {
 	/*

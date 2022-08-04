@@ -242,8 +242,8 @@ Monotonic_new(PyTypeObject *subtype, PyObj args, PyObj kw)
 #undef CLOCK_RECORD
 
 #define MODULE_FUNCTIONS()
+#include <fault/metrics.h>
 #include <fault/python/module.h>
-
 INIT(module, 0, PyDoc_STR("clock types for retrieving system time"))
 {
 	if (PyType_Ready(&ClockworkType) != 0)

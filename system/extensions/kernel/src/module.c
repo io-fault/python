@@ -12,6 +12,7 @@
 #include <fault/libc.h>
 #include <fault/internal.h>
 #include <fault/python/environ.h>
+
 #include <frameobject.h>
 
 #include "Scheduling.h"
@@ -533,6 +534,7 @@ fault_python_ext_if = {
 	\
 	PyMethod_Sole(initialize),
 
+#include <fault/metrics.h>
 #include <fault/python/module.h>
 INIT(module, 0, NULL)
 {

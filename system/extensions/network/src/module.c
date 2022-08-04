@@ -630,6 +630,7 @@ struct EndpointAPI _ep_apis = {
 	PyMethod_Keywords(service), \
 	PyMethod_Keywords(bind),
 
+#include <fault/metrics.h>
 #include <fault/python/module.h>
 INIT(module, 0, NULL)
 {
