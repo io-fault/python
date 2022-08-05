@@ -27,10 +27,11 @@ ignored = {
 	'.pijul',
 }
 
-@dataclass(eq=True, frozen=True)
+@tools.struct()
 class Variants(object):
 	"""
 	# Factor image variant specification.
+	# A triple of contrived identifiers that represent a classification.
 
 	# [ Properties ]
 	# /system/
@@ -39,28 +40,33 @@ class Variants(object):
 	# /architecture/
 		# Identifier for the instruction set or format.
 		# Often, derived from (system/command)`uname`.
-	# /intention/
-		# Identifier for the intended use of the image. Normally, (id)`optimal`.
 	# /form/
-		# Identifier for the specialization of the image. Normally an empty string.
-		# Used in exceptional cases to allow parallel storage with the general form.
+		# Identifier for the specialization of the image.
+		# Commonly used for providing an allocation for build intentions, and
+		# version specific images.
 	"""
 
 	system:(str)
 	architecture:(str)
-	intention:(str) = 'optimal'
-	form:(str) = ''
+	form:(str) = 'optimal'
+
+	def __repr__(self):
+		triple = ''.join([self.system, "-", self.architecture, "/", self.form])
+		return "(factor.variants@%r)" %(triple,)
 
 	def __str__(self):
-		if self.form:
-			return "%s-%s/%s[%s]" %(self.system, self.architecture, self.intention, self.form)
-		else:
-			return "%s-%s/%s" %(self.system, self.architecture, self.intention)
+		return "%s-%s/%s" %(self.system, self.architecture, self.form)
 
 	def get(self, key:str) -> str:
 		return getattr(self, key)
 
-@dataclass(eq=True, frozen=True)
+	def reform(self, rform:str):
+		"""
+		# Reconstruct the instance with the given &rform as the new &form value.
+		"""
+		return self.__class__(self.system, self.architecture, rform)
+
+@tools.struct()
 class Format(object):
 	"""
 	# Source format structure holding the language and dialect.

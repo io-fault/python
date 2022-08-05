@@ -14,7 +14,7 @@ from . import types
 from . import struct
 
 # Directory Structure of Integrals
-default_image_segment = [['system', 'architecture'], ['intention']]
+default_image_segment = [['system', 'architecture'], []]
 unknown_factor_type = types.Reference(
 	'http://if.fault.io/factors', types.factor@'image.unknown',
 	'type', None

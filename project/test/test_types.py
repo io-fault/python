@@ -7,23 +7,15 @@ def test_Variants(test):
 	"""
 	# - &module.Variant
 	"""
-	v = module.Variants('s', 'a', 'i', 'f')
-	test/'i' == v.intention
+	v = module.Variants('s', 'a', 'f')
 	test/'s' == v.system
 	test/'a' == v.architecture
 	test/'f' == v.form
 
-	v = module.Variants('s', 'a', 'i')
-	test/'i' == v.intention
-	test/'s' == v.system
-	test/'a' == v.architecture
-	test/'' == v.form
-
 	v = module.Variants('s', 'a')
-	test/'optimal' == v.intention
 	test/'s' == v.system
 	test/'a' == v.architecture
-	test/'' == v.form
+	test/'optimal' == v.form
 
 def test_Format(test):
 	"""

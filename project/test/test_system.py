@@ -289,28 +289,30 @@ def test_Project_image_polynomial(test):
 	fp, proto = pd.factor_by_identifier(id)
 	pj = module.Project(pd, id, fp, proto({}))
 
+	# No form.
 	variants = {
 		'system': 'nosys',
 		'architecture': 'noarch',
 	}
 
 	test_int = pj.image(variants, factor@'test')
-	test/test_int.absolute[-4:] == ('alt-1', '__f-int__', 'nosys-noarch', 'test.void.i')
+	test/test_int.absolute[-4:] == ('alt-1', '__f-int__', 'nosys-noarch', 'test.i')
 
 	subtest_int = pj.image(variants, factor@'path.subtest')
-	test/subtest_int.absolute[-4:] == ('path', '__f-int__', 'nosys-noarch', 'subtest.void.i')
+	test/subtest_int.absolute[-4:] == ('path', '__f-int__', 'nosys-noarch', 'subtest.i')
 
+	# With form.
 	variants = {
 		'system': 'nosys',
 		'architecture': 'noarch',
-		'intention': 'debug'
+		'form': 'debug'
 	}
 
 	test_int = pj.image(variants, factor@'test')
-	test/test_int.absolute[-4:] == ('alt-1', '__f-int__', 'nosys-noarch', 'test.debug.i')
+	test/test_int.absolute[-5:] == ('alt-1', '__f-int__', 'nosys-noarch', 'debug', 'test.i')
 
 	subtest_int = pj.image(variants, factor@'path.subtest')
-	test/subtest_int.absolute[-4:] == ('path', '__f-int__', 'nosys-noarch', 'subtest.debug.i')
+	test/subtest_int.absolute[-5:] == ('path', '__f-int__', 'nosys-noarch', 'debug', 'subtest.i')
 
 def test_Context_import_protocol(test):
 	"""
