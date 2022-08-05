@@ -22,7 +22,7 @@ info = lsf.types.Information(
 
 infra = {
 	'project-c-interfaces': [
-		lsf.types.Reference('http://fault.io/integration/machine', lsf.types.factor@'include'),
+		lsf.types.Reference('http://fault.io/integration/machines', lsf.types.factor@'include'),
 		lsf.types.Reference('http://fault.io/integration/python', lsf.types.factor@'include'),
 		lsf.types.Reference('http://fault.io/python/security', lsf.types.factor@'implementations'),
 	],
