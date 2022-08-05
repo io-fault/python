@@ -8,7 +8,7 @@
 
 /project-c-interfaces/
 	- &.include
-	- &<http://fault.io/integration/machine/include>
+	- &<http://fault.io/integration/machines/include>
 	- &<http://fault.io/integration/python/include>
 
 /bsd/
