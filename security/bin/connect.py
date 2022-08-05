@@ -36,7 +36,7 @@ infra = {
 	],
 	'*.pyi': [
 		lsf.types.Reference('http://if.fault.io/factors',
-			lsf.types.factor@'python-interface', 'type', 'v3'),
+			lsf.types.factor@'python.interface', 'type', 'psf-v3'),
 	],
 }
 
@@ -57,7 +57,7 @@ module_template = """
 def init_product(route, roots):
 	pdr = (route/'.product').fs_mkdir()
 	(pdr/'ROOTS').set_text_content(' '.join(roots))
-	pd = root.Product(route)
+	pd = lsf.Product(route)
 	pd.roots = [lsf.types.factor@x for x in roots]
 	pd.update()
 	pd.store()
@@ -82,10 +82,10 @@ def init_project(product, orientation):
 	]
 
 	pif = [
-		('pki', lsf.types.factor@'python-interface', "# Empty."),
+		('pki', lsf.types.factor@'python.interface', "# Empty."),
 	]
 	ext = [
-		(factor, 'extension', syms, srcs),
+		(factor, 'http://if.fault.io/factors/system.extension', syms, srcs),
 	]
 
 	p = factory.Parameters.define(pi, infra.items(), sets=ext, soles=pif)
@@ -104,7 +104,8 @@ def main(inv:process.Invocation) -> process.Exit:
 	if pdctl:
 		pdctl, *symargs = pdctl
 		symbols = ['implementation'] + symargs
-		ki = [pdctl, '-D', str(route/adapter), 'build', orientation] + symbols
-		pid = execution.KInvocation(pdctl, ki).spawn({1:1, 2:2}.items())
+		ki = [pdctl, '-L1', '-D', str(route/adapter), 'integrate', '-t', orientation] + symbols
+		with open('/dev/null', 'rb') as f:
+			pid = execution.KInvocation(pdctl, ki).spawn({f.fileno():0, 1:1, 2:2}.items())
 
 	return inv.exit(os.WEXITSTATUS(os.wait()[1]))
