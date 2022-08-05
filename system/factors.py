@@ -7,7 +7,7 @@ from . import files
 
 from ..project import system as lsf
 
-def compose_image_path(variants, default='void', groups=[["system", "architecture"], ["name"]]):
+def compose_image_path(variants, default='void', groups=[["system", "architecture"], ["form"], ["name"]]):
 	"""
 	# Create a variant path according to the given &groups and &variants.
 	"""
@@ -76,7 +76,7 @@ class IntegralFinder(object):
 			groups,
 			python_bytecode_variants,
 			extension_variants,
-			intention='optimal',
+			form='optimal',
 			image_container_name='__f-int__'
 		):
 		"""
@@ -85,7 +85,7 @@ class IntegralFinder(object):
 		self.context = lsf.Context()
 		self.index = dict()
 		self.groups = groups
-		self.intention = intention
+		self.form = form
 		self.image_container_name = image_container_name
 
 		self.python_bytecode_variants = python_bytecode_variants
@@ -104,7 +104,6 @@ class IntegralFinder(object):
 		from ..route.types import Segment
 		v = dict(variants)
 		v['name'] = '{0}'
-		v['intention'] = '{1}'
 
 		# polynomial-1
 		segments = (compose_image_path(v, groups=groups))
@@ -224,7 +223,7 @@ class IntegralFinder(object):
 				if extfactor.fs_type() != 'void':
 					# .extension entry is present
 					leading, filename, fformat = self._ext
-					extpath = str(rroute//leading/fformat(final, self.intention))
+					extpath = str(rroute//leading/fformat(final, self.form))
 
 					l = self.ExtensionFileLoader(name, extpath)
 					spec = self.ModuleSpec(name, l, origin=extpath, is_package=False)
@@ -265,7 +264,7 @@ class IntegralFinder(object):
 
 		# Bytecode for {factor}/__init__.py or {factor}.py
 		leading, filename, fformat = self._pbc
-		cached = idir//leading/fformat(final, self.intention)
+		cached = idir//leading/fformat(final, self.form)
 
 		l = self.Loader(str(cached), name, str(pysrc))
 		spec = self.ModuleSpec(name, l, origin=origin, is_package=pkg)
@@ -277,26 +276,28 @@ class IntegralFinder(object):
 		return spec
 
 	@classmethod
-	def create(Class, system, python, host, intention):
+	def create(Class, system, python, host, form):
 		"""
-		# Construct a standard loader selecting images with the given &intention.
+		# Construct a standard loader selecting images with the given &form.
 		"""
 
 		bc = {
 			'system': system,
 			'architecture': python,
+			'form': form,
 		}
 
 		ext = {
 			'system': system,
 			'architecture': host,
+			'form': form
 		}
 
-		g = [['system','architecture'],['name','intention']]
+		g = [['system','architecture'],['form'],['name']]
 
-		return Class(g, bc, ext, intention=intention)
+		return Class(g, bc, ext, form=form)
 
-def setup(intention='optimal', paths=(), platform=None):
+def setup(form='optimal', paths=(), platform=None):
 	"""
 	# Create and install a configured &IntegralFinder.
 
@@ -317,7 +318,7 @@ def setup(intention='optimal', paths=(), platform=None):
 	else:
 		system, python, host = platform
 
-	finder = IntegralFinder.create(system, python, host, intention)
+	finder = IntegralFinder.create(system, python, host, form)
 	context = finder.context
 
 	for x in paths:

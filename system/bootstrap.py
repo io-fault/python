@@ -13,7 +13,6 @@ import types
 import sys
 from os.path import join
 
-# Local bindings.
 from marshal import load as Load
 from builtins import exec as Execute
 from builtins import compile as Compile
@@ -151,8 +150,8 @@ def finish(factors, finder, modules, Rename=(lambda x: x)):
 	factors.__loader__ = factors.__spec__.loader
 	factors.__file__ = factors.__spec__.origin
 
-def integrate(faultpath, faultname, faultintention,
-		integrals, system, python, arch, intention,
+def integrate(faultpath, faultname, faultform,
+		integrals, system, python, arch, form,
 		*products,
 		modules=sys.modules
 	):
@@ -160,11 +159,11 @@ def integrate(faultpath, faultname, faultintention,
 	# Integrate the factor environment into Python's import system.
 	"""
 
-	def bytecode(srcdir, name, form=system + '-' + python, suffix='.i'):
-		return join(srcdir, integrals, form, name + '.' + faultintention + suffix)
+	def bytecode(srcdir, name, sia=system + '-' + python, form=form, suffix='.i'):
+		return join(srcdir, integrals, sia, form, name + suffix)
 
 	*requirements, factors = install(modules, bytecode, faultpath, faultname)
-	finder = factors.setup(intention=intention, paths=[faultpath], platform=(system, python, arch))
+	finder = factors.setup(form=form, paths=[faultpath], platform=(system, python, arch))
 	finish(factors, finder, requirements)
 	for x in products:
 		finder.connect(factors.files.Path.from_absolute(x))
