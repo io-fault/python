@@ -90,7 +90,15 @@ class Harness(engine.Harness):
 			stop_time = elapsed()
 
 			if report is None:
-				report = {'fate': 'unknown', 'impact': -1, 'interrupt': None}
+				report = {
+					'fate': 'unknown',
+					'impact': -1,
+					'interrupt': None,
+					'metrics': {
+						'processing': [],
+						'memory': [],
+					},
+				}
 
 			pid, status, rusage = l[0]
 
