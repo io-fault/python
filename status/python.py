@@ -1,6 +1,7 @@
 """
 # Tools for building status data from Python exceptions, tracebacks, and frames.
 """
+import itertools
 import sys
 import typing
 import linecache
@@ -20,13 +21,35 @@ except (NameError, SyntaxError, ImportError):
 			return co.co_name
 		return ''
 
+def line_syntax_area(start, stop=None):
+	"""
+	# Construct a syntax area representing the given line range.
+	# If &stop is &None or equal to &start, the returned area will
+	# represent a single line.
+	"""
+	if stop in {None, start}:
+		stop = start + 1
+
+	return [start, 0, stop, 0]
+
+if hasattr(compile('pass', 'qualname.py', 'exec'), 'co_positions'):
+	def syntax_area(co, ixn, start, stop=None):
+		"""
+		# Translate the instruction index to the syntax area that represents
+		# the instruction, &ixn.
+		"""
+		return map_instruction_position(co, ixn, start, stop=stop)
+else:
+	def syntax_area(co, ixn, start, stop=None):
+		return line_syntax_area(start, stop)
+
 def iterstack(frame):
 	"""
 	# Construct a generator producing frame-lineno pairs from a stack of frames.
 	"""
 	f = frame
 	while f is not None:
-		yield (f, f.f_lineno)
+		yield (f, f.f_lineno, f.f_lasti)
 		f = f.f_back
 
 def itertraceback(traceback):
@@ -35,7 +58,7 @@ def itertraceback(traceback):
 	"""
 	tb = traceback
 	while tb is not None:
-		yield (tb.tb_frame, tb.tb_lineno)
+		yield (tb.tb_frame, tb.tb_lineno, tb.tb_lasti)
 		tb = tb.tb_next
 
 def iterlnotab(lineno:int, encoded:bytes) -> typing.Iterable[typing.Tuple[int, int]]:
@@ -71,26 +94,55 @@ def trim(lineno, lines):
 	stop = len(lines) - _first(reversed(lines), 0, len(lines))
 	return lineno + start, lines[start:stop]
 
+def map_instruction_position(co, ixn, start, stop=None):
+	"""
+	# Retrieve the syntax area associated with the instruction, &ixn.
+	# Constructs a vector of line-column pairs that use inclusive indexes.
+
+	# A zero column index on the stop indicates end of previous line.
+	"""
+	for sln, eln, scn, ecn in itertools.islice(co.co_positions(), ixn // 2, None):
+		if ecn:
+			ecn -= 1
+
+		if ecn == 0 and sln == eln:
+			eln += 1
+		return [sln, scn, eln, ecn]
+	else:
+		return line_syntax_area(start, stop)
+
+def element_context_area(filepath, lineno, getline=linecache.getline):
+	stop = start = lineno
+	l = getline(filepath, start)
+	lws = len(l) - len(l.lstrip())
+	while l.lstrip()[:1] == '@':
+		stop += 1
+		l = getline(filepath, stop)
+
+	return [start, lws + 1, stop+1, 0]
+
 def traceframe(pythonframe, /, syntaxcontext=1, getline=linecache.getline):
 	"""
-	# Construct a serializeable sequence of stack frames.
+	# Represent the given &pythonframe, triple, as a trace frame.
 	"""
-	f, lineno = pythonframe
+	f, lineno, ixn = pythonframe
 	f_locals = f.f_locals
 	fcontrol = f_locals.get('__traceframe__', None)
 	f_globals = f.f_globals
 
 	co = f.f_code
+	synarea = syntax_area(co, ixn, lineno)
 
-	eln = co.co_firstlineno
-	epath = codename(co)
 	fs_path = co.co_filename
+	earea = element_context_area(fs_path, co.co_firstlineno)
+	eln = earea[0]
+	epath = codename(co)
 
 	if epath in {'<module>'}:
 		epath = None
 		el_excerpt = (eln, [])
 	else:
-		el_excerpt = trim(eln, list(syntax(fs_path, eln, eln + 1)))
+		el_excerpt = trim(eln, list(syntax(fs_path, eln, earea[2])))
 		# Check whether the element is *currently* addressable.
 		if epath not in f_globals:
 			i = epath.find('.')
@@ -100,27 +152,29 @@ def traceframe(pythonframe, /, syntaxcontext=1, getline=linecache.getline):
 
 	syntype = (f_globals.get('__syntaxtype__', 'python'))
 
-	start = lineno - syntaxcontext
-	stop = lineno + syntaxcontext
+	start = synarea[0] - syntaxcontext
+	stop = synarea[2] + syntaxcontext
+	if synarea[3] == 0:
+		stop -= 1
 
 	sym_ctx = (f_globals.get('__name__', None), fs_path)
-	sym_dec = (epath, eln,)
+	sym_dec = (epath, earea,)
 
 	# Retrieve marked locals.
-	f_ctx = {
-		x: f_locals[x]
+	f_ctx = [
+		(x, f_locals[x])
 		for x in f_globals.get('__tracecontext__', ())
 		if x in f_locals
-	}
+	]
 
 	return (
 		[sym_ctx, sym_dec],
-		fcontrol, lineno, list(f_ctx.items()),
+		fcontrol, synarea, f_ctx,
 		syntype, [
 			# excerpt of frame context (method/function)
 			el_excerpt,
 			# excerpt of frame location
-			trim(start, list(syntax(fs_path, start, stop + 1)))
+			trim(start, list(syntax(fs_path, start, stop)))
 		]
 	)
 
@@ -177,15 +231,20 @@ def failure(error:BaseException, trace=None, /, hasattr=hasattr):
 
 	return exc_v
 
-def fframe(index, factor, element, resource, lineno, level=0):
+def fframe(index, factor, element, resource, area, level=0):
 	if element is None:
 		factorpath = factor
 	else:
 		factorpath = '.'.join((factor, element))
 
+	if area[0] == area[2] or (area[0]+1 == area[2] and area[3] == 0):
+		lines = str(area[0])
+	else:
+		lines = '-'.join(map(str, area[0::2]))
+
 	return [
 		(level, f"[#{index} {factorpath}]\n"),
-		(level, f"{resource}:{lineno}\n"),
+		(level, f"{resource}:{lines}\n"),
 	]
 
 def ftrace(frames, marks={}, exclude={'fault-contention'}, space=("\t", "  ", 2), level=0, iframes=iter):
@@ -193,13 +252,13 @@ def ftrace(frames, marks={}, exclude={'fault-contention'}, space=("\t", "  ", 2)
 	fnum = 0
 	nframes = len(frames)
 
-	for (sym_ctx, sym_dec), fctl, lineno, ctx, syntype, excerpts in iframes(frames):
+	for (sym_ctx, sym_dec), fctl, area, ctx, syntype, excerpts in iframes(frames):
 		fnum += 1
 		if fctl in exclude:
 			continue
 
 		resource = sym_ctx[1]
-		yield from fframe(fnum, sym_ctx[0], sym_dec[0], resource, lineno, level=level)
+		yield from fframe(fnum, sym_ctx[0], sym_dec[0], resource, area, level=level)
 
 		#* WARNING: Presuming one level of context.
 		(ctxln, ctxlines), (xlineno, xlines) = excerpts
@@ -220,7 +279,11 @@ def ftrace(frames, marks={}, exclude={'fault-contention'}, space=("\t", "  ", 2)
 				yield (level, f"   {delta}: [=]\n")
 
 		if nxlines:
-			lmarks = {lineno: "->"}
+			eln = area[2]
+			if area[3] > 0:
+				eln += 1
+
+			lmarks = {i: "->" for i in range(area[0], eln)}
 			unmarked = " " * 3
 
 			for ln, l in enumerate(xlines, xlineno):
