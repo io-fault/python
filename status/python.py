@@ -43,6 +43,37 @@ else:
 	def syntax_area(co, ixn, start, stop=None):
 		return line_syntax_area(start, stop)
 
+def python_syntax_error_frame(instance, name=None):
+	"""
+	# Extract virtual frame from a Python &SyntaxError.
+	"""
+	try:
+		ecn = instance.end_offset
+		eln = instance.end_lineno
+		if ecn:
+			ecn -= 1
+	except AttributeError:
+		eln = instance.lineno + 1
+		ecn = 0
+
+	area = [instance.lineno, instance.offset, eln, ecn]
+	ident = getattr(instance, 'st_factor', name)
+	ctx = getattr(instance, 'st_context', ())
+	syntype = getattr(instance, 'st_type', 'python')
+	return (ident, None, syntype, instance.filename, area, ctx)
+
+def frames(context):
+	"""
+	# Get explicit frames from the &context.
+	# Prioritizes `traceframes` method.
+	"""
+	if hasattr(context, 'traceframes'):
+		yield from context.traceframes()
+	elif isinstance(context, SyntaxError):
+		yield python_syntax_error_frame(context)
+	else:
+		yield from ()
+
 def iterstack(frame):
 	"""
 	# Construct a generator producing frame-lineno pairs from a stack of frames.
@@ -121,6 +152,35 @@ def element_context_area(filepath, lineno, getline=linecache.getline):
 
 	return [start, lws + 1, stop+1, 0]
 
+def syntaxframe(
+		factor, element, syntype,
+		filepath, synarea, context=(),
+		ctxarea=None, fcontrol=None,
+		/, syntaxcontext=1, getline=linecache.getline
+	):
+	"""
+	# Construct a trace frame from the given arguments.
+	"""
+	fcontrol = None
+	fs_path = filepath
+	start = synarea[0] - syntaxcontext
+	stop = synarea[2] + syntaxcontext
+	if synarea[3] == 0:
+		stop -= 1
+
+	sym_ctx = (factor, fs_path)
+	sym_dec = (element, ctxarea,)
+
+	return (
+		[sym_ctx, sym_dec],
+		fcontrol, synarea,
+		context,
+		syntype, [
+			[0, []],
+			trim(start, list(syntax(fs_path, start, stop)))
+		]
+	)
+
 def traceframe(pythonframe, /, syntaxcontext=1, getline=linecache.getline):
 	"""
 	# Represent the given &pythonframe, triple, as a trace frame.
@@ -195,11 +255,22 @@ def exception(instance:BaseException, traceback, syntaxcontext=1):
 		exc_instance_ctx = []
 
 	try:
-		exc_msg = str(instance).splitlines(True)
+		if isinstance(instance, SyntaxError):
+			# Special case syntax errors in order to eliminate information
+			# redundancy with explicit frames.
+			exc_msg = [instance.msg + "\n"]
+		else:
+			exc_msg = str(instance).splitlines(True)
 	except:
 		exc_msg = "(exception class failed to formulate the message text)"
 
 	exc_trace = [traceframe(x, syntaxcontext=syntaxcontext) for x in itertraceback(traceback)]
+
+	# Primarily for SyntaxErrors, but any application tracing as well.
+	exc_trace.extend([
+		syntaxframe(*x, syntaxcontext=syntaxcontext)
+		for x in frames(instance)
+	])
 
 	# Including grouped exceptions.
 	if hasattr(instance, 'exceptions') and instance.exceptions:
@@ -233,9 +304,9 @@ def failure(error:BaseException, trace=None, /, hasattr=hasattr):
 
 def fframe(index, factor, element, resource, area, level=0):
 	if element is None:
-		factorpath = factor
+		factorpath = ' ' + str(factor) if factor else ''
 	else:
-		factorpath = '.'.join((factor, element))
+		factorpath = ' ' + '.'.join((factor, element))
 
 	if area[0] == area[2] or (area[0]+1 == area[2] and area[3] == 0):
 		lines = str(area[0])
@@ -243,7 +314,7 @@ def fframe(index, factor, element, resource, area, level=0):
 		lines = '-'.join(map(str, area[0::2]))
 
 	return [
-		(level, f"[#{index} {factorpath}]\n"),
+		(level, f"[#{index}{factorpath}]\n"),
 		(level, f"{resource}:{lines}\n"),
 	]
 
@@ -307,7 +378,7 @@ def ftrace(frames, marks={}, exclude={'fault-contention'}, space=("\t", "  ", 2)
 					yield (level, " "*(maxl + 3) + ": " + (index * " ") + "^" + "\n")
 
 		for x in ctx:
-			yield (level, ": ".join(x))
+			yield (level, ": ".join(x) + "\n")
 
 def fcontexts(xorigin, xdirectory, level=0, ichain=reversed):
 	if xdirectory:
