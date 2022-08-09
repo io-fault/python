@@ -13,6 +13,7 @@ from ..text.types import Paragraph
 from ..text import render
 from ..system import files
 
+from .system import sequence_project_declaration
 from . import types
 
 def _ktprotocol(iri):
@@ -216,7 +217,7 @@ class Parameters(object):
 
 		return Class(information, infrastructure, factors)
 
-def plan(info, infra, factors, dimensions:typing.Sequence[str]=()):
+def plan(info, infra, factors, dimensions:typing.Sequence[str]=(), protocol='factors/polynomial-1'):
 	"""
 	# Generate the filesystem paths paired with the data that should be placed
 	# into that file relative to the project directory being materialized.
@@ -224,13 +225,14 @@ def plan(info, infra, factors, dimensions:typing.Sequence[str]=()):
 	seg = Segment.from_sequence(())
 
 	if info:
-		suffix = ''
+		# NOTE: Temporarily swap the identifier to handle dimensions.
+		# Relocate this logic into &types.Information as a copy constructor.
+		iid = info.identifier
 		if dimensions:
-			suffix = '//' + '/'.join(dimensions)
-
-		yield (seg/'.protocol', info.identifier + suffix + " factors/polynomial-1")
-		kt_body = "\n".join(information_text(info, suffix))
-		yield (seg/'project.txt', _poly_information_header + kt_body + "\n")
+			info.identifier += '//' + '/'.join(dimensions)
+		pi = sequence_project_declaration(protocol, info)
+		info.identifier = iid
+		yield (seg/'.project', pi)
 
 	if infra:
 		kt_body = "\n".join((infrastructure_text(infra)))

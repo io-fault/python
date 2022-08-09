@@ -44,6 +44,57 @@ def parse_protocol_declaration(text:str):
 	"""
 	return tuple(text.split())
 
+def structure_project_declaration(text:str, nl="\n"):
+	"""
+	# Parse the contents of a `.project` file.
+
+	# [ Returns ]
+	# A pair, the project protocol and a &types.Information instance.
+	"""
+	fields = text.split(nl, maxsplit=2)
+
+	identity = fields[0] #* No project identity line.
+	name, iid, protocol = identity.split()
+
+	try:
+		entity = fields[1].strip() #* No contact entity.
+	except (IndexError, KeyError):
+		auth = contact = None
+	else:
+		# Similar to formal e-mail addresses, but limited
+		# to an entity name and contact IRI or mail address.
+		if entity[-1] != '>':
+			auth = entity.strip()
+			contact = None
+		else:
+			auth, contact = entity.rsplit('<', 1)
+			auth = auth.strip()
+			contact = contact.strip('<>').strip()
+			if contact == '-':
+				contact = None
+
+		if auth in {'-', '- -'}:
+			auth = None
+
+	return protocol, types.Information(
+		iid, name, {},
+		None,
+		auth,
+		contact,
+	)
+
+def sequence_project_declaration(protocol, project, /, nl="\n", fs=" "):
+	"""
+	# Format the contents of a `.project` file from the given protocol and
+	# &types.Information structure.
+	"""
+	heading = [
+		fs.join([project.name, project.identifier, protocol]),
+		fs.join([(project.authority or '-'), '<' + (project.contact or '-') + '>'])
+	]
+
+	return nl.join(heading) + nl
+
 def scan_product_directory(
 		iscontext, read_protocol, route:Selector,
 		roots:typing.Iterable[types.FactorPath]=(), limit=1024*4
@@ -131,6 +182,7 @@ class Product(object):
 	"""
 
 	default_meta_directory = Segment.from_sequence(['.product'])
+	project_declaration_filenames = ['.project']
 	protocol_declaration_filenames = [
 		'.factor-protocol',
 		'.protocol',
@@ -254,6 +306,11 @@ class Product(object):
 
 		# &None if no protocol file is present.
 		"""
+		for x in self.project_declaration_filenames:
+			if (route/x).fs_type() == 'data':
+				# Discard Information instance as callers only need (id, proto).
+				protocol, pi = structure_project_declaration((route/x).get_text_content())
+				return (pi.identifier, protocol)
 		for x in self.protocol_declaration_filenames:
 			if (route/x).fs_type() == 'data':
 				return parse_protocol_declaration((route/x).get_text_content())
@@ -722,9 +779,12 @@ class Context(object):
 if __name__ == '__main__':
 	import sys
 	from ..system import files
-	path, *roots = sys.argv[1:]
-	pd = Product(files.root@path)
-	if roots:
-		pd.roots = set(types.factor@x for x in roots)
-	pd.update()
-	pd.store()
+	from .polynomial import V1
+	poly = V1({})
+	print(sys.argv)
+	for x in map(files.Path.from_absolute, sys.argv[1:]):
+		info = poly.information(x)
+		info.contact = info.contact.strip('<>')
+		dotproject = sequence_project_declaration('factors/polynomial-1', info)
+		with (x/'.project').fs_open('w') as f:
+			f.write(dotproject)

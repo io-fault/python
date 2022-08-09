@@ -166,10 +166,11 @@ class Information(object):
 
 	# [ Properties ]
 	# /identifier/
-		# A hyperlink or literal attempting to provide a unique string that can identify the project.
+		# A hyperlink or literal attempting to provide a unique string that can be used
+		# to identify the project.
 	# /name/
-		# The canonical local name for the project. Often, this will be the directory name used when
-		# the software is installed into the given system.
+		# The canonical local name for the project.
+		# Often, consistent with the directory or file containing the project's factors.
 	# /icon/
 		# A property set defining visual symbols that can be used to identify the project.
 	# /abstract/
@@ -189,7 +190,7 @@ class Information(object):
 	authority: (str) = None
 	contact: (str) = None
 
-@dataclass(eq=True, frozen=True)
+@tools.struct()
 class Reference(object):
 	"""
 	# A position independent reference to a required factor and the interpretation parameters

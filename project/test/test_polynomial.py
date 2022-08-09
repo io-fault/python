@@ -133,7 +133,7 @@ def test_V1_information(test):
 	fake += b"/authority/\n\tFault Engineering\n"
 	fake += b"/contact/\n\thttp://fault.io/critical\n"
 
-	pi = (td/'test'/'project.txt').fs_init(fake)
+	pi = (td/'test'/'documentation'/'project.txt').fs_alloc().fs_init(fake)
 	p = module.V1({})
 	data = p.information(td/'test')
 	test/data == src

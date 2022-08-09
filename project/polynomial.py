@@ -117,7 +117,9 @@ class V1(types.Protocol):
 		"""
 		# Retrieve the information record of the project.
 		"""
-		return load_project_information(project / filename)
+		for x in [project/'documentation'/filename, project/filename]:
+			if x.fs_type() == 'data':
+				return load_project_information(x)
 
 	def infrastructure(self, absolute, route,
 			filename="infrastructure.txt",

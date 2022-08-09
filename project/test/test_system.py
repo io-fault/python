@@ -3,7 +3,7 @@
 """
 from ...system import files
 from .. import system as module
-from ..types import factor, Protocol
+from ..types import factor, Protocol, Information
 
 t_project_id = 'http://ni.fault.io/test/project'
 
@@ -395,7 +395,55 @@ def test_Context_itercontexts(test):
 	# Validate that root is ignored.
 	test/len(list(ctx.itercontexts(pj))) == 2
 
+def test_project_declaration(test):
+	"""
+	# - &module.structure_project_declaration
+	# - &module.sequence_project_declaration
+	"""
+	rspd = module.structure_project_declaration
+	wspd = module.sequence_project_declaration
+
+	i = Information(
+		'http://id.fault.io/corpus/project-name',
+		'project-name',
+		{},
+		None,
+		"Entity Authority",
+		"Contact Point",
+	)
+
+	t = wspd('factors/void-1', i)
+	test/t.endswith("<Contact Point>\n") == True
+
+	pr, ir = rspd(t)
+	test/pr == 'factors/void-1'
+	test/i == ir
+	test/t == wspd(pr, ir)
+	test/ir.authority == "Entity Authority"
+	test/ir.contact == "Contact Point"
+
+def test_project_declaration_exceptions(test):
+	"""
+	# - &module.structure_project_declaration
+	# - &module.sequence_project_declaration
+	"""
+	rspd = module.structure_project_declaration
+	wspd = module.sequence_project_declaration
+
+	i = Information(
+		'http://id.fault.io/corpus/project-name',
+		'project-name',
+		{}, None, None, None
+	)
+
+	t = wspd('factors/void-1', i)
+	pr, ir = rspd(t)
+
+	test/pr == 'factors/void-1'
+	test/i == ir
+	test/t == wspd(pr, ir)
+
 if __name__ == '__main__':
 	import sys
-	from fault.test import library as libtest
-	libtest.execute(sys.modules[__name__])
+	from fault.test import engine as t
+	t.execute(sys.modules[__name__])

@@ -9,13 +9,15 @@ from .. import struct
 from ...system import files
 from ...route.types import Segment
 
+from ..system import structure_project_declaration
+
 s_information = types.Information(
 	identifier = 'http://sample.fault.io/corpus/project',
 	name = 'project',
-	icon = None,
+	icon = {},
 	authority = 'fault.io',
 	contact = 'http://fault.io/critical',
-	abstract = module.Paragraph([("text/normal", "Test")]),
+	abstract = None,
 )
 
 s_infrastructure = [
@@ -57,8 +59,7 @@ def test_Composition_explicit(test):
 	test/tuple(c.symbols) == ('sym-1', 'sym-2')
 
 def check_information(test, original, serialized):
-	ctx, data = struct.parse(serialized)
-	i = types.Information(**data)
+	proto, i = structure_project_declaration(serialized)
 	test/i == original
 
 def test_plan_information(test):
@@ -67,25 +68,8 @@ def test_plan_information(test):
 
 	# Check that serialized project information is consistent.
 	"""
-	dotproto, pjtxt = module.plan(s_information, None, [])
-
-	test/dotproto[1] == "http://sample.fault.io/corpus/project factors/polynomial-1"
-
-	check_information(test, s_information, pjtxt[1])
-
-def test_plan_information_dimensions(test):
-	"""
-	# - &module.plan
-
-	# Check that serialized project information is consistent.
-	"""
-	dotproto, pjtxt = module.plan(s_information, None, [], dimensions=['d1', 'd2'])
-
-	test/dotproto[1] == "http://sample.fault.io/corpus/project//d1/d2 factors/polynomial-1"
-
-	# Validate contents of project.txt
-	ctx, data = struct.parse(pjtxt[1])
-	test/data['identifier'] == dotproto[1].split()[0]
+	dotproject, = module.plan(s_information, None, [])
+	check_information(test, s_information, dotproject[1])
 
 def check_infrastructure(test, original, serialized):
 	ctx, data = struct.parse(serialized)
@@ -225,11 +209,10 @@ def test_Parameters_instantiate(test):
 	fp = module.Parameters(s_information, s_infrastructure, [])
 	module.instantiate(fp, d)
 
-	test/(d/'.protocol').fs_type() == 'data'
-	test/(d/'project.txt').fs_type() == 'data'
+	test/(d/'.project').fs_type() == 'data'
 	test/(d/'infrastructure.txt').fs_type() == 'data'
 
-	check_information(test, s_information, (d/'project.txt').get_text_content())
+	check_information(test, s_information, (d/'.project').get_text_content())
 	check_infrastructure(test, s_infrastructure, (d/'infrastructure.txt').get_text_content())
 
 def test_Parameters_instantiate_dimensions(test):
@@ -243,9 +226,8 @@ def test_Parameters_instantiate_dimensions(test):
 	fp = module.Parameters(s_information, s_infrastructure, [])
 	module.instantiate(fp, d, 'd-1', 'd-2')
 
-	serialized = (d/'project.txt').get_text_content()
-	ctx, data = struct.parse(serialized)
-	i = types.Information(**data)
+	serialized = (d/'.project').get_text_content()
+	sproto, i = structure_project_declaration(serialized)
 
 	expected_id = s_information.identifier + '//' + '/'.join(('d-1', 'd-2'))
 	test/expected_id == i.identifier
