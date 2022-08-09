@@ -9,7 +9,7 @@
 /name/
 	`syntax`
 /abstract/
-	Syntax query and manipulation tools
+	Syntax query, manipulation, and structuring tools.
 
 /authority/
 	`fault.io`
