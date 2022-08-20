@@ -2,9 +2,7 @@
 # Terminal input events parser for common CSI, CSI-u, and ground characters.
 """
 import functools
-from typing import Generator
-from typing import Sequence
-from typing import Tuple
+from collections.abc import Sequence, Generator
 
 from . import core
 
@@ -42,7 +40,9 @@ def ictlchr(ctlid:str, offset=ord('A')-1) -> int:
 	return chr(ord(ctlid.upper()) - offset)
 
 @functools.lru_cache(32)
-def print(k, source=None, modifiers=Zero, Character=Character, Space=ord(' '), ControlOffset=ord('A')-1):
+def print(k, source=None, modifiers=Zero, *,
+		Character=Character, Space=ord(' '), ControlOffset=ord('A')-1,
+	):
 	"""
 	# Construct literal key press event.
 
@@ -63,14 +63,14 @@ def print(k, source=None, modifiers=Zero, Character=Character, Space=ord(' '), C
 	return Character(('literal', source, k, modifiers))
 
 @functools.lru_cache(16)
-def point(x, y, Type=Point):
+def point(x, y, *, Type=Point):
 	"""
 	# Build a &core.Point for describing mount events.
 	"""
 	return Type((x,y))
 
 @functools.lru_cache(8)
-def interpret_modifiers(packed, Create=Modifiers.construct):
+def interpret_modifiers(packed, *, Create=Modifiers.construct):
 	return Create(
 		shift=(packed & 4),
 		meta=(packed & 8),
@@ -78,7 +78,7 @@ def interpret_modifiers(packed, Create=Modifiers.construct):
 	)
 
 @functools.lru_cache(8)
-def interpret_key_modifiers(packed, Create=Modifiers.construct):
+def interpret_key_modifiers(packed, *, Create=Modifiers.construct):
 	return Create(packed-1)
 
 @functools.lru_cache(16)
@@ -124,7 +124,7 @@ def mouse(origin, terminator, parameters):
 		interpret_key_modifiers((mods >> 2)+1),
 	))
 
-def im_test(char, xstart=ord('A'), xstop=ord('z')):
+def im_test(char, *, xstart=ord('A'), xstop=ord('z')):
 	"""
 	# Test if the character can be considered an intermediate.
 
@@ -143,7 +143,7 @@ def im_test(char, xstart=ord('A'), xstop=ord('z')):
 
 	return False
 
-def dispatch_sequence(region:str, separator=';') -> Tuple[str, Sequence[int], str]:
+def dispatch_sequence(region:str, *, separator=';') -> tuple[str, Sequence[int], str]:
 	"""
 	# Parse, normally CSI, returning the intermediates, parameters, terminator,
 	# and any following text as a remainder.
@@ -257,7 +257,7 @@ csi_alternates = {
 	'O': ('focus', 'out'),
 }
 
-def sequence_map(escape, stype, action, region, remainder, Zero=Zero):
+def sequence_map(escape, stype, action, region, remainder, *, Zero=Zero):
 	assert stype == 'csi'
 	origin = escape + region[:len(region) - len(remainder)]
 	type = 'ignored-escape-sequence'
@@ -292,7 +292,7 @@ def sequence_map(escape, stype, action, region, remainder, Zero=Zero):
 
 	return Character((type, origin, ident, mods)), remainder
 
-def process_region_ground(escape, region, Meta=Meta, Zero=Zero):
+def process_region_ground(escape, region, *, Meta=Meta, Zero=Zero):
 	typ = region[0:1]
 	stype, handler = type_switch.get(typ, (None, None))
 
@@ -311,7 +311,7 @@ def process_region_ground(escape, region, Meta=Meta, Zero=Zero):
 		else:
 			yield from map(print, remainder)
 
-def process_region_data(escape, region, Meta=Meta, Zero=Zero):
+def process_region_data(escape, region, *, Meta=Meta, Zero=Zero):
 	typ = region[0:1]
 	stype, handler = type_switch.get(typ, (None, None))
 
@@ -335,8 +335,9 @@ def process_region_data(escape, region, Meta=Meta, Zero=Zero):
 	yield Character(('data', escape, 'paste', Zero))
 	yield Character(('data', region, 'paste', Zero))
 
-def Parser(initial="", Sequence=list, escape="\x1b", separator=";",
-		print=print, Zero=Zero, map=map
+def Parser(initial="", *,
+		escape="\x1b", separator=";", Zero=Zero,
+		Sequence=list, print=print, map=map
 	) -> Generator[Sequence[Character], str, Sequence[Character]]:
 	"""
 	# VT100 CSI and Ground Parser constructing &core.Event sequences from
