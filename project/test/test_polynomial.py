@@ -35,18 +35,9 @@ extmap = {
 }
 
 def mkfactor(ftype, symbols):
-	header = "! CONTEXT:\n\t/protocol/\n\t\t&<http://if.fault.io/project/factor>\n"
-	fmt = "/{key}/\n\t`{value}`\n"
-	sym = "- `{sym}`"
-	if symbols:
-		lines = [sym.format(sym=x) for x in symbols]
-		syms = "/symbols/\n\t" + '\n\t'.join(lines)
-	else:
-		syms = ""
-
-	return header + \
-		fmt.format(key='type', value=ftype) + \
-		syms
+	lines = [ftype]
+	lines.extend(sorted(symbols))
+	return "\n".join(lines)
 
 def test_V1_isource(test):
 	td = test.exits.enter_context(files.Path.fs_tmpdir())
@@ -97,7 +88,7 @@ def test_V1_iterfactors_explicit_unknown(test):
 	td = test.exits.enter_context(files.Path.fs_tmpdir())
 	p = module.V1({'source-extension-map': extmap})
 
-	ft = (td/'cf'/'factor.txt').fs_init(mkfactor(str(exe_typref), set()).encode('utf-8'))
+	ft = (td/'cf'/'.factor').fs_init(mkfactor(str(exe_typref), set()).encode('utf-8'))
 
 	v = (td/'cf'/'src'/'valid.c').fs_init()
 	fs = dict(p.iterfactors(td, types.factor))

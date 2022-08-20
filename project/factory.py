@@ -85,13 +85,8 @@ def information_text(info, idsuffix=''):
 
 def factor_text(type, symbols):
 	# factor.txt files serialization for explicitly typed factors
-	yield "/type/"
-	yield "\t" + _literal(type)
-
-	if symbols:
-		yield "/symbols/"
-		for s in symbols:
-			yield "\t- " + _literal(s)
+	yield str(type)
+	yield from map(str, symbols)
 
 @dataclass
 class Composition(object):
@@ -252,9 +247,7 @@ def plan(info, infra, factors, dimensions:typing.Sequence[str]=(), protocol='fac
 				yield (seg//fpath, None)
 			else:
 				p = (seg//fpath)
-				yield (p/'factor.txt', _poly_factor_header + "\n".join(factor_text(c.type, c.symbols)) + "\n")
-
-				p /= 'src'
+				yield (p/'.factor', "\n".join(factor_text(c.type, c.symbols)) + "\n")
 				for rpath, data in c.sources:
 					yield (p + rpath.split('/'), data)
 

@@ -28,6 +28,7 @@ image_factor_type = types.Reference(
 ProjectSignal = Segment.from_sequence(['project.txt'])
 SourceSignal = Segment.from_sequence(['src'])
 FactorDefinitionSignal = Segment.from_sequence(['factor.txt'])
+FactorDeclarationSignal = Segment.from_sequence(['.factor'])
 
 def load_project_information(file:Selector):
 	info = struct.parse(file.get_text_content())[1] #* ! CONTEXT: qualification required.
@@ -72,6 +73,18 @@ def compose_image_path(groups, default, variants, name, suffix):
 	segments.append('.'.join(fields))
 
 	return segments
+
+def structure_factor_declaration(text, nl="\n"):
+	"""
+	# Split a `.factor` file into a type and symbol set pair.
+	"""
+	fields = iter(text.strip().split(nl))
+	typ = next(fields) #* Empty .factor file?
+	return typ, set(fields)
+
+def structure_factor_dot_txt(text):
+	data = struct.parse(text)[1]
+	return data['type'], set(data.get('symbols') or ())
 
 def parse_image_descriptor_1(string:str) -> typing.Iterator[typing.Sequence[str]]:
 	"""
@@ -267,7 +280,7 @@ class V1(types.Protocol):
 				yield (typcache(y.extension)[0], y)
 
 	def iterfactors(self, route:files.Path, rpath:types.FactorPath,
-			*, ignore=types.ignored
+			*, ignore=types.ignored,
 		) -> typing.Iterable[types.FactorType]:
 		"""
 		# Query the project &route for factor specifications contained within &rpath.
@@ -285,25 +298,26 @@ class V1(types.Protocol):
 
 			assert r.identifier not in ignore # cache or integration directory
 
-			srcdir = r // SourceSignal
-			spec = r // FactorDefinitionSignal
+			if (r/'.factor').fs_type() == 'data':
+				srcdir = r
+				spec = (r/'.factor')
+				parse = structure_factor_declaration
+			else:
+				srcdir = r // SourceSignal
+				spec = r // FactorDefinitionSignal
+				parse = structure_factor_dot_txt
 
 			if srcdir.fs_type() == 'directory' and spec.fs_type() == 'data':
 				# Explicit Typed Factor directory.
-				spec_ctx, data = struct.parse(spec.get_text_content())
+				ftype, symbols = parse(spec.get_text_content())
 
 				sources = self.collect_explicit_sources(typcache, srcdir)
 				cpath = types.FactorPath.from_sequence(path)
 
-				typref = types.Reference.from_ri('type', data['type'])
-				yield (cpath, typref), (data.get('symbols', set()), sources)
+				typref = types.Reference.from_ri('type', ftype)
+				yield (cpath, typref), (symbols, sources)
 
-				dirs = ()
-				# Filter factor.txt and abstract.txt from possible factors.
-				files = [
-					x for x in r.fs_iterfiles('data')
-					if x.identifier not in {'factor.txt', 'abstract.txt'}
-				]
+				dirs = files = ()
 			else:
 				# Not an Explicitly Typed Factor directory.
 				dirs, files = r.fs_list('data')

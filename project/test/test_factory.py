@@ -116,15 +116,12 @@ def test_plan_explicitly_typed_factors(test):
 	"""
 
 	s = [(types.factor@'typedfact', module.Composition.explicit('executable', [], [('test.c', 'nothing')]))]
-	infra, factordottxt, factorsource = module.plan(None, s_infrastructure, s)
+	infra, dotfactor, factorsource = module.plan(None, s_infrastructure, s)
 
-	test/tuple(factordottxt[0]) == ('typedfact', 'factor.txt',)
-	test/tuple(factorsource[0]) == ('typedfact', 'src', 'test.c')
+	test/tuple(dotfactor[0]) == ('typedfact', '.factor',)
+	test/tuple(factorsource[0]) == ('typedfact', 'test.c')
 	test/factorsource[1] == 'nothing'
-
-	ctx, data = struct.parse(factordottxt[1])
-	test/data['type'] == 'executable'
-	test/data.get('symbols', None) == None
+	test/dotfactor[1].strip() == 'executable'
 
 def test_plan_explicitly_typed_symbols(test):
 	"""
@@ -140,15 +137,12 @@ def test_plan_explicitly_typed_symbols(test):
 			[('test.c', 'nothing')],
 		)
 	)]
-	infra, factordottxt, factorsource = module.plan(None, s_infrastructure, s)
+	infra, dotfactor, factorsource = module.plan(None, s_infrastructure, s)
 
-	test/tuple(factordottxt[0]) == ('typedfact', 'factor.txt',)
-	test/tuple(factorsource[0]) == ('typedfact', 'src', 'test.c')
+	test/tuple(dotfactor[0]) == ('typedfact', '.factor',)
+	test/tuple(factorsource[0]) == ('typedfact', 'test.c')
 	test/factorsource[1] == 'nothing'
-
-	ctx, data = struct.parse(factordottxt[1])
-	test/data['type'] == 'executable'
-	test/data['symbols'] == {'requirement-id'}
+	test/dotfactor[1].strip().split("\n") == ['executable', 'requirement-id']
 
 S = Segment.from_sequence
 
