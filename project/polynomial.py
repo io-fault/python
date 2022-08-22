@@ -25,9 +25,6 @@ image_factor_type = types.Reference(
 )
 
 # Segments noting the position of significant files in a polynomial project.
-ProjectSignal = Segment.from_sequence(['project.txt'])
-SourceSignal = Segment.from_sequence(['src'])
-FactorDefinitionSignal = Segment.from_sequence(['factor.txt'])
 FactorDeclarationSignal = Segment.from_sequence(['.factor'])
 
 def load_project_information(file:Selector):
@@ -81,10 +78,6 @@ def structure_factor_declaration(text, nl="\n"):
 	fields = iter(text.strip().split(nl))
 	typ = next(fields) #* Empty .factor file?
 	return typ, set(fields)
-
-def structure_factor_dot_txt(text):
-	data = struct.parse(text)[1]
-	return data['type'], set(data.get('symbols') or ())
 
 def parse_image_descriptor_1(string:str) -> typing.Iterator[typing.Sequence[str]]:
 	"""
@@ -298,20 +291,12 @@ class V1(types.Protocol):
 
 			assert r.identifier not in ignore # cache or integration directory
 
-			if (r/'.factor').fs_type() == 'data':
-				srcdir = r
-				spec = (r/'.factor')
-				parse = structure_factor_declaration
-			else:
-				srcdir = r // SourceSignal
-				spec = r // FactorDefinitionSignal
-				parse = structure_factor_dot_txt
-
-			if srcdir.fs_type() == 'directory' and spec.fs_type() == 'data':
+			spec = (r // FactorDeclarationSignal)
+			if r.fs_type() == 'directory' and spec.fs_type() == 'data':
 				# Explicit Typed Factor directory.
-				ftype, symbols = parse(spec.get_text_content())
+				ftype, symbols = structure_factor_declaration(spec.get_text_content())
 
-				sources = self.collect_explicit_sources(typcache, srcdir)
+				sources = self.collect_explicit_sources(typcache, r)
 				cpath = types.FactorPath.from_sequence(path)
 
 				typref = types.Reference.from_ri('type', ftype)
@@ -338,14 +323,3 @@ class V1(types.Protocol):
 					pass
 
 			del dirs, files
-
-if __name__ == '__main__':
-	import sys
-	proto = V1({})
-	for x in sys.argv[1:]:
-		path = files.root@x
-		info = load_project_information(path/'project.txt')
-
-		with (path/'.protocol').fs_open('tw') as f:
-			pdata = '%s %s\n' %(info.identifier, 'factors/polynomial-1')
-			f.write(pdata)
