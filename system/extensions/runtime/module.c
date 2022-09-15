@@ -8,7 +8,7 @@
 #include <fault/libc.h>
 #include <fault/internal.h>
 #include <fault/python/environ.h>
-#include <frameobject.h>
+#include <fault/python/implementation/frameobject.h>
 
 static int
 ltracefunc(PyObj ob, PyFrameObject *f, int event, PyObj arg)

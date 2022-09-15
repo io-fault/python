@@ -13,7 +13,7 @@
 #include <fault/internal.h>
 #include <fault/python/environ.h>
 
-#include <frameobject.h>
+#include <fault/python/implementation/frameobject.h>
 
 #include "Scheduling.h"
 #include "invocation.h"
