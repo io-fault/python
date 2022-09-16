@@ -2,21 +2,10 @@
 	/protocol/
 		&<http://if.fault.io/project/infrastructure>
 
-/Projects/
-	- &..format
-	- &..vector
-	- &..hkp
-	- &..internet
-	- &..kernel
-	- &..route
-	- &..security
-	- &..syntax
-	- &..system
-	- &..transcript
-	- &..terminal
-	- &..text
-	- &..time
-	- &..web
+/*.fr/
+	- (type)&<http://if.fault.io/factors/meta.references>
+/*.sr/
+	- (type)&<http://if.fault.io/factors/system.references>
 
 /*.c/
 	- (type)&<http://if.fault.io/factors/system#c.2011>
