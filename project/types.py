@@ -10,7 +10,7 @@
 # [ FactorType ]
 # Annotation signature for factor data produced by project protocols.
 """
-import typing
+from collections.abc import Mapping, Iterable, Set
 from dataclasses import dataclass
 
 from ..context import tools
@@ -72,7 +72,7 @@ class Format(object):
 	# Source format structure holding the language and dialect.
 	"""
 	language:(str)
-	dialect:(typing.Optional[str]) = None
+	dialect:(str) = None
 
 	@classmethod
 	def from_string(Class, string, /, separator='.'):
@@ -275,15 +275,14 @@ class Reference(object):
 
 		return Class(ri[:project_sep], factorpath, method, isolation)
 
-ISymbols = typing.Mapping[(str, typing.Collection[Reference])]
+ISymbols = Mapping[(str, Set[Reference])]
 
-FactorType = typing.Tuple[
-	FactorPath, # Project relative path.
-	typing.Tuple[
-		str, # Type
-		typing.Set[str], # Symbols
-		typing.Iterable[typing.Tuple[Reference, Path]], # Format References and Sources
-	]
+FactorType = tuple[
+	tuple[FactorPath, Reference], # Project relative path and type.
+	tuple[
+		Set[Reference], # Requirements
+		Iterable[tuple[Reference, Path]], # Format References and Sources
+	],
 ]
 
 class Protocol(object):
@@ -299,10 +298,36 @@ class Protocol(object):
 	def information(self, route:Path) -> Information:
 		raise NotImplementedError("core protocol method must be implemented by subclass")
 
-	def iterfactors(self, route:Path) -> typing.Iterable[FactorType]:
+	def iterfactors(self, route:Path) -> Iterable[FactorType]:
 		raise NotImplementedError("core protocol method must be implemented by subclass")
 
 class ProtocolViolation(Exception):
 	"""
 	# The route was identified as not conforming to the protocol.
 	"""
+
+@tools.cachedcalls(16)
+def fpc(context:FactorPath, factorpath:str, *, root=factor) -> FactorPath:
+	"""
+	# &FactorPath instance cache for relative and absolute paths constructed
+	# from strings.
+
+	# When &factorpath has leading periods, `.`, the number of periods will
+	# select the ancestor of &context to start the resulting &FactorPath
+	# from.
+
+	# [ Parameters ]
+	# /factorpath/
+		# The string that is being interpreted to become a &FactorPath instance.
+	# /context/
+		# The relative position &factorpath is to be interpreted from when
+		# leading periods are present.
+	# /root/
+		# The absolute position that &factorpath will extend given that
+		# it is not relative.
+	"""
+
+	if factorpath.startswith('.'):
+		return (context@factorpath) # Relative
+	else:
+		return (root@factorpath) # Absolute

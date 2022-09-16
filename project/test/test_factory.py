@@ -38,7 +38,7 @@ def test_Composition_indirect(test):
 	c = Type.indirect('ext', 'source-data')
 	test/c.type == None
 	test/c.sources == [('ext', 'source-data')]
-	test/tuple(c.symbols) == ()
+	test/tuple(c.requirements) == ()
 
 def test_Composition_explicit(test):
 	"""
@@ -50,13 +50,13 @@ def test_Composition_explicit(test):
 	test/c.type == 'f-type'
 	test/c.sources[0] == ('src.1', "source-data-1")
 	test/c.sources[1] == ('src.2', "source-data-2")
-	test/tuple(c.symbols) == ()
+	test/tuple(c.requirements) == ()
 
 	# Check symbol presence and empty sources.
 	c = Type.explicit('f-type', ['sym-1', 'sym-2'], [])
 	test/c.type == 'f-type'
 	test/c.sources == []
-	test/tuple(c.symbols) == ('sym-1', 'sym-2')
+	test/tuple(c.requirements) == ('sym-1', 'sym-2')
 
 def check_information(test, original, serialized):
 	proto, i = structure_project_declaration(serialized)

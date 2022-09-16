@@ -73,7 +73,7 @@ def test_V1_iterfactors_explicit_known(test):
 	pt = (td/'project.txt').fs_init()
 	py = (td/'test.py').fs_init()
 
-	idx = dict(p.iterfactors(td, types.factor))
+	idx = dict(p.iterfactors(types.fpc, td, types.factor))
 	test/len(idx) == 3
 	sources = list(itertools.chain(*[x[-1] for x in idx.values()]))
 
@@ -91,7 +91,7 @@ def test_V1_iterfactors_explicit_unknown(test):
 	ft = (td/'cf'/'.factor').fs_init(mkfactor(str(exe_typref), set()).encode('utf-8'))
 
 	v = (td/'cf'/'src'/'valid.c').fs_init()
-	fs = dict(p.iterfactors(td, types.factor))
+	fs = dict(p.iterfactors(types.fpc, td, types.factor))
 
 	cf = types.FactorPath.from_sequence(['cf'])
 	fls = list(fs[(cf, exe_typref)][-1])

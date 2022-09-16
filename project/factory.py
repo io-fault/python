@@ -96,9 +96,8 @@ class Composition(object):
 	# [ Properties ]
 	# /type/
 		# The factor type.
-	# /symbols/
-		# The set of infrastructure symbols needed by the factor in order for
-		# integration to succeed.
+	# /requirements/
+		# Set of factor references needed for integration.
 	# /sources/
 		# A sequence of pairs defining the source name and the source content.
 
@@ -106,7 +105,7 @@ class Composition(object):
 		# factor path if sources is a &Cell instance.
 	"""
 	type: str = None
-	symbols: [str] = ()
+	requirements: [str] = ()
 	sources: typing.Sequence[typing.Tuple[str, typing.Union[str, bytes, files.Path, ModuleType]]] = ()
 
 	@classmethod
@@ -126,22 +125,22 @@ class Composition(object):
 		return Class(type, (), Cell((extension, source)))
 
 	@classmethod
-	def explicit(Class, type, symbols, sources):
+	def explicit(Class, type, requirements, sources):
 		"""
 		# Define an explicitly typed factor's composition.
 
-		# Equivalent to the default constructor with the exception that &symbols
+		# Equivalent to the default constructor with the exception that &requirements
 		# and &sources are copied into a new list.
 
 		# [ Parameters ]
 		# /type/
 			# The type to be assigned to the factor.
-		# /symbols/
-			# The set of symbols required by the factor for integration.
+		# /requirements/
+			# The set of factors needed for integration.
 		# /sources/
 			# The iterable producing pairs defining the relative paths and sources.
 		"""
-		return Class(type, list(symbols), list(sources))
+		return Class(type, list(requirements), list(sources))
 
 @dataclass
 class Parameters(object):
@@ -247,7 +246,7 @@ def plan(info, infra, factors, dimensions:typing.Sequence[str]=(), protocol='fac
 				yield (seg//fpath, None)
 			else:
 				p = (seg//fpath)
-				yield (p/'.factor', "\n".join(factor_text(c.type, c.symbols)) + "\n")
+				yield (p/'.factor', "\n".join(factor_text(c.type, c.requirements)) + "\n")
 				for rpath, data in c.sources:
 					yield (p + rpath.split('/'), data)
 

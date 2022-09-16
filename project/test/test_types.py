@@ -89,6 +89,24 @@ def test_Reference_constructors(test):
 	ri = module.Reference.from_ri('method-id', 'project/factor.path#iso')
 	test/r == ri
 
+def test_fpc(test):
+	"""
+	# - &module.fpc
+	"""
+	F = module.factor
+	f = module.fpc
+	r = F@'root'
+
+	# (Root) Absolute
+	test/f(F@'ctx', 'factor-path') == F@'factor-path'
+	test/f(F@'ctx', 'factor-path.target') == F@'factor-path.target'
+	test/f(F@'ctx', 'factor-path.target', root=r) == F@'root.factor-path.target'
+	test/f(F@'ctx', 'factor-path.target', root=r) == F@'root.factor-path.target'
+
+	# (Context) Relative
+	test/f(F@'ctx.name', '..factor-path.target', root=r) == F@'factor-path.target'
+	test/f(F@'ctx.name', '.factor-path.target', root=r) == F@'ctx.factor-path.target'
+
 if __name__ == '__main__':
 	import sys
 	from fault.test import library as libtest

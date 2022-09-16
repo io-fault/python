@@ -524,7 +524,7 @@ class Project(object):
 		"""
 		# The infrastructure symbols identifying the requirements of the project.
 		"""
-		return self.protocol.infrastructure(self.absolute, self.route)
+		return self.protocol.infrastructure(self.refer, self.route)
 
 	@tools.cachedproperty
 	def canonical(self) -> types.FactorPath:
@@ -554,35 +554,12 @@ class Project(object):
 		for x in ~(self.factor ** 1):
 			yield x/'context'
 
-	def relative(self, fpath:str):
-		"""
-		# Transform a (possibly project relative) factor path string into
-		# a project path, factor path pair.
-
-		# If the &fpath does not start with a series of periods(`.`), this
-		# is equivalent to &Product.split.
-		"""
-
-		if fpath.startswith('.'):
-			product_relative = (self.factor/'project')@fpath
-		else:
-			product_relative = types.factor@fpath
-
-		return self.product.split(product_relative)
-
-	def absolute(self, fpath:str):
-		"""
-		# Get the (project identifier, factor path) pair from the given project relative factor path.
-		"""
-		pj, fp = self.relative(fpath)
-		return (self.product.local[pj][0], fp)
-
 	def select(self, factor:types.FactorPath):
 		"""
 		# Retrieve factors within the given path.
 		"""
-		for fp, fd in self.protocol.iterfactors(self.route, factor):
-			yield ((factor//fp[0], fp[1]), fd)
+		for (fp, ft), fd in self.protocol.iterfactors(self.refer, self.route, factor):
+			yield ((factor//fp, ft), fd)
 
 	def split(self, fp:types.FactorPath, chain=itertools.chain):
 		"""
@@ -609,6 +586,21 @@ class Project(object):
 		pj, fp = self.product.split(qpath)
 		fp, fm = self.split(fp)
 		return (pj, fp, fm)
+
+	def refer(self, factorpath:str, *, context:types.FactorPath=None) -> types.Reference:
+		"""
+		# Construct a &types.Reference instance using the given &factorpath.
+		"""
+
+		if context is not None:
+			context = self.factor // context
+		else:
+			context = self.factor / 'project'
+
+		fp = types.fpc(context, factorpath, root=self.factor)
+
+		pjfp, fp = self.product.split(fp)
+		return types.Reference(self.product.local[pjfp][0], fp)
 
 class Context(object):
 	"""
@@ -775,6 +767,16 @@ class Context(object):
 	def image(self, variants, fp, suffix='i'):
 		pd, pj, lfp = self.split(fp)
 		return pj.image(variants, lfp, suffix=suffix)
+
+	def refer(self, factorpath:str, *, context:types.FactorPath=types.factor):
+		"""
+		# Construct a &types.Reference from the given &factorpath string.
+
+		# &factorpath is first processed with &types.fpc before being
+		# analyzed by &split.
+		"""
+		pd, pj, factor = self.split(types.fpc(context, factorpath))
+		return types.Reference(pj.identifier, factor)
 
 if __name__ == '__main__':
 	import sys

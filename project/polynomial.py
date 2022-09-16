@@ -16,11 +16,19 @@ from . import struct
 # Directory Structure of Integrals
 default_image_segment = [['system', 'architecture'], []]
 unknown_factor_type = types.Reference(
-	'http://if.fault.io/factors', types.factor@'image.unknown',
+	'http://if.fault.io/factors', types.factor@'meta.unknown',
 	'type', None
 )
 image_factor_type = types.Reference(
-	'http://if.fault.io/factors', types.factor@'image.reflection',
+	'http://if.fault.io/factors', types.factor@'meta.image',
+	'type', None
+)
+references_factor_type = types.Reference(
+	'http://if.fault.io/factors', types.factor@'meta.references',
+	'type', None
+)
+system_factor_type = types.Reference(
+	'http://if.fault.io/factors', types.factor@'system.references',
 	'type', None
 )
 
@@ -77,7 +85,7 @@ def structure_factor_declaration(text, nl="\n"):
 	"""
 	fields = iter(text.strip().split(nl))
 	typ = next(fields) #* Empty .factor file?
-	return typ, set(fields)
+	return typ, set(filter(bool, (x.strip() for x in fields)))
 
 def parse_image_descriptor_1(string:str) -> typing.Iterator[typing.Sequence[str]]:
 	"""
@@ -111,13 +119,6 @@ class V1(types.Protocol):
 	"""
 
 	identifier = 'polynomial-1'
-	implicit_types = {
-		'exe': 'executable',
-		'ext': 'extension',
-		'lib': 'library',
-		'arch': 'archive',
-		'part': 'partial',
-	}
 
 	def information(self, project:Selector, filename="project.txt") -> types.Information:
 		"""
@@ -127,7 +128,7 @@ class V1(types.Protocol):
 			if x.fs_type() == 'data':
 				return load_project_information(x)
 
-	def infrastructure(self, absolute, route,
+	def infrastructure(self, refer, route,
 			filename="infrastructure.txt",
 			Reference=types.Reference,
 		) -> types.ISymbols:
@@ -147,17 +148,14 @@ class V1(types.Protocol):
 
 			sym[k] = list()
 			for typ, method, refdata in refs:
-				# Combine source with identified project and factor.
-				# (method, project, factor)
-				iso = None
-
 				if typ == 'absolute':
-					sym[k].append(Reference.from_ri(method, refdata))
+					ref = Reference.from_ri(method, refdata)
 				elif typ == 'relative':
-					project, factor = absolute(refdata)
-					sym[k].append(Reference(project, factor, None, None))
+					ref = refer(refdata)
 				else:
-					raise Exception("unrecognized reference type, expecting absolute or relative")
+					raise ValueError("unrecognized reference type, expecting absolute or relative")
+
+				sym[k].append(ref)
 
 		return sym
 
@@ -178,7 +176,7 @@ class V1(types.Protocol):
 			pass
 
 		extmap.extend(self.parameters['source-extension-map'].items())
-		self.parameters['source-extension-map'] = dict(extmap)
+		self.parameters['source-extension-map'].update(dict(extmap))
 
 		extmap = self.parameters['source-extension-map']
 		for k, symrefs in infrastructure:
@@ -190,7 +188,7 @@ class V1(types.Protocol):
 			# Identify the factor type with the `type` method.
 			for ref in symrefs:
 				if ref.method == 'type':
-					# Factor is not recognized as a type.
+					# Factor is recognized as a type.
 					extmap[kstr[2:]] = (ref, {kstr})
 					break
 			else:
@@ -252,8 +250,8 @@ class V1(types.Protocol):
 			src = p.container.delimit() / p.identifier
 
 			name, suffix = src.identifier.split('.')
-			ref, symbols = typcache(suffix)
-			yield (name, ref.isolate(None)), (symbols, Cell((ref, src)))
+			typref, refs = typcache(suffix)
+			yield (name, typref.isolate(None)), (set(), Cell((typref, src)))
 
 	def collect_explicit_sources(self, typcache, route:files.Path):
 		"""
@@ -272,7 +270,7 @@ class V1(types.Protocol):
 			if not y.identifier.startswith('.'):
 				yield (typcache(y.extension)[0], y)
 
-	def iterfactors(self, route:files.Path, rpath:types.FactorPath,
+	def iterfactors(self, refer, route:files.Path, rpath:types.FactorPath,
 			*, ignore=types.ignored,
 		) -> typing.Iterable[types.FactorType]:
 		"""
@@ -282,25 +280,35 @@ class V1(types.Protocol):
 		froute = route // rpath
 		name = rpath.identifier
 		path = ()
-		cur = collections.deque([(froute, path)])
+		dirq = collections.deque([(froute, path)])
+		processed = set()
 		typcache = self.source_format_resolution()
 
-		while cur:
-			r, path = cur.popleft()
+		while dirq:
+			r, path = dirq.popleft()
+			assert r.identifier not in ignore # cache or integration directory
 			segment = types.FactorPath.from_sequence(path)
 
-			assert r.identifier not in ignore # cache or integration directory
+			# Prohibit cycles.
+			rdp = None
+			for x in r.fs_follow_links():
+				rdp = x
+			if rdp in processed:
+				raise RecursionError(f"filesystem link cycle detected: {r!s} -> {rdp!s}")
+			else:
+				processed.add(rdp)
 
 			spec = (r // FactorDeclarationSignal)
 			if r.fs_type() == 'directory' and spec.fs_type() == 'data':
 				# Explicit Typed Factor directory.
-				ftype, symbols = structure_factor_declaration(spec.get_text_content())
-
-				sources = self.collect_explicit_sources(typcache, r)
 				cpath = types.FactorPath.from_sequence(path)
+				ftype, frefs = structure_factor_declaration(spec.get_text_content())
+				sources = self.collect_explicit_sources(typcache, r)
 
 				typref = types.Reference.from_ri('type', ftype)
-				yield (cpath, typref), (symbols, sources)
+				resolve = functools.partial(refer, context=(rpath//cpath))
+				refs = set(map(resolve, frefs))
+				yield (cpath, typref), (refs, sources)
 
 				dirs = files = ()
 			else:
@@ -318,7 +326,7 @@ class V1(types.Protocol):
 					continue
 
 				if '.' not in x.identifier:
-					cur.append((x, path + (x.identifier,)))
+					dirq.append((x, path + (x.identifier,)))
 				else:
 					pass
 

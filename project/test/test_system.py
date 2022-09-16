@@ -3,7 +3,7 @@
 """
 from ...system import files
 from .. import system as module
-from ..types import factor, Protocol, Information
+from ..types import factor, Protocol, Information, Reference
 
 t_project_id = 'http://ni.fault.io/test/project'
 
@@ -218,10 +218,12 @@ def test_Project_select_none(test):
 	test/list(pj.select(module.types.factor@"no.such.factor")) == []
 	test/list(pj.select(module.types.factor@"")) == []
 
-def test_Project_absolute(test):
+def test_Project_refer_absolute(test):
 	"""
-	# - &module.Project.absolute
+	# - &module.Project.refer
 	"""
+	F = module.types.factor
+	Ref = module.types.Reference
 	td, pd = product_a(test)
 	pd.update()
 	id = t_project_id + '/alt-1'
@@ -230,33 +232,29 @@ def test_Project_absolute(test):
 
 	pj = module.Project(pd, t_project_id + '/alt-1', fp, proto({}))
 	target = t_project_id + '/alt-1'
-	test/pj.absolute('.test') == (target, module.types.factor@'test')
-	target = t_project_id + '/alt-2'
-	test/pj.absolute('..alt-2.test-2') == (target, module.types.factor@'test-2')
 
-	target = t_project_id + '/first-context'
-	test/pj.absolute('ctx.context.factor') == (target, module.types.factor@'factor')
-	test/pj.absolute('...context.factor') == (target, module.types.factor@'factor')
-	test/pj.absolute('....ctx.context.factor') == (target, module.types.factor@'factor')
+	test/pj.refer('test') == Ref(target, F@'test')
+	test/pj.refer('test.i-validate') == Ref(target, F@'test.i-validate')
 
-def test_Project_relative(test):
+def test_Project_refer_relative(test):
 	"""
-	# - &module.Project.relative
+	# - &module.Project.refer
 	"""
+	F = module.types.factor
+	Ref = module.types.Reference
 	td, pd = product_a(test)
 	pd.update()
 	id = t_project_id + '/alt-1'
 	fp, proto = pd.factor_by_identifier(id)
 	test/str(fp) == 'ctx.sub.alt-1'
 
-	pj = module.Project(pd, t_project_id + '/alt-1', fp, proto({}))
-	test/pj.relative('.test') == (fp, module.types.factor@'test')
-	test/pj.relative('..alt-2.test-2') == (fp*'alt-2', module.types.factor@'test-2')
+	target = t_project_id + '/alt-1'
+	pj = module.Project(pd, target, fp, proto({}))
 
-	target = module.types.factor@'ctx.context'
-	test/pj.relative('ctx.context.factor') == (target, module.types.factor@'factor')
-	test/pj.relative('...context.factor') == (target, module.types.factor@'factor')
-	test/pj.relative('....ctx.context.factor') == (target, module.types.factor@'factor')
+	# Default context is project.
+	test/pj.refer('.test') == Ref(target, F@'test')
+	test/pj.refer('.test', context=F@'subfactor.path') == Ref(target, F@'subfactor.test')
+	test/pj.refer('..test', context=F@'subfactor.path') == Ref(target, F@'test')
 
 def test_Project_itercontexts(test):
 	"""
