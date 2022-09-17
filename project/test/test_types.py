@@ -106,8 +106,3 @@ def test_fpc(test):
 	# (Context) Relative
 	test/f(F@'ctx.name', '..factor-path.target', root=r) == F@'factor-path.target'
 	test/f(F@'ctx.name', '.factor-path.target', root=r) == F@'ctx.factor-path.target'
-
-if __name__ == '__main__':
-	import sys
-	from fault.test import library as libtest
-	libtest.execute(sys.modules[__name__])

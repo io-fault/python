@@ -128,8 +128,3 @@ def test_V1_information(test):
 	p = module.V1({})
 	data = p.information(td/'test')
 	test/data == src
-
-if __name__ == '__main__':
-	import sys
-	from fault.test import library as libtest
-	libtest.execute(sys.modules[__name__])

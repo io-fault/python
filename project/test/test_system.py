@@ -440,8 +440,3 @@ def test_project_declaration_exceptions(test):
 	test/pr == 'factors/void-1'
 	test/i == ir
 	test/t == wspd(pr, ir)
-
-if __name__ == '__main__':
-	import sys
-	from fault.test import engine as t
-	t.execute(sys.modules[__name__])
