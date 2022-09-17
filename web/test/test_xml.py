@@ -30,9 +30,3 @@ def test_root_pi(test):
 	x = b''.join(g)
 
 	test/x == a + b'<?xml-stylesheet type="text/xsl" href="someuri.xsl"?><test/>'
-
-if __name__ == '__main__':
-	from ...test import library as libtest; import sys
-	libtest.execute(sys.modules[__name__])
-
-

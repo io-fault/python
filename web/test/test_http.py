@@ -9,7 +9,7 @@ from ...kernel import core as kcore
 from ...kernel import io as kio
 from ...kernel.test import library as testlib
 
-default_headers =[
+default_headers = [
 	(b'Host', b'test.fault.io'),
 	(b'Connection', b'keep-alive'),
 ]
