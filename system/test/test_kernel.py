@@ -122,7 +122,3 @@ def test_Ports_overflow(test):
 	kp = module.Ports.allocate(1)
 	test/OverflowError ^ (lambda: kp.__setitem__(0, 0xfffffffffff))
 	test/OverflowError ^ (lambda: module.Ports([0xfffffffffff]))
-
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules[__name__])

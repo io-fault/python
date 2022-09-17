@@ -226,7 +226,3 @@ def test_scheduler_parallel_close(test):
 	test/module.__dict__.__contains__('scheduler') == False
 	with test/ReferenceError:
 		test/ks.closed == True
-
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules[__name__])

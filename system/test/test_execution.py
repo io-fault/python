@@ -320,7 +320,3 @@ def test_Platform_from_system(test):
 	test/1 == len(spf.architectures)
 	spf = module.Platform.from_system('something', [path, path2])
 	test/2 == len(spf.architectures)
-
-if __name__ == '__main__':
-	import sys; from ...test import engine as libtest
-	libtest.execute(sys.modules[__name__])

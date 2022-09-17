@@ -218,7 +218,3 @@ def test_array_collection_countdown(test):
 		J.terminate()
 		with J:
 			pass
-
-if __name__ == '__main__':
-	import sys; from ....test import library as libtest
-	libtest.execute(sys.modules['__main__'])

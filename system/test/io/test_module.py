@@ -29,7 +29,3 @@ def test_no_subtyping(test):
 			# XXX: Channel can still be subclassed?
 			class NotAllowed(x):
 				pass
-
-if __name__ == '__main__':
-	import sys; from ....test import library as libtest
-	libtest.execute(sys.modules['__main__'])

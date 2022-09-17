@@ -478,7 +478,3 @@ def test_Scheduler_io_pipe(test):
 	ioe = [x for x in ioe if x]
 	test/ioe[0] == b'first'
 	ioe[1] in test/{b'second', b'second'*2}
-
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules[__name__])

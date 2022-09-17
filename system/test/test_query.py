@@ -46,7 +46,3 @@ def test_shell(test):
 	"""
 	sh = module.shell()
 	test/sh != None
-
-if __name__ == '__main__':
-	import sys; from ...test import core as libtest
-	libtest.execute(sys.modules[__name__])

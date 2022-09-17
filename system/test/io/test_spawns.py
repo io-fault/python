@@ -71,7 +71,3 @@ def test_bidirectional(test):
 			test/server.channels[1].exhausted != True
 			test/client.channels[0].exhausted != True
 			test/client.channels[1].exhausted != True
-
-if __name__ == '__main__':
-	import sys; from ....test import library as libtest
-	libtest.execute(sys.modules['__main__'])

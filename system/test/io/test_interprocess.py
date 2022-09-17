@@ -76,7 +76,3 @@ def test_unidirectional(test):
 
 	channels = (r, ww, rr, w)
 	fork_and_circulate(test, am, channels)
-
-if __name__ == '__main__':
-	import sys; from ....test import library as libtest
-	libtest.execute(sys.modules['__main__'])

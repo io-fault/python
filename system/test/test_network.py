@@ -178,7 +178,3 @@ def test_Endpoint_posix_codes(test):
 		test.isinstance(x.pf_code, int)
 		test.isinstance(x.st_code, int)
 		test.isinstance(x.tp_code, int)
-
-if __name__ == '__main__':
-	import sys; from ....test import library as libtest
-	libtest.execute(sys.modules['__main__'])

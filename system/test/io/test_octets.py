@@ -444,7 +444,3 @@ def test_file(test):
 	with am.thread(), tempfile.TemporaryDirectory() as d:
 		path = os.path.join(d, "wfile")
 		file_test(test, am, path, path)
-
-if __name__ == '__main__':
-	import sys; from ....test import library as libtest
-	libtest.execute(sys.modules['__main__'])
