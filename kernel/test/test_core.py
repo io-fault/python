@@ -77,7 +77,3 @@ def test_Join(test):
 	test/j['p1'] == jp1
 	test/j['p2'] == jp2
 	test/set(j) == {jp1, jp2}
-
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules['__main__'])

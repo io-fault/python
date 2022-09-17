@@ -260,7 +260,3 @@ def test_Scheduler_operations(test):
 	sched.sector.terminate()
 	ctx(1)
 	test/sched.terminated == True
-
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules['__main__'])

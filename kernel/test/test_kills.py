@@ -15,7 +15,3 @@ def test_fault(test):
 	test/f1.interrupted == True
 	test/s.interrupted == True
 	test/bool(f.exceptions) == True
-
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules['__main__'])
