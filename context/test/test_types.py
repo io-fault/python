@@ -62,7 +62,3 @@ def test_Cell_setup(test):
 	c = module.Cell(None)
 	test.isinstance(c, collections.abc.Sequence)
 	test.isinstance(c, collections.abc.Iterable)
-
-if __name__ == '__main__':
-	from ...test import engine
-	import sys; engine.execute(sys.modules[__name__])

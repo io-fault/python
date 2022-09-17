@@ -31,8 +31,3 @@ def test_lost_target(test):
 	test/ReferenceError ^ (lambda: w.one(1))
 	test/ReferenceError ^ w.any
 	test/ReferenceError ^ w.zero
-
-if __name__ == '__main__':
-	from ...test import library as libtest; import sys
-	libtest.execute(sys.modules[__name__])
-

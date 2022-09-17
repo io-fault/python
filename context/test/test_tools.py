@@ -79,7 +79,3 @@ def test_consistency(test):
 
 	for x in [p1, p2, p3, p4, p5]:
 		test/module.consistency(x, x) == len(x)
-
-if __name__ == '__main__':
-	from ...test import library as libtest
-	import sys; libtest.execute(sys.modules[__name__])

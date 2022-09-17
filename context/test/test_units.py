@@ -37,7 +37,3 @@ def test_negative_sizes(test):
 def test_final_order(test):
 	nbytes = (1000 ** 8) * 2000
 	test/module.format_metric(nbytes) == "2e+03 YB"
-
-if __name__ == '__main__':
-	from ...test import library as libtest; import sys
-	libtest.execute(sys.modules[__name__])

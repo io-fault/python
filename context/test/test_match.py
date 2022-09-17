@@ -40,7 +40,3 @@ def test_SubsequenceScan_deltas(test):
 
 	ss.add('http://fault.io/src/')
 	search_test(test, ss) # Re-introduced missing entry.
-
-if __name__ == '__main__':
-	from ...test import library as libtest; import sys
-	libtest.execute(sys.modules[__name__])
