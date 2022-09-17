@@ -170,7 +170,3 @@ def test_declaration_constructor(test):
 	siom = io(lzma)
 	test/siom.f_channel == None
 	test/siom.f_image.split()[-1] == 'hex/deflate'
-
-if __name__ == '__main__':
-	from ...test import library as libtest
-	import sys; libtest.execute(sys.modules[__name__])

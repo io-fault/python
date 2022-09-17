@@ -81,7 +81,3 @@ def test_string_constructor(test):
 		test/ev.identifier == "200"
 		test/ev.code == 200
 		test/ev.abstract == "abstract"
-
-if __name__ == '__main__':
-	from ...test import library as libtest
-	import sys; libtest.execute(sys.modules[__name__])
