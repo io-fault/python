@@ -595,15 +595,20 @@ object_transfer_cases = [
 	echo_objects,
 ]
 
-def stream_listening_connection(test, version, address, port = None):
+def stream_listening_connection(test, version, address):
 	am = ArrayActionManager()
 	if_p = network.Endpoint(version, address, None, 'octets')
 	fd = network.service(if_p)
-	s_endpoint = network.receive_endpoint(fd).replace(transport='octets')
+	s_endpoint = network.receive_endpoint(fd)
 
 	def Accept(ls=fd):
 		kpv = kernel.Ports.allocate(1)
-		kernel.accept_ports(ls, kpv)
+		ic = 0
+		while kpv[0] == -1:
+			kernel.accept_ports(ls, kpv)
+			ic += 1
+			if ic > 128:
+				raise Exception("accept limit reached")
 		return kpv
 
 	with am.thread():
@@ -647,8 +652,9 @@ def stream_listening_connection(test, version, address, port = None):
 				test/server.channels[1].terminated == True
 				test/server.channels[0].exhausted == False
 				test/server.channels[1].exhausted == False
-				for x in am.delta():
-					break
+				for i in range(2):
+					for x in am.delta():
+						break
 				test/server.channels[0].endpoint() == None
 				test/server.channels[1].endpoint() == None
 				del server

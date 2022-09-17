@@ -584,6 +584,8 @@ nw_receive_endpoint(PyObj module, PyObj fileno)
 	kport_t kp = -1;
 	any_addr_t addr;
 	socklen_t addrlen = sizeof(addr);
+	int typ = 0;
+	socklen_t typlen = sizeof(typ);
 
 	memset(&addr, 0, addrlen);
 	addr.ss_family = AF_UNSPEC;
@@ -592,6 +594,7 @@ nw_receive_endpoint(PyObj module, PyObj fileno)
 	if (kp == -1 && PyErr_Occurred())
 		return(NULL);
 
+	/* address */
 	r = getsockname(kp, (if_addr_ref_t) &(addr), &addrlen);
 	if (r)
 	{
@@ -599,7 +602,15 @@ nw_receive_endpoint(PyObj module, PyObj fileno)
 		return(NULL);
 	}
 
-	return(endpoint_create(0, 0, &addr, addrlen));
+	/* inherit socket type */
+	r = getsockopt(kp, SOL_SOCKET, SO_TYPE, &typ, &typlen);
+	if (r)
+	{
+		PyErr_SetFromErrno(PyExc_OSError);
+		return(NULL);
+	}
+
+	return(endpoint_create(typ, 0, &addr, addrlen));
 }
 
 /**
