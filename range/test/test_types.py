@@ -301,7 +301,3 @@ def test_Mapping_update(test):
 
 	i.update(i2)
 	test/list(i.items()) == [(k1, 'first'), (k2, 'second')]
-
-if __name__ == '__main__':
-	from ...test import library as libtest
-	import sys; libtest.execute(sys.modules[__name__])
