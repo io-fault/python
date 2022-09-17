@@ -522,7 +522,3 @@ def test_strict(test):
 	escaped = tuple(x.translate(module._percent_translations) for x in [path, query, setting])
 
 	test/module.serialize(ri) == (strtmp % escaped)
-
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules[__name__])

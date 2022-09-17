@@ -45,8 +45,3 @@ def test_huffman_samples(test):
 	out = b'https://www.example.com'
 	test/module.huffman_decode(j) == out
 	test/module.huffman_encode(out) == j
-
-if __name__ == '__main__':
-    import sys
-    from ...test import library as libtest
-    libtest.execute(sys.modules[__name__])

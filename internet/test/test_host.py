@@ -13,7 +13,3 @@ def test_endpoint(test):
 
 	ep = library.realize(ri.parse("http://[::1]"))
 	test/ep == library.Endpoint.create_ip6("::1", 80)
-
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules['__main__'])

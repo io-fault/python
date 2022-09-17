@@ -646,7 +646,3 @@ def test_assemble_ooo(test):
 	g = module.assembly()
 	r = g.send([(module.ev_content, b'data')])
 	test/r == (b'data',)
-
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules[__name__])

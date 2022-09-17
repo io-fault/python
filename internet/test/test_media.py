@@ -162,7 +162,3 @@ def test_file_type(test):
 	test/library.file_type('foo.tar.gz') == library.Type.from_string('application/gzip')
 	test/library.file_type('foo.tar') == library.Type.from_string('application/x-tar')
 	test/library.file_type('foo.xml') == library.Type.from_string('text/xml')
-
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules[__name__])
