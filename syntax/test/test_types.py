@@ -130,8 +130,3 @@ def test_Area_select(test):
 	# Total set
 	a = module.Area.delineate(1,1,5,len(sample[-1]),len(sample[-1]))
 	test/a.select(sample) == ('', '', sample)
-
-if __name__ == '__main__':
-	import sys
-	from ...test import library as libtest
-	libtest.execute(sys.modules[__name__])

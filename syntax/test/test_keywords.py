@@ -596,8 +596,3 @@ def test_Parser_process_document(test):
 		('switch', 'inclusion', ""),
 	]
 	test/dt == expect
-
-if __name__ == '__main__':
-	import sys
-	from ...test import library as libtest
-	libtest.execute(sys.modules[__name__])
