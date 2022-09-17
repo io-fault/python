@@ -137,12 +137,22 @@ interpret_transport(PyObj ob, int *out)
 	else if (PyUnicode_Check(ob))
 	{
 		PyObj name;
+		struct protoent *p;
 
-		if (!PyUnicode_FSConverter(ob, &name))
-			return(-2);
+		name = PyUnicode_EncodeFSDefault(ob);
+		if (name == NULL)
+			return(-3);
 
-		*out = getprotobyname(PyBytes_AS_STRING(name))->p_proto;
+		p = getprotobyname(PyBytes_AS_STRING(name));
 		Py_DECREF(name);
+
+		if (p == NULL)
+		{
+			PyErr_SetString(PyExc_ValueError, "unknown transport protocol");
+			return(-4);
+		}
+
+		*out = p->p_proto;
 	}
 	else
 	{
