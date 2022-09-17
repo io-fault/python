@@ -104,6 +104,3 @@ def test_channel_terminate_full(test):
 	srx.f_terminate()
 	test/srx.terminated == True
 	test/shared.closed == True
-
-if __name__ == '__main__':
-	pass
