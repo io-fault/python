@@ -152,7 +152,3 @@ def test_Route_switch(test):
 
 	path = path.delimit()
 	test/(path*'file') == root/'file'
-
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules[__name__])

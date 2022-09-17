@@ -12,7 +12,3 @@ def test_rewrite_relative(test):
 	test/Function(('first', 'second', '..')) == ['first']
 	test/Function(('first', 'second', '..', '..')) == []
 	test/Function(('first', 'second', '..', '..', '..')) == []
-
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules[__name__])

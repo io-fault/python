@@ -195,7 +195,3 @@ def test_Route_stepwise_ascent(test):
 
 	steps = list(root << s1)
 	test/steps == list(~p1)
-
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules[__name__])
