@@ -30,8 +30,8 @@ exe_typref = types.Reference(
 )
 
 extmap = {
-	'py': (python_factor_typref, set()),
-	'txt': (text_factor_typref, set()),
+	'py': python_factor_typref,
+	'txt': text_factor_typref,
 }
 
 def mkfactor(ftype, symbols):

@@ -47,6 +47,34 @@ def load_project_information(file:Selector):
 		info['contact'],
 	)
 
+def load_formats(file, *, continued='\t', separator='\n', Ref=types.Reference.from_ri):
+	if file.fs_type() == 'void':
+		return
+
+	i = iter(file.get_text_content().split(separator))
+	typctx = next(i)
+	for l in i:
+		if not l or l.strip()[:1] == '#':
+			# Comments and empty lines.
+			continue
+
+		if l[:1] != continued:
+			typctx = l
+			continue
+		else:
+			fields = l.split(' ')
+			ityp, ext = fields[0].split('.', 1)
+			if len(fields) == 2:
+				# Implied language class.
+				fmtc = typctx.rsplit('/', 1)[1]
+				fmts = fields[-1]
+			else:
+				fmtc = fields[-1]
+				fmts = fields[-2]
+
+		ft = Ref('type', typctx + '.' + ityp.strip()).isolate(fmtc + '.' + fmts)
+		yield ext.strip('.'), ft
+
 def factor_images(project:Selector, factor:Segment, directory='__f-int__'):
 	"""
 	# Retrieve the set of images produced by the &factor contained by &project.
@@ -128,46 +156,24 @@ class V1(types.Protocol):
 			if x.fs_type() == 'data':
 				return load_project_information(x)
 
-	def infrastructure(self, refer, route,
-			filename="infrastructure.txt",
-			Reference=types.Reference,
-		) -> types.ISymbols:
-		"""
-		# Extract and interpret infrastructure symbols used to expresss abstract requirements.
-		"""
-		ifp = (route/filename)
-		sym = {}
-
-		if ifp.fs_type() != 'data':
-			return sym
-
-		for k, refs in struct.parse(ifp.get_text_content())[1].items():
-			if isinstance(refs, struct.Paragraph):
-				# Symbol documentation.
-				continue
-
-			sym[k] = list()
-			for typ, method, refdata in refs:
-				if typ == 'absolute':
-					ref = Reference.from_ri(method, refdata)
-				elif typ == 'relative':
-					ref = refer(refdata)
-				else:
-					raise ValueError("unrecognized reference type, expecting absolute or relative")
-
-				sym[k].append(ref)
-
-		return sym
-
-	def inherit(self, context, infrastructure):
+	def inherit(self, route, context):
 		"""
 		# Inherit information and configuration from a context project.
 		"""
 
 		if 'source-extension-map' not in self.parameters:
-			self.parameters['source-extension-map'] = {}
+			self.parameters['source-extension-map'] = dict()
+
+		if 'type-requirements' not in self.parameters:
+			self.parameters['type-requirements'] = dict()
 
 		extmap = []
+		typreq = []
+
+		for ext, ft in load_formats(route/'.formats'):
+			if ext:
+				extmap.append((ext, ft))
+
 		try:
 			extmap.extend(context.parameters['source-extension-map'].items())
 		except Exception:
@@ -176,24 +182,7 @@ class V1(types.Protocol):
 			pass
 
 		extmap.extend(self.parameters['source-extension-map'].items())
-		self.parameters['source-extension-map'].update(dict(extmap))
-
-		extmap = self.parameters['source-extension-map']
-		for k, symrefs in infrastructure:
-			kstr = k.strip()
-			if kstr[:2] != '*.':
-				# Symbol is not a suffix pattern.
-				continue
-
-			# Identify the factor type with the `type` method.
-			for ref in symrefs:
-				if ref.method == 'type':
-					# Factor is recognized as a type.
-					extmap[kstr[2:]] = (ref, {kstr})
-					break
-			else:
-				# No 'type' requirement provided by format symbol.
-				pass
+		self.parameters['source-extension-map'] = dict(extmap)
 
 	def image(self, route:types.Path, variants, fp:types.FactorPath, *,
 			default='void',
@@ -233,9 +222,22 @@ class V1(types.Protocol):
 			mapping = self.parameters['source-extension-map']
 		except KeyError:
 			# No map available.
-			return (lambda x: (unknown_factor_type, set()))
+			return (lambda x: unknown_factor_type)
 		else:
-			return functools.lru_cache(16)(lambda x: mapping.get(x, (unknown_factor_type, set())))
+			return functools.lru_cache(16)(lambda x: mapping.get(x, unknown_factor_type))
+
+	def type_requirement_resolution(self, /, empty=set()):
+		"""
+		# Construct a resolution (type requirement) cache for the type requirements.
+		"""
+
+		try:
+			mapping = self.parameters['type-requirements']
+		except KeyError:
+			# No map available.
+			return (lambda x: empty)
+		else:
+			return functools.lru_cache(16)(lambda x: mapping.get(x, empty))
 
 	def indirect_factor_records(self, typcache, paths:typing.Iterable[files.Path],
 			*, _nomap={}, _default=(unknown_factor_type, set()),
@@ -250,7 +252,7 @@ class V1(types.Protocol):
 			src = p.container.delimit() / p.identifier
 
 			name, suffix = src.identifier.split('.')
-			typref, refs = typcache(suffix)
+			typref = typcache(suffix)
 			yield (name, typref.isolate(None)), (set(), Cell((typref, src)))
 
 	def collect_explicit_sources(self, typcache, route:files.Path):
@@ -268,7 +270,7 @@ class V1(types.Protocol):
 		# Excluding dot-files.
 		for y in itertools.chain.from_iterable(files):
 			if not y.identifier.startswith('.'):
-				yield (typcache(y.extension)[0], y)
+				yield (typcache(y.extension), y)
 
 	def iterfactors(self, refer, route:files.Path, rpath:types.FactorPath,
 			*, ignore=types.ignored,

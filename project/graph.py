@@ -47,9 +47,8 @@ def collect(context):
 	local = collections.defaultdict(set)
 	for pj in context.iterprojects():
 		pj_seq.append(pj.identifier)
-		if pj.infrastructure:
-			i = set(itertools.chain.from_iterable(pj.infrastructure.values()))
-			for rq in i:
+		for rq in pj.requirements(context):
+			if rq.project != pj.identifier:
 				local[rq].add(pj.identifier)
 
 	return pj_seq, local

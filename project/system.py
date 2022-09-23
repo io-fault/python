@@ -512,19 +512,46 @@ class Project(object):
 		"""
 		return self._iid_corpus_name_pair[1]
 
+	def requirements(self, context):
+		"""
+		# Identify the unique set of projects required by this project.
+		"""
+		u = set()
+		refs = {}
+
+		for (fp, ft), (fr, fs) in self.select(types.factor):
+			if str(ft) == 'http://if.fault.io/factors/meta.references':
+				refkey = types.Reference(self.identifier, fp)
+				for fmt, refset in fs:
+					refs[refkey] = list(map(
+						(lambda x: types.Reference.from_ri(None, x)),
+						filter(bool, refset.get_text_content().split('\n'))
+					))
+
+			for r in fr:
+				if r in u:
+					continue
+				else:
+					u.add(r)
+
+		# Identify project set.
+		p = set()
+		for r in u:
+			if r in refs:
+				# Expand local references.
+				for xr in refs[r]:
+					if xr not in u:
+						p.add(xr)
+			elif r.project != self.identifier:
+				p.add(r)
+		return p
+
 	@tools.cachedproperty
 	def information(self) -> types.Information:
 		"""
 		# The identifying information of the project.
 		"""
 		return self.protocol.information(self.route)
-
-	@tools.cachedproperty
-	def infrastructure(self):
-		"""
-		# The infrastructure symbols identifying the requirements of the project.
-		"""
-		return self.protocol.infrastructure(self.refer, self.route)
 
 	@tools.cachedproperty
 	def canonical(self) -> types.FactorPath:
@@ -678,17 +705,6 @@ class Context(object):
 			if key[0] == 'project':
 				yield pj
 
-	def symbols(self, pj:Project) -> typing.Mapping:
-		"""
-		# Construct a snapshot of symbols for the project with respect to the given &context.
-		"""
-		projects = list(self.itercontexts(pj))
-		projects.reverse()
-		projects.append(pj)
-
-		# Reverse order chain map. Symbols defined nearest to project have priority.
-		return collections.ChainMap(*(pj.infrastructure for pj in projects))
-
 	def load(self):
 		"""
 		# Fully populate the instance cache with all of the projects from
@@ -722,7 +738,7 @@ class Context(object):
 			else:
 				ctxproto = None
 
-			pj.protocol.inherit(ctxproto, pj.infrastructure.items())
+			pj.protocol.inherit(pj.route, ctxproto)
 
 		# Inherit protocol data.
 		for pj in (v for k, v in self.instance_cache.items() if k[0] == 'project'):
@@ -731,7 +747,7 @@ class Context(object):
 				break
 			else:
 				ctxproto = None
-			pj.protocol.inherit(ctxproto, pj.infrastructure.items())
+			pj.protocol.inherit(pj.route, ctxproto)
 
 	def index(self, product:Selector):
 		"""

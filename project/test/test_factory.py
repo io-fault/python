@@ -20,15 +20,17 @@ s_information = types.Information(
 	abstract = None,
 )
 
-s_infrastructure = [
-	('*.txt', [
-		types.Reference('http://if.fault.io/factors', 'chapter', 'type', 'kleptic'),
-	]),
-	('*.c', [
-		types.Reference('http://if.fault.io/factors', 'system', 'type', 'c'),
-		types.Reference('http://fault.io/integration/probes//test', 'some-library'),
-	]),
-]
+s_formats = {
+	'http://if.fault.io/factors/meta': [
+		('chapter', 'txt', 'fault-1', 'kleptic'),
+	],
+	'http://if.fault.io/factors/system': [
+		('elements', 'c', '2011', 'c'),
+	],
+	'http://if.fault.io/factors/python': [
+		('module', 'py', 'psf-v3', 'python'),
+	],
+}
 
 def test_Composition_indirect(test):
 	"""
@@ -71,32 +73,6 @@ def test_plan_information(test):
 	dotproject, = module.plan(s_information, None, [])
 	check_information(test, s_information, dotproject[1])
 
-def check_infrastructure(test, original, serialized):
-	ctx, data = struct.parse(serialized)
-	fragment = (lambda x: '#' + x if x is not None else '')
-	key = (lambda x: x[-1])
-
-	for k, v in dict(original).items():
-		re_symfactors = list(data[k])
-		in_symfactors = [
-			('absolute', x.method, x.project + '/' + str(x.factor) + fragment(x.isolation))
-			for x in v
-		]
-
-		re_symfactors.sort(key=key)
-		in_symfactors.sort(key=key)
-		test/re_symfactors == in_symfactors
-
-def test_plan_infrastructure(test):
-	"""
-	# - &module.plan
-
-	# Check that serialized infrastructure is consistent.
-	"""
-
-	infra_f, = module.plan(None, s_infrastructure, [])
-	check_infrastructure(test, s_infrastructure, infra_f[1])
-
 def test_plan_cell_factors(test):
 	"""
 	# - &module.plan
@@ -106,7 +82,7 @@ def test_plan_cell_factors(test):
 	"""
 
 	s = [(types.factor@'sfact', module.Composition.indirect('txt', 'chapter-text-content'))]
-	infra, f, = module.plan(None, s_infrastructure, s)
+	infra, f, = module.plan(None, s_formats, s)
 	test/tuple(f[0]) == ('sfact.txt',)
 	test/f[1] == 'chapter-text-content'
 
@@ -116,7 +92,7 @@ def test_plan_explicitly_typed_factors(test):
 	"""
 
 	s = [(types.factor@'typedfact', module.Composition.explicit('executable', [], [('test.c', 'nothing')]))]
-	infra, dotfactor, factorsource = module.plan(None, s_infrastructure, s)
+	infra, dotfactor, factorsource = module.plan(None, s_formats, s)
 
 	test/tuple(dotfactor[0]) == ('typedfact', '.factor',)
 	test/tuple(factorsource[0]) == ('typedfact', 'test.c')
@@ -137,7 +113,7 @@ def test_plan_explicitly_typed_symbols(test):
 			[('test.c', 'nothing')],
 		)
 	)]
-	infra, dotfactor, factorsource = module.plan(None, s_infrastructure, s)
+	infra, dotfactor, factorsource = module.plan(None, s_formats, s)
 
 	test/tuple(dotfactor[0]) == ('typedfact', '.factor',)
 	test/tuple(factorsource[0]) == ('typedfact', 'test.c')
@@ -200,14 +176,13 @@ def test_Parameters_instantiate(test):
 	"""
 	d = test.exits.enter_context(files.Path.fs_tmpdir())
 
-	fp = module.Parameters(s_information, s_infrastructure, [])
+	fp = module.Parameters(s_information, s_formats, [])
 	module.instantiate(fp, d)
 
 	test/(d/'.project').fs_type() == 'data'
-	test/(d/'infrastructure.txt').fs_type() == 'data'
+	test/(d/'.formats').fs_type() == 'data'
 
 	check_information(test, s_information, (d/'.project').get_text_content())
-	check_infrastructure(test, s_infrastructure, (d/'infrastructure.txt').get_text_content())
 
 def test_Parameters_instantiate_dimensions(test):
 	"""
@@ -217,7 +192,7 @@ def test_Parameters_instantiate_dimensions(test):
 	"""
 	d = test.exits.enter_context(files.Path.fs_tmpdir())
 
-	fp = module.Parameters(s_information, s_infrastructure, [])
+	fp = module.Parameters(s_information, s_formats, [])
 	module.instantiate(fp, d, 'd-1', 'd-2')
 
 	serialized = (d/'.project').get_text_content()
@@ -230,27 +205,27 @@ def test_Parameters_define(test):
 	"""
 	# - &module.Parameters.define
 	"""
+	F = module.types.factor
 	d = test.exits.enter_context(files.Path.fs_tmpdir())
 
-	fp = module.Parameters.define(s_information, s_infrastructure,
-		extensions={'python-module':'py'},
-		soles=[('pmodule', 'python-module', b"data")],
+	fp = module.Parameters.define(s_information, s_formats,
+		soles=[('pmodule', F@'python.module', b"data")],
 		sets=[
 			('lib', 'library', ('symbol',), [('file.c', b"f-content")]),
 			('exe', 'executable', (), [('exe-file.c', b"exe-content")]),
 		],
 	)
 
-	test/fp.factors[0] == (module.types.factor@'pmodule', module.Composition.indirect('py', b"data"))
+	test/fp.factors[0] == (F@'pmodule', module.Composition.indirect('py', b"data"))
 	test/fp.factors[1] == (
-		module.types.factor@'lib',
+		F@'lib',
 		module.Composition('library', ['symbol',], [
 			('file.c', b'f-content')
 		])
 	)
 
 	test/fp.factors[2] == (
-		module.types.factor@'exe',
+		F@'exe',
 		module.Composition('executable', [], [
 			('exe-file.c', b'exe-content')
 		])
@@ -262,7 +237,7 @@ def test_Parameters_define_index_error(test):
 	"""
 
 	define_keyerr = (lambda: module.Parameters.define(
-		s_information, s_infrastructure,
+		s_information, s_formats,
 		soles=[('test', 'fake-python-module', '-')],
 		sets=[],
 	))

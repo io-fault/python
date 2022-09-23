@@ -23,12 +23,6 @@ def _ktprotocol(iri):
 				"&<" + iri + ">\n\n"
 	)
 
-# The infrastructure.txt file.
-_poly_infrastructure_header = _ktprotocol("http://if.fault.io/project/infrastructure")
-
-# The project.txt file.
-_poly_information_header = _ktprotocol("http://if.fault.io/project/information")
-
 # Explicitly Typed Factors
 _poly_factor_header = _ktprotocol("http://if.fault.io/project/factor")
 
@@ -38,55 +32,19 @@ def _literal(text):
 def _ref(format_id, *text):
 	return "&<" + '/'.join(text) + ('#'+format_id if format_id is not None else "") + ">"
 
-def infrastructure_text(infra):
-	# Render infrastructure.txt from symbol records.
-	for sym, frefs in infra:
-		yield "/" + sym + "/"
+def sequence_format_declarations(formats, il='\t', ls='\n'):
+	"""
+	# factors/polynomial-1 .format serialization
+	"""
+	for typctx in formats:
+		yield str(typctx) + ls
 
-		for ref in frefs:
-			prefix = "\t- "
-
-			if ref.method is not None:
-				prefix += "(" + ref.method + ")"
-
-			yield prefix + _ref(ref.isolation, ref.project, str(ref.factor))
-
-def information_text(info, idsuffix=''):
-	# Render project.txt from &types.Information instance.
-	yield "/identifier/"
-	yield "\t" + _literal(info.identifier + idsuffix)
-	yield "/name/"
-	yield "\t" + _literal(info.name)
-
-	if info.abstract:
-		yield "/abstract/"
-
-		if isinstance(info.abstract, Paragraph):
-			from ..text import render
-			for x in render.paragraph(info.abstract):
-				x[:0] = ("\t",)
-				yield "".join(x)
-		else:
-			for x in info.abstract.split("\n"):
-				yield "\t" + x
-
-	if info.icon:
-		yield "/icon/"
-		for k, v in info.icon.items():
-			yield ("\t- (%s)" %(k,)) + _literal(v)
-
-	if info.authority:
-		yield "/authority/"
-		yield "\t" + _literal(info.authority)
-
-	if info.contact:
-		yield "/contact/"
-		yield "\t" + _literal(info.contact)
-
-def factor_text(type, symbols):
-	# factor.txt files serialization for explicitly typed factors
-	yield str(type)
-	yield from map(str, symbols)
+		for typ, ext, fmts, fmtc in formats[typctx]:
+			if typctx.endswith('/' + fmtc):
+				# factor type implied language class
+				yield f"{il}{typ}.{ext} {fmts}{ls}"
+			else:
+				yield f"{il}{typ}.{ext} {fmts} {fmtc}{ls}"
 
 @dataclass
 class Composition(object):
@@ -150,27 +108,17 @@ class Parameters(object):
 	# [ Properties ]
 	# /information/
 		# The &types.Information instance defining the project's identity.
-	# /infrastructure/
-		# The sequence of symbol identifier and &types.Reference sequence pairs
-		# defining the external and internal dependencies of the project's factors.
+	# /formats/
+		# The source formats identified by the project.
 	# /factors/
 		# The set of factors that make up a project; a sequence of factor path-composition pairs.
 	"""
 	information: (types.Information) = None
-	infrastructure: (typing.Sequence[typing.Tuple[str, typing.Sequence[types.Reference]]]) = None
+	formats: (object) = None
 	factors: (typing.Sequence[typing.Tuple[types.FactorPath, Composition]]) = ()
 
-	@staticmethod
-	def _index_factor_extensions(infra):
-		# Working with an arbitrary iterator; scan for *.extension entries.
-		for isym, isfactors in infra:
-			if isym[:2] == '*.':
-				for ref in isfactors:
-					if ref.method == 'type':
-						yield ref.factor, isym[2:]
-
 	@classmethod
-	def define(Class, information, infrastructure, soles=(), sets=(), extensions=()):
+	def define(Class, information, formats, soles=(), sets=()):
 		"""
 		# Create a parameter set for project instantiation applying the proper types
 		# to factor entries, and translating factor types to file extensions for defining
@@ -178,27 +126,29 @@ class Parameters(object):
 
 		# [ Parameters ]
 		# /information/
-			# The project identification.
-		# /infrastructure/
-			# The project symbols.
+			# The project's identification.
+		# /formats/
+			# The project's source formats.
 		# /soles/
 			# A sequence of records defining single source factors that should be
 			# presented at a path consistent with the factor path.
 		# /sets/
 			# A sequence of records defining factors with multiple sources.
-		# /extensions/
-			# A mapping of factor types to their corresponding filename suffix.
-			# Extensions for factor types that are not present in &infrastructure
-			# must be defined here.
 		"""
 
+		index = {}
+		for typctx in formats:
+			for ityp, ext, dialect, language in formats[typctx]:
+				ft = '.'.join((typctx, ityp))
+				index[ft] = ext
+
+				try:
+					shorthand = ft.rsplit('/', 1)[1]
+					index[types.factor@shorthand] = ext
+				except IndexError:
+					pass
+
 		factors = []
-		index = dict(extensions)
-
-		# Infrastructure overrides anything in &extensions.
-		# When the factor is on disk, only infrastructure is referenced; &extensions is lost.
-		index.update(Class._index_factor_extensions(infrastructure))
-
 		factors.extend([
 			(types.factor@path, Composition.indirect(index[typ], src)) # Indirectly Typed Factors
 			for path, typ, src in soles
@@ -209,9 +159,9 @@ class Parameters(object):
 			for path, typ, sym, src in sets
 		])
 
-		return Class(information, infrastructure, factors)
+		return Class(information, formats, factors)
 
-def plan(info, infra, factors, dimensions:typing.Sequence[str]=(), protocol='factors/polynomial-1'):
+def plan(info, formats, factors, dimensions:typing.Sequence[str]=(), protocol='factors/polynomial-1'):
 	"""
 	# Generate the filesystem paths paired with the data that should be placed
 	# into that file relative to the project directory being materialized.
@@ -228,9 +178,9 @@ def plan(info, infra, factors, dimensions:typing.Sequence[str]=(), protocol='fac
 		info.identifier = iid
 		yield (seg/'.project', pi)
 
-	if infra:
-		kt_body = "\n".join((infrastructure_text(infra)))
-		yield (seg/'infrastructure.txt', _poly_infrastructure_header + kt_body + "\n")
+	if formats:
+		fi = sequence_format_declarations(formats)
+		yield (seg/'.formats', ''.join(fi))
 
 	for fpath, c in factors:
 		if isinstance(c.sources, Cell):
@@ -246,7 +196,7 @@ def plan(info, infra, factors, dimensions:typing.Sequence[str]=(), protocol='fac
 				yield (seg//fpath, None)
 			else:
 				p = (seg//fpath)
-				yield (p/'.factor', "\n".join(factor_text(c.type, c.requirements)) + "\n")
+				yield (p/'.factor', f"{c.type}\n" + '\n'.join(c.requirements) + "\n")
 				for rpath, data in c.sources:
 					yield (p + rpath.split('/'), data)
 
@@ -307,7 +257,7 @@ def instantiate(project:Parameters, route, *dimensions:str):
 
 	return materialize(route, plan(
 		project.information,
-		project.infrastructure,
+		project.formats,
 		project.factors,
 		dimensions=dimensions
 	))

@@ -1,12 +1,6 @@
 """
 # Factored Projects data structures and types.
 
-# [ ISymbols ]
-# The effective contents of an (filename)`infrastructure.txt` factor.
-# This is a mapping defining Infrastructure Symbols to abstract references.
-# The absract references are [data] typed strings that are intended to
-# be interpreted by whatever context is processing or reading them.
-
 # [ FactorType ]
 # Annotation signature for factor data produced by project protocols.
 """
@@ -203,6 +197,7 @@ class Reference(object):
 		# The identifier of the project that contains the required factor.
 	# /factor/
 		# The project relative path to the required factor.
+		# If empty, the reference is identifying the entire project.
 	# /method/
 		# The type of connection that is expected to be formed between the requirement
 		# and the target factor being integrated.
@@ -275,8 +270,6 @@ class Reference(object):
 
 		return Class(ri[:project_sep], factorpath, method, isolation)
 
-ISymbols = Mapping[(str, Set[Reference])]
-
 FactorType = tuple[
 	tuple[FactorPath, Reference], # Project relative path and type.
 	tuple[
@@ -291,9 +284,6 @@ class Protocol(object):
 	"""
 	def __init__(self, parameters:dict):
 		self.parameters = parameters
-
-	def infrastructure(self, absolute, route:Path) -> ISymbols:
-		return {}
 
 	def information(self, route:Path) -> Information:
 		raise NotImplementedError("core protocol method must be implemented by subclass")
