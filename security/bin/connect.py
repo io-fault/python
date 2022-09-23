@@ -17,28 +17,32 @@ info = lsf.types.Information(
 	authority = 'fault.io',
 	abstract = "Transport Security Adapter",
 	icon = dict([('emoji', "🔒")]),
-	contact = "&<http://fault.io/critical>"
+	contact = "http://fault.io/critical"
 )
 
-infra = {
-	'project-c-interfaces': [
-		lsf.types.Reference('http://fault.io/integration/machines', lsf.types.factor@'include'),
-		lsf.types.Reference('http://fault.io/integration/python', lsf.types.factor@'include'),
-		lsf.types.Reference('http://fault.io/python/security', lsf.types.factor@'implementations'),
+requirements = '\n'.join([
+	'http://fault.io/python/system/extensions.interfaces',
+	'http://fault.io/python/security/implementations',
+])
+
+formats = {
+	'http://if.fault.io/factors/system': [
+		('elements', 'c', '2011', 'c'),
+		('void', 'h', 'header', 'c'),
+		('references', 'sr', 'lines', 'text'),
 	],
-	'*.c': [
-		lsf.types.Reference('http://if.fault.io/factors',
-			lsf.types.factor@'system', 'type', 'c.2011'),
+	'http://if.fault.io/factors/python': [
+		('module', 'py', 'psf-v3', 'python'),
+		('interface', 'pyi', 'psf-v3', 'python'),
 	],
-	'*.h': [
-		lsf.types.Reference('http://if.fault.io/factors',
-			lsf.types.factor@'system', 'type', 'c.header'),
-	],
-	'*.pyi': [
-		lsf.types.Reference('http://if.fault.io/factors',
-			lsf.types.factor@'python.interface', 'type', 'psf-v3'),
+	'http://if.fault.io/factors/meta': [
+		('references', 'fr', 'lines', 'text'),
 	],
 }
+
+pyi = lsf.types.factor@'python.interface'
+fr = lsf.types.factor@'meta.references'
+sr = lsf.types.factor@'system.references'
 
 module_template = """
 	#define ADAPTER_{upper} 1
@@ -63,11 +67,10 @@ def init_product(route, roots):
 	pd.store()
 	return pd
 
-def init_project(product, orientation):
+def init_project(product, orientation, interfaces, libraries):
 	ctxloc = product ** 2 # Stored Security Context location.
 	route = product/orientation
 	factor = 'extensions.pki'
-	syms = ['implementation', 'project-c-interfaces']
 
 	pi = copy.copy(info)
 	pi.identifier += orientation
@@ -82,29 +85,35 @@ def init_project(product, orientation):
 	]
 
 	pif = [
-		('pki', lsf.types.factor@'python.interface', "# Empty."),
+		('pki', pyi, "# Empty."),
+		('fault', fr, requirements),
+		('system.context', sr, '\n'.join(libraries)),
 	]
 	ext = [
-		(factor, 'http://if.fault.io/factors/system.extension', syms, srcs),
+		(factor, 'http://if.fault.io/factors/system.extension', [
+			'..system',
+			'..fault',
+		], srcs),
+		('system.include', 'http://if.fault.io/factors/meta.sources', [], [
+			('openssl', (files.root@interfaces)),
+		]),
 	]
 
-	p = factory.Parameters.define(pi, infra.items(), sets=ext, soles=pif)
+	p = factory.Parameters.define(pi, formats, sets=ext, soles=pif)
 	factory.instantiate(p, route)
 
 def main(inv:process.Invocation) -> process.Exit:
-	target, adapter, implementation, orientation, intpath, *pdctl = inv.args
+	target, adapter, implementation, orientation, intpath, pdctl, interfaces, *libs = inv.args
 
 	route = files.Path.from_path(target) / 'if'
-	init_project(route/adapter, orientation)
+	init_project(route/adapter, orientation, interfaces, libs)
 
 	pd = init_product(route/adapter, [orientation])
 	cxn = pd.connections_index_route
 	cxn.fs_init(intpath.encode('utf-8'))
 
 	if pdctl:
-		pdctl, *symargs = pdctl
-		symbols = ['implementation'] + symargs
-		ki = [pdctl, '-L1', '-D', str(route/adapter), 'integrate', '-t', orientation] + symbols
+		ki = [pdctl, '-L1', '-D', str(route/adapter), 'integrate', '-t', orientation]
 		with open('/dev/null', 'rb') as f:
 			pid = execution.KInvocation(pdctl, ki).spawn({f.fileno():0, 1:1, 2:2}.items())
 
