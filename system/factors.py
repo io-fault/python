@@ -4,7 +4,6 @@
 import importlib.machinery
 
 from . import files
-
 from ..project import system as lsf
 
 def compose_image_path(variants, default='void', groups=[["system", "architecture"], ["form"], ["name"]]):
@@ -46,6 +45,17 @@ class IntegralFinder(object):
 			self._source = path
 			super().__init__(fullname, path)
 
+		@classmethod
+		def from_nothing(Class, *args):
+			"""
+			# Create the &Loader instance with &get_code overridden to return
+			# a code object created from a `pass` statement.
+			"""
+			i = Class(*args)
+			passed = compile("pass", i._source, "exec")
+			i.get_code = (lambda x: passed)
+			return i
+
 		def exec_module(self, module):
 			module.__file__ = self._source
 			module.__cache__ = self._bytecode
@@ -77,7 +87,7 @@ class IntegralFinder(object):
 			python_bytecode_variants,
 			extension_variants,
 			form='optimal',
-			image_container_name='__f-int__'
+			image_container_name='__f-int__',
 		):
 		"""
 		# Initialize a finder instance for use with the given variants.
@@ -103,7 +113,7 @@ class IntegralFinder(object):
 	def _init_segment(groups, variants):
 		from ..route.types import Segment
 		v = dict(variants)
-		v['name'] = '{0}'
+		v['name'] = "{0}"
 
 		# polynomial-1
 		segments = (compose_image_path(v, groups=groups))
@@ -111,7 +121,7 @@ class IntegralFinder(object):
 		del segments[-1]
 
 		leading = Segment.from_sequence(segments)
-		assert '{0}' in final # &groups must have 'name' in the final path identifier.
+		assert "{0}" in final # &groups must have 'name' in the final path identifier.
 
 		return leading, final, final.format
 
@@ -197,6 +207,7 @@ class IntegralFinder(object):
 		if pd is None:
 			return None
 
+		Loader = self.Loader
 		route = pd.route + name.split('.')
 		ftype = route.fs_type()
 		parent = route.container
@@ -236,18 +247,9 @@ class IntegralFinder(object):
 			module__path__ = str(route)
 			final = '__init__'
 			idir = route / self.image_container_name
-
-			if pysrc.fs_type() == 'void':
-				# Handle context enclosure case.
-				ctx = (route/'context')
-				if ctx.fs_type() == 'void':
-					return None
-
-				pysrc = ctx/'root.py'
-				final = 'root'
-				idir = pysrc * self.image_container_name
-
 			origin = str(pysrc)
+			if pysrc.fs_type() == 'void':
+				Loader = self.Loader.from_nothing
 		else:
 			# Regular Python module or nothing.
 			idir = parent / self.image_container_name
@@ -266,7 +268,7 @@ class IntegralFinder(object):
 		leading, filename, fformat = self._pbc
 		cached = idir//leading/fformat(final, self.form)
 
-		l = self.Loader(str(cached), name, str(pysrc))
+		l = Loader(str(cached), name, str(pysrc))
 		spec = self.ModuleSpec(name, l, origin=origin, is_package=pkg)
 		spec.cached = str(cached)
 

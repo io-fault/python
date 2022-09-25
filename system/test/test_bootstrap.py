@@ -92,4 +92,4 @@ def test_integration(test):
 		str(p1), str(p2),
 		modules=M
 	)
-	test/len(M) == (len(bootstrap.pkglist) + len(bootstrap.modlist) + 1)
+	test/len(M) == (len(bootstrap.pkglist) + len(bootstrap.modlist))

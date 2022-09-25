@@ -30,12 +30,6 @@ modlist = [
 
 	'project.types',
 	'project.system',
-
-	# Rewrite the project.struct parsers to not depend on fault.text.
-	'text.types',
-	'text.document',
-	'text.format',
-	'project.struct',
 	'project.polynomial',
 
 	'system.factors', # Must be final.
@@ -73,21 +67,6 @@ def load_code(name, bc, src):
 		with f:
 			return Load(f)
 
-def install_root(rename, modules, bytecode, path, root, unused):
-	"""
-	# Allocate and assign the root fault package module.
-	"""
-	mod, pkg, src, bc = module_import(bytecode, path, root, 'context.root')
-	m = types.ModuleType(rename(root))
-	code = load_code(m.__name__, bc, src)
-	m.__path__ = [join(path, root)]
-	m.__file__ = src
-	m.__cache__ = bc
-
-	Execute(code, m.__dict__)
-	modules[m.__name__] = m
-	yield m
-
 def install_packages(rename, modules, bytecode, path, root, package_list):
 	"""
 	# Allocate new package module instances and assign them into &modules.
@@ -123,7 +102,6 @@ def install_modules(rename, modules, bytecode, path, root, module_list):
 		yield m
 
 install_operations = [
-	(install_root, ()),
 	(install_packages, pkglist),
 	(install_modules, modlist),
 ]
