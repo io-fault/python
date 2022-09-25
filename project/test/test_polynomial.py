@@ -97,34 +97,3 @@ def test_V1_iterfactors_explicit_unknown(test):
 	fls = list(fs[(cf, exe_typref)][-1])
 	test/len(fls) == 1
 	(module.unknown_factor_type, v) in test/fls
-
-def test_V1_information(test):
-	"""
-	# - &module.V1.information
-	"""
-	td = test.exits.enter_context(files.Path.fs_tmpdir())
-
-	src = types.Information(**{
-		'identifier': 'http://fault.io/test',
-		'name': 'test',
-		'icon': {
-			'category': 'test-category',
-		},
-		# Current consistent with text.types.Paragraph
-		'abstract': [('text/normal', "Project information for testing purposes.")],
-		'authority': "Fault Engineering",
-		'contact': "http://fault.io/critical",
-	})
-
-	fake = b"! CONTEXT:\n\t/protocol/\n\t\t&<http://if.fault.io/project/information>\n"
-	fake += b"/identifier/\n\t`http://fault.io/test\n"
-	fake += b"/name/\n\t`test`\n"
-	fake += b"/icon/\n\t- (category)`test-category`\n"
-	fake += b"/abstract/\n\tProject information for testing purposes.\n"
-	fake += b"/authority/\n\tFault Engineering\n"
-	fake += b"/contact/\n\thttp://fault.io/critical\n"
-
-	pi = (td/'test'/'documentation'/'project.txt').fs_alloc().fs_init(fake)
-	p = module.V1({})
-	data = p.information(td/'test')
-	test/data == src

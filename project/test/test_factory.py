@@ -5,7 +5,6 @@
 """
 from .. import factory as module
 from .. import types
-from .. import struct
 from ...system import files
 from ...route.types import Segment
 

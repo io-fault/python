@@ -11,7 +11,6 @@ from ..route.types import Segment, Selector
 from ..system import files
 
 from . import types
-from . import struct
 
 # Directory Structure of Integrals
 default_image_segment = [['system', 'architecture'], []]
@@ -34,18 +33,6 @@ system_factor_type = types.Reference(
 
 # Segments noting the position of significant files in a polynomial project.
 FactorDeclarationSignal = Segment.from_sequence(['.factor'])
-
-def load_project_information(file:Selector):
-	info = struct.parse(file.get_text_content())[1] #* ! CONTEXT: qualification required.
-
-	return types.Information(
-		info['identifier'],
-		info['name'],
-		info.get('icon', {}),
-		info['abstract'],
-		info['authority'],
-		info['contact'],
-	)
 
 def load_formats(file, *, continued='\t', separator='\n', Ref=types.Reference.from_ri):
 	if file.fs_type() == 'void':
