@@ -31,12 +31,10 @@ def product_a(test, name='product'):
 def test_Product_attributes(test):
 	"""
 	# - &module.Product.project_index_route
-	# - &module.Product.context_index_route
 	"""
 	pd = module.Product(files.root)
 	Class = files.root.__class__
 	test.isinstance(pd.project_index_route, Class)
-	test.isinstance(pd.context_index_route, Class)
 
 def test_Product_import(test):
 	"""
@@ -62,31 +60,6 @@ def test_iterprojects_root_no_context(test):
 	test/proto == 'factors/polynomial-1'
 	test/pjdir == pdr/'project'
 
-def test_itercontexts_root_none(test):
-	"""
-	# - &module.Product.itercontexts
-	"""
-	# No contexts.
-	td = test.exits.enter_context(files.Path.fs_tmpdir())
-	pdr = (td/'product').fs_mkdir()
-	setup(pdr)
-
-	pd = module.Product(pdr)
-	test/list(pd.itercontexts()) == []
-
-def test_itercontexts_root_one(test):
-	"""
-	# - &module.Product.itercontexts
-	"""
-	# One contexts.
-	td = test.exits.enter_context(files.Path.fs_tmpdir())
-	pdr = (td/'product').fs_mkdir()
-	ctx = (pdr/'ctx').fs_mkdir()
-	setup(ctx, project='context')
-
-	pd = module.Product(pdr)
-	test/list(pd.itercontexts()) == [ctx]
-
 def test_update(test):
 	"""
 	# - &module.Product.update
@@ -99,14 +72,10 @@ def test_update(test):
 	pd = module.Product(pdr)
 	pd.roots = {module.types.factor@'ctx'}
 	pd.update()
-	cctx = pd.contexts
 	cprj = pd.projects
 
 	pd.update()
-	test/cctx == pd.contexts
 	test/cprj == pd.projects
-
-	test/pd.contexts << factor@'ctx'
 
 def test_update_nested(test):
 	"""
@@ -115,15 +84,10 @@ def test_update_nested(test):
 	td, pd = product_a(test)
 	pd.roots = {module.types.factor@'ctx'}
 	pd.update()
-	cctx = pd.contexts
 	cprj = pd.projects
 
 	pd.update()
-	test/cctx == pd.contexts
 	test/cprj == pd.projects
-
-	test/pd.contexts << factor@'ctx'
-	test/pd.contexts << factor@'ctx.sub'
 
 	projects = [
 		'/first-context',
@@ -143,12 +107,9 @@ def test_cache_io(test):
 	td, pd = product_a(test)
 	pd.update().store()
 
-	original = (pd.contexts, pd.projects, pd.local)
-	del pd.contexts, pd.projects
+	original = (pd.projects, pd.local)
+	del pd.projects
 	pd.load()
-
-	test/pd.contexts << factor@'ctx'
-	test/pd.contexts << factor@'ctx.sub'
 
 	projects = [
 		'/first-context',
@@ -160,7 +121,7 @@ def test_cache_io(test):
 	for x in projects:
 		test/pd.projects << (t_project_id + x)
 
-	test/(pd.contexts, pd.projects, pd.local) == original
+	test/(pd.projects, pd.local) == original
 
 def test_Product_select(test):
 	"""
@@ -256,27 +217,6 @@ def test_Project_refer_relative(test):
 	test/pj.refer('.test', context=F@'subfactor.path') == Ref(target, F@'subfactor.test')
 	test/pj.refer('..test', context=F@'subfactor.path') == Ref(target, F@'test')
 
-def test_Project_itercontexts(test):
-	"""
-	# - &module.Project.itercontexts
-	"""
-	td, pd = product_a(test)
-	pd.update()
-	id = t_project_id + '/alt-1'
-	fp, proto = pd.factor_by_identifier(id)
-	test/str(fp) == 'ctx.sub.alt-1'
-
-	pj = module.Project(pd, id, fp, proto({}))
-	ctxs = [
-		'ctx.sub.context',
-		'ctx.context',
-	]
-	for x, y in zip(pj.itercontexts(), ctxs):
-		test/str(x) == y
-
-	# Validate that root is ignored.
-	test/len(list(pj.itercontexts())) == 2
-
 def test_Project_image_polynomial(test):
 	"""
 	# - &module.Project.image
@@ -365,33 +305,6 @@ def test_Context_load(test):
 
 	id = t_project_id + '/alt-2'
 	test/(('project', id) in ctx.instance_cache) == True
-
-def test_Context_itercontexts(test):
-	"""
-	# - &module.Context.itercontexts
-	"""
-	# Same as test_Project_itercontexts, but with Project instances.
-
-	td, pd = product_a(test)
-	pd.update()
-	pd.store()
-	ctx = module.Context()
-	pd = ctx.connect(pd.route)
-	ctx.load()
-
-	id = t_project_id + '/alt-1'
-	pj = ctx.project(id)
-
-	ctxs = [
-		'ctx.sub.context',
-		'ctx.context',
-	]
-	for x, y in zip(ctx.itercontexts(pj), ctxs):
-		test.isinstance(x, module.Project)
-		test/str(x.factor) == y
-
-	# Validate that root is ignored.
-	test/len(list(ctx.itercontexts(pj))) == 2
 
 def test_project_declaration(test):
 	"""

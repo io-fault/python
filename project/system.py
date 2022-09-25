@@ -95,57 +95,13 @@ def sequence_project_declaration(protocol, project, /, nl="\n", fs=" "):
 
 	return nl.join(heading) + nl
 
-def scan_product_directory(
-		iscontext, read_protocol, route:Selector,
-		roots:typing.Iterable[types.FactorPath]=(), limit=1024*4
-	):
+def scan_product_directory(read_protocol, route:Selector, limit=1024*4):
 	"""
-	# Identify roots, contexts, and projects within the given route.
-
-	# If the &roots argument is provided, it is emitted back and inhibits filesystem
-	# based discovery of root paths.
-
+	# Identify the projects within the given route.
 	# Usually only used through &Product.update.
 	"""
 	i = 0
-	stack = collections.deque()
-
-	# Special cases for the roots.
-	# Produces additional root entries.
-	if roots:
-		for fp in roots:
-			yield ('root', fp)
-
-			d = route//fp
-			if iscontext(d):
-				yield ('context', fp)
-				stack.append(d)
-			else:
-				p = read_protocol(d)
-				if p is not None:
-					yield ('project', (p[0], (fp,) + p[1:]))
-				else:
-					# Explicit root was not a context or a project.
-					pass
-	else:
-		for d in route.fs_iterfiles('directory'):
-			i += 1
-			if i > limit:
-				raise RuntimeError("filesystem scan limit exceeded")
-
-			if '.' in d.identifier:
-				continue
-
-			fp = types.FactorPath.from_sequence(d.segment(route))
-			if iscontext(d):
-				yield ('root', fp)
-				yield ('context', fp)
-				stack.append(d)
-			else:
-				p = read_protocol(d)
-				if p is not None:
-					yield ('root', fp)
-					yield ('project', (p[0], (types.factor // d.segment(route),) + p[1:]))
+	stack = collections.deque([route])
 
 	while stack:
 		current = stack.popleft()
@@ -158,15 +114,12 @@ def scan_product_directory(
 			if '.' in d.identifier:
 				continue
 
-			if iscontext(d):
+			p = read_protocol(d)
+			if p is not None:
 				fp = types.FactorPath.from_sequence(d.segment(route))
-				yield ('context', fp)
-				stack.append(d)
+				yield (p[0], (fp,) + p[1:])
 			else:
-				p = read_protocol(d)
-				if p is not None:
-					fp = types.FactorPath.from_sequence(d.segment(route))
-					yield ('project', (p[0], (fp,) + p[1:]))
+				stack.append(d)
 
 # Project protocol implementations.
 protocols = {
@@ -206,20 +159,6 @@ class Product(object):
 		return self.cache/filename
 
 	@property
-	def context_index_route(self, filename='CONTEXTS') -> Selector:
-		"""
-		# Materialized project index file path.
-		"""
-		return self.cache/filename
-
-	@property
-	def root_index_route(self, filename='ROOTS') -> Selector:
-		"""
-		# Materialized project index file path.
-		"""
-		return self.cache/filename
-
-	@property
 	def connections_index_route(self, filename='CONNECTIONS') -> Selector:
 		"""
 		# Connection list fulfilling requirements.
@@ -241,6 +180,14 @@ class Product(object):
 			return []
 		else:
 			return list(rpath@x for x in paths.split('\n') if x)
+
+	def clear(self):
+		"""
+		# Remove the instance local cache.
+		"""
+		self.local = {}
+		self.projects = {}
+		self.roots = set()
 
 	def __init__(self, route:Selector, limit:int=1024*4, cache:Selector=None):
 		"""
@@ -286,18 +233,16 @@ class Product(object):
 		# If the argument is a nil &types.FactorPath, generate all project paths.
 		"""
 
-		if constraint in self.contexts:
-			prefix = str(constraint) + '.'
-			for p in self.local:
-				if str(p).startswith(prefix):
-					yield p
-		elif constraint in self.local:
+		if constraint in self.local:
 			yield constraint
 		elif len(constraint) == 0:
 			yield from self.local
 		else:
-			# No match.
-			pass
+			l = len(constraint)
+			cl = list(constraint)
+			for k, v in self.local.items():
+				if list(k)[:l] == l:
+					yield k
 
 	def read_protocol(self, route:Selector):
 		"""
@@ -316,54 +261,29 @@ class Product(object):
 				return parse_protocol_declaration((route/x).get_text_content())
 		return None
 
-	def check_context_status(self, route:Selector) -> bool:
-		"""
-		# Determines whether the given route is a context (enclosure).
-		"""
-		if (route/'context').fs_type() == 'directory':
-			if self.read_protocol(route/'context') is not None:
-				return True
-		return False
-
 	@property
 	def _spec(self):
-		return (self.check_context_status, self.read_protocol, self.route)
-
-	def clear(self):
-		"""
-		# Remove the instance local cache.
-		"""
-		self.local = {}
-		self.projects = {}
-		self.contexts = set()
-		self.roots = set()
+		return (self.read_protocol, self.route)
 
 	def load(self):
 		"""
-		# Load the snapshot of the projects and contexts data from the product's route.
+		# Load the snapshot of the projects from the product's route.
 		"""
 
 		with self.project_index_route.fs_open('tr') as f:
 			prj = dict(parse_project_index(f.readlines()))
 
-		with self.context_index_route.fs_open('tr') as f:
-			ctx = set(parse_context_index(f.readlines()))
-
-		with self.root_index_route.fs_open('tr') as f:
-			roots = set(types.factor@x for x in f.read().split() if x)
-
 		local = {v[0]: (k,) + v[1:] for k, v in prj.items()}
 
 		self.projects = prj
-		self.contexts = ctx
 		self.local = local
-		self.roots = roots
+		self.roots = set(list(k)[0] for k in local)
 
 		return self
 
 	def store(self, SortKey=operator.itemgetter(0), Chain=itertools.chain.from_iterable):
 		"""
-		# Store the snapshot of the projects and contexts data to the product's route.
+		# Store the snapshot of the projects to the product's route.
 		"""
 
 		if self.cache.fs_type() != 'directory':
@@ -374,65 +294,25 @@ class Product(object):
 		with self.project_index_route.fs_open('tw') as f:
 			f.writelines(Chain(' '.join(map(str, x))+'\n' for x in prjseq))
 
-		ctxseq = list(self.contexts)
-		ctxseq.sort(key=SortKey)
-		with self.context_index_route.fs_open('tw') as f:
-			f.writelines(x+'\n' for x in map(str, ctxseq))
-
-		rootseq = list(self.roots)
-		rootseq.sort()
-		with self.root_index_route.fs_open('tw') as f:
-			f.write('\n'.join(map(str, rootseq)))
-
 		return self
 
 	def update(self):
 		"""
-		# Update the snapshot of the projects and contexts by querying
-		# the filesystem. The effects of this should be recorded with
-		# a subsequent call to &store.
+		# Update the snapshot of the projects by querying the filesystem.
+		# The effects of this should be recorded with a subsequent call to &store.
 		"""
-		slots = {
-			'context': [],
-			'project': [],
-			'root': [],
+		projects = {
+			fp: pj
+			for fp, pj in scan_product_directory(*self._spec, limit=self.limit)
 		}
-		for k, v in scan_product_directory(*self._spec, roots=self.roots, limit=self.limit):
-			slots[k].append(v)
 
-		projects = dict(slots['project'])
 		local = {v[0]: (k,) + v[1:] for k, v in projects.items()}
 
-		self.roots, self.contexts, self.projects, self.local = (
-			set(slots['root']),
-			set(slots['context']),
-			projects,
-			local,
-		)
+		self.projects = projects
+		self.local = local
+		self.roots = set(list(x)[0] for x in local)
 
 		return self
-
-	def itercontexts(self, limit=1024, prefix=types.factor):
-		"""
-		# Query the route and retrieve all contexts within the product.
-
-		# Results may be inconsistent with the instance cache.
-		"""
-		i = 0
-		start = self.route//prefix
-		stack = collections.deque()
-		stack.append(start)
-
-		while stack:
-			current = stack.popleft()
-			for d in current.fs_iterfiles('directory'):
-				i += 1
-				if i > limit:
-					raise RuntimeError("filesystem scan limit exceeded")
-
-				if self.check_context_status(d):
-					stack.append(d)
-					yield d
 
 	def iterprojects(self, limit=2048, prefix=types.factor):
 		"""
@@ -458,7 +338,7 @@ class Product(object):
 					raise RuntimeError("filesystem scan limit exceeded")
 
 				p = self.read_protocol(d)
-				if p is None and self.check_context_status(d):
+				if p is None:
 					stack.append(d)
 				else:
 					yield p + (d,)
@@ -553,33 +433,8 @@ class Project(object):
 		"""
 		return self.protocol.information(self.route)
 
-	@tools.cachedproperty
-	def canonical(self) -> types.FactorPath:
-		"""
-		# The canonical factor path that is used to refer to the project.
-		"""
-		pd = self.product
-		path = []
-		for fpath in reversed(list(self.itercontexts())):
-			pj_route = pd.route // fpath
-			iid, Proto = pd.identifier_by_factor(fpath)
-			p = Proto({})
-			ctxname = p.information(pj_route).name
-			path.append(ctxname)
-
-		path.append(self.information.name)
-		return types.FactorPath.from_sequence(path)
-
 	def image(self, variants, fp:types.FactorPath, suffix='i'):
 		return self.protocol.image(self.route, variants, fp, suffix=suffix)
-
-	def itercontexts(self) -> typing.Iterable[types.FactorPath]:
-		"""
-		# Generate &types.FactorPath instances identifying the context project stack.
-		# Order is near to far.
-		"""
-		for x in ~(self.factor ** 1):
-			yield x/'context'
 
 	def select(self, factor:types.FactorPath):
 		"""
@@ -686,15 +541,6 @@ class Context(object):
 		"""
 		return self.instance_cache[('project', id)]
 
-	def itercontexts(self, pj:Project) -> typing.Iterable[Project]:
-		"""
-		# Generate &Project instances representing the leading contexts of the given Project, &pj.
-		"""
-		pd = pj.product
-		for pj_ctx_path in pj.itercontexts():
-			id = pd.identifier_by_factor(pj_ctx_path)[0]
-			yield self.project(id)
-
 	def iterprojects(self) -> typing.Iterable[Project]:
 		"""
 		# Generate &Project instances cached from a prior &load call.
@@ -721,33 +567,9 @@ class Context(object):
 		# Traverse the cached projects and apply protocol inheritance.
 		"""
 
-		# Get all the Context Projects in the Environment Context.
-		ctxlist = list()
-		for pd in reversed(self.product_sequence):
-			for ctxname in pd.contexts:
-				ctxlist.append(ctxname)
-		ctxlist.sort(key=(lambda k: str(k).count('.')))
-
-		# Sorted by the context's path depth, inherit the leading contexts and descend.
-		for ctxname in ctxlist:
-			pd, pj, ff = self.split(str(ctxname/'context'/'factor-placeholder'))
-
-			for ascending in self.itercontexts(pj):
-				ctxproto = ascending.protocol
-				break
-			else:
-				ctxproto = None
-
-			pj.protocol.inherit(pj.route, ctxproto)
-
-		# Inherit protocol data.
+		# Configure protocol data.
 		for pj in (v for k, v in self.instance_cache.items() if k[0] == 'project'):
-			for ctx in self.itercontexts(pj):
-				ctxproto = ctx.protocol
-				break
-			else:
-				ctxproto = None
-			pj.protocol.inherit(pj.route, ctxproto)
+			pj.protocol.configure(pj.route)
 
 	def index(self, product:Selector):
 		"""

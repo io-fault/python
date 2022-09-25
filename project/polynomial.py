@@ -156,7 +156,7 @@ class V1(types.Protocol):
 			if x.fs_type() == 'data':
 				return load_project_information(x)
 
-	def inherit(self, route, context):
+	def configure(self, route):
 		"""
 		# Inherit information and configuration from a context project.
 		"""
