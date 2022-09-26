@@ -795,7 +795,7 @@ class Path(Selector):
 			add = dirlist.append
 			try:
 				scan = scandir(fp)
-			except OSError:
+			except OSError as err:
 				add(('exception', [], {'status': None, 'error': err}))
 				continue
 
