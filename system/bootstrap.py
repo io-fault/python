@@ -17,7 +17,7 @@ from marshal import load as Load
 from builtins import exec as Execute
 from builtins import compile as Compile
 
-pkglist = ['context', 'system', 'route', 'text', 'project']
+pkglist = ['context', 'system', 'route', 'project']
 modlist = [
 	'context.tools',
 	'context.types',
