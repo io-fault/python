@@ -1,2 +1,1 @@
 http://fault.io/integration/machines/include
-http://fault.io/integration/python/include
