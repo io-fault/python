@@ -5,13 +5,14 @@
 /identifier/
 	&<http://fault.io/python/test>
 /icon/
-	- (emoji)`🔬`
+	&<data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2Ij48dGV4dCB4PSI0IiB5PSIwLjg4ZW0iIGZvbnQtc2l6ZT0iMjQ4Ij7wn5SsPC90ZXh0Pjwvc3ZnPg==>
 /name/
 	`test`
-/abstract/
-	Testing primitives and engine for Python modules.
-
 /authority/
 	`fault.io`
 /contact/
 	&<http://fault.io/critical>
+
+[ Abstract ]
+
+Testing primitives and engine for Python modules.
