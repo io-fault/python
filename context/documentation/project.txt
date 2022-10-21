@@ -5,13 +5,14 @@
 /identifier/
 	&<http://fault.io/python/context>
 /icon/
-	- (emoji)`🔋`
+	&<data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogPHRleHQgeT0iMzIiIGZvbnQtc2l6ZT0iMzIiPvCflIs8L3RleHQ+Cjwvc3ZnPgo=>
 /name/
 	`fault`
-/abstract/
-	Python application framework supporting &<http://fault.io> initiatives.
-
 /authority/
 	`fault.io`
 /contact/
 	&<http://fault.io/critical>
+
+[ Abstract ]
+
+Python application framework supporting &<http://fault.io> initiatives.
