@@ -9,9 +9,9 @@
 # should be moved to &Type and symbolically referenced in preparation for some termcap
 # loading.
 """
+from collections.abc import Iterable, Sequence
 import functools
 import itertools
-import typing
 import codecs
 
 from ..system import text
@@ -271,7 +271,7 @@ class Type(object):
 	def change_text_traits(style_codes, index, traits):
 		return (style_codes[x][index] for x in traits)
 
-	def select_transition(self, former:core.RenderParameters, latter:core.RenderParameters) -> typing.Iterable[bytes]:
+	def select_transition(self, former:core.RenderParameters, latter:core.RenderParameters) -> Iterable[bytes]:
 		"""
 		# Construct SGR codes necessary to transition the SGR state from &former to &latter.
 
@@ -435,7 +435,7 @@ class Context(object):
 			self._context_line_color,
 		))
 
-	def context_set_position(self, point:typing.Tuple[int, int]):
+	def context_set_position(self, point:tuple[int, int]):
 		"""
 		# Designate the absolute positioning of the character matrix.
 		# Appropriate interface to use to set &self.point.
@@ -570,7 +570,7 @@ class Context(object):
 
 		return self.terminal_type.encode(phrasewordtext.translate(control_map))
 
-	def render(self, phrase:typing.Iterable[Words], rparams:RenderParameters=None) -> typing.Iterable[bytes]:
+	def render(self, phrase:Phrase, rparams:RenderParameters=None) -> Iterable[bytes]:
 		"""
 		# Render the given &phrase for display on the terminal.
 		# Unlike most Context methods, &render returns an iterator
@@ -605,11 +605,11 @@ class Context(object):
 
 	def print(self,
 			phrases:Page,
-			cellcounts:typing.Sequence[int],
-			indentations:typing.Sequence[int]=itertools.repeat(0),
+			cellcounts:Sequence[int],
+			indentations:Sequence[int]=itertools.repeat(0),
 			width=None,
 			zip=zip
-		) -> typing.Iterable[bytes]:
+		) -> Iterable[bytes]:
 		"""
 		# Print the page of phrases using &render.
 

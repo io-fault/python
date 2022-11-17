@@ -7,7 +7,7 @@
 # /&Text/
 	# Alias to the builtin &str.
 """
-import typing
+from collections.abc import Sequence
 import functools
 import itertools
 from ..system import text
@@ -355,8 +355,7 @@ class Units(tuple):
 	"""
 	# Explicitly partitioned string for forced segmentation.
 
-	# Provides a string-like object for explicitly designating the User Perceived Character
-	# boundaries. Primarily used for managing surrogate pairs and multicharacter tokens.
+	# Provides a string-like object for explicitly designating User Perceived Characters.
 	"""
 	__slots__ = ()
 
@@ -425,7 +424,7 @@ def itergraphemes(text, getslice=grapheme, len=len):
 		yield s
 		i = s.stop
 
-Words = typing.Tuple[int, Text, RenderParameters]
+Words = tuple[int, Text, RenderParameters]
 
 class Phrase(tuple):
 	"""
@@ -468,7 +467,7 @@ class Phrase(tuple):
 
 	@classmethod
 	def construct(Class,
-			specifications:typing.Sequence[object],
+			specifications:Sequence[object],
 			RenderParametersConstructor=RenderParameters,
 			cells=text.cells, str=str
 		):
@@ -826,4 +825,4 @@ class Phrase(tuple):
 		return self.__class__(out)
 
 # Common descriptor endpoint.
-Page = typing.Sequence[Phrase]
+Page = Sequence[Phrase]

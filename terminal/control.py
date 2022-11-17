@@ -239,8 +239,8 @@ def setup(
 		# For most applications using &.control, &setup is called once and the module
 		# is never used again. By default, this is &False and the module is retained in memory.
 	# /ttydevice/
-		# The &fault.system.tty.Device instance whose restore method should be called atexit.
-		# If &tty is not provided, a &fault.system.tty.Device instance will be created from the
+		# The &..system.tty.Device instance whose restore method should be called atexit.
+		# If &tty is not provided, a &..system.tty.Device instance will be created from the
 		# system's tty path (usually (fs/path)`/dev/tty`) and call its `record` method.
 	# /atprepare/
 		# Additional binary string to write to the terminal device at preparation.
