@@ -206,6 +206,13 @@ class Traits(int):
 	)
 	del _build
 
+	linetypes = (
+		'solid',
+		'dotted',
+		'dashed',
+		'curly',
+	)
+
 	def __and__(self, rhs):
 		return self.__class__(super().__and__(rhs))
 	def __or__(self, rhs):
