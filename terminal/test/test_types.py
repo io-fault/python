@@ -1,7 +1,7 @@
 """
-# - &.core
+# - &.types
 """
-from .. import core as module
+from .. import types as module
 notraits = module.NoTraits
 
 def test_Modifiers(test):

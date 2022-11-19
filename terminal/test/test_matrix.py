@@ -2,8 +2,8 @@
 # Most of the tests here are sanity tests primarily checking to make sure exceptions aren't
 # raised from good parameters.
 """
-from .. import core
 from .. import matrix as module
+types = module.types
 
 def test_Type(test):
 	"""
@@ -21,7 +21,7 @@ def test_Type_transition(test):
 	"""
 	t = module.Type('utf-8')
 	transition = t.transition_render_parameters
-	notraits = core.NoTraits
+	notraits = types.NoTraits
 
 	leading = (notraits, 0, 0, 0)
 	following = (notraits, 1, 0, 0)
@@ -33,18 +33,18 @@ def test_Type_transition(test):
 	test/(transition(leading, following)) == b''
 
 	# elimation (underline)
-	leading = (core.Traits.construct('underline'), 1, 0, 0)
+	leading = (types.Traits.construct('underline'), 1, 0, 0)
 	following = (notraits, 1, 0, 0)
 	test/(transition(leading, following)) == b'\x1b[24m'
 
 	# transition in (underline)
 	leading = (notraits, 1, 0, 0)
-	following = (core.Traits.construct('underline'), 1, 0, 0)
+	following = (types.Traits.construct('underline'), 1, 0, 0)
 	test/(transition(leading, following)) == b'\x1b[4m'
 
 	# transition in underline from double
-	leading = (core.Traits.construct('double-underline'), 1, 0, 0)
-	following = (core.Traits.construct('underline'), 1, 0, 0)
+	leading = (types.Traits.construct('double-underline'), 1, 0, 0)
+	following = (types.Traits.construct('underline'), 1, 0, 0)
 	test/(transition(leading, following)) == b'\x1b[24;4m'
 
 def test_Type_linecolor_transition(test):
@@ -55,7 +55,7 @@ def test_Type_linecolor_transition(test):
 	t = module.Type('utf-8')
 	transition = t.transition_render_parameters
 
-	rp = core.RenderParameters.from_colors(0, 0)
+	rp = types.RenderParameters.from_colors(0, 0)
 	lc24 = rp.update(linecolor=0)
 	lc8 = rp.update(linecolor=-1)
 
@@ -86,7 +86,7 @@ def test_Context_render_transitions(test):
 	s = module.Screen()
 
 	# Underline to bold.
-	ph = core.Phrase.construct([
+	ph = types.Phrase.construct([
 		("Simple", s.Traits.construct('underline'), -1024, -1024, -1024),
 		(" ", s.Traits.construct('bold'), -1024, -1024, -1024),
 		("phrase.", s.Traits.construct('bold'), -1024, -1024, -1024),
@@ -95,7 +95,7 @@ def test_Context_render_transitions(test):
 	test/rph == [b'\x1b[4m', b'Simple', b'\x1b[24;1m', b' ', b'', b'phrase.']
 
 	# Underline to far bold.
-	ph = core.Phrase.construct([
+	ph = types.Phrase.construct([
 		("Simple", s.Traits.construct('underline'), -1024, -1024, -1024),
 		(" ", s.Traits.construct('underline'), -1024, -1024, -1024),
 		("phrase.", s.Traits.construct('bold'), -1024, -1024, -1024),
@@ -104,7 +104,7 @@ def test_Context_render_transitions(test):
 	test/rph == [b'\x1b[4m', b'Simple', b'', b' ', b'\x1b[24;1m', b'phrase.']
 
 	# New text.
-	ph = core.Phrase.construct([
+	ph = types.Phrase.construct([
 		("Simple", s.Traits.construct('underline'), -1024, -1024, -1024),
 		(" ", s.Traits.none(), -1024, -1024, -1024),
 		("phrase.", s.Traits.construct('bold'), -1024, -1024, -1024),
@@ -134,9 +134,9 @@ def test_Context_stored_colors(test):
 
 	# Check that render considers the default; transition filters.
 	ph = s.Phrase.construct([
-		("Simple", core.Traits(0), -513, -513, -8),
-		(" ", core.Traits(0), -513, -513, -8),
-		("phrase.", core.Traits(0), -513, -513, -8),
+		("Simple", types.Traits(0), -513, -513, -8),
+		(" ", types.Traits(0), -513, -513, -8),
+		("phrase.", types.Traits(0), -513, -513, -8),
 	])
 	rph = list(s.render(ph))
 	test/rph == [b'', b'Simple', b'', b' ', b'', b'phrase.']

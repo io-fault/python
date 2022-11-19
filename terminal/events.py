@@ -4,11 +4,7 @@
 import functools
 from collections.abc import Sequence, Generator
 
-from . import core
-
-Character = core.Event
-Modifiers = core.Modifiers
-Point = core.Point
+from .types import Event as Character, Modifiers, Point
 
 Char = Character
 Mod = Modifiers.construct
@@ -65,7 +61,7 @@ def print(k, source=None, modifiers=Zero, *,
 @functools.lru_cache(16)
 def point(x, y, *, Type=Point):
 	"""
-	# Build a &core.Point for describing mount events.
+	# Build a &Point for describing mount events.
 	"""
 	return Type((x,y))
 
@@ -340,7 +336,7 @@ def Parser(initial="", *,
 		Sequence=list, print=print, map=map
 	) -> Generator[Sequence[Character], str, Sequence[Character]]:
 	"""
-	# VT100 CSI and Ground Parser constructing &core.Event sequences from
+	# VT100 CSI and Ground Parser constructing &Character sequences from
 	# received &str instances.
 
 	# Some functionality exceptions being that intermediate characters may not

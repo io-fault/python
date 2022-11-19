@@ -3,7 +3,7 @@
 
 # The &colors mapping provides named access to the terminal's configured colors; the
 # often available sixteen colors (tty-16) and various aliases for some xterm-256 indexes. The values
-# of this dictionary are numeric identifiers usable with &.core.RenderParameters which recognizes positive
+# of this dictionary are numeric identifiers usable with &.types.RenderParameters which recognizes positive
 # integers as 24-bit RGB values and negative integers as a contrived index selecting
 # colors from common palettes such as tty-16, xterm-256, and the default text and cell color.
 
@@ -48,13 +48,13 @@
 
 #!/pl/python
 	from fault.terminal import palette
-	from fault.terminal import core
+	from fault.terminal import types
 	fg = palette.colors['blue']
 	bg = palette.colors['terminal-default']
-	trp_blue_text = core.RenderParameters.from_colors(textcolor=fg, cellcolor=bg)
+	trp_blue_text = types.RenderParameters.from_colors(textcolor=fg, cellcolor=bg)
 
-# However, &.core.RenderParameters is normally accessed through matrix contexts as opposed
-# to directly from the &.core module. This example is only meant to clarify the location
+# However, &.types.RenderParameters is normally accessed through matrix contexts as opposed
+# to directly from the &.types module. This example is only meant to clarify the location
 # of the color indexes.
 
 # [ Relative and Absolute Colors ]

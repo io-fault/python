@@ -15,7 +15,7 @@ import itertools
 import codecs
 
 from ..system import text
-from . import core
+from . import types
 
 class Type(object):
 	"""
@@ -29,7 +29,7 @@ class Type(object):
 	# Currently unstable API. It was quickly ripped out of &Context.
 	"""
 
-	normal_render_parameters = core.RenderParameters((core.NoTraits, -1024, -1024, -1024))
+	normal_render_parameters = types.RenderParameters((types.NoTraits, -1024, -1024, -1024))
 
 	_escape_character = b'\x1b'
 	_field_separator = b';'
@@ -271,7 +271,10 @@ class Type(object):
 	def change_text_traits(style_codes, index, traits):
 		return (style_codes[x][index] for x in traits)
 
-	def select_transition(self, former:core.RenderParameters, latter:core.RenderParameters) -> Iterable[bytes]:
+	def select_transition(self,
+			former:types.RenderParameters,
+			latter:types.RenderParameters
+		) -> Iterable[bytes]:
 		"""
 		# Construct SGR codes necessary to transition the SGR state from &former to &latter.
 
@@ -381,8 +384,8 @@ class Context(object):
 	"""
 
 	# Provide context instance relative access for allowing overloading and convenience.
-	# The types may be overridden globally by patching &.core prior to importing &.matrix.
-	from .core import \
+	# The types may be overridden globally by patching &.types prior to importing &.matrix.
+	from .types import \
 		Text, \
 		Units, \
 		Traits, \
@@ -817,7 +820,7 @@ class Screen(Context):
 	# access to some configuration options that are not always maintained
 	# for the duration of the process.
 	"""
-	point = core.Point((0,0))
+	point = types.Point((0,0))
 
 	def set_window_title_text(self, title):
 		"""
