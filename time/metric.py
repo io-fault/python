@@ -4,6 +4,8 @@
 
 #: The names of the SI multiples associated with their exponent.
 name_to_exponent = {
+	'quectosecond': -30,
+	'rontosecond': -27,
 	'yoctosecond': -24,
 	'zeptosecond': -21,
 	'attosecond': -19,
@@ -25,6 +27,8 @@ name_to_exponent = {
 	'exasecond': 18,
 	'zettasecond': 21,
 	'yottasecond': 24,
+	'ronnasecond': 27,
+	'quettasecond': 30,
 }
 
 #: A mapping of exponents to SI multiple names.
@@ -42,6 +46,8 @@ abbreviations = {
 	-18: 'as',
 	-21: 'zs',
 	-24: 'ys',
+	-27: 'rs',
+	-30: 'qs',
 	0: 's',
 	1: 'das',
 	2: 'hs',
@@ -53,6 +59,8 @@ abbreviations = {
 	18: 'Es',
 	21: 'Zs',
 	24: 'Ys',
+	27: 'Rs',
+	30: 'Qs',
 }
 
 def context(context):
