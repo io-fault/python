@@ -7,8 +7,8 @@ import sys
 from ...system import process
 from ...system import files
 
+from .. import io as txt
 from .. import document
-from . import parse
 
 def pairs(items):
 	# Identify the key-value pairs of dictionaries.
@@ -38,11 +38,6 @@ def transform(tree, section):
 
 	return mapping(start)
 
-def structure(source, section):
-	text = source.get_text_content()
-	data = (transform(parse.chapter(text), section))
-	return data
-
 def main(inv:process.Invocation) -> process.Exit:
 	try:
 		filepath, section, *paths = inv.args
@@ -54,7 +49,7 @@ def main(inv:process.Invocation) -> process.Exit:
 		sys.stderr.write("[!# ERROR: source (%r) does not exist or is a directory]\n" %(str(sourcepath),))
 		return inv.exit(os.EX_NOINPUT)
 
-	data = structure(sourcepath, section)
+	data = transform(txt.structure_chapter_text(sourcepath.get_text_content()), section)
 	if not paths:
 		paths = data.keys()
 

@@ -16,15 +16,15 @@
 # /Image/
 	# An iterator producing &Line instances.
 """
-import typing
+from collections.abc import Sequence, Iterable
 from . import types
 from . import document
 
 Fragment = str
-Line = typing.Sequence[Fragment]
-Image = typing.Iterable[Line]
+Line = Sequence[Fragment]
+Image = Iterable[Line]
 
-def syntax(lines:typing.Iterable[str], syntype:str, qualifier=None, adjustment=0) -> Image:
+def syntax(lines:Iterable[str], syntype:str, qualifier=None, adjustment=0) -> Image:
 	"""
 	# Generator producing sequences of line text for a syntax node.
 
@@ -38,7 +38,7 @@ def syntax(lines:typing.Iterable[str], syntype:str, qualifier=None, adjustment=0
 	# /adjustment/
 		# Indentation level adjustment.
 	"""
-	si = "\t" * (1 + max(0, adjustment))
+	si = '\t' * (1 + max(0, adjustment))
 
 	yield [
 		si[:-1], "#!" + syntype,
@@ -48,7 +48,7 @@ def syntax(lines:typing.Iterable[str], syntype:str, qualifier=None, adjustment=0
 	for line in lines:
 		yield [si, line]
 
-def section_path(rdepth:int, rmultiple:typing.Optional[int], *path:str) -> Line:
+def section_path(rdepth:int, rmultiple:int, *path:str) -> Line:
 	"""
 	# Construct a section selector from a relative depth and a section identifier path.
 	"""
@@ -141,7 +141,7 @@ def _section(depth, node):
 	sd = node[2]
 	p = section_path(sd['selector-level'] or 0, sd['selector-multiple'], *(sd['selector-path'] or ()))
 	yield (depth, p)
-	yield (depth, [""])
+	yield (depth, [''])
 	yield from _tree(depth, node[1])
 
 def _syn(depth, syntax):
@@ -166,7 +166,7 @@ def _para(depth, node, Paragraph=types.Paragraph):
 		if l and l[-1] == ' ':
 			l[-1] = ''
 		yield (depth, l)
-	yield (0, [""])
+	yield (0, [''])
 
 def _list(depth, node, list_type):
 	for i in node[1]:
@@ -189,11 +189,11 @@ def _list(depth, node, list_type):
 		remainder = i[1][1:]
 		if remainder:
 			if init:
-				yield (0, [""])
+				yield (0, [''])
 			yield from _tree(depth+1, i[1][1:])
 
 	# Force line break to avoid paragraphs from being mistakenly joined.
-	yield (depth, [""])
+	yield (depth, [''])
 
 def _sequence(depth, node):
 	return _list(depth, node, "# ")
@@ -258,7 +258,7 @@ def _tree(depth, nodes):
 		typ, nodes, attr = node
 		yield from _index[typ](depth, node)
 
-def tree(node, adjustment:int=0, indentation:str="\t", newline:str="\n") -> Image:
+def tree(node, adjustment:int=0, indentation:str='\t', newline:str='\n') -> Image:
 	"""
 	# Produce the image representing the given node including newline characters.
 
@@ -276,9 +276,9 @@ def tree(node, adjustment:int=0, indentation:str="\t", newline:str="\n") -> Imag
 	for il, lc in _tree(0, node[1]):
 		lc.insert(0, (il+adjustment)*indentation)
 		lc.append(newline)
-		yield "".join(lc)
+		yield ''.join(lc)
 
-def elements(nodes, adjustment:int=0, indentation:str="\t", newline:str="\n") -> Image:
+def elements(nodes, adjustment:int=0, indentation:str='\t', newline:str='\n') -> Image:
 	"""
 	# Produce the image representing the given &nodes sequence.
 
@@ -296,9 +296,9 @@ def elements(nodes, adjustment:int=0, indentation:str="\t", newline:str="\n") ->
 	for il, lc in _tree(0, nodes):
 		lc.insert(0, (il+adjustment)*indentation)
 		lc.append(newline)
-		yield "".join(lc)
+		yield ''.join(lc)
 
-def chapter(node, adjustment:int=0, indentation:str="\t", newline:str="\n") -> Image:
+def chapter(node, adjustment:int=0, indentation:str='\t', newline:str='\n') -> Image:
 	"""
 	# Produce the image representing the given chapter node including newline characters.
 
@@ -316,4 +316,4 @@ def chapter(node, adjustment:int=0, indentation:str="\t", newline:str="\n") -> I
 	for il, lc in _chapter(0, node):
 		lc.insert(0, (il+adjustment)*indentation)
 		lc.append(newline)
-		yield "".join(lc)
+		yield ''.join(lc)

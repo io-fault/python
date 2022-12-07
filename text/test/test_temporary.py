@@ -1,5 +1,5 @@
 import sys
-from ..bin import parse
+from ..io import structure_chapter_text
 
 txt = """
 [Section 1]
@@ -23,10 +23,10 @@ Implicit Title:
 	# SequenceItem3
 	# &Reference
 
-#!/pl/python
+#!python
 	# Typed Character Matrix
 
-#!/pl/python
+#!python
 	# Subsequent Typed Character Matrix
 
 (title)`Paragraph Title`
@@ -47,7 +47,7 @@ Emphasis Types:
 
 ! ERROR:
 	Admonition
-	#!/pl/python
+	#!python
 		# AdmonitionCharacterMatrix
 
 [Section 1 >> Subsection 1]
@@ -63,13 +63,8 @@ Paragraph 1.
 Paragraph 2.
 """
 
-def test_parse(test):
+def test_parsing(test):
 	"""
-	# Smoke test.
+	# Validate parsing of features.
 	"""
-	nodetree = parse.chapter(txt)
-
-if __name__ == '__main__':
-	import sys
-	from ...test import engine
-	engine.execute(sys.modules['__main__'])
+	root = structure_chapter_text(txt)

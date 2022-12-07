@@ -7,20 +7,12 @@ import sys
 import importlib
 
 from ...system import process
-
-from .. import format
-from .. import document
+from .. import io as txt
 
 formats = {
 	'json': ('json', (lambda m,f,a: m.dump(a, f))),
 	'print': ('pprint', (lambda m,f,a: f.write(m.pformat(a)))),
 }
-
-def chapter(source):
-	dt=document.Tree()
-	dx = document.Transform(dt)
-	fp = format.Parser()
-	return dx.process(fp.parse(source))
 
 def main(inv:process.Invocation) -> process.Exit:
 	format, = inv.argv # 'json' or 'print'
@@ -28,9 +20,9 @@ def main(inv:process.Invocation) -> process.Exit:
 	module = importlib.import_module(module_path, __package__)
 
 	# Parse chapter source.
-	ast = chapter(sys.stdin.read())
+	chapter = txt.structure_chapter_text(sys.stdin.read())
 
 	# Serialize AST.
-	process(module, sys.stdout, ast)
+	process(module, sys.stdout, chapter)
 
 	return inv.exit(0)

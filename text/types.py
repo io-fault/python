@@ -11,7 +11,9 @@
 # being arbitrarily typed allows for format control events that could be interpreted
 # by a Processing Context for such a purpose.
 """
-import typing
+from collections.abc import Sequence, Iterable, Mapping
+
+ElementTree = tuple[str, Sequence['ElementTree'], Mapping]
 
 class Fragment(tuple):
 	"""
@@ -20,7 +22,7 @@ class Fragment(tuple):
 	__slots__ = ()
 
 	@property
-	def typepath(self) -> typing.Sequence[str]:
+	def typepath(self) -> Sequence[str]:
 		return self[0].split('/', 3)
 
 	@property
@@ -77,7 +79,7 @@ class Paragraph(list):
 	"""
 	__slots__ = ()
 
-	def __repr__(self):
+	def __repr__(self) -> str:
 		return '%s(%s)' %(self.__class__.__name__, super().__repr__())
 
 	@classmethod
@@ -93,11 +95,11 @@ class Paragraph(list):
 		# Return the first and only fragment of the Paragraph.
 		# If multiple fragments exist, a &ValueError is raised.
 		"""
-		only_fragment, = self
+		only_fragment, = self #* Execution expecting single fragment?
 		return only_fragment
 
 	@property
-	def sentences(self):
+	def sentences(self, /, separator='.') -> Iterable[Sequence[Fragment]]:
 		"""
 		# Iterator producing lists that contain the sentence contents.
 		# A sentence in a paragraph is delimited by (character)`.` contained
@@ -107,14 +109,14 @@ class Paragraph(list):
 		current = []
 		for x in self:
 			if x[0] == 'text':
-				parts = x[1].split('.')
+				parts = x[1].split(separator)
 				if len(parts) > 1:
 					# Terminate sentence.
-					current.append(Fragment(('text', parts[0]+'.')))
+					current.append(Fragment(('text', parts[0]+separator)))
 					yield current
 
 					for p in parts[1:-1]:
-						yield [Fragment(('text', p+'.'))]
+						yield [Fragment(('text', p+separator))]
 
 					# New parts.
 					if parts[-1]:

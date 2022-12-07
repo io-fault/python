@@ -9,7 +9,7 @@ import sys
 from ...system import process
 from ...system import files
 
-from . import parse
+from .. import io as txt
 from .. import document
 
 def pairs(items):
@@ -60,7 +60,7 @@ def emit(route, data):
 
 def instantiate(target, source, section):
 	text = source.get_text_content()
-	data = (transform(parse.chapter(text), section))
+	data = (transform(txt.structure_chapter_text(text), section))
 	target.fs_mkdir()
 	emit(target, data)
 

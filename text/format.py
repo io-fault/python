@@ -17,18 +17,17 @@
 # implementation coherency should result in a rewrite.
 """
 
+from collections.abc import Sequence, Mapping
 import builtins
 import itertools
-import collections
-import typing
 
 from ..context import string
 from ..context import tools
 
 # The node tree produced by parsing a document.
-Tree = typing.Tuple[str, 'Tree', dict]
+Tree = tuple[str, Sequence['Tree'], Mapping]
 
-def parse_section_selector(string:str) -> typing.Tuple[int, typing.Sequence[str]]:
+def parse_section_selector(string:str) -> tuple[int, Sequence[str]]:
 	"""
 	# Given the contents of a section command or reference,
 	# return the depth and the section path specified within the
@@ -191,7 +190,7 @@ class Parser(object):
 		return False
 
 	@staticmethod
-	def emphasis(text, indicator='*', varsplit=string.varsplit):
+	def emphasis(text, *, indicator='*', varsplit=string.varsplit):
 		"""
 		# Return a sequence of paragraph events noting the emphasis areas versus
 		# regular text.
@@ -343,7 +342,8 @@ class Parser(object):
 		# The check adds one to head_length because the command resolution
 		# process strips the command code character.
 		if tail_length != (head_length + 1):
-			yield (lineno, 'warning', "section commands should end with an equal number of closing brackets")
+			yield (lineno, 'warning',
+				"section commands should end with an equal number of closing brackets")
 
 		title = title.strip() # Strip title content.
 
@@ -403,7 +403,10 @@ class Parser(object):
 			yield (lineno, 'enter-indentation-level', self.indentation)
 
 			if syntax_type is None:
-				self.push(self.__class__.process_paragraph_line, self.indentation, self.default_commands)
+				self.push(
+					self.__class__.process_paragraph_line,
+					self.indentation, self.default_commands
+				)
 			else:
 				commands = {None:self.__class__.process_literal_line}
 				self.push(self.__class__.process_literal_line, self.indentation, commands)
@@ -440,14 +443,14 @@ class Parser(object):
 		None: process,
 	}
 
-	def tokenize(self, lines:typing.Sequence[str]):
+	def tokenize(self, lines:Sequence[str]):
 		"""
 		# Tokenize the given source returning an iterator producing text events.
 		# &source presumed to be is newline separated string.
 		"""
 
 		# essentially, this provides the basic paragraph formatting.
-		if lines[0].startswith('#!'):
+		if lines and lines[0].startswith('#!'):
 			# initial #! is treated specially for title
 			yield (1, 'context', lines[0].split(' ', 2))
 			start = 1
@@ -491,7 +494,7 @@ class Parser(object):
 
 			yield from command(self, lineno, command_code, il, content)
 
-	def structure(self, sections, root, node, indentation, iterator):
+	def process(self, sections, root, node, indentation, iterator):
 		paragraph_content = {'paragraph'}
 		# Every call represents an indentation level; anticipated or not.
 		# Descent indicates a subgroup of nodes.
@@ -540,7 +543,7 @@ class Parser(object):
 					trailing = subnodes[-1][1][-1][1]
 					if trailing and trailing[-1][:2] == ('text', ' '):
 						del trailing[-1]
-					# Handle unindented structure() descent performed by set.
+					# Handle unindented process() descent performed by set.
 					if event in ('unordered-item', 'enumerated-item'):
 						iterator.replay(token)
 					break
@@ -593,7 +596,7 @@ class Parser(object):
 					return True
 				else:
 					if indentation == params[0]:
-						# Leave the structure() call representing
+						# Leave the process() call representing
 						# the indentation level.
 						return True
 					else:
@@ -605,18 +608,18 @@ class Parser(object):
 			elif event == 'enter-indentation-level':
 				if ntype in {'set', 'sequence'}:
 					# Jump into the current working item on enter.
-					self.structure(sections, root, subnodes[-1], params[-1], iterator)
+					self.process(sections, root, subnodes[-1], params[-1], iterator)
 					# Exit processed inside call.
 
 				elif params[0] != indentation and ntype != 'syntax':
-					# if it didn't already push a structure() call from anticipated descent
+					# if it didn't already push a process() call from anticipated descent
 					if subnodes and subnodes[-1][0] == 'paragraph':
 						# Uninitialized paragraph start.
 						para = subnodes[-1]
 						if len(para) > 2 and para[2] is None:
 							subnodes[-1] = (para[0], para[1], params[-1])
 
-					self.structure(sections, root, node, params[-1], iterator)
+					self.process(sections, root, node, params[-1], iterator)
 					# Exit processed.
 
 			elif event == 'unordered-item':
@@ -637,7 +640,7 @@ class Parser(object):
 					)
 					subnodes.append(node)
 
-					if self.structure(sections, root, node, indentation, iterator):
+					if self.process(sections, root, node, indentation, iterator):
 						break
 				else:
 					# Remove trailing paragraph content from previous entry.
@@ -670,7 +673,7 @@ class Parser(object):
 					)
 					subnodes.append(node)
 
-					if self.structure(sections, root, node, indentation, iterator):
+					if self.process(sections, root, node, indentation, iterator):
 						break
 				else:
 					trailing = subnodes[-1][1][-1][1]
@@ -733,16 +736,16 @@ class Parser(object):
 						del params[0][-1]
 
 					dn_content.append(('variable-content', [], indentation))
-					self.structure(sections, root, dn_content[-1], params[-1], iterator)
+					self.process(sections, root, dn_content[-1], params[-1], iterator)
 					# after variable-content
 				elif subtype == 'syntax':
 					block = (subtype, [], params[0])
 					subnodes.append(block)
-					self.structure(sections, root, block, params[-1], iterator)
+					self.process(sections, root, block, params[-1], iterator)
 				elif subtype == 'admonition':
 					admonition = (subtype, [], params[0])
 					subnodes.append(admonition)
-					self.structure(sections, root, admonition, params[-1], iterator)
+					self.process(sections, root, admonition, params[-1], iterator)
 			elif event == 'literal-line':
 				if ntype != 'syntax':
 					subnodes.append(('exception', (),
@@ -799,16 +802,22 @@ class Parser(object):
 			# exit-indentation-level causes breaks
 			pass
 
-	def parse(self, source:str, newline:str='\n') -> Tree:
+	def structure(self, lines:Sequence[str]) -> Tree:
 		"""
-		# Parse the source source into a tree structure.
+		# Structure the given &lines into an element tree.
 		"""
 
 		# Implicit section.
 		root = ('chapter', [('paragraph', [], None)], {})
 
-		tokens = self.tokenize(source.split(newline))
+		tokens = self.tokenize(lines)
 		ctx = next(tokens)
-		self.structure(dict([((), root)]), root, root, 0, Tokens(tokens))
+		self.process(dict([((), root)]), root, root, 0, Tokens(tokens))
 
 		return root
+
+	def parse(self, source:str, newline:str='\n') -> Tree:
+		"""
+		# Parse the source source into a tree structure.
+		"""
+		return self.structure(source.split(newline))

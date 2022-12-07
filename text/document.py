@@ -10,6 +10,14 @@ from . import types
 def export(paragraph, literal=None, reference=None) -> types.Paragraph:
 	"""
 	# Convert the given paragraph node into terms defined by &types.
+
+	# [ Parameters ]
+	# /paragraph/
+		# The raw parse elements formed by &Parser.process.
+	# /literal/
+		# Default cast for literals.
+	# /reference/
+		# Default cast for references.
 	"""
 	l = []
 	former_type = None
@@ -456,7 +464,10 @@ class Transform(object):
 		)
 
 	def process_section(self, tree, section):
-		assert section[0] in ('chapter', 'section', 'variable-content', 'admonition-content', 'set-item')
+		assert section[0] in (
+			'chapter', 'section', 'variable-content',
+			'admonition-content', 'set-item'
+		)
 		for part in section[1]:
 			yield from self.section_index[part[0]](self, tree, part)
 
