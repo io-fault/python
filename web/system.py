@@ -5,9 +5,9 @@ import itertools
 import typing
 
 from ..internet import media
+from ..internet import xml
 from ..system.files import Path
 
-from . import xml as libxml
 
 def calculate_range(ranges, size, list=list, sum=sum):
 	if ranges is not None:
@@ -19,7 +19,7 @@ def calculate_range(ranges, size, list=list, sum=sum):
 
 	return (ranges, rsize)
 
-def render_xml_directory_listing(xml, dl, fl):
+def render_xml_directory_listing(xs, dl, fl):
 	"""
 	# Iterator producing the XML elements describing the directory's content.
 	"""
@@ -33,7 +33,7 @@ def render_xml_directory_listing(xml, dl, fl):
 		except FileNotFoundError:
 			continue
 
-		yield from xml.element('resource', None,
+		yield from xs.element('resource', None,
 			('type', t),
 			('size', str(st.size)),
 			('created', ct.select('iso') if ct is not None else None),
@@ -48,7 +48,7 @@ def render_xml_directory_listing(xml, dl, fl):
 		except FileNotFoundError:
 			continue
 
-		yield from xml.element('directory', None,
+		yield from xs.element('directory', None,
 			('created', ct.select('iso') if ct is not None else None),
 			('modified', st.last_modified.select('iso')),
 			identifier=d.identifier,
@@ -77,8 +77,8 @@ def render_directory_listing(directories, files):
 
 		yield [d.identifier, None, None, st.created, st.last_modified,]
 
-def xml_context_element(xml, hostname, root):
-	yield from xml.element('internet', None,
+def xml_context_element(xs, hostname, root):
+	yield from xs.element('internet', None,
 		('scheme', 'http'),
 		('domain', hostname),
 		('root', root or None),
@@ -111,7 +111,7 @@ def _render_index_xml(xml, routes, rpath):
 	yield from render_xml_directory_listing(xml, dirs, files)
 
 def materialize_xml_index(ctl, root, rpath, rpoints, routes):
-	xml = libxml.Serialization()
+	xs = xml.Serialization()
 
 	ns="http://if.fault.io/xml/resources"
 	pi=[
@@ -131,7 +131,7 @@ def materialize_xml_index(ctl, root, rpath, rpoints, routes):
 		),
 	]
 
-	return b''.join(xml.root('index',
+	return b''.join(xs.root('index',
 		itertools.chain(
 			xml_context_element(xml, ctl.request.host, root),
 			_render_index_xml(xml, routes, rpath),
