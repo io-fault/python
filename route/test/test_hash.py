@@ -82,6 +82,22 @@ def test_Directory_operations(test):
 	# No entry.
 	test/d.release(b'none') == None
 
+def test_Directory_updates(test):
+	"""
+	# - &module.Index.load
+	# - &module.Index.sequence
+	"""
+	tmp = test.exits.enter_context(files.Path.fs_tmpdir())
+	htd = (tmp/'h').fs_mkdir()
+
+	d = module.Directory(module.Segmentation.from_identity(), htd)
+	r1 = d.allocate(b'test')
+	test/r1.fs_type() == 'directory'
+
+	d2 = module.Directory(module.Segmentation.from_identity(), htd)
+	r2 = d.allocate(b'test')
+	test/r2 == r1
+
 def test_Directory_items(test):
 	"""
 	# - &module.Directory.items

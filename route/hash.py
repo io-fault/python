@@ -178,7 +178,7 @@ class Index(object):
 		"""
 
 		yield (str(self.counter).encode('utf-8') + b'\n')
-		yield from ((v.encode('utf-8')+b'\n\t' + k) for (k, v) in self._map.items())
+		yield from ((v.encode('utf-8') + b'\n\t' + k + b'\n') for (k, v) in self._map.items())
 
 	def keys(self):
 		"""
