@@ -397,7 +397,3 @@ def test_Segment_points(test):
 		)).points(module.Months.of(year=1))
 	)
 	test/[y2k, y2k1] == seg2
-
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules[__name__])
