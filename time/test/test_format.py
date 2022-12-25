@@ -2,6 +2,12 @@ from .. import core
 from .. import format as module
 
 samples = [
+	('no_seconds', (
+		(2000, 1, 1, 0, 0, 0, 0), (
+			('rfc1123', "Sat, 1 Jan 2000 00:00 GMT"),
+			('iso8601', "2000-01-01T0:0Z"),
+		)
+	)),
 	('negative_year', (
 		(-800, 1, 1, 0, 0, 0, 0), (
 			('rfc1123', "Sat, 1 Jan -800 00:00:00 GMT"),
@@ -56,10 +62,10 @@ exceptional_samples = [
 		(core.ParseError, (
 			123, # not a string
 			None, # not a string
+			"Tue, 16 Jul 2010 02:32:39 GMT", # inappropriate format
 		)),
 		(core.StructureError, (
 			"2000-01-01T5:30:0-0A:00", # "0A" not an integer
-			"Tue, 16 Jul 2010 02:32:39 GMT", # inappropriate format
 		)),
 		(core.IntegrityError, (
 			# no integrity checks performed by iso8601
@@ -111,7 +117,3 @@ def test_isodate_format(test):
 	fmt = module.format_iso8601_date
 	test/fmt((2000, 1, 1, 12, 30), 0, 0) == "2000-01-01"
 	test/fmt((1926, 7, 12, 12, 30, 1), 0, 0) == "1926-07-12"
-
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules[__name__])

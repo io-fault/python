@@ -30,6 +30,15 @@ models = {
 	'iso8601' : iso8601,
 }
 
+def split_clock_time(s:str):
+	hour, minute = s.split(':', 1)
+	if ':' in minute:
+		minute, second = minute.split(':', 1)
+	else:
+		second = '0'
+
+	return hour, minute, second
+
 def parse_rfc1123(s,
 		abbrev_to_month=gregorian.month_abbreviations.__getitem__,
 		len=len
@@ -43,7 +52,7 @@ def parse_rfc1123(s,
 	fields = s[comma+1:].strip().split()
 	trail = fields[4:]
 	day, month, year, time = fields[:4]
-	hour, minute, second = time.split(':')
+	hour, minute, second = split_clock_time(time)
 
 	timezone = None
 	if trail:
@@ -63,11 +72,11 @@ def parse_rfc1123(s,
 	)
 
 def parse_iso8601(s, mstrip=operator.methodcaller('strip')):
-	s = s.lower().replace(' ', 't')
-	if 't' in s:
-		date, *ignored, time = s.split('t', 1)
-	else:
-		date = s
+	s = s.lower().replace('t', ' ')
+	try:
+		date, *ignored, time = s.split()
+	except ValueError:
+		date = s.strip()
 		time = ''
 	offset = ''
 
@@ -104,7 +113,8 @@ def parse_iso8601(s, mstrip=operator.methodcaller('strip')):
 			# no subseconds
 			hm = time
 			subsecond = '0'
-		hour, minute, second = hm.split(':', 2)
+
+		hour, minute, second = split_clock_time(hm)
 
 	date = zip(('year', 'month', 'day'), map(mstrip, date.rsplit('-', 2)))
 	return tuple(date) + (
