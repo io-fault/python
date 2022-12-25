@@ -1,10 +1,10 @@
 """
 # Time domain classes for points in time and measures of time.
 
-# Aside from &Segment, all classes in this module are subclasses of &builtins.int.
-# Primarily, the time domain classes are constructed using (identifier)`of`:
+# Aside from &Segment, all classes in this module are subclasses of &int.
+# Primarily, the time domain classes are constructed using &.abstract.Measure.of:
 
-#!/syntax/python
+#!python
 	y2k = types.Timestamp.of(year=2000)
 	two_hours = types.Measure.of(hour=2)
 
@@ -14,7 +14,7 @@
 	# Retrieve the most appropriate &core.Measure class available in &Context for use
 	# with given the identified unit. Takes one parameter, the unit name.
 
-	#!/syntax/python
+	#!python
 		assert issubclass(types.select('hour'), types.Measure)
 		assert issubclass(types.select('day'), types.Days)
 		assert issubclass(types.select('month'), types.Months)
@@ -67,12 +67,12 @@ def from_unix_timestamp(unix_timestamp, Timestamp=Timestamp.of):
 	"""
 	# Create a &Timestamp instance *from seconds since the unix epoch*.
 
-	#!/syntax/python
+	#!python
 		assert types.from_unix_timestamp(0) == types.Timestamp.of(iso='1970-01-01T00:00:00.0')
 
 	# For precision beyond seconds, a subsequent elapse can be used.
 
-	#!/syntax/python
+	#!python
 		float_ts = time.time()
 		nsecs = int(float_ts)
 		us = int((float_ts - nsecs) * 1000000)

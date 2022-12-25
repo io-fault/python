@@ -47,7 +47,7 @@ class Range(Time):
 		# Determines whether or not the given `pit` is completely contained by the
 		# Range.
 
-		#!/syntax/python
+		#!python
 			assert self.start >= pit and pit < self.stop
 		"""
 
@@ -88,7 +88,7 @@ class Measure(Range):
 		"""
 		# For Measure instances, this property *must* be zero.
 
-		#!/syntax/python
+		#!python
 			assert measure.start == 0
 		"""
 
@@ -97,7 +97,7 @@ class Measure(Range):
 		"""
 		# For Measure instances, this property *must* be the instance, &self:
 
-		#!/syntax/python
+		#!python
 			assert measure.stop is measure
 		"""
 
@@ -106,7 +106,7 @@ class Measure(Range):
 		"""
 		# The magnitude of the Time instance. For Measures, this is their integer value:
 
-		#!/syntax/python
+		#!python
 			assert int(measure) == measure.magnitude
 		"""
 
@@ -116,7 +116,7 @@ class Measure(Range):
 		# Create an instance of the type from the sum of the quantities
 		# specified by &times and &parts:
 
-		#!/syntax/python
+		#!python
 			measure = Measure.of(hour = 33, microsecond = 44)
 
 		# The above example only shows keyword use that is specific to the standard
@@ -142,7 +142,7 @@ class Measure(Range):
 
 		# This is equivalent to:
 
-		#!/syntax/python
+		#!python
 			assert self.increase(*units, **parts) == self.of(self, *units, **parts)
 
 		# [ Parameters ]
@@ -163,7 +163,7 @@ class Measure(Range):
 
 		# This is equivalent to:
 
-		#!/syntax/python
+		#!python
 			neg_units = [-unit for unit in units]
 			neg_parts = {k:-v for (k,v) in parts}
 
@@ -188,7 +188,7 @@ class Measure(Range):
 
 		# Common cases:
 
-		#!/syntax/python
+		#!python
 			h = x.select('hour', 'day')
 			m = x.select('minute', 'hour')
 			s = x.select('second', 'minute')
@@ -215,7 +215,7 @@ class Measure(Range):
 
 		# The following holds true:
 
-		#!/syntax/python
+		#!python
 			updated = pit.update(part, replacement, of, align)
 			adjusted = this.adjust(**{part: replacement - pit.select(part, of, align)})
 			assert updated == adjusted
@@ -268,7 +268,7 @@ class Point(Range):
 		# This provides access to a &.abstract.Measure whose precision is consistent with the &Point.
 
 		# [ Invariants ]
-		#!/syntax/python
+		#!python
 			assert point.Measure.unit == point.unit
 		"""
 
@@ -278,7 +278,7 @@ class Point(Range):
 		# Points *must* return the instance, &self:
 
 		# [ Invariants ]
-		#!/syntax/python
+		#!python
 			assert point.start is point
 		"""
 
@@ -288,7 +288,7 @@ class Point(Range):
 		# The next Point according to the unit:
 
 		# [ Invariants ]
-		#!/syntax/python
+		#!python
 			assert point.stop == point.elapse(point.Measure(1))
 		"""
 
@@ -297,7 +297,7 @@ class Point(Range):
 		"""
 		# The magnitude of the Point. For Points, this *must* be one::
 
-		#!/syntax/python
+		#!python
 			assert pit.magnitude == 1
 		"""
 
@@ -328,7 +328,7 @@ class Point(Range):
 
 		# [ Invariants ]
 
-		#!/syntax/python
+		#!python
 			pit == (pit.rollback(*measures, **units)).elapse(*measures, **units)
 		"""
 

@@ -3,7 +3,7 @@
 
 # Usage:
 
-#!syntax/python
+#!python
 	from fault.time import types, views
 	z = views.Zone.open(types.from_unix_timestamp, "America/Los_Angeles")
 """

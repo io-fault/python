@@ -184,7 +184,9 @@ tzinfo = collections.namedtuple('tzinfo', (
 	'tz_isgmt',
 ))
 def structure(tzif):
-	'given the parse fields from parse(), make a more accessible structure'
+	"""
+	# Given the parse fields from parse(), make a more accessible structure.
+	"""
 	(transtimes, types, leaps, isstd, isgmt, timeinfo) = tzif
 	ltt = []
 	i = -1

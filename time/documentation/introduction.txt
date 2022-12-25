@@ -12,10 +12,10 @@ Calendar Support:
 
 	- Proleptic Gregorian
 
-#!/syntax/python
+#!python
 	from fault.time.types import Date, Timestamp, Measure
 
-#!/syntax/python
+#!python
 	from fault.time import sysclock
 	now = sysclock.now() # Always UTC
 
