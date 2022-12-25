@@ -122,7 +122,7 @@ class Zone(object):
 		)
 
 	import bisect
-	def find(self, pit, search=bisect.bisect):
+	def find(self, pit, *, search=bisect.bisect):
 		"""
 		# Get the appropriate offset in the zone for a given Point In Time, &pit.
 		# If the &pit does not fall within a known range, the &default will be returned.
@@ -140,7 +140,7 @@ class Zone(object):
 			z = self.default
 		return z
 
-	def slice(self, start, stop, search=bisect.bisect):
+	def slice(self, start, stop, *, search=bisect.bisect):
 		"""
 		# Get a slice of transition points and time zone offsets
 		# relative to a given &start and &stop.
