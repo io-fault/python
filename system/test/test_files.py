@@ -6,7 +6,7 @@ import functools
 import os.path
 
 from .. import files as lib
-from ...time import sysclock
+from ...time.system import utc as time
 
 @functools.singledispatch
 def d_setup(x:bytes, path:lib.Path):
@@ -378,7 +378,7 @@ def test_Path_set_last_modified(test):
 	test/r.fs_type() != 'void'
 	original_time = r.get_last_modified()
 
-	ttime = sysclock.now().update('minute', -10, 'hour')
+	ttime = time().update('minute', -10, 'hour')
 
 	r.set_last_modified(ttime)
 	new_time = r.get_last_modified()
@@ -427,9 +427,9 @@ def test_Path_since(test):
 	times.sort(reverse=True)
 	y = times[0]
 
-	test/list(root.fs_since(sysclock.now())) == []
+	test/list(root.fs_since(time())) == []
 
-	m = root.fs_since(sysclock.now().rollback(minute=1))
+	m = root.fs_since(time().rollback(minute=1))
 	test/set(x[1] for x in m) == set(files)
 
 def test_Path_construct(test):
@@ -632,8 +632,8 @@ def test_Path_recursive_since(test):
 	# &lib.Path.fs_since with recursive directories.
 	"""
 	import itertools
-	ago10mins = sysclock.now().rollback(minute=10)
-	thirty = sysclock.now().rollback(minute=30)
+	ago10mins = time().rollback(minute=10)
+	thirty = time().rollback(minute=30)
 
 	t = test.exits.enter_context(lib.Path.fs_tmpdir())
 	d = t / 'dir' / 'subdir'
