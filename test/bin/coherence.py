@@ -13,8 +13,9 @@ import resource
 from ...system import corefile
 from ...system import process
 from ...system import files
+from ...system import factors
 from ...status import python
-from ...time.sysclock import elapsed
+from ...time.system import elapsed
 from ...transcript import metrics
 from ...transcript.io import Log
 
@@ -223,7 +224,6 @@ class Harness(engine.Harness):
 
 def intercept(product, project, intention):
 	# Finder for test's target intention.
-	from ...system import factors
 
 	class ProjectFinder(factors.IntegralFinder):
 		def find_spec(self, name, path, target=None):
@@ -321,6 +321,11 @@ def main(inv:process.Invocation) -> process.Exit:
 
 	if product:
 		# Add intercept for this project's modules.
+		factors.finder.connect(files.root@product)
+		pd = factors.finder.context.connect(files.root@product)
+		factors.finder.context.load()
+		for x in pd.connections:
+			factors.finder.connect(x)
 		intercept(product, project, intention)
 
 	log = Log.stdout(channel=channel)
