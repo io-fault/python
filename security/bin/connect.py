@@ -15,8 +15,6 @@ info = lsf.types.Information(
 	identifier = 'http://fault.io/python/security/kprotocol-',
 	name = 'kprotocol-',
 	authority = 'fault.io',
-	abstract = "Transport Security Adapter",
-	icon = dict([('emoji', "🔒")]),
 	contact = "http://fault.io/critical"
 )
 
