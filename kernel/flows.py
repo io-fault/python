@@ -385,8 +385,8 @@ class Monitor(Terminal):
 
 	def actuate(self):
 		# XXX: Use system transaction context for monotonic clock.
-		from ..time import sysclock
-		self.tm_clockread = sysclock.elapsed
+		from ..time import system as time
+		self.tm_clockread = time.elapsed
 
 		self.tm_measure = (lambda x: sum(map(len, x)))
 		self.tm_reference = self.tm_clockread()

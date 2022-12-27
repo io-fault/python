@@ -12,8 +12,6 @@ import traceback
 import heapq
 
 from ..context import weak
-from ..time import types as timetypes
-from ..time import sysclock
 
 def set_actuated(processor):
 	processor._pexe_state = 1

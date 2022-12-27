@@ -12,8 +12,8 @@ import traceback
 import itertools
 import signal # masking SIGINT/SIGTERM in threads.
 import operator
-import time
 import heapq
+from time import sleep
 
 from ..context import tools
 from ..context import weak
@@ -26,8 +26,7 @@ from ..system import thread
 from ..system import memory
 from ..system import execution
 
-from ..time import types as timetypes
-from ..time import sysclock
+from ..time import system as time
 
 from . import core
 from . import flows
@@ -123,7 +122,7 @@ class Matrix(object):
 			Queue=list,
 			snapshot=Delta.snapshot,
 			MemoryError=MemoryError,
-			sleep=time.sleep,
+			sleep=sleep,
 		):
 		"""
 		# Process the array's transfer and construct a sequence of I/O events.
@@ -775,8 +774,8 @@ class Context(core.Context):
 		self._defer_tasks = collections.defaultdict(weakref.WeakSet)
 		self._defer_cancelled = weakref.WeakSet()
 
-	time = staticmethod(sysclock.now)
-	uptime = staticmethod(sysclock.elapsed)
+	uptime = staticmethod(time.elapsed)
+	time = staticmethod(time.utc)
 
 	_defer_reference = None
 
@@ -1518,7 +1517,7 @@ def dispatch(invocation, application:core.Context, identifier=None, exit=exit) -
 
 def reports(link):
 	for process, xact in __process_index__.items():
-		process.log("[%s]\n" %(sysclock.now().select('iso'),))
+		process.log("[%s]\n" %(time.utc().select('iso'),))
 		xact[0].xact_context.report(process.log)
 
 def set_root_process(process):
