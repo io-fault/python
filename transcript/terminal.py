@@ -9,7 +9,6 @@ import collections
 
 from ..context import tools
 from ..terminal import matrix
-from ..time import sysclock
 from ..status import frames
 
 def duration_repr(seconds) -> typing.Tuple[float, str]:

@@ -9,7 +9,7 @@ import signal
 from dataclasses import dataclass
 
 from ..context import tools
-from ..time.sysclock import now, elapsed as time
+from ..time import system as time
 from ..system import execution
 from ..status import frames
 
@@ -79,10 +79,10 @@ def _closed(failed, start, stop, xframes, extension, /,
 
 def _open_frame(status, fcompose=frames.compose):
 	ctx = status['category']
-	ts = now().select('iso')
+	ts = time.utc().select('iso')
 
 	ext = {
-		'@timestamp': [str(time())],
+		'@timestamp': [str(time.elapsed())],
 	}
 	if status['identifier']:
 		ctx = status['identifier']
@@ -119,7 +119,7 @@ def dispatch(meta, log,
 	available = collections.deque(range(len(monitors)))
 	statusd = {}
 	processing = True
-	last = time()
+	last = time.elapsed()
 	summary.reset(last, zero)
 	for m in monitors:
 		m.reset(last, zero)
@@ -182,7 +182,7 @@ def dispatch(meta, log,
 									xlid = available.popleft()
 									statusd[xlid] = status
 									monitor = monitors[xlid]
-									monitor.reset(time(), zero)
+									monitor.reset(time.elapsed(), zero)
 
 									monitor.title(next_channel[1], *next_channel[2])
 									ioa.connect(xlid, next_channel[0])
@@ -200,7 +200,7 @@ def dispatch(meta, log,
 			control.flush()
 
 			# Calculate change in time for Metrics.commit.
-			next_time = time()
+			next_time = time.elapsed()
 
 			# Cycle through sources, flush when complete.
 			for lid, sframes in ioa:
