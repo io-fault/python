@@ -209,6 +209,7 @@ operations = {
 	'field-replace': (lambda t, k, i, v: t.__setitem__(k, i(k, v))),
 	'sequence-append': (lambda t, k, i, v: t[k].append(i(k, v))),
 	'set-add': (lambda t, k, i, v: t[k].add(i(k, v))),
+	'set-discard': (lambda t, k, i, v: t[k].discard(i(k, v))),
 	'integer-add': (lambda t, k, i, v: t.__setitem__(k, t.get(k, 0) + int(i(k, v)))),
 	'subfield-replace': _sfr,
 	'sequence-append-assignment': _seq,
