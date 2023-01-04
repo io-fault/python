@@ -47,7 +47,7 @@ def test_Import_from_attributes(test):
 	test/attr == ()
 
 def test_Import_tree(test):
-	from .. import __package__ as project
+	from .. import __name__ as project
 	pkg = module.Import.from_fullname(project)
 	pkgs, mods = map(set, pkg.tree())
 
@@ -58,9 +58,3 @@ def test_Import_get_last_modified(test):
 	# This is essentally the implementation; the method is mere convenience.
 	pkg = module.Import.from_fullname(__package__)
 	test/pkg.file().get_last_modified() == pkg.get_last_modified()
-
-def test_Import_subnodes(test):
-	"""
-	# Test the filtering and functionality of &module.Import.subnodes.
-	"""
-	test.skip("not implemented")
