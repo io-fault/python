@@ -2,7 +2,7 @@
 # Check the implementation of import routes.
 """
 import sys
-from .. import python as lib
+from .. import python as module
 
 def test_Import(test):
 	# ..bit strange when dealing with nested project packages
@@ -11,17 +11,17 @@ def test_Import(test):
 	local = '.'.join(fullpath[:fullpath.index('system')+1])
 
 	# package.test
-	r = lib.Import.from_fullname(__package__)
+	r = module.Import.from_fullname(__package__)
 
 	# crawl stack; closest package module is chosen
-	test/lib.Import.from_context() == r
+	test/module.Import.from_context() == r
 
 	test/r.fullname == '.'.join((__package__, ))
 	test/r.module() == sys.modules[__package__]
 	test/r.container.module() == sys.modules['.'.join(__package__.split('.')[:-1])]
 
 	# stack
-	r = lib.Import.from_fullname(__package__)
+	r = module.Import.from_fullname(__package__)
 	modules = r.stack()
 	test/len(modules) >= len(fullpath)
 
@@ -30,47 +30,37 @@ def test_Import(test):
 		test/x == r.module()
 		r = r.container
 
-	# floor
-	r = lib.Import.from_fullname(__package__)
-	test/r.floor() == lib.Import.from_fullname(local)
-	test/r.floor() == r.floor().floor()
-
 	# module that does not exist
-	r = lib.Import.from_fullname('+++++nosuch_module')
+	r = module.Import.from_fullname('+++++nosuch_module')
 	test/r.module() == None
 	test/r.root == r
 
 def test_Import_real(test):
 	# real resolution
-	r = lib.Import.from_fullname(__package__ + '.' + '+++++nosuch_module')
+	r = module.Import.from_fullname(__package__ + '.' + '+++++nosuch_module')
 	test/r.module() == None
-	test/r.real() == lib.Import.from_fullname(__package__)
-
-def test_Import_anchor(test):
-	i = lib.Import.from_fullname(__package__)
-	i = i.anchor()
-	test/i.context == i.floor()
+	test/r.real() == module.Import.from_fullname(__package__)
 
 def test_Import_from_attributes(test):
-	mod, attr = lib.Import.from_attributes(__package__)
-	test/mod == lib.Import.from_fullname(__package__)
+	mod, attr = module.Import.from_attributes(__package__)
+	test/mod == module.Import.from_fullname(__package__)
 	test/attr == ()
 
 def test_Import_tree(test):
-	pkg = lib.Import.from_fullname(__package__)
-	project = pkg.floor()
-	pkgs, mods = map(set, project.tree())
+	from .. import __package__ as project
+	pkg = module.Import.from_fullname(project)
+	pkgs, mods = map(set, pkg.tree())
 
-	test/((project/'test') in pkgs) == True
-	test/((project/'execution') in mods) == True
+	test/((pkg/'test') in pkgs) == True
+	test/((pkg/'execution') in mods) == True
 
 def test_Import_get_last_modified(test):
 	# This is essentally the implementation; the method is mere convenience.
-	pkg = lib.Import.from_fullname(__package__)
+	pkg = module.Import.from_fullname(__package__)
 	test/pkg.file().get_last_modified() == pkg.get_last_modified()
 
 def test_Import_subnodes(test):
 	"""
-	# Test the filtering and functionality of &library.Import.subnodes.
+	# Test the filtering and functionality of &module.Import.subnodes.
 	"""
 	test.skip("not implemented")

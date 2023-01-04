@@ -15,7 +15,6 @@ class Import(Selector):
 	"""
 	# Route for Python imports.
 	"""
-
 	__slots__ = ('context', 'points',)
 
 	@classmethod
@@ -212,39 +211,6 @@ class Import(Selector):
 		for x in modules:
 			if attribute in x.__dict__:
 				yield (x, x.__dict__[attribute])
-
-	def floor(self, valids={'project', 'context'}, name='__factor_type__'):
-		"""
-		# Find the context or project factor for the given module.
-		"""
-
-		for (mod, value) in self.scan(name):
-			if value in valids:
-				return self.__class__.from_fullname(mod.__name__)
-
-		return None # No outer modules with __factor_type__.
-
-	def project(self):
-		"""
-		# Return the 'project' module of the &floor package.
-		"""
-
-		f = self.floor()
-		if f is not None:
-			if f.module().__factor_type__ == 'context':
-				return (f/'context'/'project').module()
-			else:
-				return (f/'project').module()
-
-	def anchor(self):
-		"""
-		# Anchor the &Import route according to the project's context.
-		# This returns a new &Import instance whose &context is the &floor of the module.
-		"""
-		points = self.absolute
-		project = self.floor()
-		rel = points[len(project.points):]
-		return self.__class__(project, tuple(rel))
 
 	def module(self, trap=True, import_module=importlib.import_module):
 		"""
