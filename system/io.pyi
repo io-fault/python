@@ -3,7 +3,7 @@
 """
 from . import network
 
-class Port(object)
+class Port(object):
 	"""
 	# Data structure holding the kport_t used by the Channel.
 	# Maintains the error state and references.
