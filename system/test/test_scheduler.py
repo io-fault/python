@@ -129,6 +129,7 @@ def test_dispatch_actuate(test):
 	finally:
 		ks.void()
 
+	# Just the actuate.
 	test/len(events) == 1
 	test/id(events[0]) == id(ln.event)
 
@@ -150,15 +151,16 @@ def test_dispatch_terminate(test):
 		test/ks.execute() == 0
 		test/(ln in ks.operations()) == True
 
+		# Link is discarded by close.
 		test/ks.close() == True
-		test/ks.execute() == 1
 		test/(ln in ks.operations()) == False
 
-		# Nothing more.
+		test/ks.execute() == 1
 		test/ks.execute() == 0
-	except:
+	finally:
 		ks.void()
 
+	# Just the terminate.
 	test/len(events) == 1
 	test/id(events[0]) == id(ln.event)
 

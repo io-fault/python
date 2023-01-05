@@ -124,9 +124,16 @@ ks_termination(Scheduler ks, KernelQueue kq, TaskQueue tq)
 		{
 			case EV_TYPE_ID(meta_terminate):
 			{
+				/* Transition reference to taskq. */
+				Py_INCREF(op);
+
+				if (PyDict_DelItem(kq->kq_references, (PyObj) ev) < 0)
+					PyErr_WriteUnraisable(ln);
+
 				if (taskq_enqueue(tq, ln) < 0)
 				{
 					r = -2;
+					Py_DECREF(op);
 					goto exit;
 				}
 			}
@@ -140,7 +147,8 @@ ks_termination(Scheduler ks, KernelQueue kq, TaskQueue tq)
 
 	exit:
 	{
-		Py_CLEAR(ops);
+		/* Returns early if ops is NULL. */
+		Py_DECREF(ops);
 		return(r);
 	}
 }
