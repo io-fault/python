@@ -1,6 +1,6 @@
 from .. import files
 from .. import execution as module
-from .test_kernel import perform_cat
+from .tools import perform_cat
 
 def test_PInvocation(test):
 	data = b"data sent through a cat pipeline\n"
