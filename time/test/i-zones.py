@@ -1,6 +1,6 @@
 from .. import types
 from .. import views
-from .. import sysclock
+from .. import system
 
 zone = (lambda x: views.Zone.open(types.from_unix_timestamp, x))
 
@@ -10,7 +10,7 @@ def test_zone_data(test):
 	"""
 	today = 'America/Anchorage'
 	tomorrow = 'Japan'
-	now = sysclock.now()
+	now = system.utc()
 	# need to work with the end of the day
 	end_of_day = now.update('hour', 23, 'day')
 
