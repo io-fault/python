@@ -1,184 +1,371 @@
 """
-# Route Protocols
+# Route interface descriptions for &Path manipulations and &File system controls.
+
+# [ File System Property Codes ]
+
+# &File operations that analyze status properties use character codes to
+# perform filtering. The codes listed here are primarily for POSIX filesystems
+# and may have extensions or different meanings when used with emulated filesystems.
+
+# [> Permissions]
+# Character codes identifying available permissions.
+
+	# /`'r'`/
+		# Readable.
+	# /`'w'`/
+		# Writable.
+	# /`'x'`/
+		# Executable or searchable.
+	# /`'R'`/
+		# Not readable.
+	# /`'W'`/
+		# Not writable.
+	# /`'X'`/
+		# Not executable or searchable.
+
+# [> Types]
+# Character codes identifying a type of file.
+
+	# /`'*'`/
+		# Any.
+	# /`'!'`/
+		# Void; file must not exist.
+	# /`'/'`/
+		# Directory.
+	# /`'.'`/
+		# Data. A "regular" file.
+	# /`'&'`/
+		# A symbolic link.
+	# /`'|'`/
+		# A named pipe.
+	# /`'@'`/
+		# A file system socket file.
+	# /`'#'`/
+		# A device file.
+	# /`'?'`/
+		# Unknown type.
+		# File exists, but it's type is not known and may be inaccessible.
 """
-import abc
-import typing
-import collections.abc
+from abc import abstractmethod, abstractproperty
+from collections.abc import Hashable, Iterable, Sequence
+from typing import Protocol
 
-@collections.abc.Hashable.register
-class Route(metaclass=abc.ABCMeta):
+@Hashable.register
+class Path(Protocol):
 	"""
-	# A series of identifiers used to form an absolute or relative path.
+	# Primitive operations for manipulating a sequence of identifiers.
 	"""
 
-	@property
-	@abc.abstractmethod
-	def container(self):
+	@abstractproperty
+	def container(self) -> Path:
 		"""
-		# Return a Route to the outer Route. This will cross &context boundaries.
+		# The route containing the final identifier in &self.
 		"""
+		raise NotImplementedError
 
-	@property
-	@abc.abstractmethod
-	def absolute(self):
+	@abstractproperty
+	def absolute(self) -> list[Hashable]:
 		"""
-		# The absolute sequence of points relative to the hierarchy's true root.
+		# The absolute sequence of identifiers.
 		"""
+		raise NotImplementedError
 
-	@property
-	@abc.abstractmethod
-	def identifier(self):
+	@abstractproperty
+	def identifier(self) -> Hashable:
 		"""
-		# The identity of the node relative to its immediate container. The last point in the route.
+		# The object identifying the resource relative to its immediate container.
+		# The last point in the route.
 		"""
+		raise NotImplementedError
 
-	@abc.abstractmethod
-	def truncate(self, point):
+	@abstractmethod
+	def truncate(self, identifier:Hashable) -> Path:
 		"""
-		# Construct a new &Route consisting of the existing sequence of points up to the *last*
+		# Construct a new route consisting of the existing sequence of points up to the *last*
 		# point specified by the &point argument. Similar to slicing a sequence from a
-		# reverse index search. Truncate does *not* cross &context boundaries.
+		# reverse index search.
 		"""
+		raise NotImplementedError
 
-	@abc.abstractmethod
-	def __pow__(self, route):
-		"""
-		# Numeric ascend operation.
-		"""
-
-	@abc.abstractmethod
-	def __invert__(self):
+	@abstractmethod
+	def __invert__(self) -> Iterable[Path]:
 		"""
 		# Stepwise root ascension.
-		"""
 
-	@abc.abstractmethod
-	def __lshift__(self, route):
+		#!python
+			assert list(~route) == [route ** 1, route ** 2, ..., route ** len(route)]
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def __lshift__(self, route:Path) -> Iterable[Path]:
 		"""
 		# Stepwise ascension path.
 		"""
+		raise NotImplementedError
 
-	@abc.abstractmethod
-	def __rshift__(self, route):
+	@abstractmethod
+	def __rshift__(self, route:Path) -> Iterable[Path]:
 		"""
 		# Stepwise descension path.
 		"""
+		raise NotImplementedError
 
-	@abc.abstractmethod
-	def __xor__(self, route):
+	@abstractmethod
+	def __xor__(self, route:Path) -> Iterable[Path]:
 		"""
 		# Stepwise traverse path.
 		"""
+		raise NotImplementedError
 
-	@abc.abstractmethod
-	def __add__(self, route):
-		"""
-		# Sequence-type extension.
-		"""
-
-	@abc.abstractmethod
-	def __matmul__(self, route):
+	@abstractmethod
+	def __matmul__(self, path_expression:str) -> Path:
 		"""
 		# Composite extension.
-		"""
+		# Construct a new route by extending &self with the points expressed in &path.
 
-	@abc.abstractmethod
-	def __floordiv__(self, route):
+		# [ Parameters ]
+		# /path_expression/
+			# A string that represents a relative or absolute path.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def __add__(self, points:Iterable[Hashable]) -> Path:
+		"""
+		# Extension by iterable.
+		# Construct a new route by extending &self with &points.
+
+		#!python
+			assert (route + points) == (route / points[0] / points[1] ... / points[n])
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def __floordiv__(self, route:Path) -> Path:
 		"""
 		# Segment extension.
-		"""
+		# Construct a new route by extending &self with all the points in &route.
 
-	@abc.abstractmethod
-	def __truediv__(self, route):
+		#!python
+			assert (route // segment) == (route + segment.absolute)
 		"""
-		# Single point extension.
-		"""
+		raise NotImplementedError
 
-class FileSystemPath(metaclass=abc.ABCMeta):
+	@abstractmethod
+	def __truediv__(self, point:Hashable) -> Path:
+		"""
+		# Single extension.
+		# Construct a new route by extending &self with the sole &point.
+
+		#!python
+			assert (route / identifier) == (route + [identifier])
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def __mul__(self, identifier:Hashable) -> Path:
+		"""
+		# Identifier substitution.
+		# Construct a new route by extending &self.container with &identifier.
+
+		#!python
+			assert (route * 'replacement') == (route.container / 'replacement')
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def __pow__(self, nth) -> Path:
+		"""
+		# Numeric ascension operation.
+		# Construct a new route representing the &nth container of &self.
+
+		#!python
+			assert (route ** 1) == (route.container)
+			assert (route ** 2) == (route.container.container)
+		"""
+		raise NotImplementedError
+
+class File(Path):
 	"""
 	# File system APIs for supporting common access functions.
 	"""
 
-	@abc.abstractmethod
+	@abstractproperty
+	def RequirementViolation(self) -> Exception:
+		"""
+		# Exception describing the property violations found
+		# by a call to &fs_require.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_require(self, properties:str, *, type=None):
+		"""
+		# Check the file for the expressed requirements.
+		# The &properties string consists of characters described by
+		# &[File System Property Codes].
+
+		# [ Parameters ]
+		# /properties/
+			# The required type, permissions and option control flags.
+		# /type/
+			# The required file type, inclusive.
+			# When &None, the default, the file type must not be a directory.
+
+			# Overrides any file type codes present in &properties.
+
+		# [ Exceptions ]
+		# /&RequirementViolation/
+			# Raised when a designated property is not present on the file.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_replace(self, replacement):
+		"""
+		# Destroy the existing file or directory, &self, and replace it with the
+		# file or directory at the given route, &replacement.
+
+		# [ Parameters ]
+		# /replacement/
+			# The route to the file or directory that will be used to replace
+			# the one at &self.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_void(self):
+		"""
+		# Destroy the file or directory at the location identified by &self.
+		# For directories, this recursively removes content as well.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_link_relative(self, path):
+		"""
+		# Create or update a *symbolic* link at &self pointing to &path, the target file.
+		# The linked target path will be relative to &self' route.
+
+		# [ Parameters ]
+		# /path/
+			# The route identifying the target path of the symbolic link.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_link_absolute(self, path):
+		"""
+		# Create or update a *symbolic* link at &self pointing to &path, the target file.
+		# The linked target path will be absolute.
+
+		# [ Parameters ]
+		# /path/
+			# The route identifying the target path of the symbolic link.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
 	def fs_alloc(self):
 		"""
 		# Allocate the necessary resources to create the target path as a file or directory.
 
-		# Normally, this means creating the leading path to the identified resource.
+		# Normally, this means creating the *leading* path to the identified resource.
 		"""
+		raise NotImplementedError
 
-	@abc.abstractmethod
+	@abstractmethod
+	def fs_mkdir(self):
+		"""
+		# Create a directory at the location referenced by &self.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_select(self, properties:str='*') -> Iterable[File]:
+		"""
+		# Select the set of files contained within the directory identified by &self
+		# that match the required &properties.
+
+		# The &properties string consists of characters described by
+		# &[File System Property Codes].
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_real(self) -> File:
+		"""
+		# Identify the portion of the route that actually exists on the filesystem.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_status(self):
+		"""
+		# Construct a data structure representing the latest status of the file.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_update(self, *,
+			name=None, size=None,
+			created=None, modified=None,
+		):
+		"""
+		# Update the status properties of the file identified by &self.
+		# If no arguments are supplied, not changes will be performed.
+
+		# [ Parameters ]
+		# /name/
+			# Change the identifier used to select the file relative to
+			# its parent directory.
+		# /size/
+			# Adjust the size of the file, truncating or zero-padding as needed.
+		# /modified/
+			# The time that the file was said to be modified.
+		# /created/
+			# The time that the file was said to be created.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
 	def fs_load(self) -> bytes:
 		"""
-		# Retrieve the binary data from the file referenced by the &Route.
+		# Retrieve the binary data stored at the location identified by &self.
+		"""
+		raise NotImplementedError
 
-		# If the storage system being referenced by the Route is not storing binary data,
-		# then the object stored should be transformed into binary data. For instance,
-		# if the Route was bound to a virtual filesystem that was storing &str instances,
-		# then the returned object should be encoded using a context configured encoding.
+	@abstractmethod
+	def fs_store(self, data:bytes):
 		"""
+		# Store the given &data at the location referenced by &self.
+		"""
+		raise NotImplementedError
 
-	@abc.abstractmethod
-	def fs_store(self, data:bytes) -> None:
-		"""
-		# Store the given &data at the &Route.
-		"""
-
-	@abc.abstractmethod
-	def fs_get_text_content(self) -> str:
-		"""
-		# Retrieve the contents of the file reference by the &Route as a &str.
-		"""
-
-	@abc.abstractmethod
-	def fs_set_text_content(self, text:str) -> None:
-		"""
-		# Set the contents of the file to the given &text.
-		"""
-
-	@abc.abstractmethod
-	def fs_get_last_modified(self) -> "timestamp":
-		"""
-		# Retrieve the timestamp that the file at the &Route was last modified at.
-		"""
-
-	@abc.abstractmethod
-	def fs_set_last_modified(self, timestamp):
-		"""
-		# Update the modification time of the file identified by the &Route.
-		"""
-
-	@abc.abstractmethod
+	@abstractmethod
 	def fs_type(self) -> str:
 		"""
 		# A string identifying the type of file selected by the &Route.
+		# Often a shorthand for accessing the type from the structure
+		# returned by &fs_status.
 		"""
+		raise NotImplementedError
 
-	@abc.abstractmethod
+	@abstractmethod
 	def fs_executable(self) -> bool:
 		"""
 		# Whether or not the regular file is executable.
 
 		# Directories marked as executable are not considered executables.
 		"""
+		raise NotImplementedError
 
-	@abc.abstractmethod
+	@abstractmethod
 	def fs_searchable(self) -> bool:
 		"""
 		# Whether or not the directory's listing can be retrieved.
 
 		# Regular files marked as executable are not considered searchable.
 		"""
-
-	@abc.abstractmethod
-	def fs_test(self) -> bool:
-		"""
-		# Whether the file exists.
-		"""
-
-	@abc.abstractmethod
-	def fs_select(self:Route, pattern:object, area:str='directory') -> typing.Collection[Route]:
-		"""
-		# Select the set of files relative to the &Route that match the given &pattern
-		# within the designated &area.
-		"""
+		raise NotImplementedError
