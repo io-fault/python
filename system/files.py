@@ -276,9 +276,12 @@ def path_string_cache(path):
 
 class Path(Selector):
 	"""
-	# &Selector subclass for local filesystem paths.
+	# - &..route.abstract.Path
+	# - &..route.abstract.File
 
-	# Methods starting with `fs_` perform filesystem operations.
+	# Path implementation providing file system controls.
+	# &.files.root is provided for convenience, and &.process.fs_pwd is
+	# available for getting the working directory of the process.
 	"""
 	__slots__ = ('context', 'points',)
 
@@ -295,29 +298,7 @@ class Path(Selector):
 		'!': 0,
 	}
 
-	def fs_require(self, properties='', /, type=None):
-		"""
-		# Check the file for the expressed requirements using the effective user.
-
-		# [ Returns ]
-		# &self for method chaining when all requirements are met.
-
-		# [ Parameters ]
-		# /properties/
-			# The required type, permissions and option control flags.
-			# A string consisting of a leading &type_codes prefix and
-			# any trailing `rwx/!?'.
-		# /type/
-			# The required file type, inclusive.
-			# When &None, the default, the file type must not be a directory.
-
-			# Overrides any file type codes present in &properties.
-
-		# [ Exceptions ]
-		# /&RequirementViolation/
-			# Raised when a designated property is not present on the file.
-		"""
-
+	def fs_require(self, properties:str='', *, type=None):
 		# The cases involving '/', '!' and '?' properties are slightly odd,
 		# but are intended to cover relatively common cases where the
 		# use of an explicit type alone is insufficient.
@@ -371,7 +352,7 @@ class Path(Selector):
 		return self
 
 	@classmethod
-	def from_path(Class, path:str, getcwd=os.getcwd):
+	def from_path(Class, path:str, *, getcwd=os.getcwd):
 		"""
 		# Construct a &Path instance from the given absolute or relative path
 		# provided for &string; if a relative path is specified, it will
@@ -389,7 +370,7 @@ class Path(Selector):
 			return Class.from_relative(Class.from_absolute(getcwd()), path)
 
 	@classmethod
-	def from_relative(Class, context, path:str, chain=itertools.chain):
+	def from_relative(Class, context, path:str, *, chain=itertools.chain):
 		"""
 		# Return a new Route pointing to the file referenced by &path;
 		# where path is a path relative to the &context &Path instance.
@@ -445,7 +426,7 @@ class Path(Selector):
 
 	@classmethod
 	@contextlib.contextmanager
-	def fs_tmpdir(Class, TemporaryDirectory=tempfile.mkdtemp):
+	def fs_tmpdir(Class, *, TemporaryDirectory=tempfile.mkdtemp):
 		"""
 		# Create a temporary directory at a new route using a context manager.
 
@@ -564,7 +545,7 @@ class Path(Selector):
 		return self * (prefix_string + self.identifier)
 	prefix = prefix_filename
 
-	def __pos__(self, /, _chain=itertools.chain):
+	def __pos__(self, *, _chain=itertools.chain):
 		context = self.context.absolute if self.context else []
 		points = self.points
 
@@ -580,13 +561,10 @@ class Path(Selector):
 
 		return self.__class__(ctx, tuple(rpoints))
 
-	def fs_status(self, stat=os.stat) -> Status:
-		"""
-		# Construct a &Status instance using a system status record.
-		"""
+	def fs_status(self, *, stat=os.stat) -> Status:
 		return Status((stat(self.fullpath), self.identifier))
 
-	def fs_type(self, ifmt=stat.S_IFMT, stat=os.stat, type_map=Status._fs_type_map) -> str:
+	def fs_type(self, *, ifmt=stat.S_IFMT, stat=os.stat, type_map=Status._fs_type_map) -> str:
 		"""
 		# The type of file the route points to. Transforms the result of an &os.stat
 		# call into a string describing the (python/attribute)`st_mode` field.
@@ -609,26 +587,7 @@ class Path(Selector):
 
 		return type_map.get(ifmt(s.st_mode), 'unknown')
 
-	def fs_test(self, type:str=None) -> bool:
-		"""
-		# Perform a set of tests against a fresh status record.
-
-		# Returns &True when all the tests pass.
-		# &False if one fails or the file does not exist.
-		"""
-		t = self.fs_type()
-		if type is None:
-			if t == 'void':
-				return False
-			else:
-				pass
-				# Default to continue when no type is present.
-		elif type != t:
-			return False
-
-		return True
-
-	def fs_executable(self, get_stat=os.stat, mask=stat.S_IXUSR|stat.S_IXGRP|stat.S_IXOTH) -> bool:
+	def fs_executable(self, *, get_stat=os.stat, mask=stat.S_IXUSR|stat.S_IXGRP|stat.S_IXOTH) -> bool:
 		"""
 		# Whether the file at the route is considered to be an executable.
 		"""
@@ -636,13 +595,7 @@ class Path(Selector):
 		mode = get_stat(self.fullpath).st_mode
 		return (mode & mask) != 0
 
-	def fs_follow_links(self, readlink=os.readlink, islink=os.path.islink) -> typing.Iterator[Selector]:
-		"""
-		# Iterate through the links in a chain until a non-symbolic link file is reached.
-
-		# ! NOTE:
-			# The final Path yielded may not actually exist.
-		"""
+	def fs_follow_links(self, *, readlink=os.readlink, islink=os.path.islink) -> typing.Iterator[Selector]:
 		Class = self.__class__
 		r = self
 
@@ -658,7 +611,7 @@ class Path(Selector):
 
 		yield r
 
-	def fs_iterfiles(self, type=None, scandir=os.scandir):
+	def fs_iterfiles(self, /, type=None, *, scandir=os.scandir):
 		"""
 		# Generate &Path instances identifying the files held by the directory, &self.
 		# By default, all file types are included, but if the &type parameter is given,
@@ -690,7 +643,7 @@ class Path(Selector):
 					if type == r.fs_type():
 						yield r
 
-	def fs_list(self, type='data', scandir=os.scandir):
+	def fs_list(self, type='data', *, scandir=os.scandir):
 		"""
 		# Retrieve the list of files contained by the directory referred to by &self.
 		# Returns a pair, the sequence of directories and the sequence of data files.
@@ -720,7 +673,7 @@ class Path(Selector):
 
 		return (dirs, files)
 
-	def fs_index(self, type='data', Queue=collections.deque):
+	def fs_index(self, type='data', *, Queue=collections.deque):
 		"""
 		# Generate pairs of directories associated with their files.
 
@@ -881,10 +834,6 @@ class Path(Selector):
 			yield from x.fs_since(since, traversed=traversed)
 
 	def fs_real(self, exists=os.path.exists):
-		"""
-		# Return the part of the Path that actually exists on the filesystem.
-		"""
-
 		for x in ~self:
 			if exists(x.fullpath):
 				return x
@@ -900,17 +849,16 @@ class Path(Selector):
 
 		return exists(self.fullpath)
 
-	def fs_modified(self, utime=os.utime):
+	def fs_modified(self, *, utime=os.utime):
 		"""
 		# Update the modification time of the file identified by &self.
 		"""
 		return utime(self.fullpath)
 
-	def fs_size(self, stat=os.stat) -> int:
+	def fs_size(self, *, stat=os.stat) -> int:
 		"""
 		# Return the size of the file as depicted by &os.stat.
 		"""
-
 		return stat(self.fullpath, follow_symlinks=True).st_size
 
 	def get_last_modified(self) -> int:
@@ -953,12 +901,6 @@ class Path(Selector):
 		return (st.created, st.last_modified, st.st_size)
 
 	def fs_void(self, rmtree=shutil.rmtree, remove=os.remove):
-		"""
-		# Remove the file that is referenced by this path.
-
-		# If the Route refers to a symbolic link, only the link file will be removed.
-		# If the Route refers to a directory, the contents and the directory will be removed.
-		"""
 		fp = self.fullpath
 
 		try:
@@ -971,19 +913,13 @@ class Path(Selector):
 			return rmtree(fp)
 		else:
 			# typ is 'void' for broken links.
-			return remove(fp)
+			try:
+				return remove(fp)
+			except FileNotFoundError:
+				return
+		return self
 
 	def fs_replace(self, replacement, copytree=shutil.copytree, copyfile=shutil.copy) -> None:
-		"""
-		# Drop the existing file or directory, &self, and replace it with the
-		# file or directory at the given route, &replacement.
-
-		# [ Parameters ]
-		# /replacement/
-			# The route to the file or directory that will be used to replace
-			# the one at &self.
-		"""
-
 		src = replacement.fullpath
 		dst = self.fullpath
 		self.fs_void() #* Removal for replacement.
@@ -992,17 +928,9 @@ class Path(Selector):
 			copytree(src, dst, symlinks=True, copy_function=copyfile)
 		else:
 			copyfile(src, dst)
+		return self
 
 	def fs_link_relative(self, path, link=os.symlink) -> None:
-		"""
-		# Create or update a *symbolic* link at &self pointing to &path, the target file.
-		# The linked target path will be relative to &self' route.
-
-		# [ Parameters ]
-		# /path/
-			# The route identifying the target path of the symbolic link.
-		"""
-
 		relcount, segment = self.correlate(path)
 		target = '../' * (relcount - 1)
 		target += '/'.join(segment)
@@ -1015,17 +943,9 @@ class Path(Selector):
 				raise
 
 			link(target, self.fullpath)
+		return self
 
 	def fs_link_absolute(self, path, link=os.symlink) -> None:
-		"""
-		# Create or update a *symbolic* link at &self pointing to &path, the target file.
-		# The linked target path will be absolute.
-
-		# [ Parameters ]
-		# /path/
-			# The route identifying the target path of the symbolic link.
-		"""
-
 		target = path.fullpath
 
 		try:
@@ -1036,6 +956,7 @@ class Path(Selector):
 				raise
 
 			link(target, self.fullpath)
+		return self
 
 	def fs_init(self, data:typing.Optional[bytes]=None, mkdir=os.mkdir, exists=os.path.exists):
 		"""
@@ -1070,11 +991,6 @@ class Path(Selector):
 		return self
 
 	def fs_alloc(self, mkdir=os.mkdir):
-		"""
-		# Create the leading path to identified file.
-		# Returns the instance, &self.
-		"""
-
 		routes = []
 		for p in ~(self ** 1):
 			if p.fs_type() != 'void':
@@ -1088,13 +1004,6 @@ class Path(Selector):
 		return self
 
 	def fs_mkdir(self, mkdir=os.mkdir, exists=os.path.exists):
-		"""
-		# Create a directory at the route.
-
-		# Returns the route instance, &self.
-		# Leading directories will be created as needed.
-		"""
-
 		fp = self.fullpath
 		if exists(fp):
 			return self
@@ -1131,26 +1040,16 @@ class Path(Selector):
 		else:
 			f.__exit__(None, None, None)
 
-	def fs_load(self, mode='rb') -> bytes:
-		"""
-		# Open the file, and return the entire contents as a &bytes instance.
-		# If the file does not exist, an *empty bytes instance* is returned.
-
-		# Unlike &store, this will not initialize the file.
-		"""
+	def fs_load(self, *, mode='rb') -> bytes:
 		try:
 			with self.fs_open(mode) as f:
 				return f.read()
 		except FileNotFoundError:
 			return b''
 
-	def fs_store(self, data:bytes, mode='wb'):
-		"""
-		# Given a &bytes instance, &data, store the contents at the location referenced
-		# by the &Route. If the file does not exist, *it will be created* along with
-		# the leading directories.
-		"""
+	def fs_store(self, data:bytes, *, mode='wb'):
 		with self.fs_open(mode) as f:
-			return f.write(data)
+			f.write(data)
+			return self
 
 root = Path(None, ())
