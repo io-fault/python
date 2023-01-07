@@ -8,13 +8,14 @@
 # Direct use of this class is likely inappropriate. Either &.types.Selector or &.types.Segment
 # should be subclassed in order to convey the presence of a target resource.
 """
+from collections.abc import Iterable, Iterator, Sequence
 import functools
 import typing
 
 from ..context.tools import cachedcalls, consistency
 
 # Type signature for identifiers used by &Selector and &Segment instances.
-Identifier = typing.Hashable
+Identifier: typing.TypeAlias = typing.Hashable
 
 # Reduction for often re-used PartitionedSequence.points
 def vcombine(*args):
@@ -36,7 +37,7 @@ def map_partitions(parts):
 		yield from ((i, x) for x in range(len(p)))
 		i += 1
 
-def relative_path(target, source) -> (int, int, typing.Sequence[Identifier]):
+def relative_path(target, source) -> tuple[int, int, Sequence[Identifier]]:
 	# Produce information for forming a relative path.
 	# PartitionedSequence specific details; used by correlate and segment.
 	if source.context is target.context:
@@ -62,7 +63,7 @@ class PartitionedSequence(object):
 	# usage must be aware of how &context can eliminate redundant leading segments.
 	"""
 
-	def correlate(self, target) -> typing.Tuple[int, typing.Sequence[Identifier]]:
+	def correlate(self, target) -> tuple[int, Sequence[Identifier]]:
 		"""
 		# The relative positioning of &self with respect to &target.
 		# Provides the necessary information to form a relative path to &target from &self.
@@ -89,7 +90,7 @@ class PartitionedSequence(object):
 	# Partition Interfaces
 
 	@classmethod
-	def from_partitions(Class, parts:typing.Iterable[typing.Tuple[Identifier]], context=None):
+	def from_partitions(Class, parts:Iterable[tuple[Identifier]], context=None):
 		"""
 		# Construct a new instance from an iterable of partitions in root order.
 		"""
@@ -136,7 +137,7 @@ class PartitionedSequence(object):
 		l.reverse()
 		return l
 
-	def __init__(self, context, points:typing.Tuple[Identifier]):
+	def __init__(self, context, points:tuple[Identifier]):
 		self.context = context
 		self.points = points
 
@@ -146,7 +147,7 @@ class PartitionedSequence(object):
 	def __reduce__(self):
 		return (self.from_partitions, (self.partitions(),))
 
-	def __hash__(self):
+	def __hash__(self) -> int:
 		"""
 		# Hash on the &absolute of the Route allowing consistency regardless of context.
 		"""
@@ -176,7 +177,7 @@ class PartitionedSequence(object):
 	def __len__(self):
 		return sum(map(len, self.iterpartitions()))
 
-	def __iter__(self) -> typing.Iterator[Identifier]:
+	def __iter__(self) -> Iterator[Identifier]:
 		for p in self.partitions():
 			yield from p
 
@@ -190,7 +191,7 @@ class PartitionedSequence(object):
 	def __getitem__(self, req):
 		return self.absolute[req]
 
-	def __add__(self, tail:typing.Iterable[Identifier], list=list):
+	def __add__(self, tail:Iterable[Identifier], list=list):
 		"""
 		# Add the two Routes together maintaining the context of the first.
 		"""

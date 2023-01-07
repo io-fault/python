@@ -1,7 +1,6 @@
 """
 # Segment and Selector implementation access.
 """
-import typing
 import itertools
 from . import core
 from . import rewrite
