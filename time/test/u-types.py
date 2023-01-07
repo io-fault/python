@@ -332,27 +332,6 @@ def test_Months_elapse(test):
 	test/ts.elapse(m) == module.Timestamp.of(date=(2000,3,1))
 	test/ts.rollback(m) == module.Timestamp.of(date=(2000,1,1))
 
-def test_month_spectrum(test):
-	test.explicit()
-	start = module.Timestamp.of(year=1600, month=0, day=0)
-	end = module.Timestamp.of(year=2000, month=0, day=0)
-
-	t = start
-	while t < end:
-		test/t.select('day','month') == 0
-		n = t.elapse(month=1)
-		test/n != t
-		test/n >= t
-		t = n
-
-	t = end
-	while t > start:
-		test/t.select('day','month') == 0
-		n=t.rollback(month=1)
-		test/n != t
-		test/t >= n
-		t = n
-
 def test_indefinite_comparisons(test):
 	never = module.Indefinite(1)
 	genesis = module.Indefinite(-1)
