@@ -163,7 +163,6 @@ class Fate(BaseException):
 		# Abstract, Impact, Numeric Identifier, Color
 		'return': ("passed", "The test returned without exception implying success",1,0,"green"),
 		'pass': ("passed", "The test was explicitly passed by raising its Fate",1,1,"green"),
-		'explicit': ("skipped", "The test must be explicitly invoked",0,2,"magenta"),
 		'skip': ("skipped", "The test was skipped for a specific reason",0,3,"cyan"),
 		'divide': ("divided", "The test is a container of a set of tests",1,4,"blue"),
 		'fail': ("failed", "The test raised an exception or contended an absurdity",-1,5,"red"),
@@ -379,12 +378,6 @@ class Test(object):
 
 		if tb is not None:
 			self.fate.line = tb.tb_lineno
-
-	def explicit(self):
-		"""
-		# Used by test subjects to inhibit runs of a particular test in aggregate runs.
-		"""
-		raise self.Fate("test must be explicitly invoked in order to run", subtype='explicit')
 
 	def skip(self, condition):
 		"""

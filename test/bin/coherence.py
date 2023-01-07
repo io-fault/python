@@ -23,7 +23,6 @@ from .. import engine
 from .. import core
 
 status_identifiers = {
-	'explicit': 'skipped',
 	'skip': 'skipped',
 	'return': 'passed',
 	'pass': 'passed',
