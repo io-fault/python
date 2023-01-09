@@ -10,6 +10,27 @@ class Endpoint(object):
 	# The system's representation of a network communication endpoint.
 	"""
 
+	@classmethod
+	def from_ip4(Class, addrport:tuple[str, int]):
+		"""
+		# Construct an IPv4 endpoint from the host-port pair.
+		"""
+
+	@classmethod
+	def from_ip6(Class, addrport:tuple[str, int]):
+		"""
+		# Construct an IPv6 endpoint from the host-port pair.
+		"""
+
+	@classmethod
+	def from_local(Class, path):
+		"""
+		# Construct a local endpoint from the given filesystem &path.
+		# If &path is a tuple, the first item is expected to be the path
+		# to the directory containing the socket file and the second is
+		# the socket's filename.
+		"""
+
 	def replace(self, **kw):
 		"""
 		# Create a new endpoint with the given fields overwritten.
@@ -69,7 +90,7 @@ def select_interfaces(host:str, service:str|int):
 	# Identify the interfaces to bind to for the service (system/manual)`getaddrinfo`.
 	"""
 
-def connect(endpoint:Endpoint, interface:Endpoint=None):
+def connect(endpoint:Endpoint, interface:Endpoint|None=None):
 	"""
 	# Connect new sockets using the given endpoints.
 	"""
