@@ -23,7 +23,7 @@ def hostname() -> str:
 	# Retrieve the hostname of the system using gethostname(2).
 	"""
 
-def machine() -> (str, str):
+def machine() -> tuple[str, str]:
 	"""
 	# Retrieve the system name and instruction architecture of the runtime using uname(2).
 	"""
@@ -43,6 +43,15 @@ def initialize():
 	# Initialize the after fork callbacks.
 	# Called once by &.process. Do not use directly.
 	"""
+
+@collections.abc.Sequence.register
+class Ports(object):
+	"""
+	# File descriptor vector.
+	"""
+
+	def __init__(self, fds:collections.abc.Iterable[int]):
+		...
 
 class Event(object):
 	"""
