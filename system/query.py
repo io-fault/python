@@ -49,17 +49,19 @@ def home(environment:str='HOME') -> files.Path:
 	except (KeyError, TypeError):
 		try:
 			import pwd
-			return _path(pwd.getpwnam(username()).pw_dir)
+			return _path(pwd.getpwuid(os.getuid()).pw_dir)
 		except:
 			return None
 
-def username(environment:str='USER') -> str:
+def username() -> str:
 	"""
 	# Retrieve the user's name.
-
-	# On nix systems, this is the (system/environ)`USER`.
 	"""
-	return str(os.environ[environment])
+	try:
+		import pwd
+		return pwd.getpwuid(os.getuid()).pw_name
+	except:
+		return None
 
 def usertitle() -> str:
 	"""
@@ -70,7 +72,7 @@ def usertitle() -> str:
 	"""
 	try:
 		import pwd
-		return pwd.getpwnam(username()).pw_gecos
+		return pwd.getpwuid(os.getuid()).pw_gecos
 	except:
 		return None
 
@@ -82,7 +84,7 @@ def shell() -> files.Path:
 	"""
 	try:
 		import pwd
-		return pwd.getpwnam(username()).pw_shell
+		return pwd.getpwuid(os.getuid()).pw_shell
 	except:
 		return None
 
