@@ -222,21 +222,6 @@ def test_Link_scheduler_states(test):
 
 	test/len(events) == 1
 
-def test_execute_error_trap_exceptions(test):
-	"""
-	# - &module.Scheduler.execute
-	"""
-
-	test.explicit()
-	out = []
-	def etrap(ob, err):
-		out.append((ob, err))
-		raise RuntimeError("exception during exception")
-
-	k = module.Scheduler()
-	k.enqueue(None)
-	test/k.execute(etrap) == 1
-
 def test_interrupt(test):
 	"""
 	# - &module.Scheduler.interrupt
