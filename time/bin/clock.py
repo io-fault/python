@@ -4,12 +4,12 @@
 # Carriage returns will be used to overwrite previous displays.
 """
 import sys
-from .. import sysclock
+from .. import system
 from .. import views
 from .. import types
 
-def print_local_timestamp(now=sysclock.now):
-	localtime = views.Zone.open(types.from_unix_timestamp)
+def print_local_timestamp(now=system.utc):
+	localtime = system.zone()
 	try:
 		while not None:
 			ts = now()

@@ -16,8 +16,8 @@ Calendar Support:
 	from fault.time.types import Date, Timestamp, Measure
 
 #!python
-	from fault.time import sysclock
-	now = sysclock.now() # Always UTC
+	from fault.time.system import utc
+	now = utc()
 
 [ Unit Knowledge ]
 

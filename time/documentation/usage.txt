@@ -25,8 +25,8 @@ Measure types:
 The interfaces are described by the abstract base classes in
 &.abstract. Primarily:
 
-/&.abstract.Segment/
-	An abstract Range.
+/&.abstract.Time/
+	A measure or point. The common abstract base class.
 
 /&.abstract.Measure/
 	A measurement of time.
@@ -35,22 +35,10 @@ The interfaces are described by the abstract base classes in
 	A point in time. Points are used to specify calendar dates or
 	calendar dates with time of day.
 
-[ Ranges ]
-----------
-
-&..time includes the class for arbitrary time ranges. They offer more
-functionality than the builtin the &range iterator, regarding integers,
-but they have similar purposes.
-
-Arbitrary ranges in &..time are either a pair of &.abstract.Point
-instances, or a pair of &.abstract.Measure instances. Mixing points
-and measures in ranges is not necessary as such cases can be easily normalized into
-a homogenous pair.
-
 [ Eccentricities ]
 ------------------
 
-[ Eccentricities >> Points and Measures are Python Integers ]
+[> Points and Measures are Python Integers ]
 
 This has the effect that integers with the same value will be seen as the same
 key in dictionaries:
@@ -67,28 +55,29 @@ If type based scoping is needed, the key can be qualified with the type:
 
 #!python
 	d = {}
-	d[(types.Date, types.Date(0))] = 'Hello, Date!'
-	d[(types.Timestamp, types.Timestamp(0))] = 'Hello, Timestamp!'
+	d[(types.Date, types.Date(0))] = 'date-value'
+	d[(types.Timestamp, types.Timestamp(0))] = 'timestamp-value'
 
 Or, nested dictionaries could be used:
 
 #!python
 	d = {types.Date: {}, types.Timestamp: {}}
-	d[types.Date][types.Date(0))] = 'Hello, Date!'
-	d[types.Timestamp][types.Timestamp(0))] = 'Hello, Timestamp!'
+	d[types.Date][types.Date(0))] = 'date-value'
+	d[types.Timestamp][types.Timestamp(0))] = 'timestamp-value'
 
-[ Eccentricities >> Datetime Math ]
+[> Datetime Math ]
 
 &..time is heavily based on direct Python &int subclasses. This offers many
 benefits, but it also avoids overriding the integer's operators leaving a,
 contextually, low-level operation that should normally be avoided. This likely
-offers a suprise as the usual `+` and `-` operators do not perform as they would
-with the standard library's &datetime.datetime or many other datetime packages.
+offers a suprise as the usual addition (`+`) and subtraction (`-`) operators
+do not perform as they would with the standard library's &datetime.datetime
+or many other datetime packages.
 
 Instead, &..time relies on the higher-level methods to perform delta
 calculation and point positioning.
 
-[ Eccentricities >> Day and Month Fields ]
+[> Day and Month Fields ]
 
 The `day` and `month` fields of the standard time context are **offsets** and
 are not consistent with the usual representation of gregorian day-of-month and
@@ -105,7 +94,7 @@ More clearly:
 As opposed to the day-of-month and month-of-year fields being equal to `1` as
 one might expect them to be. Rather, *they are offsets*.
 
-[ Eccentricities >> Month Arithmetic Can Overflow ]
+[> Month Arithmetic Can Overflow ]
 
 The implementation of month arithmetic is sensitive to the selected day:
 
@@ -121,7 +110,7 @@ The issue can be avoided by adjusting the PiT to the beginning of the month:
 	pit = pit.update('day', 0, 'month')
 	pit.elapse(month=1)
 
-[ Eccentricities >> Annums and Years ]
+[> Annums and Years ]
 
 The "year" unit in &..time is strictly referring to gregorian years. This means
 that a "year" in &..time is actually twelve gregorian months, which means
@@ -133,7 +122,7 @@ with &.types.Measure.
 In order to compensate, the &.types.Month class provides a means to
 express such subjective time spans.
 
-[ Eccentricities >> Unit Aware Comparison ]
+[> Unit Aware Comparison ]
 
 Unit subclasses do *not* override the built-in comparison methods implemented by the
 &int type that all unit classes are based on. Given that these classes can
@@ -157,46 +146,46 @@ in order to avoid semantics involved with representation types.
 The list here points to the abstract base classes.
 Points *are* timestamps, datetimes,. Measures *are* intervals, timedeltas.
 
-/(syntax/python)`timedelta() + timedelta()`/
+/`timedelta() + timedelta()`/
 	&.abstract.Measure.increase:
 
 	#!python
 		m1 = types.Measure(second=0)
 		m2 = types.Measure(second=1)
-		m1.increase(m2)
+		d = m1.increase(m2)
 
-/(syntax/python)`timedelta() - timedelta()`/
+/`timedelta() - timedelta()`/
 	&.abstract.Measure.decrease:
 
 	#!python
 		m1 = types.Measure(second=2)
 		m2 = types.Measure(second=1)
-		m1.decrease(m2)
+		d = m1.decrease(m2)
 
-/(syntax/python)`datetime() + timedelta()`/
+/`datetime() + timedelta()`/
 	&.abstract.Point.elapse:
 
 	#!python
 		ts = types.Timestamp.of(...)
 		measure = types.Measure(second=1)
-		ts.elapse(measure)
+		d = ts.elapse(measure)
 
-/(syntax/python)`datetime() - timedelta()`/
+/`datetime() - timedelta()`/
 	Point in Time subtraction is handled with
 	&.abstract.Point.rollback:
 
 	#!python
 		ts = types.Timestamp.of()
 		measure = types.Measure(second=1)
-		ts.rollback(measure)
+		d = ts.rollback(measure)
 
-/(syntax/python)`datetime() - datetime()`/
+/`datetime() - datetime()`/
 	&.abstract.Point.measure:
 
 	#!python
 		ts1 = types.Timestamp.of(...)
 		ts2 = types.Timestamp.of(...)
-		ts1.measure(ts2) # measure the distance between
+		d = ts1.measure(ts2) # measure the distance between
 
 [ Calendar Representation ]
 ---------------------------
@@ -251,7 +240,7 @@ month in the year 1982.
 month of last year?".
 
 #!python
-	pit = sysclock.now()
+	pit = system.utc()
 	pit = pit.update('day', 0, 'month') # set to the first day to avoid overflow
 	pit = pit.rollback(year=1) # subtract one gregorian year
 	pit = pit.update('month', 5-1, 'year') # set to the fifth month
@@ -263,7 +252,7 @@ of a given month.
 
 #!python
 	# move the beginning of month (to avoid possible day overflow)
-	pit = sysclock.now().update('day', 0, 'month')
+	pit = system.utc().update('day', 0, 'month')
 	# to the next month and then to the end of the previous
 	pit = pit.elapse(month = 1).update('day', -1, 'month') # move to the end of the month.
 	# 0 is the beginning of the week, so -1 is the end of the prior week.
@@ -286,7 +275,7 @@ Things can get even more interesting when asking,
 alignment in order to be answered:
 
 #!python
-	pit = sysclock.now()
+	pit = system.utc()
 	pit = pit.update('day', 0, 'month') # let's say this month
 	# but we need the end of the month
 	pit = pit.elapse(month=1)
@@ -308,7 +297,7 @@ day of the re-aligned week.
 Time zone adjustments are supported by zone objects:
 
 #!python
-	pit = sysclock.now()
+	pit = system.utc()
 	tz = views.Zone.open('America/Los_Angeles')
 	local_pit = tz.localize(pit)
 	print(local_pit.select('iso'))
@@ -375,10 +364,10 @@ appropriate:
 -------------------------------------------------------------------------
 
 The primary interface for accessing the system clock is using the
-&.sysclock.now callable:
+&.system.utc callable:
 
 #!python
-	current_time = sysclock.now()
+	current_time = system.utc()
 
 The returned timestamp is a UTC timestamp.
 
@@ -452,7 +441,7 @@ Subseqently, a given PiT can yield a UNIX timestamp using the
 &.abstract.Time.select method:
 
 #!python
-	now = sysclock.now()
+	now = system.utc()
 	unix = now.select('unix')
 
 And a contrived use-case where the file `f` contains lines containing unix timestamps:
@@ -562,7 +551,7 @@ Indefinite points such as Never and Genesis are also useful for creating unbound
 segments from a particular point in time:
 
 #!python
-	pit = sysclock.now().rollback(hour=1)
+	pit = system.utc().rollback(hour=1)
 	rfuture = types.Segment((pit, constants.never))
 
 The `rfuture` segment starts an hour in the past and never ends. Notably, iterators
@@ -635,7 +624,7 @@ access is provided via the &.views.Zone.open class method:
 
 #!python
 	tz = views.Zone.open('America/Los_Angeles')
-	pit = sysclock.now()
+	pit = system.utc()
 	offset = tz.find(pit)
 
 Once the &.views.Zone.Offset object has been found for a given point in
@@ -652,7 +641,7 @@ The examples in the previous section show the details of localization.
 single method, &.views.Zone.localize:
 
 #!python
-	pit, offset = views.Zone.open().localize(sysclock.now())
+	pit, offset = views.Zone.open().localize(system.utc())
 
 The offset applied to the point in time is returned with the adjusted point as it is
 often necessary in order to properly represent the timestamp:
@@ -669,7 +658,7 @@ a UTC timestamp and then localizing it. The &.views.Zone.normalize
 method has this functionality:
 
 #!python
-	pit, offset = views.Zone.open().localize(sysclock.now())
+	pit, offset = views.Zone.open().localize(system.utc())
 	normalized_pit, new_offset = views.Zone.open().normalize(offset, pit)
 
 Where `normalized_pit` and `new_offset` are the *exact* same objects if no change was
