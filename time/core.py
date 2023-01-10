@@ -6,7 +6,9 @@ import collections
 import fractions
 import functools
 import operator
+import builtins
 
+from typing import Type, Sequence
 from . import abstract
 
 # Definite being a finite position.
@@ -21,7 +23,7 @@ kinds = (
 # Used to convert system times.
 unix_epoch_delta = (((((2000-1970) * 365) + 7) * (24*60*60)) + (24*60*60))
 
-class Exception(Exception):
+class Exception(builtins.Exception):
 	"""
 	# Generic time exception.
 	"""
@@ -522,7 +524,9 @@ class Context(object):
 	def represent(self, term, unitseq):
 		self.measure_repr[term] = unitseq
 
-	def point_factory(self, Measure, qname, kind = 'definite', Class = Point, point_magnitude = 1):
+	def point_factory(self, Measure, qname, *,
+			kind = 'definite', Class = Point, point_magnitude = 1
+		) -> Type[abstract.Point]:
 		"""
 		# Construct a Point class from the given scalar.
 		"""
@@ -540,17 +544,19 @@ class Context(object):
 			# vector properties
 			magnitude = point_magnitude, # Vector is: Point -> Point+magnitude
 			context = self,
-			liketerm = self.terms[Measure.unit]
+			liketerm = self.terms[Measure.unit],
+			Measure = Measure,
 		)
 
 		Point = type(path[1], (Class,), d) # Use type constructor in order to support pickling.
 		Point.__doc__ = '&.abstract.Point'
 
-		Point.Measure = Measure
 		abstract.Point.register(Point)
 		return Point
 
-	def measure_factory(self, id, qname, kind = 'definite', Class = Measure, name = None, address = None):
+	def measure_factory(self, id, qname, *,
+			kind = 'definite', Class = Measure, name = None, address = None
+		) -> Type[abstract.Measure]:
 		"""
 		# Construct a measure with the designated unit identifier and class.
 		"""
@@ -577,7 +583,7 @@ class Context(object):
 		abstract.Measure.register(Measure)
 		return Measure
 
-def standard_context(qname):
+def standard_context(qname) -> tuple[Context, Sequence[abstract.Measure], Sequence[abstract.Point]]:
 	"""
 	# Construct the standard time context from the local modules.
 

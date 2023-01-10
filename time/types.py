@@ -20,7 +20,8 @@
 		assert issubclass(types.select('month'), types.Months)
 		assert issubclass(types.select('year'), types.Months)
 """
-import typing
+from collections.abc import Iterable
+from . import abstract
 from . import core
 from ..range import types as rangetypes
 
@@ -103,7 +104,7 @@ class Segment(rangetypes.XRange):
 	Type = Timestamp
 
 	@classmethod
-	def from_period(Class, start:Timestamp, period:object):
+	def from_period(Class, start:abstract.Point, period:object):
 		"""
 		# Create a segment from a &start point and the &period between the end.
 		"""
@@ -128,7 +129,7 @@ class Segment(rangetypes.XRange):
 		return self.__class__((self[0].truncate(field), self[1].truncate(field)))
 
 	@property
-	def endpoint(self) -> Timestamp:
+	def endpoint(self) -> abstract.Point:
 		"""
 		# Return the inclusive endpoint of the Segment.
 		"""
@@ -148,7 +149,7 @@ class Segment(rangetypes.XRange):
 		return self.start.proceeds(pit)
 	proceeds = follows
 
-	def points(self, step:core.Measure) -> typing.Iterable[Timestamp]:
+	def points(self, step:core.Measure) -> Iterable[abstract.Point]:
 		"""
 		# Iterate through all the points within the Segment using the given &step.
 		"""
