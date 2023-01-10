@@ -311,16 +311,11 @@ is referring to instances of the &.types.Timestamp class. A Measure
 is an arbitrary unit of time and is usually referring to instances the
 &.types.Measure class.
 
-! NOTE:
-	"Point" may be a misnomer considering that &..time allows these objects
-	to be treated as a vector.
-
 Constructing instances is usually performed with the class method
-&.types.Measure.of.
-Or, &.types.Timestamp.of for Points.
+&.types.Measure.of. Or, &.types.Timestamp.of for Points.
 
-[ Constructing Points and Measures >> Creating a Timestamp ]
-------------------------------------------------------------
+[> Creating a Timestamp ]
+-------------------------
 
 The &.types.Timestamp type is the Point In Time Representation
 Type with the finest precision available *by default*:
@@ -330,15 +325,10 @@ Type with the finest precision available *by default*:
 	>>> near_y2k
 	types.Timestamp.of(iso='2000-01-01T08:24:15.000000')
 
-Currently, The &.types.Timestamp and &.types.Measure types
-use nanosecond precision.
+Currently, The &.types.Timestamp and &.types.Measure types use nanosecond precision.
 
-! WARNING:
-	The project *may* increase the precision of Timestamp and Measure in
-	the future so it is important to avoid presumptuous code when possible.
-
-[ Constructing Points and Measures >> Creating a Date ]
--------------------------------------------------------
+[> Creating a Date ]
+--------------------
 
 A Date is also considered a Point In Time type. The Date type exists for the
 purpose of representing the point in which the specified day starts, *and* the
@@ -360,8 +350,8 @@ appropriate:
 	types.Date.of(iso='1982-05-18')
 
 
-[ Constructing Points and Measures >> Getting the Current Point in Time ]
--------------------------------------------------------------------------
+[> Getting the Current Point in Time ]
+--------------------------------------
 
 The primary interface for accessing the system clock is using the
 &.system.utc callable:
@@ -371,13 +361,8 @@ The primary interface for accessing the system clock is using the
 
 The returned timestamp is a UTC timestamp.
 
-! NOTE:
-	Using the system time for managing timeouts is discouraged.
-	libtime's clock interface has monotonic devices for managing timeouts.
-
-
-[ Constructing Points and Measures >> Creating a Timestamp from an ISO-8601 String ]
-------------------------------------------------------------------------------------
+[> Creating a Timestamp from an ISO-8601 String ]
+-------------------------------------------------
 
 While the &.format module manages the details, the
 types have access to the functionality:
@@ -392,8 +377,8 @@ The following shows RFC-1123, the format used by HTTP:
 #!python
 	ts = types.Timestamp.of(rfc='Sun, 19 Mar 2012 07:27:58')
 
-[ Constructing Points and Measures >> Formatting a Standard Timestamp ]
------------------------------------------------------------------------
+[> Formatting a Standard Timestamp ]
+------------------------------------
 
 Likewise, instances can be formatted by the standards:
 
@@ -406,8 +391,8 @@ And RFC as well:
 #!python
 	assert "Sat, 01 Jan 2000 00:00:00" == types.Timestamp(date=(2000,1,1)).select('rfc')
 
-[ Constructing Points and Measures >> Constructing a Timestamp from Parts ]
----------------------------------------------------------------------------
+[> Constructing a Timestamp from Parts ]
+----------------------------------------
 
 A &.types.Timestamp can be constructed from time parts using the
 &.abstract.Time.of class method. This method takes
@@ -427,8 +412,8 @@ Notably, the above is not particularly useful without a date:
 		microsecond = 324159
 	)
 
-[ Constructing Points and Measures >> Constructing a Timestamp from a UNIX Timestamp ]
---------------------------------------------------------------------------------------
+[> Constructing a Timestamp from a UNIX Timestamp ]
+---------------------------------------------------
 
 The `unix` container keyword provides an interface from seconds since the
 UNIX-epoch, "January 1, 1970". A timestamp can be made using the
@@ -458,8 +443,8 @@ The usual arithmetic operators are essentially low-level operations that can be
 used in certain cases, but they should be restricted to performance critical
 situations where the higher-level methods cannot be used.
 
-[ Arithmetic of Points and Measures >> Getting a Particular Day of the Week ]
------------------------------------------------------------------------------
+[> Getting a Particular Day of the Week ]
+-----------------------------------------
 
 Points and scalars can both update arbitrary fields according to a boundary.
 With Timestamps and Dates aligned on the beginning of a week, an arbitrary
@@ -497,8 +482,8 @@ Or, to get the preceding Monday, just substract seven:
 
 And so on: `1+|-14`, `1+|-21`, ...
 
-[ Arithmetic of Points and Measures >> Getting a Particular Weekday of a Month ]
---------------------------------------------------------------------------------
+[> Getting a Particular Weekday of a Month ]
+--------------------------------------------
 
 Occasionally, the need may arise to fetch the N-th weekday of the month. This is
 trickier than getting an arbitrary weekday as it requires the part to be aligned
@@ -578,8 +563,8 @@ information.
 There is no easy mode when being time zone aware. It's an extra level of detail that
 *must* be managed by the application.
 
-[ Working with Time Zones >> Understanding Time Zones ]
--------------------------------------------------------
+[> Understanding Time Zones ]
+-----------------------------
 
 The difficulty of time zones stems from the need to transition to and from an
 offset for appropriating the representation of a Point in Time. This is referring to
@@ -616,8 +601,8 @@ zone in UTC.
 In the second, the actual offset *and* zone identifier applied to the zone
 should be associated with the PiT object.
 
-[ Working with Time Zones >> Getting an Offset from a UTC Point in Time ]
--------------------------------------------------------------------------
+[> Getting an Offset from a UTC Point in Time ]
+-----------------------------------------------
 
 While &.views provides the implementation of Zone objects, high level
 access is provided via the &.views.Zone.open class method:
@@ -633,8 +618,8 @@ time, the UTC point can be adjusted:
 #!python
 	la_pit = pit.elapse(offset)
 
-[ Working with Time Zones >> Localizing a UTC Point in Time ]
--------------------------------------------------------------
+[> Localizing a UTC Point in Time ]
+-----------------------------------
 
 The examples in the previous section show the details of localization.
 &.views.Zone instances have the above functionality packed into a
@@ -650,8 +635,8 @@ often necessary in order to properly represent the timestamp:
 	offset.iso(pit)
 	# "2013-01-17T15:36:35.834813000 PST-28800"
 
-[ Working with Time Zones >> Normalizing a Local Point in Time ]
-----------------------------------------------------------------
+[> Normalizing a Local Point in Time ]
+--------------------------------------
 
 Normalization is the process of adjusting a localized timestamp by its *known* offset into
 a UTC timestamp and then localizing it. The &.views.Zone.normalize
