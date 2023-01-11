@@ -302,7 +302,7 @@ def allocate_network(optdata, kports):
 	ifseq = kcore.Sequenced(ifs) # Does not require sequenced shutdown.
 
 	# Terminated in reverse order.
-	return kcore.Sequenced([network, cocx, coif])
+	return kcore.Sequenced([network, cxns, ifseq])
 
 def integrate(name, args):
 	optdata = {
