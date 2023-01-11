@@ -4,7 +4,7 @@
 # Primarily, this module exists to document the interfaces to &Point and &Measure.
 # The redundant method declarations are intentional.
 """
-from abc import abstractproperty, abstractmethod, abstractclassmethod
+from abc import abstractmethod, abstractclassmethod
 import typing
 
 class Time(typing.Protocol):
@@ -12,19 +12,22 @@ class Time(typing.Protocol):
 	# The abstract base class for *all* Time related types.
 	"""
 
-	@abstractproperty
+	@property
+	@abstractmethod
 	def start(self):
 		"""
 		# The beginning of the range. Inclusive.
 		"""
 
-	@abstractproperty
+	@property
+	@abstractmethod
 	def stop(self):
 		"""
 		# The end of the range. Exclusive.
 		"""
 
-	@abstractproperty
+	@property
+	@abstractmethod
 	def magnitude(self):
 		"""
 		# The size of the range in terms of the &start.
@@ -40,7 +43,7 @@ class Time(typing.Protocol):
 		"""
 
 	@abstractclassmethod
-	def of(Class, *times:Time, **parts) -> Time:
+	def of(Class, *times, **parts):
 		"""
 		# Create an instance of the type from the sum of the quantities
 		# specified by &times and &parts:
@@ -132,7 +135,8 @@ class Measure(Time):
 	# subclassed.
 	"""
 
-	@abstractproperty
+	@property
+	@abstractmethod
 	def kind(self):
 		"""
 		# Classification for the unit type with respect to measurements.
@@ -142,7 +146,8 @@ class Measure(Time):
 		# Measures and Points of the same unit may have different unit kinds.
 		"""
 
-	@abstractproperty
+	@property
+	@abstractmethod
 	def unit(self):
 		"""
 		# Identifier of the unit of time--usually the english name.
@@ -150,7 +155,8 @@ class Measure(Time):
 		# This *must* be a `str` where str(unit).isidentifier() is `True`.
 		"""
 
-	@abstractproperty
+	@property
+	@abstractmethod
 	def name(self):
 		"""
 		# Name of the unit of time. Normally equal to
@@ -158,7 +164,8 @@ class Measure(Time):
 		# where the proper name is not an identifier.
 		"""
 
-	@abstractproperty
+	@property
+	@abstractmethod
 	def start(self):
 		"""
 		# For Measure instances, this property *must* be zero.
@@ -167,7 +174,8 @@ class Measure(Time):
 			assert measure.start == 0
 		"""
 
-	@abstractproperty
+	@property
+	@abstractmethod
 	def stop(self):
 		"""
 		# For Measure instances, this property *must* be the instance, &self:
@@ -176,7 +184,8 @@ class Measure(Time):
 			assert measure.stop is measure
 		"""
 
-	@abstractproperty
+	@property
+	@abstractmethod
 	def magnitude(self):
 		"""
 		# The magnitude of the Time instance. For Measures, this is their integer value:
@@ -233,13 +242,15 @@ class Point(Time):
 	# A point in time.
 	"""
 
-	@abstractproperty
+	@property
+	@abstractmethod
 	def kind(self):
 		"""
 		# Classification for the unit type with respect to Points in Time.
 		"""
 
-	@abstractproperty
+	@property
+	@abstractmethod
 	def Measure(self) -> typing.Type[Measure]:
 		"""
 		# The Point's corresponding scalar class used to measure deltas.
@@ -250,7 +261,8 @@ class Point(Time):
 			assert point.Measure.unit == point.unit
 		"""
 
-	@abstractproperty
+	@property
+	@abstractmethod
 	def start(self):
 		"""
 		# Points *must* return the instance, &self:
@@ -260,7 +272,8 @@ class Point(Time):
 			assert point.start is point
 		"""
 
-	@abstractproperty
+	@property
+	@abstractmethod
 	def stop(self):
 		"""
 		# The next Point according to the unit:
@@ -270,10 +283,11 @@ class Point(Time):
 			assert point.stop == point.elapse(point.Measure(1))
 		"""
 
-	@abstractproperty
+	@property
+	@abstractmethod
 	def magnitude(self):
 		"""
-		# The magnitude of the Point. For Points, this *must* be one::
+		# The magnitude of the Point. For Points, this *must* be one:
 
 		#!python
 			assert pit.magnitude == 1
