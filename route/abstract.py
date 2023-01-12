@@ -16,12 +16,6 @@
 		# Writable.
 	# /`'x'`/
 		# Executable or searchable.
-	# /`'R'`/
-		# Not readable.
-	# /`'W'`/
-		# Not writable.
-	# /`'X'`/
-		# Not executable or searchable.
 
 # [> Types]
 # Character codes identifying a type of file.
@@ -46,9 +40,11 @@
 		# Unknown type.
 		# File exists, but it's type is not known and may be inaccessible.
 """
-from abc import abstractmethod, abstractproperty
-from collections.abc import Hashable, Iterable, Sequence
-from typing import Protocol
+from abc import abstractmethod
+from collections.abc import Hashable, Iterable, Sequence, Mapping
+from typing import Protocol, TypeAlias, Type
+
+Element: TypeAlias = tuple[str, Sequence['Element'], Mapping]
 
 @Hashable.register
 class Path(Protocol):
@@ -56,21 +52,24 @@ class Path(Protocol):
 	# Primitive operations for manipulating a sequence of identifiers.
 	"""
 
-	@abstractproperty
+	@property
+	@abstractmethod
 	def container(self) -> Path:
 		"""
 		# The route containing the final identifier in &self.
 		"""
 		raise NotImplementedError
 
-	@abstractproperty
+	@property
+	@abstractmethod
 	def absolute(self) -> list[Hashable]:
 		"""
 		# The absolute sequence of identifiers.
 		"""
 		raise NotImplementedError
 
-	@abstractproperty
+	@property
+	@abstractmethod
 	def identifier(self) -> Hashable:
 		"""
 		# The object identifying the resource relative to its immediate container.
@@ -191,8 +190,9 @@ class File(Path):
 	# File system APIs for supporting common access functions.
 	"""
 
-	@abstractproperty
-	def RequirementViolation(self) -> Exception:
+	@property
+	@abstractmethod
+	def Violation(self) -> Type[Exception]:
 		"""
 		# Exception describing the property violations found
 		# by a call to &fs_require.
@@ -216,7 +216,7 @@ class File(Path):
 			# Overrides any file type codes present in &properties.
 
 		# [ Exceptions ]
-		# /&RequirementViolation/
+		# /&Violation/
 			# Raised when a designated property is not present on the file.
 		"""
 		raise NotImplementedError
@@ -243,6 +243,15 @@ class File(Path):
 		raise NotImplementedError
 
 	@abstractmethod
+	def fs_alloc(self):
+		"""
+		# Allocate the necessary resources to create the target path as a file or directory.
+
+		# Normally, this means creating the *leading* path to the identified resource.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
 	def fs_link_relative(self, path):
 		"""
 		# Create or update a *symbolic* link at &self pointing to &path, the target file.
@@ -263,15 +272,6 @@ class File(Path):
 		# [ Parameters ]
 		# /path/
 			# The route identifying the target path of the symbolic link.
-		"""
-		raise NotImplementedError
-
-	@abstractmethod
-	def fs_alloc(self):
-		"""
-		# Allocate the necessary resources to create the target path as a file or directory.
-
-		# Normally, this means creating the *leading* path to the identified resource.
 		"""
 		raise NotImplementedError
 
@@ -367,5 +367,34 @@ class File(Path):
 		# Whether or not the directory's listing can be retrieved.
 
 		# Regular files marked as executable are not considered searchable.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_snapshot(self) -> Sequence[Element]:
+		"""
+		# Construct an element tree of files from the directory identified by &self.
+
+		# Exceptions raised by operations populating the tree are trapped
+		# as `'exception'` elements that are filtered by &process by default.
+
+		# [ Parameters ]
+		# /process/
+			# Boolean callable determining whether or not a file should be included in the
+			# resulting element tree.
+
+			# Defaults to a function excluding `'exception'` types.
+		# /depth/
+			# The maximum filesystem depth to descend from &self.
+			# If &None, no depth constraint is enforced.
+			# Defaults to `8`.
+		# /limit/
+			# The maximum number of elements to accumulate.
+			# If &None, no limit constraint is enforced.
+			# Defaults to `2048`.
+
+		# [ Returns ]
+		# The sequence of elements that represent the directory's listing
+		# according to the given arguments.
 		"""
 		raise NotImplementedError
