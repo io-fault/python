@@ -71,7 +71,7 @@ def render_directory_listing(directories, files):
 
 	for d in directories:
 		try:
-			st = f.fs_status()
+			st = d.fs_status()
 		except FileNotFoundError:
 			continue
 
