@@ -6,10 +6,8 @@ import functools
 
 from ...vector import recognition
 
-from ...system.files import Path
-from ...system import kernel
 from ...system import process
-from ...system import network
+from ...system.interfaces import if_allocate
 
 from ...kernel import system as ksystem
 from ...kernel import core as kcore
@@ -190,63 +188,6 @@ def parse_network_config(string, indentation='\t', level=0):
 
 	return cfg
 
-def parse_interface_config(string, local=None):
-	# interface configuration
-	cfg = {}
-
-	for protocolsection in string.split('\n.'):
-		if not protocolsection or protocolsection.lstrip()[:1] == '#':
-			continue
-
-		proto, *pconfig = protocolsection.split('\n\t')
-		proto, stack = proto.split(':', 1)
-		stack = stack.strip() or None
-		if stack:
-			stack = tuple(stack.split('/'))
-		else:
-			stack = ()
-
-		proto = proto.strip('.') # Handle initial section case.
-		parts = {}
-		endpoints = cfg[(proto, stack)] = []
-
-		for directive in pconfig:
-			directive = directive.strip() # Clean empty lines.
-			if directive.startswith('#'):
-				continue
-
-			pair = directive.rsplit(':', 1)
-			try:
-				pair = (pair[0], int(pair[1]))
-			except IndexError:
-				pair = None
-
-			if directive[:1] == '/' or directive[:2] == './':
-				if directive[:1] != '/':
-					directive = directive[2:]
-				endpoints.append(network.Endpoint.from_local(directive))
-				local.add(directive)
-			elif pair and pair[0][:1].isdigit():
-				endpoints.append(network.Endpoint.from_ip4(pair))
-			elif pair and pair[0][:1] == '[' and pair[0][-1:] == ']':
-				endpoints.append(network.Endpoint.from_ip6((pair[0][1:-1], pair[1])))
-			else:
-				if pair:
-					hostname = pair[0]
-				else:
-					hostname = directive
-
-				cname, ifaddrs = network.select_interfaces(proto, 'octets', hostname)
-				if pair:
-					endpoints.extend(
-						x.replace(port=pair[1], transport=0, type='octets')
-						for x in ifaddrs
-					)
-				else:
-					endpoints.extend(ifaddrs)
-
-	return cfg
-
 def load_partitions(items):
 	from importlib import import_module
 
@@ -319,37 +260,23 @@ def integrate(name, args):
 
 def main(inv:process.Invocation) -> process.Exit:
 	optdata = integrate(inv.parameters['system']['name'], inv.argv)
-
-	ifcfg = {}
-	lset = set()
-
-	for configpath in optdata['listening-interfaces']:
-		for k, v in (parse_interface_config(open(configpath).read(), local=lset)).items():
-			if k not in ifcfg:
-				ifcfg[k] = []
-
-			ifcfg[k].extend(v) # KeyError: Protocol not recognized.
-
-	for socket in lset:
-		try:
-			os.unlink(socket)
-		except FileNotFoundError:
-			pass
-
 	workers = int(optdata.get('concurrency', 1))
 
-	kports = {
-		p: kernel.Ports([network.service(x) for x in ep])
-		for p, ep in ifcfg.items()
-	}
+	kports = {}
+	for configpath in optdata['listening-interfaces']:
+		for p, kp in if_allocate(process.fs_pwd()@configpath):
+			if p not in kports:
+				kports[p] = kp
+			else:
+				kports[p] += kp
 
 	alloc = functools.partial(allocate_network, optdata, kports)
 	net = alloc()
 	if workers:
 		net = daemon.ProcessManager(net, alloc, concurrency=workers)
 
-	process = ksystem.dispatch(inv, net, identifier='http-network-daemon')
-	ksystem.set_root_process(process)
+	kprocess = ksystem.dispatch(inv, net, identifier='http-network-daemon')
+	ksystem.set_root_process(kprocess)
 	ksystem.control()
 
 if __name__ == '__main__':
