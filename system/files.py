@@ -10,13 +10,14 @@
 	# Single character representations for file types.
 	# Primarily used by &Path.fs_require.
 """
+from collections.abc import Sequence, Iterable
+from typing import Optional, TypeAlias
 import os
 import os.path
 import sys
 import contextlib
 import collections
 import stat
-import typing
 import itertools
 import functools
 
@@ -190,7 +191,7 @@ class Status(tuple):
 		return self._fs_type_map.get(ifmt(self.system.st_mode), 'unknown')
 
 	@property
-	def subtype(self, ifmt=stat.S_IFMT) -> str:
+	def subtype(self, *, ifmt=stat.S_IFMT) -> Optional[str]:
 		"""
 		# For POSIX-type systems, designates the kind of (id)`device`:
 		# (id)`block` or (id)`character`.
@@ -274,7 +275,7 @@ def path_string_cache(path):
 	else:
 		return '/'.join(path.points)
 
-class Path(Selector):
+class Path(Selector[str]):
 	"""
 	# - &..route.abstract.Path
 	# - &..route.abstract.File
@@ -284,6 +285,8 @@ class Path(Selector):
 	# available for getting the working directory of the process.
 	"""
 	__slots__ = ('context', 'points',)
+	context: Optional['Path']
+	Violation = RequirementViolation
 
 	_path_separator = os.path.sep
 	_fs_access = functools.partial(
@@ -406,7 +409,7 @@ class Path(Selector):
 		return current
 
 	@staticmethod
-	def _partition_string(path:str) -> typing.Iterable[typing.Sequence[str]]:
+	def _partition_string(path:str) -> Iterable[Sequence[str]]:
 		return (x.strip('/').split('/') for x in path.split("//"))
 
 	@classmethod
@@ -595,7 +598,7 @@ class Path(Selector):
 		mode = get_stat(self.fullpath).st_mode
 		return (mode & mask) != 0
 
-	def fs_follow_links(self, *, readlink=os.readlink, islink=os.path.islink) -> typing.Iterator[Selector]:
+	def fs_follow_links(self, *, readlink=os.readlink, islink=os.path.islink) -> Iterable[Selector]:
 		Class = self.__class__
 		r = self
 
@@ -696,34 +699,13 @@ class Path(Selector):
 			# continue with subdirectories
 			cseq.extend(sd)
 
-	def fs_snapshot(self,
+	def fs_snapshot(self, /,
 			process=(lambda x, y: y[0] == 'exception'),
-			depth:typing.Optional[int]=8,
-			limit:typing.Optional[int]=2048,
+			depth:Optional[int]=8,
+			limit:Optional[int]=2048, *,
 			ifmt=stat.S_IFMT, Queue=collections.deque, scandir=os.scandir,
 			lstat=os.lstat,
 		):
-		"""
-		# Construct an element tree of files from the directory referenced by &self.
-		# Exceptions raised by the &os.stat and &os.scandir are stored in the tree
-		# as `'exception'` elements.
-
-		# [ Parameters ]
-		# /process/
-			# Boolean callable determining whether or not a file should be included in the
-			# resulting element tree.
-
-			# Defaults to a function excluding `'exception'` types.
-		# /depth/
-			# The maximum filesystem depth to descend from &self.
-			# If &None, no depth constraint is enforced.
-			# Defaults to `8`.
-		# /limit/
-			# The maximum number of elements to accumulate.
-			# If &None, no limit constraint is enforced.
-			# Defaults to `2048`.
-		"""
-
 		if depth == 0 or limit == 0:
 			# Allows presumption >= 1 or None.
 			return []
@@ -734,7 +716,8 @@ class Path(Selector):
 		ncount = 0
 		nelements = 0
 
-		elements = []
+		Element: TypeAlias = tuple[str, list[object], dict]
+		elements:list[Element] = []
 		cseq = Queue()
 		getnext = cseq.popleft
 
@@ -773,7 +756,7 @@ class Path(Selector):
 						typ = 'exception'
 						attrs = {'status': st, 'identifier': de.name, 'error': err}
 
-					record = (typ, [], attrs)
+					record:Element = (typ, [], attrs)
 
 					if process(file, record):
 						continue
@@ -798,12 +781,12 @@ class Path(Selector):
 
 	def fs_since(self, since:int,
 			traversed=None,
-		) -> typing.Iterable[typing.Tuple[int, Selector]]:
+		) -> Iterable[tuple[int, Selector]]:
 		"""
 		# Identify the set of files that have been modified
 		# since the given point in time.
 
-		# The resulting &typing.Iterable does not include directories.
+		# The resulting iterable does not include directories.
 
 		# [ Parameters ]
 
@@ -919,7 +902,7 @@ class Path(Selector):
 				return
 		return self
 
-	def fs_replace(self, replacement, copytree=shutil.copytree, copyfile=shutil.copy) -> None:
+	def fs_replace(self, replacement, *, copytree=shutil.copytree, copyfile=shutil.copy):
 		src = replacement.fullpath
 		dst = self.fullpath
 		self.fs_void() #* Removal for replacement.
@@ -930,7 +913,7 @@ class Path(Selector):
 			copyfile(src, dst)
 		return self
 
-	def fs_link_relative(self, path, link=os.symlink) -> None:
+	def fs_link_relative(self, path, *, link=os.symlink):
 		relcount, segment = self.correlate(path)
 		target = '../' * (relcount - 1)
 		target += '/'.join(segment)
@@ -945,7 +928,7 @@ class Path(Selector):
 			link(target, self.fullpath)
 		return self
 
-	def fs_link_absolute(self, path, link=os.symlink) -> None:
+	def fs_link_absolute(self, path, *, link=os.symlink):
 		target = path.fullpath
 
 		try:
@@ -958,7 +941,7 @@ class Path(Selector):
 			link(target, self.fullpath)
 		return self
 
-	def fs_init(self, data:typing.Optional[bytes]=None, mkdir=os.mkdir, exists=os.path.exists):
+	def fs_init(self, data:Optional[bytes]=None, *, mkdir=os.mkdir, exists=os.path.exists):
 		"""
 		# Create and initialize a data file at the route using the given &data.
 
@@ -990,7 +973,7 @@ class Path(Selector):
 
 		return self
 
-	def fs_alloc(self, mkdir=os.mkdir):
+	def fs_alloc(self, *, mkdir=os.mkdir):
 		routes = []
 		for p in ~(self ** 1):
 			if p.fs_type() != 'void':
@@ -1003,7 +986,7 @@ class Path(Selector):
 
 		return self
 
-	def fs_mkdir(self, mkdir=os.mkdir, exists=os.path.exists):
+	def fs_mkdir(self, *, mkdir=os.mkdir, exists=os.path.exists):
 		fp = self.fullpath
 		if exists(fp):
 			return self
