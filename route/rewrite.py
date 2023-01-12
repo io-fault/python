@@ -1,13 +1,13 @@
 """
 # Relative path resolution.
 """
-import typing
+from collections.abc import Sequence
 
-def relative(points:typing.Sequence[str], delta=({'':0, '.':0, '..':1}).get):
+def relative(points:Sequence[str], delta=({'':0, '.':0, '..':1}).get) -> Sequence[str]:
 	"""
 	# Resolve relative accessors within &points.
 	"""
-	r = []
+	r:list[str] = []
 	add = r.append
 	change = 0
 

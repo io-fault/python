@@ -5,10 +5,9 @@ import itertools
 from . import core
 from . import rewrite
 
-Identifier = core.Identifier
 consistency = core.consistency # Ultimately from fault.context.tools
 
-class Segment(core.PartitionedSequence):
+class Segment(core.PartitionedSequence[core.Identifier]):
 	"""
 	# Sequence of identifiers that may be incorporated into a selector subclass.
 	"""
@@ -45,7 +44,7 @@ class Segment(core.PartitionedSequence):
 
 		return self.__class__(None, seg[cl:])
 
-class Selector(core.PartitionedSequence):
+class Selector(core.PartitionedSequence[core.Identifier]):
 	"""
 	# Route domain base class.
 

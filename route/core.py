@@ -8,21 +8,21 @@
 # Direct use of this class is likely inappropriate. Either &.types.Selector or &.types.Segment
 # should be subclassed in order to convey the presence of a target resource.
 """
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Iterable, Iterator, Sequence, Hashable
+from typing import TypeVar, Generic, Optional
 import functools
-import typing
 
 from ..context.tools import cachedcalls, consistency
 
-# Type signature for identifiers used by &Selector and &Segment instances.
-Identifier: typing.TypeAlias = typing.Hashable
+# The points along a path.
+Identifier = TypeVar('Identifier', bound=Hashable)
 
 # Reduction for often re-used PartitionedSequence.points
 def vcombine(*args):
 	return args
 partition_cache = cachedcalls(32)(vcombine)
 
-def join(head, tail):
+def join(head:Sequence[Identifier], tail:Sequence[Identifier]) -> Sequence[Identifier]:
 	return partition_cache(*head, *tail)
 absolute_cache = cachedcalls(64)(join)
 
@@ -52,7 +52,7 @@ def relative_path(target, source) -> tuple[int, int, Sequence[Identifier]]:
 	return cl, len(from_path), target_path
 
 @functools.total_ordering
-class PartitionedSequence(object):
+class PartitionedSequence(Generic[Identifier]):
 	"""
 	# Route implementation class managing the path as a partitioned sequence.
 
@@ -62,6 +62,8 @@ class PartitionedSequence(object):
 	# with long paths. However, this is not done automatically and the exact
 	# usage must be aware of how &context can eliminate redundant leading segments.
 	"""
+	context: Optional['PartitionedSequence']
+	points: Sequence[Identifier]
 
 	def correlate(self, target) -> tuple[int, Sequence[Identifier]]:
 		"""
@@ -71,6 +73,7 @@ class PartitionedSequence(object):
 		# Returns the number of steps to ascend and the sequence of identifiers to apply in
 		# order to arrive at &target.
 		"""
+		path: Sequence[Identifier]
 		cl, l, path = relative_path(target, self)
 		asecent = l - cl
 		segment = path[cl:]
@@ -90,7 +93,7 @@ class PartitionedSequence(object):
 	# Partition Interfaces
 
 	@classmethod
-	def from_partitions(Class, parts:Iterable[tuple[Identifier]], context=None):
+	def from_partitions(Class, parts:Iterable[Sequence[Identifier]], context=None):
 		"""
 		# Construct a new instance from an iterable of partitions in root order.
 		"""
@@ -137,7 +140,7 @@ class PartitionedSequence(object):
 		l.reverse()
 		return l
 
-	def __init__(self, context, points:tuple[Identifier]):
+	def __init__(self, context, points:Sequence[Identifier]):
 		self.context = context
 		self.points = points
 
@@ -148,16 +151,9 @@ class PartitionedSequence(object):
 		return (self.from_partitions, (self.partitions(),))
 
 	def __hash__(self) -> int:
-		"""
-		# Hash on the &absolute of the Route allowing consistency regardless of context.
-		"""
 		return hash(self.absolute)
 
 	def __eq__(self, operand, isinstance=isinstance):
-		"""
-		# Whether the absolute points of the two Routes are consistent.
-		"""
-
 		if isinstance(operand, self.__class__):
 			if self.context is operand.context:
 				return self.points == operand.points
@@ -192,9 +188,6 @@ class PartitionedSequence(object):
 		return self.absolute[req]
 
 	def __add__(self, tail:Iterable[Identifier], list=list):
-		"""
-		# Add the two Routes together maintaining the context of the first.
-		"""
 		t = list(tail)
 		if t:
 			return self.__class__(self.context, partition_cache(*self.points, *t))
@@ -203,45 +196,22 @@ class PartitionedSequence(object):
 
 	# Route Interfaces
 
-	def __truediv__(self, identifier:Identifier):
-		"""
-		# Append the operand, &identifier, to the route.
-		"""
-		return self.__class__(self.context, self.points + (identifier,))
+	def __truediv__(self, addition:Identifier):
+		return self.__class__(self.context, self.points + (addition,))
 
 	def __floordiv__(self, route):
-		"""
-		# Extend the route using a route operand.
-		# Maintains partitioning of &route.
-		"""
 		if isinstance(route, PartitionedSequence):
 			return self.from_partitions(route.partitions(), context=self)
 
 		return NotImplemented
 
 	def __mul__(self, replacement:Identifier):
-		"""
-		# Route (final) suffix substitution.
-		"""
 		if not self.points:
 			return self.container / replacement
 
 		return self.__class__(self.context, partition_cache(*self.points[:-1], replacement))
 
 	def __pow__(self, strip:int, range=range):
-		"""
-		# Select the n-th antecedent point of the route preserving context.
-		# Positive indexes select from the end of the route, and
-		# negative indexes select from the beginning.
-
-		# Power is a convenient notation for slicing from the end
-		# while maintaining partitioning.
-		# For `i` greater than `0`: `list(route ** i) == list(route)[:-i]`.
-		# Less than `0`: `list(route ** i) == list(route)[-i:]`.
-		# And equal to `0`: `list(route ** 0) == list(route)`.
-
-		# Returns a new route.
-		"""
 		if strip < 0:
 			strip = len(self) + strip
 
@@ -252,10 +222,6 @@ class PartitionedSequence(object):
 		return y
 
 	def __rshift__(self, segment):
-		"""
-		# Iterate over segment and return the combined path at those points added on &self.
-		"""
-
 		current = self
 		for p in segment.partitions():
 			for x in p:
@@ -265,10 +231,6 @@ class PartitionedSequence(object):
 			current = current.delimit()
 
 	def __lshift__(self, segment):
-		"""
-		# Iterate over segment and return the combined path at those points added on &self
-		# in reverse order.
-		"""
 		state = self // segment
 
 		for i in range(len(segment)):
@@ -276,18 +238,12 @@ class PartitionedSequence(object):
 			state = state.container
 
 	def __invert__(self):
-		"""
-		# Iterate over the ascending routes leading to &self stopping at the point before root.
-		"""
 		x = self
 		for i in range(len(x)):
 			yield x
 			x = x.container
 
 	def __xor__(self, operand):
-		"""
-		# Iterate over the inclusive path range starting from &self and stopping at &operand.
-		"""
 		ascent, segment = self.correlate(operand)
 
 		x = self
@@ -303,10 +259,6 @@ class PartitionedSequence(object):
 			yield x + path
 
 	def iterpoints(self):
-		"""
-		# Iterate the identifiers that make up the route in root order.
-		"""
-
 		x = self
 		seq = []
 		add = seq.append
@@ -317,13 +269,8 @@ class PartitionedSequence(object):
 
 		for i in reversed(seq):
 			yield from i
-	__route__ = iterpoints
 
 	def iterinverse(self):
-		"""
-		# Iterate the identifiers that make up the route in inverse order.
-		"""
-
 		x = self
 		while x.context is not None:
 			yield from reversed(x.points)
@@ -332,12 +279,8 @@ class PartitionedSequence(object):
 		yield from reversed(x.points)
 
 	@property
-	def absolute(self):
-		"""
-		# The absolute sequence of points.
-		"""
-
-		r = self.points
+	def absolute(self) -> Sequence[Identifier]:
+		r:Sequence[Identifier] = self.points
 		x = self
 		while x.context is not None:
 			r = absolute_cache(x.context.points, r)
@@ -346,10 +289,6 @@ class PartitionedSequence(object):
 
 	@property
 	def identifier(self):
-		"""
-		# The final identifier in the sequence.
-		"""
-
 		if self.points:
 			return self.points[-1]
 		else:
@@ -359,18 +298,10 @@ class PartitionedSequence(object):
 
 	@property
 	def root(self):
-		"""
-		# The root &PartitionedSequence with respect to the Route's context.
-		"""
-
 		return self.__class__(self.context, partition_cache(*self.points[0:1]))
 
 	@property
 	def container(self):
-		"""
-		# Return a Route to the outer (parent) Route; this merely removes the last point in the
-		# sequence trimming the &context when necessary.
-		"""
 		ctx = self.context
 		p = self.points
 
