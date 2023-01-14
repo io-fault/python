@@ -10,7 +10,7 @@
 from collections.abc import Sequence
 import functools
 import itertools
-from ..system import text
+from ..system.tty import cells
 
 Text = str
 
@@ -259,7 +259,7 @@ class Traits(int):
 		"""
 		return NoTraits
 
-NoTraits = Traits(0) # Preferred access method is &.matrix.Context.Traits.none()
+NoTraits = Traits(0)
 
 class RenderParameters(tuple):
 	"""
@@ -344,7 +344,7 @@ class RenderParameters(tuple):
 			linecolor if linecolor is not None else self[3],
 		))
 
-	def form(self, *strings, cells=text.cells):
+	def form(self, *strings, cells=cells):
 		"""
 		# Construct words suitable for use by &Phrase associated with the parameters, &self.
 		"""
@@ -375,7 +375,7 @@ class Units(tuple):
 	def __add__(self, rhs):
 		return self.__class__(super().__add__(rhs))
 
-def grapheme(text, index, cells=text.cells, slice=slice, Units=Units, str=str):
+def grapheme(text, index, cells=cells, slice=slice, Units=Units, str=str):
 	"""
 	# Retrieve the slice to characters that make up an indivisible unit of cells.
 	# This is not always consistent with User Perceived Characters.
@@ -469,7 +469,7 @@ class Phrase(tuple):
 	def construct(Class,
 			specifications:Sequence[object],
 			RenderParametersConstructor=RenderParameters,
-			cells=text.cells, str=str
+			cells=cells, str=str
 		):
 		"""
 		# Create a &Phrase instance from the &specifications designating
@@ -516,7 +516,7 @@ class Phrase(tuple):
 		"""
 		return sum(len(x[1]) for x in self)
 
-	def translate(self, *indexes, iter=iter, len=len, next=next, cells=text.cells):
+	def translate(self, *indexes, iter=iter, len=len, next=next, cells=cells):
 		"""
 		# Get the cell offsets of the given character indexes.
 
@@ -593,7 +593,7 @@ class Phrase(tuple):
 
 		return self.__class__(self.select(start, stop, adjust))
 
-	def select(self, start, stop, adjust=(lambda x: x), cells=text.cells):
+	def select(self, start, stop, adjust=(lambda x: x), cells=cells):
 		"""
 		# Extract the subphrase at the given indexes.
 
@@ -631,7 +631,7 @@ class Phrase(tuple):
 	def lfindcell(self,
 			celloffset:int, start=(0,0,0),
 			map=map, len=len, range=range,
-			cells=text.cells, islice=itertools.islice
+			cells=cells, islice=itertools.islice
 		):
 		"""
 		# Find the word and character index using a cell offset.
@@ -699,7 +699,7 @@ class Phrase(tuple):
 	def rfindcell(self,
 			celloffset:int, start=(-1,0,0),
 			map=map, len=len, range=range,
-			cells=text.cells, islice=itertools.islice
+			cells=cells, islice=itertools.islice
 		):
 		"""
 		# Find the word and character index using a cell offset.
@@ -757,7 +757,7 @@ class Phrase(tuple):
 	def lstripcells(self,
 			cellcount:int, substitute=(lambda x: '*'),
 			list=list, len=len, range=range,
-			cells=text.cells
+			cells=cells
 		):
 		"""
 		# Remove the given number of cells from the start of the phrase.
@@ -791,7 +791,7 @@ class Phrase(tuple):
 	def rstripcells(self,
 			cellcount:int, substitute=(lambda x: '*'),
 			list=list, len=len, range=range,
-			cells=text.cells
+			cells=cells
 		):
 		"""
 		# Remove the given number of cells from the end of the phrase.
