@@ -371,47 +371,32 @@ device_fileno(PyObj self)
 
 static PyMethodDef
 device_methods[] = {
-	{"open", (PyCFunction) device_open, METH_VARARGS|METH_CLASS,
-		PyDoc_STR("Create instance by opening the file path with O_CLOEXEC|O_RDWR.")},
-	{"fileno", (PyCFunction) device_fileno, METH_NOARGS,
-		PyDoc_STR("Get the configured file descriptor.")},
+	{"open", (PyCFunction) device_open, METH_VARARGS|METH_CLASS, NULL},
+	{"fileno", (PyCFunction) device_fileno, METH_NOARGS, NULL},
 
-	{"set_controlling_process", (PyCFunction) device_set_controlling_process, METH_O,
-		PyDoc_STR("Update the controlling process group.")},
-	{"get_controlling_process", (PyCFunction) device_get_controlling_process, METH_NOARGS,
-		PyDoc_STR("Get the controlling process group.")},
+	{"set_controlling_process", (PyCFunction) device_set_controlling_process, METH_O, NULL},
+	{"get_controlling_process", (PyCFunction) device_get_controlling_process, METH_NOARGS, NULL},
 
-	{"get_window_dimensions", (PyCFunction) device_get_window_dimensions, METH_NOARGS,
-		PyDoc_STR("Get the cells and rows that the tty is said to be displaying.")},
-	{"get_path", (PyCFunction) device_get_path, METH_NOARGS,
-		PyDoc_STR("Get the filesystem path to the tty.")},
+	{"get_window_dimensions", (PyCFunction) device_get_window_dimensions, METH_NOARGS, NULL},
+	{"get_path", (PyCFunction) device_get_path, METH_NOARGS, NULL},
 
-	{"record", (PyCFunction) device_record, METH_NOARGS,
-		PyDoc_STR("Store attributes retrieved using tcgetattr in the object.")},
-	{"restore", (PyCFunction) device_restore, METH_NOARGS,
-		PyDoc_STR("Restore attributes using tcsetattr previously saved with &record.")},
+	{"record", (PyCFunction) device_record, METH_NOARGS, NULL},
+	{"restore", (PyCFunction) device_restore, METH_NOARGS, NULL},
 
-	{"send_break", (PyCFunction) device_send_break, METH_VARARGS,
-		PyDoc_STR("Send a break using tcsendbreak. If no duration is given, `0` is used.")},
-	{"drain", (PyCFunction) device_drain, METH_NOARGS,
-		PyDoc_STR("Drain output on device using tcdrain.")},
+	{"send_break", (PyCFunction) device_send_break, METH_VARARGS, NULL},
+	{"drain", (PyCFunction) device_drain, METH_NOARGS, NULL},
 
-	{"set_message_limits", (PyCFunction) device_set_message_limits, METH_VARARGS,
-		PyDoc_STR("Update the VMIN and VTIME attributes.")},
+	{"set_message_limits", (PyCFunction) device_set_message_limits, METH_VARARGS, NULL},
 
-	{"set_raw", (PyCFunction) device_set_raw, METH_NOARGS,
-		PyDoc_STR("Adjust the terminal flags to perform in raw mode.")},
-	{"set_cbreak", (PyCFunction) device_set_cbreak, METH_NOARGS,
-		PyDoc_STR("Adjust the terminal flags to perform in cbreak mode.")},
-	{"set_cooked", (PyCFunction) device_set_cooked, METH_NOARGS,
-		PyDoc_STR("Adjust the terminal flags to perform in sane mode.")},
+	{"set_raw", (PyCFunction) device_set_raw, METH_NOARGS, NULL},
+	{"set_cbreak", (PyCFunction) device_set_cbreak, METH_NOARGS, NULL},
+	{"set_cooked", (PyCFunction) device_set_cooked, METH_NOARGS, NULL},
 	{NULL},
 };
 
 static PyMemberDef
 device_members[] = {
-	{"kport", T_INT, offsetof(struct Device, dev_fd), READONLY,
-		PyDoc_STR("access to the file descriptor that the Device was created against")},
+	{"kport", T_INT, offsetof(struct Device, dev_fd), READONLY, NULL},
 	{NULL},
 };
 
@@ -434,11 +419,6 @@ device_new(PyTypeObject *subtype, PyObj args, PyObj kw)
 	dev->dev_fd = fd;
 	return(rob);
 }
-
-const char device_doc[] =
-	"Kernel teletype device interface.\n"
-	"Preferably created with a writable file descriptor."
-;
 
 static PyTypeObject
 DeviceType = {
@@ -463,7 +443,7 @@ DeviceType = {
 	NULL,                           /* tp_as_buffer */
 	Py_TPFLAGS_BASETYPE|
 	Py_TPFLAGS_DEFAULT,             /* tp_flags */
-	device_doc,                     /* tp_doc */
+	NULL,                           /* tp_doc */
 	NULL,                           /* tp_traverse */
 	NULL,                           /* tp_clear */
 	NULL,                           /* tp_richcompare */
@@ -491,7 +471,7 @@ DeviceType = {
 
 #include <fault/metrics.h>
 #include <fault/python/module.h>
-INIT(module, 0, PyDoc_STR("tty device controls"))
+INIT(module, 0, NULL)
 {
 	#define ID(NAME) \
 		if (PyType_Ready((PyTypeObject *) &( NAME##Type ))) \
