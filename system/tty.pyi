@@ -2,9 +2,30 @@
 # System teletype interfaces.
 """
 
+def fs_device() -> str:
+	"""
+	# Attempt to identify the teletype device file associated with the process
+	# using the standard I/O file descriptors.
+
+	# [ Returns ]
+	# The path to the device file.
+
+	# [ Exceptions ]
+	# /OSError/
+		# Raised when standard input, output, and error are not associated with a
+		# teletype device.
+	"""
+
 def cells(text:str) -> int:
 	"""
 	# Calculate the number of character matrix cells needed to display the given &text string.
+
+	# [ Parameters ]
+	# /text/
+		# The characters being analyzed.
+
+	# [ Returns ]
+	# Number of horizontal cells needed to display the text.
 	"""
 
 class Device(object):
@@ -12,8 +33,21 @@ class Device(object):
 	# System teletype device abstraction.
 	"""
 
-	def __init__(self, fd):
-		pass
+	@classmethod
+	def open(Class, path="/dev/tty") -> "Device":
+		"""
+		# Create a device instance by opening the given path.
+		# Opens the device with reading and writing.
+
+		# [ Parameters ]
+		# /path/
+			# The path to the (teletype) device file to open.
+		"""
+
+	def __init__(self, fd:int):
+		"""
+		# Initialize the instance with an already opened teletype device file.
+		"""
 
 	@property
 	def kport(self) -> int:
@@ -26,14 +60,7 @@ class Device(object):
 		# The opened file descriptor.
 		"""
 
-	@classmethod
-	def open(Class, path="/dev/tty") -> "Device":
-		"""
-		# Create a device instance by opening the given path.
-		# Opens the device with reading and writing.
-		"""
-
-	def get_path(self) -> str:
+	def fs_path(self) -> str:
 		"""
 		# Get the filesystem path to the device.
 		"""

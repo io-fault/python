@@ -1,14 +1,14 @@
 import sys
-from .. import text
+from .. import text as module
 
 def test_setlocale(test):
 	"""
 	# - &.extensions.text/module.c#dsetlocale
-	# - &text.setlocale
+	# - &module.setlocale
 	"""
 	import locale
-	test/text.setlocale() == locale.setlocale(locale.LC_ALL, "")
+	test/module.setlocale() == locale.setlocale(locale.LC_ALL, "")
 
 def test_encoding(test):
-	locale = text.setlocale()
-	text.encoding() in test/locale
+	locale = module.setlocale()
+	module.encoding() in test/locale

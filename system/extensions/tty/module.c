@@ -6,12 +6,36 @@
 */
 #include <wchar.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 #include <fault/libc.h>
 #include <fault/internal.h>
 #include <fault/python/environ.h>
 
 #include "tty.h"
+
+static PyObj
+fs_device(PyObj self)
+{
+	int fd = -1;
+
+	if (isatty(STDERR_FILENO))
+		fd = STDERR_FILENO;
+	else if (isatty(STDIN_FILENO))
+		fd = STDIN_FILENO;
+	else if (isatty(STDOUT_FILENO))
+		fd = STDOUT_FILENO;
+	else
+	{
+		/* Set errno if unset. */
+		if (errno != 0)
+			errno = ENXIO;
+
+		return(PyErr_SetFromErrno(PyExc_OSError));
+	}
+
+	return(PyUnicode_FromString(ttyname(fd)));
+}
 
 static PyObj
 cells(PyObj self, PyObj parameter)
@@ -157,7 +181,7 @@ device_get_window_dimensions(PyObj self)
 }
 
 static PyObj
-device_get_path(PyObj self)
+device_fs_path(PyObj self)
 {
 	Device dev = (Device) self;
 	char *path = ttyname(dev->dev_fd);
@@ -373,12 +397,12 @@ static PyMethodDef
 device_methods[] = {
 	{"open", (PyCFunction) device_open, METH_VARARGS|METH_CLASS, NULL},
 	{"fileno", (PyCFunction) device_fileno, METH_NOARGS, NULL},
+	{"fs_path", (PyCFunction) device_fs_path, METH_NOARGS, NULL},
 
 	{"set_controlling_process", (PyCFunction) device_set_controlling_process, METH_O, NULL},
 	{"get_controlling_process", (PyCFunction) device_get_controlling_process, METH_NOARGS, NULL},
 
 	{"get_window_dimensions", (PyCFunction) device_get_window_dimensions, METH_NOARGS, NULL},
-	{"get_path", (PyCFunction) device_get_path, METH_NOARGS, NULL},
 
 	{"record", (PyCFunction) device_record, METH_NOARGS, NULL},
 	{"restore", (PyCFunction) device_restore, METH_NOARGS, NULL},
@@ -467,7 +491,8 @@ DeviceType = {
 	ID(Device)
 
 #define MODULE_FUNCTIONS() \
-	PYMETHOD(cells, cells, METH_O, NULL)
+	PYMETHOD(cells, cells, METH_O, NULL) \
+	PYMETHOD(fs_device, fs_device, METH_NOARGS, NULL)
 
 #include <fault/metrics.h>
 #include <fault/python/module.h>

@@ -1,9 +1,25 @@
 import sys
 from .. import tty as module
 
+def test_fs_device(test):
+	"""
+	# - &.extensions.tty/module.c#fs_device
+	# - &module.fs_device
+	"""
+	# No way to validate this that isn't fairly redundant.
+	try:
+		p = module.fs_device()
+	except OSError:
+		# If there's no tty on stdio, this is success.
+		pass
+	else:
+		from .. import files
+		test.isinstance(p, str)
+		test/(files.root@p).fs_type() == 'device'
+
 def test_cells(test):
 	"""
-	# - &.extensions.text/module.c#cells
+	# - &.extensions.tty/module.c#cells
 	# - &module.cells
 	"""
 	cells = module.cells
@@ -18,7 +34,7 @@ def test_cells(test):
 
 def test_cells_chinese_sample(test):
 	"""
-	# - &.extensions.text/module.c#cells
+	# - &.extensions.tty/module.c#cells
 	# - &module.cells
 	"""
 	cells = module.cells
@@ -26,7 +42,7 @@ def test_cells_chinese_sample(test):
 
 def test_cells_ctlchars(test):
 	"""
-	# - &.extensions.text/module.c#cells
+	# - &.extensions.tty/module.c#cells
 	# - &module.cells
 	"""
 	cells = module.cells
