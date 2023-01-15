@@ -1061,6 +1061,14 @@ class Context(core.Context):
 		fd = os.open(path, os.O_RDONLY)
 		return KInput(io.alloc_input(fd))
 
+	def write_file(self, path, *, mode=os.O_WRONLY):
+		"""
+		# Construct a channel for writing to the file identified by &path.
+		"""
+
+		fd = os.open(path, mode)
+		return KOutput(io.alloc_output(fd))
+
 	def read_file_range(self, path, start, stop,
 			open=os.open, seek=os.lseek, close=os.close,
 		):
