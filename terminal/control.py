@@ -258,8 +258,8 @@ def setup(
 	from os import write
 
 	if ttydevice is None:
-		from ..system.tty import Device
-		ttydevice = Device.open()
+		from ..system.tty import Device, fs_device
+		ttydevice = Device.open(fs_device())
 	ttydevice.record()
 
 	undomode, s, r, saves, restores = configuration(ttype, ctypes[ctype])
