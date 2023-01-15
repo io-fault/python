@@ -14,7 +14,6 @@ import functools
 import itertools
 import codecs
 
-from ..system import text
 from . import types
 
 class Type(object):

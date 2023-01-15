@@ -295,7 +295,8 @@ def test_Phrase_lfindcell(test):
 	"""
 	# - &module.Phrase.lfindcell
 	"""
-	module.text.setlocale()
+	from ...system import text
+	text.setlocale()
 	t_lfindcell_1(test, findcell_phrase_1)
 	t_lfindcell_1(test, findcell_phrase_1_cc)
 	t_lfindcell_1(test, findcell_phrase_1_units)
@@ -331,7 +332,8 @@ def test_Phrase_rfindcell(test):
 	"""
 	# - &module.Phrase.rfindcell
 	"""
-	module.text.setlocale()
+	from ...system import text
+	text.setlocale()
 	t_rfindcell_1(test, findcell_phrase_1)
 	t_rfindcell_1(test, findcell_phrase_1_cc)
 	t_rfindcell_1(test, findcell_phrase_1_units)
