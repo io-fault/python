@@ -127,17 +127,6 @@ port_identify_type(Port p)
 	}
 
 	p->type = map_st_mode(st.st_mode);
-
-	#ifdef __MACH__
-		/* kqueue is broken for on darwin for tty */
-		if (isatty(kp))
-		{
-			errno = -1;
-			Port_NoteError(p, kc_isatty);
-			return(1);
-		}
-	#endif
-
 	return(0);
 }
 
