@@ -265,9 +265,9 @@ def sequence_map(escape, stype, action, region, remainder, *, Zero=Zero):
 	if parameters[1:2] and parameters[1] is not None:
 		mods = interpret_key_modifiers(parameters[1])
 
-	if intermediates == "<":
+	if intermediates == "<" and terminator in {'m', 'M'}:
 		return (mouse(origin, terminator, parameters), remainder)
-	if terminator == '~':
+	elif terminator == '~':
 		assert len(parameters) > 0 # No key-id or modifiers
 		key_id = parameters[0]
 
