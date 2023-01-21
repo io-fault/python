@@ -2,15 +2,11 @@ import fractions
 from .. import types as module
 
 def test_classes(test):
-	class_pairs = [
-		(module.Timestamp, module.Measure),
-		(module.Date, module.Days),
-		(module.Week, module.Weeks),
-		(module.GregorianMonth, module.Months),
-	]
+	pointtypes = [module.Timestamp, module.Date]
 
 	# Check distinct inheritance lines.
-	for A, B in class_pairs:
+	for A in pointtypes:
+		B = A.Measure
 		with test/test.Absurdity as exc:
 			test.issubclass(A, B)
 
@@ -28,7 +24,7 @@ def test_select(test):
 	test.issubclass(module.select('month'), module.Months)
 	test.issubclass(module.select('year'), module.Months)
 
-	test.issubclass(module.select('day'), module.Days)
+	test.issubclass(module.select('day'), module.Date.Measure)
 
 def test_instants(test):
 	ts = module.Timestamp(0)
@@ -108,7 +104,7 @@ def test_of_Measure(test):
 
 def test_of_months(test):
 	us = module.Measure.of(month=5)
-	d = module.Days.of(month=5)
+	d = module.Date.Measure.of(month=5)
 	m = module.Months.of(day = d)
 	test/int(m) == 5
 
@@ -168,20 +164,6 @@ def test_date_contains(test):
 	p in test/d
 
 	d in test//p
-
-def test_week_contains(test):
-	w = module.Week.of(date=(1999,12,30))
-	d = module.Date.of(w)
-	dts = module.Timestamp.of(d)
-	wts = module.Timestamp.of(w)
-	w in test/dts
-	w in test/wts
-	w in test/d
-	for x in range(7):
-		d.elapse(day=x) in test/w
-	# negatives
-	d.elapse(day=-1) in test//w
-	d.elapse(day=7) in test//w
 
 def test_part_datetime(test):
 	# Presuming the datum in this test.
@@ -308,18 +290,16 @@ def test_unix(test):
 def test_hashing(test):
 	us0 = module.Measure(0)
 	ts0 = module.Timestamp(0)
-	ds0 = module.Days(0)
+	ds0 = module.Date.Measure(0)
 	dt0 = module.Date(0)
 	M0 = module.Months(0)
-	gm0 = module.GregorianMonth(0)
 	d = {0:'foo'}
 	d[us0] = 'us'
 	d[ts0] = 'ts'
 	d[ds0] = 'ds'
 	d[dt0] = 'dt'
 	d[M0] = 'M'
-	d[gm0] = 'GM'
-	test/1 == len(d) # wait, really?
+	test/1 == len(d)
 
 def test_subseconds(test):
 	val = module.Measure.of(second=1, subsecond=0.5)

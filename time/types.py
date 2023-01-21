@@ -8,17 +8,25 @@
 	y2k = types.Timestamp.of(year=2000)
 	two_hours = types.Measure.of(hour=2)
 
-# [ Functions ]
+# [ Elements ]
 
-# /&select/
+# /select/
 	# Retrieve the most appropriate &core.Measure class available in &Context for use
 	# with given the identified unit. Takes one parameter, the unit name.
 
 	#!python
 		assert issubclass(types.select('hour'), types.Measure)
-		assert issubclass(types.select('day'), types.Days)
 		assert issubclass(types.select('month'), types.Months)
 		assert issubclass(types.select('year'), types.Months)
+
+# /Timestamp/
+	# The nanosecond precision point in time type.
+# /Date/
+	# The earth-day precision point in time type.
+# /Measure/
+	# The nanosecond precision time delta type.
+# /Months/
+	# The gregorian month precision time delta type.
 """
 from collections.abc import Iterable
 from . import abstract
@@ -34,14 +42,8 @@ MeasureTypes = MeasureTypes
 # Currently this is nanosecond precision.
 Measure = MeasureTypes[0]
 
-# Scalar in earth-days.
-Days = MeasureTypes[1]
-
-# Scalar in seven earth-days.
-Weeks = MeasureTypes[2]
-
 # Scalar in Gregorian Months.
-Months = MeasureTypes[3]
+Months = MeasureTypes[2]
 
 # A tuple containing all of the default Point in Time types.
 PointTypes = PointTypes
@@ -51,12 +53,6 @@ Timestamp = PointTypes[0]
 
 # Point In Time with earth-day precision.
 Date = PointTypes[1]
-
-# Point In Time with seven earth-day precision.
-Week = PointTypes[2]
-
-# Point In Time with Gregorian Month precision.
-GregorianMonth = PointTypes[3]
 
 # Infinite measure unit.
 Eternals = Context.measures['eternal'][None]

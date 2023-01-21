@@ -643,8 +643,6 @@ def standard_context(qname) -> tuple[Context, Sequence[abstract.Measure], Sequen
 			'nanosecond', qname = (qname + '.Measure'), default = True),
 		context.new_measure_class(
 			'day', qname = qname + '.Days'),
-		context.new_measure_class(
-			'week', qname = qname + '.Weeks'),
 
 		# gregorian month terms
 		context.new_measure_class(
@@ -658,12 +656,6 @@ def standard_context(qname) -> tuple[Context, Sequence[abstract.Measure], Sequen
 			measures[0], qname = qname + '.Timestamp', default = True),
 		context.new_point_class(
 			measures[1], qname = qname + '.Date'),
-		context.new_point_class(
-			measures[2], qname = qname + '.Week'),
-
-		# gregorian month terms
-		context.new_point_class(
-			measures[3], qname = qname + '.GregorianMonth', default = True)
 	)
 
 	unix_delta = (

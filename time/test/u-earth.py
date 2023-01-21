@@ -6,18 +6,18 @@ from .. import earth
 from .. import types
 
 from_units_data = [
-	types.Days(-1),
-	types.Days(0),
-	types.Days(0),
-	types.Days(0),
-	types.Days(0),
-	types.Days(0),
-	types.Days(1),
+	types.Date.Measure(-1),
+	types.Date.Measure(0),
+	types.Date.Measure(0),
+	types.Date.Measure(0),
+	types.Date.Measure(0),
+	types.Date.Measure(0),
+	types.Date.Measure(1),
 ]
 
 def check_from_units(test, samples):
 	for u, s in zip(from_units_data, samples):
-		nu = types.Days(s)
+		nu = types.Date.Measure(s)
 		test/u == nu
 
 def test_from_units_decimal(test):
