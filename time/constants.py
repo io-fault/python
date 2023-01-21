@@ -13,8 +13,6 @@
 	# Any point in time.
 # /always/
 	# Point at negative infinity.
-# /continuum/
-	# A segment whose start is &genesis and end is &never.
 # /unix_epoch/
 	# &types.Timestamp instance referring to 1970.
 # /local_datum/
@@ -40,6 +38,3 @@ always = types.Indefinite(-1)
 
 # Any Point in time.
 whenever = types.Indefinite(0)
-
-# Segment representing all time. All points in time exist in this segment.
-continuum = types.Segment((always, never))

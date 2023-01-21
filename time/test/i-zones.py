@@ -44,10 +44,8 @@ def test_zone_dst_offset(test):
 
 def test_zone_default_only(test):
 	z = zone('MST')
-	pits = types.Segment((
-		types.Timestamp.of(iso='2006-01-03T09:00:00.000000000'),
-		types.Timestamp.of(iso='2009-01-03T09:00:00.000000000')
-	)).points(types.Months.of(month=1))
+	start = types.Timestamp.of(iso='2006-01-03T09:00:00.000000000')
+	pits = [start.elapse(month=i) for i in range(3*12)]
 
 	s = set()
 	for x in pits:

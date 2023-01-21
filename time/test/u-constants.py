@@ -18,10 +18,6 @@ def test_indefinites(test):
 	test/module.whenever == module.whenever
 	test/module.zero == module.zero
 
-	module.never in test/module.continuum
-	module.always in test/module.continuum
-	module.whenever in test/module.continuum
-
 	# Check negative eternity.
 	test/-module.eternity == (module.eternity.__class__(-1))
 

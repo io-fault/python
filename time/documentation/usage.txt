@@ -512,43 +512,6 @@ Subsequently, allowing quick identification:
 	ts = ts.elapse(month=1).update('day', -1, 'month')
 	ts.update('day', 0, 'week', align=-2)
 
-===============================
-[ Eternal Measures and Points ]
-===============================
-
-&..time defines eternal units of time that are of Indefinite non-zero periods. These units are used to
-define the very beginning, the current, and the very end of time: &.constants.genesis,
-&.constants.present, &.constants.never. These points in time are ambiguous and have simple rules
-when used with finite points in time. Never is a point in the future that is greater than
-all other points, Genesis is a point in the past before all other points, and Present
-is a continually moving point representing the current point in time, which is a subjective concept normally
-defined by the system's wall clock time.
-Like other Points in Time, there are corresponding measures: positive and negative eternity, but are
-not commonly referred to or used.
-
-Eternals also allow for the creation of indefinite segments. There are three built-in
-segments: &.types.Time, &.types.Past, &.types.Future. These segments
-represent common concepts that can be used to identify whether or not a given point has
-already occurred or will occur as Present, the start or stop of the segments, is a
-continually moving point in time.
-
-Indefinite points such as Never and Genesis are also useful for creating unbounded
-segments from a particular point in time:
-
-#!python
-	pit = system.utc().rollback(hour=1)
-	rfuture = types.Segment((pit, constants.never))
-
-The `rfuture` segment starts an hour in the past and never ends. Notably, iterators
-created by the segment are continuous in the future:
-
-#!python
-	hourly = rfuture.points(types.Measure.of(hour=1))
-	for x, ts in zip(range(3), hourly):
-		print(x, ts)
-
-Managing sets of unbounded segments are the recommended way to manage recurring jobs.
-
 ===========================
 [ Working with Time Zones ]
 ===========================
