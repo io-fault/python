@@ -1,18 +1,18 @@
 """
 # Various constants.
 
-# [ Properties ]
+# [ Elements ]
 
+# /never/
+	# Point at positive infinity.
+# /always/
+	# Point at negative infinity.
+# /whenever/
+	# Any point in time.
 # /zero/
 	# Precision indifferent zero measurement.
 # /eternity/
 	# Positive infinity measurement.
-# /never/
-	# Point at positive infinity.
-# /whenever/
-	# Any point in time.
-# /always/
-	# Point at negative infinity.
 # /unix_epoch/
 	# &types.Timestamp instance referring to 1970.
 # /local_datum/
@@ -20,21 +20,18 @@
 """
 from . import types
 
-annum = types.Measure.of(second=(86400*365)+(86400//4)) # Julian Year
+annum = types.Measure.of(second=(86400*365)+(86400//4)) # Julian Year, 525960 minutes.
 unix_epoch = types.from_unix_timestamp(0)
 local_datum = types.Timestamp(0)
 
-# Precision independent zero.
-zero = types.Eternals(0)
+if True:
+	Eternals = types.Context.measures['eternal'][None]
+	Indefinite = types.Context.points['eternal'][None]
 
-# Positive infinity measure.
-eternity = types.Eternals(1)
+	zero = Eternals(0)
+	eternity = Eternals(1)
+	never = Indefinite(1)
+	always = Indefinite(-1)
+	whenever = Indefinite(0)
 
-# Furthest Point in the future.
-never = types.Indefinite(1)
-
-# Furthest Point in the past.
-always = types.Indefinite(-1)
-
-# Any Point in time.
-whenever = types.Indefinite(0)
+	del Eternals, Indefinite

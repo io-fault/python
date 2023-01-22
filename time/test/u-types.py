@@ -313,27 +313,23 @@ def test_Months_elapse(test):
 	test/ts.rollback(m) == module.Timestamp.of(date=(2000,1,1))
 
 def test_indefinite_comparisons(test):
-	never = module.Indefinite(1)
-	genesis = module.Indefinite(-1)
-	present = module.Indefinite(0)
+	from ..constants import never, whenever, always
 
-	test/True == never.follows(genesis)
-	test/True == never.follows(present)
+	test/True == never.follows(always)
+	test/True == never.follows(whenever)
 
-	test/True == genesis.precedes(never)
-	test/True == genesis.precedes(present)
+	test/True == always.precedes(never)
+	test/True == always.precedes(whenever)
 
-	test/True == present.follows(genesis)
-	test/True == present.precedes(never)
+	test/True == whenever.follows(always)
+	test/True == whenever.precedes(never)
 
 def test_indefinite_definite_comparisons(test):
-	never = module.Indefinite(1)
-	genesis = module.Indefinite(-1)
-	present = module.Indefinite(0)
+	from ..constants import never, whenever, always
 
 	ts = module.Timestamp.of(iso="2000-01-01T00:00:00")
 	test/True == never.follows(ts)
-	test/True == genesis.precedes(ts)
+	test/True == always.precedes(ts)
 
-	test/True == ts.follows(genesis)
+	test/True == ts.follows(always)
 	test/True == ts.precedes(never)
