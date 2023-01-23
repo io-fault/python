@@ -74,7 +74,7 @@ def context(ctx, qname = ''):
 		def __repr__(self, choice = measures):
 			return '{0}.{1}'.format(self.__name__, choice[+self])
 
-		def __str__(self, choice = measures):
+		def __str__(self, *, choice = measures):
 			return choice[+self]
 
 	measure_instances = tuple(core.Measure.__new__(Eternals, x) for x in (0, 1, -1))
@@ -102,12 +102,11 @@ def context(ctx, qname = ''):
 		def __float__(self, choice = (0, float('inf'), float('-inf'),)):
 			return choice[int(self)]
 
-		def __repr__(self, choice = points):
-			return '{0}.{1}'.format(self.__name__, choice[int(self)])
+		def __repr__(self, *, choice = points):
+			return f"(time.{choice[self]})"
 
-		def __str__(self, strings = points):
-			i = int(self)
-			return strings[i and i // (abs(i))]
+		def __str__(self, *, choice = points):
+			return choice[self]
 
 		def leads(self, pit, inversed = None):
 			if isinstance(pit, Indefinite):

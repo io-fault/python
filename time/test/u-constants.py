@@ -27,3 +27,12 @@ def test_datums(test):
 
 def test_annum_value(test):
 	test/module.annum > 0
+
+def test_indefinite_representations(test):
+	test/repr(module.never) == '(time.never)'
+	test/repr(module.always) == '(time.always)'
+	test/repr(module.whenever) == '(time.whenever)'
+
+	test/str(module.never) == 'never'
+	test/str(module.always) == 'always'
+	test/str(module.whenever) == 'whenever'
