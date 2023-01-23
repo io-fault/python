@@ -124,9 +124,9 @@ class Status(tuple):
 
 	@property
 	def _interpret_time(self):
-		from ..time.types import from_unix_timestamp
-		self.__class__._interpret_time = staticmethod(from_unix_timestamp)
-		return from_unix_timestamp
+		from ..time.system import _unix
+		self.__class__._interpret_time = staticmethod(_unix)
+		return _unix
 
 	@property
 	def _read_user(self):
