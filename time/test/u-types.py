@@ -333,3 +333,15 @@ def test_indefinite_definite_comparisons(test):
 
 	test/True == ts.follows(always)
 	test/True == ts.precedes(never)
+
+def test_representations(test):
+	test/repr(module.Date.of(year=2000)) == "(time.date@'2000-01-01')"
+	test/repr(module.Date.of(year=2000, month=1, day=2)) == "(time.date@'2000-02-03')"
+
+	zero = 'T00:00:00.0'
+	test/repr(module.Timestamp.of(year=2000)) == f"(time.stamp@'2000-01-01{zero}')"
+	test/repr(module.Timestamp.of(year=2000, month=1, day=2)) == f"(time.stamp@'2000-02-03{zero}')"
+
+	test/repr(module.Measure.of(day=3)) == "(time.measure@'3d')"
+	test/repr(module.Measure.of(day=3, second=2)) == "(time.measure@'3d.2s')"
+	test/repr(module.Measure.of(second=2, nanosecond=20)) == "(time.measure@'2s.20ns')"

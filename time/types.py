@@ -59,7 +59,7 @@ Months = MeasureTypes[2]
 # A tuple containing all of the default Point in Time types.
 PointTypes = PointTypes
 
-def from_unix_timestamp(unix_ts:Union[int,float], *, Timestamp=Timestamp.of) -> Timestamp:
+def from_unix_timestamp(unix_ts:Union[int,float], *, CT=Timestamp.of) -> Timestamp:
 	"""
 	# Create a &Timestamp instance *from seconds since the unix epoch*.
 
@@ -69,6 +69,41 @@ def from_unix_timestamp(unix_ts:Union[int,float], *, Timestamp=Timestamp.of) -> 
 	# For precision beyond seconds, a float and be given or a subsequent
 	# &abstract.Point.elapse may issued.
 	"""
-	return Timestamp(unix=unix_ts)
+	return CT(unix=unix_ts)
 
 select = Context.measure_from_unit
+
+if True:
+	def _s_format_date(cd:Date) -> str:
+		y, m, d = cd.select('date')
+		return f"{y}-{m:02}-{d:02}"
+	def _r_format_date(cd:Date) -> str:
+		y, m, d = cd.select('date')
+		return f"(time.date@'{y}-{m:02}-{d:02}')"
+	Date.__repr__ = _r_format_date
+	Date.__str__ = _s_format_date
+
+	def _r_format_timestamp(ts:Timestamp) -> str:
+		s = ts.select('iso')
+		return f"(time.stamp@'{s}')"
+	Timestamp.__repr__ = _r_format_timestamp
+
+	def _r_format_measure(q:Measure) -> str:
+		ufields = [
+			'd', 'h', 'm', 's',
+			'ms', 'us', 'ns',
+		]
+
+		uv = zip(ufields, [
+			q.select('day'),
+			q.select('hour', 'day'),
+			q.select('minute', 'hour'),
+			q.select('second', 'minute'),
+			q.select('millisecond', 'second'),
+			q.select('microsecond', 'millisecond'),
+			q.select('nanosecond', 'microsecond'),
+		])
+
+		units = '.'.join([str(v)+u for u, v in uv if v != 0])
+		return f"(time.measure@'{units}')"
+	Measure.__repr__ = _r_format_measure
