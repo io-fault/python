@@ -13,9 +13,9 @@ points = (
 
 # Sorted by index use: -1 is negative, 0 is zero, and 1 is positive.
 measures = (
-	'zero',
-	'positive',
-	'negative',
+	'0',
+	'infinity',
+	'-infinity',
 )
 
 def days_from_current_factory(clock, ICE):
@@ -72,10 +72,15 @@ def context(ctx, qname = ''):
 			return measure_instances[-1 * self]
 
 		def __repr__(self, choice = measures):
-			return '{0}.{1}'.format(self.__name__, choice[+self])
+			if self < 0:
+				return '(-time.infinity)'
+			elif self > 0:
+				return '(time.infinity)'
+			else:
+				return '(time.zero)'
 
 		def __str__(self, *, choice = measures):
-			return choice[+self]
+			return choice[self]
 
 	measure_instances = tuple(core.Measure.__new__(Eternals, x) for x in (0, 1, -1))
 

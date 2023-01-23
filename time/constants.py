@@ -29,7 +29,7 @@ if True:
 	Indefinite = types.Context.points['eternal'][None]
 
 	zero = Eternals(0)
-	eternity = Eternals(1)
+	infinity = Eternals(1)
 	never = Indefinite(1)
 	always = Indefinite(-1)
 	whenever = Indefinite(0)
