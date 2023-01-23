@@ -59,18 +59,6 @@ Months = MeasureTypes[2]
 # A tuple containing all of the default Point in Time types.
 PointTypes = PointTypes
 
-def from_unix_timestamp(unix_ts:Union[int,float], *, CT=Timestamp.of) -> Timestamp:
-	"""
-	# Create a &Timestamp instance *from seconds since the unix epoch*.
-
-	#!python
-		assert types.from_unix_timestamp(0) == types.Timestamp.of(iso='1970-01-01T00:00:00.0')
-
-	# For precision beyond seconds, a float and be given or a subsequent
-	# &abstract.Point.elapse may issued.
-	"""
-	return CT(unix=unix_ts)
-
 select = Context.measure_from_unit
 
 if True:

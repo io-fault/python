@@ -21,7 +21,7 @@
 from . import types
 
 annum = types.Measure.of(second=(86400*365)+(86400//4)) # Julian Year, 525960 minutes.
-unix_epoch = types.from_unix_timestamp(0)
+unix_epoch = types.Timestamp.of(year=1970)
 local_datum = types.Timestamp(0)
 
 if True:

@@ -5,6 +5,7 @@
 # via &elapsed, &utc, &local, and &date.
 """
 from ..context import tools
+from . import constants
 from . import types
 
 def _fault_clocks(module, delta):
@@ -42,6 +43,8 @@ def setup():
 
 _real_clock_read, _monotonic_clock_read = setup()
 del setup, _fault_clocks, _stdlib_clocks
+def _unix(ut, *, epoch=constants.unix_epoch.elapse):
+	return epoch(second=ut)
 
 @tools.cachedcalls(16)
 def zone(selector=None):
@@ -55,7 +58,7 @@ def zone(selector=None):
 		# If &None, the system default zone will be used.
 	"""
 	from . import views # Defer import until usage.
-	return views.Zone.open(types.from_unix_timestamp, selector or views.tzif.tzdefault)
+	return views.Zone.open(_unix, selector or views.tzif.tzdefault)
 
 def utc(*, Type=types.Timestamp) -> types.Timestamp:
 	"""

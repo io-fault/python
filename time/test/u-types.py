@@ -284,7 +284,6 @@ def test_unix(test):
 	unix_epoch = module.Timestamp.of(iso="1970-01-01T00:00:00")
 	ts = module.Timestamp.of(unix=0)
 	test/unix_epoch == ts
-	test/unix_epoch == module.from_unix_timestamp(0)
 	test/ts.select('unix') == 0
 
 def test_hashing(test):

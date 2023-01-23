@@ -2,7 +2,7 @@ from .. import types
 from .. import views
 from .. import system
 
-zone = (lambda x: views.Zone.open(types.from_unix_timestamp, x))
+zone = (lambda x: views.Zone.open(system._unix, x))
 
 def test_zone_data(test):
 	"""
