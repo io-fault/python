@@ -37,7 +37,7 @@ typedef enum {
 struct aport_t {
 	union {
 		uint16_t numeric2; /* two byte number */
-		char filename[NAME_MAX];
+		char filename[NAME_MAX+1];
 	} data;
 	aport_kind_t kind;
 };

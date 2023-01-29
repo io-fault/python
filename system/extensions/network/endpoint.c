@@ -425,7 +425,9 @@ void
 local_str(char *dst, size_t dstsize, local_addr_t *addr)
 {
 	int i, pos;
+
 	strncpy(dst, local_addr_field(addr), dstsize);
+	dst[dstsize] = '\0';
 
 	/* find the final slash */
 	pos = strlen(dst);
@@ -433,9 +435,9 @@ local_str(char *dst, size_t dstsize, local_addr_t *addr)
 
 	/* dirname; nul-terminate *after* the slash */
 	if (dst[i] == '/')
-		dst[i+1] = 0;
+		dst[i+1] = '\0';
 	else
-		dst[i] = 0;
+		dst[i] = '\0';
 }
 
 void
@@ -453,6 +455,8 @@ local_port(struct aport_t *port, size_t dstsize, local_addr_t *addr)
 		strncpy(port->data.filename, &(buf[i+1]), NAME_MAX);
 	else
 		strncpy(port->data.filename, &(buf[i]), NAME_MAX);
+
+	port->data.filename[NAME_MAX] = '\0';
 }
 
 /**
