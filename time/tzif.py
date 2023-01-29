@@ -196,8 +196,8 @@ def structure(tzif):
 			tz_abbrev = x[0],
 			tz_offset = x[1],
 			tz_isdst = bool(x[2]),
-			tz_isstd = bool(isstd[i]),
-			tz_isgmt = bool(isgmt[i])
+			tz_isstd = bool(isstd[i]) if isstd else False,
+			tz_isgmt = bool(isgmt[i]) if isgmt else True,
 		)
 		ltt.append(ttyp)
 
