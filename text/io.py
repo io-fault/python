@@ -1,13 +1,11 @@
 """
 # Primary access to kleptic text parsing and serialization functions.
 
-#!python
+#!syntax/python
 	from fault.text import io as txt
-	src = "[ Section ]\nParagraph.\n"
+	src = "[ Section ]\\nParagraph.\\n"
 	element_tree = txt.structure_chapter_text(src)
-	assert src == txt.sequence_chapter_element(element_tree)
-
-# Paragraph elements are left in raw form
+	assert src == ''.join(txt.sequence_chapter_element(element_tree))
 """
 from . import format
 from . import document
@@ -16,7 +14,7 @@ from . import types
 
 def structure_paragraph_element(element, *, export=document.export) -> types.Paragraph:
 	"""
-	# Create a &types.Paragraph instance from the given paragraph &element.
+	# Create a &types.Paragraph instance from the given raw paragraph &element.
 	"""
 	return export(element[1])
 
@@ -39,4 +37,6 @@ def structure_chapter_text(source, *, newline='\n'):
 	"""
 	return structure_chapter_lines(source.split(newline))
 
+##
+# Serialize a chapter element into a sequence of lines.
 sequence_chapter_element = render.chapter
