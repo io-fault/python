@@ -14,7 +14,7 @@ from .. import document
 
 def pairs(items):
 	# Identify the key-value pairs of dictionaries.
-	for k, v in document.dictionary_pairs(items):
+	for k, v in document.directory_pairs(items):
 		if v[0] == 'syntax':
 			data = ''.join(document.concatenate(v))
 		else:

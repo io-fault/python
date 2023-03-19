@@ -716,17 +716,17 @@ class Parser(object):
 				if subtype == 'variable-key':
 					il = params[-1] # il of key
 
-					if not subnodes or subnodes[-1][0] != 'dictionary':
-						# New dictionary and new current working node.
-						subnodes.append(('dictionary', [], params[-1]))
+					if not subnodes or subnodes[-1][0] not in {'dictionary', 'directory'}:
+						# New directory and new current working node.
+						subnodes.append(('directory', [], params[-1]))
 					else:
-						# Current subnode is a dictionary.
+						# Current subnode is a directory.
 						# If indentation is greater, it's
-						# inside the outer dictionary's indentation level,
+						# inside the outer directory's indentation level,
 						# so it's a new dictioanry.
 						if il > subnodes[-1][-1]:
 							# il of key is greater than the current target node.
-							subnodes.append(('dictionary', [], params[-1]))
+							subnodes.append(('directory', [], params[-1]))
 
 					dn = subnodes[-1]
 					dn_content = dn[1]

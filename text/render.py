@@ -201,7 +201,7 @@ def _sequence(depth, node):
 def _set(depth, node):
 	return _list(depth, node, "- ")
 
-def _dictionary(depth, node, Paragraph=types.Paragraph):
+def _directory(depth, node, Paragraph=types.Paragraph):
 	for item in node[1]:
 		k, v = item[1]
 		if isinstance(k[1], Paragraph):
@@ -247,7 +247,8 @@ _index = {
 
 	'set': _set,
 	'sequence': _sequence,
-	'dictionary': _dictionary,
+	'dictionary': _directory,
+	'directory': _directory,
 
 	# No-op element type often providing additional metadata.
 	'void': (lambda x, y: ()),

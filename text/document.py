@@ -103,7 +103,7 @@ def context(node):
 	# Structure a common context admonition.
 	"""
 	items = node[0][0][1]
-	return dict(dictionary_pairs(items))
+	return dict(directory_pairs(items))
 
 def paragraph_as_string(node):
 	t, c, a = node
@@ -172,11 +172,11 @@ def interpret_paragraph_single(node):
 	elif t == 'reference':
 		return interpret_reference(node)
 
-def dictionary_pairs(items:list):
+def directory_pairs(items:list):
 	"""
-	# Iterate over the key-value pairs in the dictionary items.
+	# Iterate over the key-value pairs in the directory items.
 	"""
-	# Identify the key-value pairs of dictionaries.
+	# Identify the key-value pairs of directories.
 	for i in items:
 		key, value = i[1]
 		k = key[1][0]
@@ -350,8 +350,8 @@ class Transform(object):
 	def process_sequence(self, tree, node):
 		return self.process_items(tree, node, 'sequence')
 
-	def process_dictionary(self, tree, vl_node):
-		assert vl_node[0] == 'dictionary'
+	def process_directory(self, tree, vl_node):
+		assert vl_node[0] == 'directory'
 		element = self.emit
 		chain = self.chain
 
@@ -377,7 +377,7 @@ class Transform(object):
 			for part in content[1::2]
 		]
 
-		yield from element('dictionary',
+		yield from element('directory',
 			chain([
 				element('item', chain(x), ('identifier', key_id))
 				for key_id, x in zip(key_ids, zip(keys, values))
@@ -507,7 +507,7 @@ class Transform(object):
 		'paragraph': process_paragraph,
 		'set': process_set,
 		'sequence': process_sequence,
-		'dictionary': process_dictionary,
+		'directory': process_directory,
 		'syntax': process_syntax,
 		'admonition': process_admonition,
 		'section': create_section,

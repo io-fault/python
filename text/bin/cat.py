@@ -1,5 +1,5 @@
 """
-# Read the syntax from a dictionary entry inside a selected sections.
+# Read the syntax from a directory entry inside a selected sections.
 """
 import os
 import sys
@@ -12,7 +12,7 @@ from .. import document
 
 def pairs(items):
 	# Identify the key-value pairs of dictionaries.
-	for k, v in document.dictionary_pairs(items):
+	for k, v in document.directory_pairs(items):
 		if v[0] == 'syntax':
 			data = ''.join(document.concatenate(v))
 		else:
@@ -31,7 +31,7 @@ def transform(tree, section):
 	root = section_content[1]
 	x = 0
 	for x in range(len(root)):
-		if root[0][0] == 'dictionary':
+		if root[0][0] in {'dictionary', 'directory'}:
 			break
 
 	start = root[x][1]
