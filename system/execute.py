@@ -2,7 +2,7 @@
 # Execute a factor or module as a substitution.
 """
 import importlib
-from .. import process
+from . import process
 
 def add_control_factor(root, param):
 	root['control-factors'].append(param)
@@ -68,8 +68,8 @@ def apply(config, target, symbol):
 	except:
 		pass
 
-	from .. import factors
-	from .. import files
+	from . import factors
+	from . import files
 	sys.path.extend(config.get('paths', ()))
 
 	for product_path in config.get('product-paths', ()):
@@ -111,7 +111,7 @@ def system(inv):
 		xargv = inv.argv
 
 	import os
-	from .. import factors
+	from . import factors
 	fp = factors.lsf.types.factor@xargv[0]
 	sa = factors.finder.extension_variants
 	v = factors.lsf.types.Variants(
