@@ -3,7 +3,7 @@
 """
 import sys
 import importlib
-from .. import process
+from . import process
 
 _select_methods = []
 
