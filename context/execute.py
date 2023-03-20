@@ -2,11 +2,11 @@
 # Executable factor index for &fault.system.bin.tool bindings.
 """
 import importlib
-from ... import __name__ as context_name
-from ...system import process
+from .. import __name__ as context_name
+from ..system import process
 
 index = {
-	'python': context_name + '.system.bin.subexec',
+	'python': context_name + '.system.execute',
 	'http-cache': context_name + '.web.bin.cache',
 	'test-python-module': context_name + '.test.bin.coherence',
 }
