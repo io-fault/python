@@ -1,3 +1,0 @@
-"""
-# fault.terminal executables.
-"""
