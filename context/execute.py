@@ -1,5 +1,5 @@
 """
-# Executable factor index for &fault.system.bin.tool bindings.
+# Executable factor index for &fault.system.tool bindings.
 """
 import importlib
 from .. import __name__ as context_name
