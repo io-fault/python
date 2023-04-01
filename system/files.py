@@ -913,6 +913,45 @@ class Path(Selector[str]):
 			copyfile(src, dst)
 		return self
 
+	def fs_linear(self, *, scandir=os.scandir):
+		position = self
+		path = []
+		while True:
+			with scandir(position) as scan:
+				try:
+					first = next(scan)
+				except StopIteration:
+					# Empty directory, end of linear tree.
+					pass
+				else:
+					# Check for second file.
+					try:
+						second = next(scan)
+					except StopIteration:
+						# Single Entry
+						if first.is_dir():
+							# Continuation.
+							path.append(first.name)
+							position /= first.name
+							continue
+						else:
+							# Only one non-directory file.
+							pass
+				# End of linear tree.
+				break
+		return path
+
+	def fs_reduce(self, reduction, *, scandir=os.scandir, move=os.rename, rmdir=os.rmdir):
+		origin = self + reduction
+		with scandir(origin) as scan:
+			for de in scan:
+				move(origin/de.name, self/de.name)
+
+		for i in range(len(reduction)):
+			rmdir(origin ** i)
+
+		return reduction
+
 	def fs_link_relative(self, path, *, link=os.symlink):
 		relcount, segment = self.correlate(path)
 		target = '../' * (relcount - 1)
