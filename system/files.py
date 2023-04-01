@@ -939,18 +939,19 @@ class Path(Selector[str]):
 							pass
 				# End of linear tree.
 				break
-		return path
+		return self + path
 
-	def fs_reduce(self, reduction, *, scandir=os.scandir, move=os.rename, rmdir=os.rmdir):
-		origin = self + reduction
+	def fs_reduce(self, discarded, *, scandir=os.scandir, move=os.rename, rmdir=os.rmdir):
+		origin = discarded
 		with scandir(origin) as scan:
 			for de in scan:
 				move(origin/de.name, self/de.name)
 
-		for i in range(len(reduction)):
+		delta = discarded.segment(self)
+		for i in range(len(delta)):
 			rmdir(origin ** i)
 
-		return reduction
+		return self
 
 	def fs_link_relative(self, path, *, link=os.symlink):
 		relcount, segment = self.correlate(path)
