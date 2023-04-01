@@ -243,6 +243,17 @@ class File(Path):
 		raise NotImplementedError
 
 	@abstractmethod
+	def fs_reduce(self, discarded):
+		"""
+		# Relocate the directory contents in &discarded into &self, and
+		# destroy the segment of directories between &self and &discarded.
+
+		# [ Returns ]
+		# &self
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
 	def fs_alloc(self):
 		"""
 		# Allocate the necessary resources to create the target path as a file or directory.
@@ -297,6 +308,19 @@ class File(Path):
 	def fs_real(self) -> File:
 		"""
 		# Identify the portion of the route that actually exists on the filesystem.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_linear(self) -> File:
+		"""
+		# Identify the next non-linear directory.
+
+		# Recursively scan the filesystem until a directory is found containing
+		# zero files, more than one file, or a sole non-directory file is found.
+
+		# [ Returns ]
+		# The path to the next non-linear directory as a &File.
 		"""
 		raise NotImplementedError
 
