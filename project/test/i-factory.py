@@ -13,10 +13,8 @@ from ..system import structure_project_declaration
 s_information = types.Information(
 	identifier = 'http://sample.fault.io/corpus/project',
 	name = 'project',
-	icon = {},
 	authority = 'fault.io',
 	contact = 'http://fault.io/critical',
-	abstract = None,
 )
 
 s_formats = {

@@ -166,11 +166,6 @@ class Information(object):
 	# /name/
 		# The canonical local name for the project.
 		# Often, consistent with the directory or file containing the project's factors.
-	# /icon/
-		# A property set defining visual symbols that can be used to identify the project.
-	# /abstract/
-		# A sequence of paragraphs describing the project.
-		# The first sentence of the first paragraph may be used in isolation in project lists.
 	# /authority/
 		# An arbitrary string intended to identify the entity that controls the project.
 	# /contact/
@@ -180,8 +175,6 @@ class Information(object):
 
 	identifier: (str) = None
 	name: (str) = None
-	icon: (dict) = None
-	abstract: (object) = None
 	authority: (str) = None
 	contact: (str) = None
 

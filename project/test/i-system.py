@@ -317,8 +317,6 @@ def test_project_declaration(test):
 	i = Information(
 		'http://id.fault.io/corpus/project-name',
 		'project-name',
-		{},
-		None,
 		"Entity Authority",
 		"Contact Point",
 	)
@@ -344,7 +342,7 @@ def test_project_declaration_exceptions(test):
 	i = Information(
 		'http://id.fault.io/corpus/project-name',
 		'project-name',
-		{}, None, None, None
+		None, None
 	)
 
 	t = wspd('factors/void-1', i)

@@ -77,10 +77,7 @@ def structure_project_declaration(text:str, nl="\n"):
 			auth = None
 
 	return protocol, types.Information(
-		iid, name, {},
-		None,
-		auth,
-		contact,
+		iid, name, auth, contact,
 	)
 
 def sequence_project_declaration(protocol, project, /, nl="\n", fs=" "):
