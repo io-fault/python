@@ -14,6 +14,7 @@ from ..system.files import Path
 ignored = {
 	'__pycache__',
 	'__f-int__',
+	'.f-int',
 	'.git',
 	'.svn',
 	'.hg',
