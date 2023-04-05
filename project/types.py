@@ -178,6 +178,21 @@ class Information(object):
 	authority: (str) = None
 	contact: (str) = None
 
+@dataclass
+class Extensions(object):
+	"""
+	# Project information extensions.
+
+	# [ Properties ]
+	# /icon/
+		# A hyperlink identifying an image that represents or symbolizes the project.
+	# /synopsis/
+		# A brief, single sentence, description of the project.
+	"""
+
+	icon: (str) = None
+	synopsis: (str) = None
+
 @tools.struct()
 class Reference(object):
 	"""

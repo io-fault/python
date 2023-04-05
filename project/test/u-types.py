@@ -89,6 +89,15 @@ def test_Reference_constructors(test):
 	ri = module.Reference.from_ri('method-id', 'project/factor.path#iso')
 	test/r == ri
 
+def test_Extensions_constructors(test):
+	"""
+	# - &module.Extensions
+	"""
+
+	ext = module.Extensions('data:ref', 'single sentence summary')
+	test/ext.icon == 'data:ref'
+	test/ext.synopsis == 'single sentence summary'
+
 def test_fpc(test):
 	"""
 	# - &module.fpc
