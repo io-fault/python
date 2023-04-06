@@ -112,13 +112,20 @@ class Parameters(object):
 		# The source formats identified by the project.
 	# /factors/
 		# The set of factors that make up a project; a sequence of factor path-composition pairs.
+	# /extensions/
+		# Additional project information.
 	"""
 	information: (types.Information) = None
 	formats: (object) = None
 	factors: (typing.Sequence[typing.Tuple[types.FactorPath, Composition]]) = ()
+	extensions: (types.Extensions) = None
 
 	@classmethod
-	def define(Class, information, formats, soles=(), sets=()):
+	def define(Class, information, formats,
+			soles=(), sets=(),
+			icon:str=None,
+			synopsis:str=None,
+		):
 		"""
 		# Create a parameter set for project instantiation applying the proper types
 		# to factor entries, and translating factor types to file extensions for defining
@@ -134,6 +141,11 @@ class Parameters(object):
 			# presented at a path consistent with the factor path.
 		# /sets/
 			# A sequence of records defining factors with multiple sources.
+		# /icon/
+			# An IRI identifying the image representing the project.
+			# This includes `data` scheme IRIs.
+		# /synopsis/
+			# A short string describing the project.
 		"""
 
 		index = {}
@@ -159,9 +171,13 @@ class Parameters(object):
 			for path, typ, sym, src in sets
 		])
 
-		return Class(information, formats, factors)
+		return Class(information, formats, factors, types.Extensions(icon, synopsis))
 
-def plan(info, formats, factors, dimensions:typing.Sequence[str]=(), protocol='factors/polynomial-1'):
+def plan(info, formats, factors,
+		dimensions:typing.Sequence[str]=(),
+		protocol='factors/polynomial-1',
+		extensions=types.Extensions(None, None),
+	):
 	"""
 	# Generate the filesystem paths paired with the data that should be placed
 	# into that file relative to the project directory being materialized.
@@ -176,11 +192,16 @@ def plan(info, formats, factors, dimensions:typing.Sequence[str]=(), protocol='f
 			info.identifier += '//' + '/'.join(dimensions)
 		pi = sequence_project_declaration(protocol, info)
 		info.identifier = iid
-		yield (seg/'.project', pi)
+		yield (seg/'.project'/'f-identity', pi)
+
+	if extensions.icon:
+		yield (seg/'.project'/'icon', extensions.icon.encode('utf-8'))
+	if extensions.synopsis:
+		yield (seg/'.project'/'synopsis', extensions.synopsis.encode('utf-8'))
 
 	if formats:
 		fi = sequence_format_declarations(formats)
-		yield (seg/'.formats', ''.join(fi))
+		yield (seg/'.project'/'polynomial-1', ''.join(fi))
 
 	for fpath, c in factors:
 		if isinstance(c.sources, Cell):
@@ -209,8 +230,6 @@ def materialize(route, plans, encoding='utf-8', isinstance=isinstance):
 		# Plan entries referring to files will cause the file content to be loaded entirely into memory.
 		# Instantiating projects with large resources may require a side channel in order to achieve
 		# reasonable memory usage.
-
-		# The unconditional loading of file data is to accommmodate for in memory &route targets.
 
 	# [ Parameters ]
 	# /route/
@@ -259,5 +278,6 @@ def instantiate(project:Parameters, route, *dimensions:str):
 		project.information,
 		project.formats,
 		project.factors,
-		dimensions=dimensions
+		dimensions=dimensions,
+		extensions=project.extensions,
 	))

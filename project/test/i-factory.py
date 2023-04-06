@@ -173,13 +173,14 @@ def test_Parameters_instantiate(test):
 	"""
 	d = test.exits.enter_context(files.Path.fs_tmpdir())
 
-	fp = module.Parameters(s_information, s_formats, [])
+	ext = module.types.Extensions(None, None)
+	fp = module.Parameters(s_information, s_formats, [], extensions=ext)
 	module.instantiate(fp, d)
 
-	test/(d/'.project').fs_type() == 'data'
-	test/(d/'.formats').fs_type() == 'data'
+	test/(d@'.project/f-identity').fs_type() == 'data'
+	test/(d@'.project/polynomial-1').fs_type() == 'data'
 
-	check_information(test, s_information, (d/'.project').get_text_content())
+	check_information(test, s_information, (d@'.project/f-identity').get_text_content())
 
 def test_Parameters_instantiate_dimensions(test):
 	"""
@@ -189,10 +190,11 @@ def test_Parameters_instantiate_dimensions(test):
 	"""
 	d = test.exits.enter_context(files.Path.fs_tmpdir())
 
-	fp = module.Parameters(s_information, s_formats, [])
+	ext = module.types.Extensions(None, None)
+	fp = module.Parameters(s_information, s_formats, [], extensions=ext)
 	module.instantiate(fp, d, 'd-1', 'd-2')
 
-	serialized = (d/'.project').get_text_content()
+	serialized = (d@'.project/f-identity').get_text_content()
 	sproto, i = structure_project_declaration(serialized)
 
 	expected_id = s_information.identifier + '//' + '/'.join(('d-1', 'd-2'))
