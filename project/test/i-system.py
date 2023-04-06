@@ -9,8 +9,10 @@ t_project_id = 'http://ni.fault.io/test/project'
 
 def setup(pd, local_id='', project='project'):
 	pj = (pd/project).fs_mkdir()
-	pid = (t_project_id + local_id).encode('utf-8')
-	(pj/'.protocol').fs_init(pid + b' factors/polynomial-1')
+	pid = (t_project_id + local_id)
+	what = project + ' ' + pid + ' factors/polynomial-1\n'
+	whom = 'fault.io <http://fault.io/critical>\n'
+	(pj@'.project/f-identity').fs_alloc().fs_init((what + whom).encode('utf-8'))
 	return pj
 
 def product_a(test, name='product'):
@@ -251,6 +253,22 @@ def test_Project_image_polynomial(test):
 
 	subtest_int = pj.image(variants, factor@'path.subtest')
 	test/subtest_int.absolute[-5:] == ('path', '__f-int__', 'nosys-noarch', 'debug', 'subtest.i')
+
+def test_Project_extensions(test):
+	"""
+	# - &module.Project.extensions
+	# - &module.Project.icon
+	# - &module.Project.synopsis
+	"""
+	td, pd = product_a(test)
+	pd.update()
+	id = t_project_id + '/alt-1'
+	fp, proto = pd.factor_by_identifier(id)
+	pj = module.Project(pd, id, fp, proto({}))
+
+	(pj.route@'.project/icon').fs_store(b'data:reference')
+	(pj.route@'.project/synopsis').fs_store(b'summary.')
+	test/pj.extensions == module.types.Extensions('data:reference', 'summary.')
 
 def test_Context_import_protocol(test):
 	"""

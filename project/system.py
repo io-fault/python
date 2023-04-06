@@ -118,7 +118,7 @@ def scan_product_directory(read_protocol, route:Selector, limit=1024*4):
 			else:
 				stack.append(d)
 
-# Project protocol implementations.
+# Project (factor interpretation) Protocol implementations.
 protocols = {
 	'factors/polynomial-1': (__package__ + '.polynomial', 'V1'),
 }
@@ -243,16 +243,22 @@ class Product(object):
 
 	def read_protocol(self, route:Selector):
 		"""
-		# Retrieve the protocol data from the dot-protocol file
-		# contained in &route.
-
-		# &None if no protocol file is present.
+		# Retrieve the protocol data from the configured &project_declaration_filesnames.
 		"""
 		for x in self.project_declaration_filenames:
-			if (route/x).fs_type() == 'data':
-				# Discard Information instance as callers only need (id, proto).
-				protocol, pi = structure_project_declaration((route/x).get_text_content())
-				return (pi.identifier, protocol)
+			src = route/x
+			ft = src.fs_type()
+			if ft == 'directory':
+				src /= 'f-identity'
+			elif ft == 'data':
+				# Old .project data file.
+				pass
+			else:
+				continue
+
+			# Discard Information instance as callers only need (id, proto).
+			protocol, pi = structure_project_declaration(src.get_text_content())
+			return (pi.identifier, protocol)
 		for x in self.protocol_declaration_filenames:
 			if (route/x).fs_type() == 'data':
 				return parse_protocol_declaration((route/x).get_text_content())
@@ -358,6 +364,14 @@ class Project(object):
 	"""
 	# Project Interface joining relavant routes and protocol instances.
 	"""
+	meta_directory_path = Segment.from_sequence(['.project'])
+
+	@tools.cachedproperty
+	def meta(self):
+		"""
+		# The directory containing project metadata.
+		"""
+		return self.route // self.meta_directory_path
 
 	def __init__(self, pd:Product, pi:str, pf:types.FactorPath, proto:types.Protocol):
 		self.product = pd
@@ -365,7 +379,10 @@ class Project(object):
 
 		self.identifier = pi
 		self.factor = pf
-		self.route = self.product.route//pf
+
+		# This is unconditional. &Product only organizes Projects relative to
+		# its directory. Filesystem symbolic links must be used to control redirects.
+		self.route = (self.product.route // pf)
 
 	@tools.cachedproperty
 	def _iid_corpus_name_pair(self):
@@ -429,6 +446,28 @@ class Project(object):
 		# The identifying information of the project.
 		"""
 		return self.protocol.information(self.route)
+
+	@tools.cachedproperty
+	def extensions(self) -> types.Extensions:
+		"""
+		# Additional identifying information of the project.
+		"""
+		return types.Extensions(
+			self.icon().decode('utf-8'),
+			self.synopsis().decode('utf-8'),
+		)
+
+	def icon(self) -> bytes:
+		"""
+		# Read the icon reference contained in (system/file)`.project/icon`.
+		"""
+		return (self.meta / 'icon').fs_load()
+
+	def synopsis(self) -> bytes:
+		"""
+		# Read the synopsis text contained in (system/file)`.project/synopsis`.
+		"""
+		return (self.meta / 'synopsis').fs_load()
 
 	def image(self, variants, fp:types.FactorPath, suffix='i'):
 		return self.protocol.image(self.route, variants, fp, suffix=suffix)
