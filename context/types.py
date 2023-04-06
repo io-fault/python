@@ -1,5 +1,5 @@
 """
-# Supplemental Python types.
+# Supplemental types.
 """
 
 class Cell(object):
@@ -38,7 +38,7 @@ class Cell(object):
 	def __init__(self, element:object):
 		self.element = element
 
-	def __getitem__(self, index):
+	def __getitem__(self, index) -> object:
 		if index != 0:
 			raise IndexError("cell only contains a single element")
 
@@ -50,20 +50,20 @@ class Cell(object):
 	def __reversed__(self):
 		return self
 
-	def __len__(self):
+	def __len__(self) -> int:
 		return 1
 
-	def __eq__(self, operand):
+	def __eq__(self, operand) -> bool:
 		if len(operand) != 1:
 			return False
 		return self.element == operand[0]
 
-	def __contains__(self, item):
+	def __contains__(self, item) -> bool:
 		if item == self.element:
 			return True
 		return False
 
-	def index(self, value, start=0, stop=None):
+	def index(self, value, start=0, stop=None) -> int:
 		if start != 0 or (stop is not None and stop <= 0):
 			raise ValueError("range not present in cell")
 
@@ -72,7 +72,7 @@ class Cell(object):
 
 		raise ValueError("cell element does not match the given value")
 
-	def count(self, value):
+	def count(self, value) -> int:
 		if value == self.element:
 			return 1
 		else:
