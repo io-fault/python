@@ -157,9 +157,14 @@ class V1(types.Protocol):
 		extmap = []
 		typreq = []
 
-		for ext, ft in load_formats(route/'.formats'):
-			if ext:
-				extmap.append((ext, ft))
+		for flocation in [route@'.formats', route@'.project/polynomial-1']:
+			if flocation.fs_type() == 'void':
+				continue
+
+			for ext, ft in load_formats(flocation):
+				if ext:
+					extmap.append((ext, ft))
+			break
 
 		try:
 			extmap.extend(context.parameters['source-extension-map'].items())
@@ -250,7 +255,7 @@ class V1(types.Protocol):
 
 		# Excluding dot-directories.
 		files = (
-			x[1] for x in route.delimit().fs_index('data')
+			x[1] for x in route.fs_index('data')
 			if not x[0].identifier.startswith('.')
 		)
 
