@@ -287,7 +287,7 @@ FactorType = tuple[
 	],
 ]
 
-class Protocol(object):
+class FactorIsolationProtocol(object):
 	"""
 	# A project factor protocol.
 	"""
@@ -299,6 +299,7 @@ class Protocol(object):
 
 	def iterfactors(self, route:Path) -> Iterable[FactorType]:
 		raise NotImplementedError("core protocol method must be implemented by subclass")
+Protocol = FactorIsolationProtocol
 
 class ProtocolViolation(Exception):
 	"""
