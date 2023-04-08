@@ -3,7 +3,7 @@
 """
 from ...system import files
 from .. import system as module
-from ..types import factor, Protocol, Information, Reference
+from ..types import factor, FactorIsolationProtocol, Information, Reference
 
 t_project_id = 'http://ni.fault.io/test/project'
 
@@ -44,7 +44,7 @@ def test_Product_import(test):
 	"""
 	for name in module.protocols:
 		pn = module.Product.import_protocol(name)
-		test.issubclass(pn, Protocol)
+		test.issubclass(pn, FactorIsolationProtocol)
 
 def test_iterprojects_root_no_context(test):
 	"""
@@ -275,7 +275,7 @@ def test_Context_import_protocol(test):
 	# - &module.Context.import_protocol
 	"""
 	ctx = module.Context()
-	test.issubclass(ctx.import_protocol('factors/polynomial-1'), module.types.Protocol)
+	test.issubclass(ctx.import_protocol('factors/polynomial-1'), FactorIsolationProtocol)
 
 def test_Context_connect(test):
 	"""

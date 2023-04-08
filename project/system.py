@@ -31,13 +31,6 @@ def parse_project_index(lines:typing.Iterable[str]):
 		l = l.strip().split()
 		yield (l[0], (types.factor@l[1],) + tuple(l[2:]))
 
-def parse_context_index(lines:typing.Iterable[str], Prefix=types.factor) -> typing.Set[types.FactorPath]:
-	"""
-	# Interpret the lines in the iterable as &types.FactorPath instances.
-	"""
-	for l in lines:
-		yield Prefix@l.strip()
-
 def parse_protocol_declaration(text:str):
 	"""
 	# Split the text and return the fields as a tuple.
@@ -131,15 +124,11 @@ class Product(object):
 	# supported by the selector.
 	"""
 
+	project_identity_segment = Segment.from_sequence(['.project', 'f-identity'])
 	default_meta_directory = Segment.from_sequence(['.product'])
-	project_declaration_filenames = ['.project']
-	protocol_declaration_filenames = [
-		'.factor-protocol',
-		'.protocol',
-	]
 
 	@classmethod
-	def import_protocol(Class, identifier:str) -> types.Protocol:
+	def import_protocol(Class, identifier:str) -> types.FactorIsolationProtocol:
 		"""
 		# Retrieve the protocol class using the &identifier.
 		"""
@@ -206,7 +195,7 @@ class Product(object):
 	def __eq__(self, operand):
 		return self.route == operand.route
 
-	def identifier_by_factor(self, factor:types.FactorPath) -> typing.Tuple[str, types.Protocol]:
+	def identifier_by_factor(self, factor:types.FactorPath) -> typing.Tuple[str, types.FactorIsolationProtocol]:
 		"""
 		# Select the project identifier and protocol using a factor path (to the project).
 		# Uses the instance local cache populated by &load or &update.
@@ -214,7 +203,7 @@ class Product(object):
 		ids, proto = self.local[factor]
 		return ids, self.import_protocol(proto)
 
-	def factor_by_identifier(self, identifier:str) -> typing.Tuple[types.FactorPath, types.Protocol]:
+	def factor_by_identifier(self, identifier:str) -> typing.Tuple[types.FactorPath, types.FactorIsolationProtocol]:
 		"""
 		# Select the factor path (to the project) and protocol using the project identifier.
 		# Uses the instance local cache populated by &load or &update.
@@ -245,24 +234,14 @@ class Product(object):
 		"""
 		# Retrieve the protocol data from the configured &project_declaration_filesnames.
 		"""
-		for x in self.project_declaration_filenames:
-			src = route/x
-			ft = src.fs_type()
-			if ft == 'directory':
-				src /= 'f-identity'
-			elif ft == 'data':
-				# Old .project data file.
-				pass
-			else:
-				continue
-
-			# Discard Information instance as callers only need (id, proto).
+		src = route // self.project_identity_segment
+		# Discard Information instance as callers only need (id, proto).
+		try:
 			protocol, pi = structure_project_declaration(src.get_text_content())
-			return (pi.identifier, protocol)
-		for x in self.protocol_declaration_filenames:
-			if (route/x).fs_type() == 'data':
-				return parse_protocol_declaration((route/x).get_text_content())
-		return None
+		except (FileNotFoundError, NotADirectoryError):
+			return None
+
+		return (pi.identifier, protocol)
 
 	@property
 	def _spec(self):
@@ -373,7 +352,7 @@ class Project(object):
 		"""
 		return self.route // self.meta_directory_path
 
-	def __init__(self, pd:Product, pi:str, pf:types.FactorPath, proto:types.Protocol):
+	def __init__(self, pd:Product, pi:str, pf:types.FactorPath, proto:types.FactorIsolationProtocol):
 		self.product = pd
 		self.protocol = proto
 
@@ -526,7 +505,7 @@ class Context(object):
 	"""
 
 	@classmethod
-	def import_protocol(Class, identifier:str) -> typing.Type[types.Protocol]:
+	def import_protocol(Class, identifier:str) -> typing.Type[types.FactorIsolationProtocol]:
 		"""
 		# Retrieve the protocol class using the &identifier.
 		"""

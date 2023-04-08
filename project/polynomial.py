@@ -31,9 +31,6 @@ system_factor_type = types.Reference(
 	'type', None
 )
 
-# Segments noting the position of significant files in a polynomial project.
-FactorDeclarationSignal = Segment.from_sequence(['.factor'])
-
 def load_formats(file, *, continued='\t', separator='\n', Ref=types.Reference.from_ri):
 	if file.fs_type() == 'void':
 		return
@@ -128,20 +125,15 @@ def parse_image_descriptor_1(string:str) -> typing.Iterator[typing.Sequence[str]
 		# Strip the fields in each group ignoring empty fields.
 		yield [x for x in map(str.strip, line.split()) if x]
 
-class V1(types.Protocol):
+class V1(types.FactorIsolationProtocol):
 	"""
 	# polynomial-1 protocol implementation.
 	"""
 
 	identifier = 'polynomial-1'
-
-	def information(self, project:Selector, filename="project.txt") -> types.Information:
-		"""
-		# Retrieve the information record of the project.
-		"""
-		for x in [project/'documentation'/filename, project/filename]:
-			if x.fs_type() == 'data':
-				return load_project_information(x)
+	# Segments noting the position of significant files in a polynomial directory.
+	FactorDeclarationSignal = Segment.from_sequence(['.factor'])
+	FormatsProjectPath = Segment.from_sequence(['.project', 'polynomial-1'])
 
 	def configure(self, route):
 		"""
@@ -157,14 +149,9 @@ class V1(types.Protocol):
 		extmap = []
 		typreq = []
 
-		for flocation in [route@'.formats', route@'.project/polynomial-1']:
-			if flocation.fs_type() == 'void':
-				continue
-
-			for ext, ft in load_formats(flocation):
-				if ext:
-					extmap.append((ext, ft))
-			break
+		for ext, ft in load_formats(route // self.FormatsProjectPath):
+			if ext:
+				extmap.append((ext, ft))
 
 		try:
 			extmap.extend(context.parameters['source-extension-map'].items())
@@ -292,7 +279,7 @@ class V1(types.Protocol):
 			else:
 				processed.add(rdp)
 
-			spec = (r // FactorDeclarationSignal)
+			spec = (r // self.FactorDeclarationSignal)
 			if r.fs_type() == 'directory' and spec.fs_type() == 'data':
 				# Explicit Typed Factor directory.
 				cpath = types.FactorPath.from_sequence(path)
