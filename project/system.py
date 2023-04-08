@@ -432,21 +432,47 @@ class Project(object):
 		# Additional identifying information of the project.
 		"""
 		return types.Extensions(
-			self.icon().decode('utf-8'),
-			self.synopsis().decode('utf-8'),
+			self.icon().decode('utf-8') or None,
+			self.synopsis().decode('utf-8') or None,
 		)
 
 	def icon(self) -> bytes:
 		"""
 		# Read the icon reference contained in (system/file)`.project/icon`.
+
+		# [ Returns ]
+		# /(syntax/python)`b''`/
+			# When the filesystem resource could not be loaded or when
+			# only whitespace is present.
+
+			# Exceptions are suppressed.
+		# /&bytes/
+			# The data content of the `self.meta / 'icon'` filesystem resource
+			# as read by &files.Path.fs_load.
 		"""
-		return (self.meta / 'icon').fs_load()
+		try:
+			return (self.meta / 'icon').fs_load().strip()
+		except Exception:
+			return b''
 
 	def synopsis(self) -> bytes:
 		"""
-		# Read the synopsis text contained in (system/file)`.project/synopsis`.
+		# Read the synopsis data contained in (system/file)`.project/synopsis`.
+
+		# [ Returns ]
+		# /(syntax/python)`b''`/
+			# When the filesystem resource could not be loaded or when
+			# only whitespace is present.
+
+			# Exceptions are suppressed.
+		# /&bytes/
+			# The data content of the `self.meta / 'synopsis'` filesystem resource
+			# as read by &files.Path.fs_load.
 		"""
-		return (self.meta / 'synopsis').fs_load()
+		try:
+			return (self.meta / 'synopsis').fs_load().strip()
+		except Exception:
+			return b''
 
 	def image(self, variants, fp:types.FactorPath, suffix='i'):
 		return self.protocol.image(self.route, variants, fp, suffix=suffix)

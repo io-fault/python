@@ -259,6 +259,8 @@ def test_Project_extensions(test):
 	# - &module.Project.extensions
 	# - &module.Project.icon
 	# - &module.Project.synopsis
+
+	# Validate successful extensions.
 	"""
 	td, pd = product_a(test)
 	pd.update()
@@ -269,6 +271,34 @@ def test_Project_extensions(test):
 	(pj.route@'.project/icon').fs_store(b'data:reference')
 	(pj.route@'.project/synopsis').fs_store(b'summary.')
 	test/pj.extensions == module.types.Extensions('data:reference', 'summary.')
+
+def test_Project_extensions_vacancies(test):
+	"""
+	# - &module.Project.extensions
+	# - &module.Project.icon
+	# - &module.Project.synopsis
+
+	# Validate that exceptions aren't raised by icon and synopsis.
+	"""
+	td, pd = product_a(test)
+	pd.update()
+	id = t_project_id + '/alt-1'
+	fp, proto = pd.factor_by_identifier(id)
+	pj = module.Project(pd, id, fp, proto({}))
+
+	test/pj.extensions == module.types.Extensions(None, None)
+	test/pj.icon() == b''
+	test/pj.synopsis() == b''
+
+	# Also checking that surrounding whitespace is stripped.
+	(pj.route@'.project/icon').fs_store(b'\tdata:reference ')
+	del pj.extensions
+	test/pj.extensions == module.types.Extensions('data:reference', None)
+
+	(pj.route@'.project/icon').fs_void()
+	(pj.route@'.project/synopsis').fs_store(b' summary.\t')
+	del pj.extensions
+	test/pj.extensions == module.types.Extensions(None, 'summary.')
 
 def test_Context_import_protocol(test):
 	"""
