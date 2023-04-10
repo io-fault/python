@@ -209,7 +209,12 @@ def _directory(depth, node, Paragraph=types.Paragraph):
 		else:
 			kp = document.export(k[1])
 		kl = ["/"]
-		kl.extend(*paragraph(kp))
+		for line in paragraph(kp):
+			kl.extend(line)
+			break
+		else:
+			# Empty key.
+			pass
 		kl.append("/")
 
 		if len(v[1]) == 1 and v[1][0][0] == 'syntax':
