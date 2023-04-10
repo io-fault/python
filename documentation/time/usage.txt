@@ -1,0 +1,613 @@
+[ Overview ]
+============
+
+Units of unbound quantities of time are called "eternals". They are a special Measure and
+Point type that have only three values: zero, infinity, and negative infinity.
+
+Time classes are created by Time Contexts. The default context is
+initialized and provided by the &.types module. The following
+lists are the time classes created by that context.
+
+Point In Time types:
+
+	- &.types.Timestamp
+	- &.types.Date
+	- &.types.Week
+	- &.types.GregorianMonth
+
+Measure types:
+
+	- &.types.Measure
+	- &.types.Days
+	- &.types.Weeks
+	- &.types.Months
+
+The interfaces are described by the abstract base classes in
+&.abstract. Primarily:
+
+/&.abstract.Time/
+	A measure or point. The common abstract base class.
+
+/&.abstract.Measure/
+	A measurement of time.
+
+/&.abstract.Point/
+	A point in time. Points are used to specify calendar dates or
+	calendar dates with time of day.
+
+[ Eccentricities ]
+------------------
+
+[> Points and Measures are Python Integers ]
+
+This has the effect that integers with the same value will be seen as the same
+key in dictionaries:
+
+#!python
+	>>> from fault.time import types
+	>>> from fault.time import constants
+	>>> d = {}
+	>>> d[types.Date(0)] = 'Hello, World!'
+	>>> print d[0]
+	Hello, World!
+
+If type based scoping is needed, the key can be qualified with the type:
+
+#!python
+	d = {}
+	d[(types.Date, types.Date(0))] = 'date-value'
+	d[(types.Timestamp, types.Timestamp(0))] = 'timestamp-value'
+
+Or, nested dictionaries could be used:
+
+#!python
+	d = {types.Date: {}, types.Timestamp: {}}
+	d[types.Date][types.Date(0))] = 'date-value'
+	d[types.Timestamp][types.Timestamp(0))] = 'timestamp-value'
+
+[> Datetime Math ]
+
+&..time is heavily based on direct Python &int subclasses. This offers many
+benefits, but it also avoids overriding the integer's operators leaving a,
+contextually, low-level operation that should normally be avoided. This likely
+offers a suprise as the usual addition (`+`) and subtraction (`-`) operators
+do not perform as they would with the standard library's &datetime.datetime
+or many other datetime packages.
+
+Instead, &..time relies on the higher-level methods to perform delta
+calculation and point positioning.
+
+[> Day and Month Fields ]
+
+The `day` and `month` fields of the standard time context are **offsets** and
+are not consistent with the usual representation of gregorian day-of-month and
+month-of-year. Some of the Container keywords do, however, use the usual
+gregorian representation.
+
+More clearly:
+
+#!python
+	pit = types.Timestamp.of(iso="2002-01-01T00:00:00")
+	assert pit.select('day', 'month') == 0
+	assert pit.select('month', 'year') == 0
+
+As opposed to the day-of-month and month-of-year fields being equal to `1` as
+one might expect them to be. Rather, *they are offsets*.
+
+[> Month Arithmetic Can Overflow ]
+
+The implementation of month arithmetic is sensitive to the selected day:
+
+#!python
+	# working with a leap year
+	pit = types.Timestamp.of(iso='2012-01-31T18:55:33.946259')
+	pit.elapse(month=1)
+	types.Timestamp.of(iso='2012-03-02T18:55:33.946259')
+
+The issue can be avoided by adjusting the PiT to the beginning of the month:
+
+#!python
+	pit = pit.update('day', 0, 'month')
+	pit.elapse(month=1)
+
+[> Annums and Years ]
+
+The "year" unit in &..time is strictly referring to gregorian years. This means
+that a "year" in &..time is actually twelve gregorian months, which means
+*years are a subjective unit of time*.
+For *metric* measures--Python timedeltas analog--this
+poses a problem in that years should not be used to represent the span when working
+with &.types.Measure.
+
+In order to compensate, the &.types.Month class provides a means to
+express such subjective time spans.
+
+[> Unit Aware Comparison ]
+
+Unit subclasses do *not* override the built-in comparison methods implemented by the
+&int type that all unit classes are based on. Given that these classes can
+represent different units, comparisons *must* be performed with *like units* in order
+to yield consistently correct results. In order to compensate, unit aware comparisons are
+provided for &.abstract.Point types:
+&.abstract.Point.leads and &.abstract.Point.follows.
+
+Measures do not implement unit-aware comparisons and must be converted to like-units
+before the integer comparisons may be used.
+
+---------------------------------
+[ Math in Python datetime Terms ]
+---------------------------------
+
+&..time does not use the usual arithmetic operators for performing datetime
+math. Rather, &..time *uses named methods in order to draw a semantic distinction*.
+Not to mention, it is sometimes desirable to use the integer's operators directly
+in order to avoid semantics involved with representation types.
+
+The list here points to the abstract base classes.
+Points *are* timestamps, datetimes,. Measures *are* intervals, timedeltas.
+
+/`timedelta() + timedelta()`/
+	&.abstract.Measure.increase:
+
+	#!python
+		m1 = types.Measure(second=0)
+		m2 = types.Measure(second=1)
+		d = m1.increase(m2)
+
+/`timedelta() - timedelta()`/
+	&.abstract.Measure.decrease:
+
+	#!python
+		m1 = types.Measure(second=2)
+		m2 = types.Measure(second=1)
+		d = m1.decrease(m2)
+
+/`datetime() + timedelta()`/
+	&.abstract.Point.elapse:
+
+	#!python
+		ts = types.Timestamp.of(...)
+		measure = types.Measure(second=1)
+		d = ts.elapse(measure)
+
+/`datetime() - timedelta()`/
+	Point in Time subtraction is handled with
+	&.abstract.Point.rollback:
+
+	#!python
+		ts = types.Timestamp.of()
+		measure = types.Measure(second=1)
+		d = ts.rollback(measure)
+
+/`datetime() - datetime()`/
+	&.abstract.Point.measure:
+
+	#!python
+		ts1 = types.Timestamp.of(...)
+		ts2 = types.Timestamp.of(...)
+		d = ts1.measure(ts2) # measure the distance between
+
+[ Calendar Representation ]
+---------------------------
+
+A Date can be used to represent the span of the entire day.
+
+#!python
+	date = types.Date.of(year=1982, month=4, day=17)
+	assert date.select('day', 'month') == 17
+
+However, the above actually represents.
+
+#!python
+	assert date.select('date') == (1982, 5, 18)
+
+Usually, using the `date` keyword is best way to to work with
+literal dates.
+
+#!python
+	assert types.Date.of(date=(1982,5,18)) == date
+
+The calendrical **representation** only takes effect through certain
+interfaces.
+
+#!python
+	ts = types.Timestamp.of(iso="2001-01-01T05:30:01")
+	print(repr(ts))
+	types.Timestamp.of(iso='2001-01-01T05:30:01.000000')
+
+And from a datetime tuple.
+
+#!python
+	ts2 = types.Timestamp.of(datetime = (2001, 1, 1, 5, 30, 1, 0))
+	assert ts == ts2
+
+&..time PiTs do not perform calendrical validation; rather, fields with excess
+values overflow onto larger units. This is similar to how MySQL handles
+overflow. For &..time, this choice is deliberate and the user is expected to
+perform any desired validation.
+
+#!python
+	pit = types.Date.of(date=(1982,5,0))
+
+The assigned `pit` now points to the last day of the month preceding the fifth
+month in the year 1982.
+
+-----------------
+[ Datetime Math ]
+-----------------
+
+&..time can easily answer questions like, "What was third weekend of the fifth
+month of last year?".
+
+#!python
+	pit = system.utc()
+	pit = pit.update('day', 0, 'month') # set to the first day to avoid overflow
+	pit = pit.rollback(year=1) # subtract one gregorian year
+	pit = pit.update('month', 5-1, 'year') # set to the fifth month
+	pit = pit.update('day', 6, 'week') # set to the weekend of the week
+	pit = pit.elapse(week = 2)
+
+Things can get a little more interesting when asking about the last weekend
+of a given month.
+
+#!python
+	# move the beginning of month (to avoid possible day overflow)
+	pit = system.utc().update('day', 0, 'month')
+	# to the next month and then to the end of the previous
+	pit = pit.elapse(month = 1).update('day', -1, 'month') # move to the end of the month.
+	# 0 is the beginning of the week, so -1 is the end of the prior week.
+	pit = pit.update('day', -1, 'week')
+
+On day overflow, the following illustrates the effect:
+
+#!python
+	# working with a leap year
+	pit = types.Timestamp.of(iso='2012-01-31T18:55:33.946259')
+	pit.elapse(month=1)
+	types.Timestamp.of(iso='2012-03-02T18:55:33.946259')
+
+Month arithmetic does not lose days in order to align the edge of a month.
+In order to keep overflow from causing invalid calculations, adjust to the
+beginning of the month.
+
+Things can get even more interesting when asking,
+"What is the second to last Thursday of the month". Questions like this require
+alignment in order to be answered:
+
+#!python
+	pit = system.utc()
+	pit = pit.update('day', 0, 'month') # let's say this month
+	# but we need the end of the month
+	pit = pit.elapse(month=1)
+	pit = pit.update('day', -1, 'month') # set to the first day
+	# And now something that will appear almost magical if
+	# you haven't used a datetime package with a similar feature.
+	pit = pit.update('day', 0, 'week', align=-4) # last thursday of month
+	pit = pit.rollback(week=1) # second to last
+
+Essentially, alignment allows Thursdays to be seen as the first day of the
+week, warranting that the day field will stay the same or be subtracted when
+set to zero. This is why the day is set to the last day of the month, in case
+the Thursday is the last day of the month, and with proper alignment the first
+day of the re-aligned week.
+
+[ Time Zones ]
+--------------
+
+Time zone adjustments are supported by zone objects:
+
+#!python
+	pit = system.utc()
+	tz = views.Zone.open('America/Los_Angeles')
+	local_pit = tz.localize(pit)
+	print(local_pit.select('iso'))
+
+
+[ Constructing Points and Measures ]
+====================================
+
+A Point is a Point in Time; like a date or a date and time of day. Usually, this
+is referring to instances of the &.types.Timestamp class. A Measure
+is an arbitrary unit of time and is usually referring to instances the
+&.types.Measure class.
+
+Constructing instances is usually performed with the class method
+&.types.Measure.of. Or, &.types.Timestamp.of for Points.
+
+[> Creating a Timestamp ]
+-------------------------
+
+The &.types.Timestamp type is the Point In Time Representation
+Type with the finest precision available *by default*:
+
+#!python
+	near_y2k = types.Timestamp.of(date=(2000,1,1), hour=8, minute=24, second=15)
+	>>> near_y2k
+	types.Timestamp.of(iso='2000-01-01T08:24:15.000000')
+
+Currently, The &.types.Timestamp and &.types.Measure types use nanosecond precision.
+
+[> Creating a Date ]
+--------------------
+
+A Date is also considered a Point In Time type. The Date type exists for the
+purpose of representing the point in which the specified day starts, *and* the
+period between that point and the start of the next day; non-inclusive:
+
+#!python
+	types.Date.of(year=1982, month=4, day=17) # month and day are offsets.
+	types.Date.of(iso='1982-05-18')
+
+While a little suprising, the above reveals an apparent inconsistency: the
+`month` keyword parameter acts as a month offset. To compensate,
+the `date` container keyword parameter is treated specially to accept
+gregorian calendar representation. The keyword parameters are literal
+increments of units. Subsequently, using the `date` container can more
+appropriate:
+
+#!python
+	>>> types.Date.of(date=(1982,5,18))
+	types.Date.of(iso='1982-05-18')
+
+
+[> Getting the Current Point in Time ]
+--------------------------------------
+
+The primary interface for accessing the system clock is using the
+&.system.utc callable:
+
+#!python
+	current_time = system.utc()
+
+The returned timestamp is a UTC timestamp.
+
+[> Creating a Timestamp from an ISO-8601 String ]
+-------------------------------------------------
+
+While the &.format module manages the details, the
+types have access to the functionality:
+
+#!python
+	ts = types.Timestamp.of(iso='2009-02-01T3:33:45.123321')
+
+&..time provides parsers for both ISO-8601 and RFC-1123 datetime formats. The
+above example shows how to construct a Point in Time from an ISO-8601 string.
+The following shows RFC-1123, the format used by HTTP:
+
+#!python
+	ts = types.Timestamp.of(rfc='Sun, 19 Mar 2012 07:27:58')
+
+[> Formatting a Standard Timestamp ]
+------------------------------------
+
+Likewise, instances can be formatted by the standards:
+
+#!python
+	ts = types.Timestamp.of(iso='2009-01-01T7:30:0')
+	print(ts.select('iso'))
+
+And RFC as well:
+
+#!python
+	assert "Sat, 01 Jan 2000 00:00:00" == types.Timestamp(date=(2000,1,1)).select('rfc')
+
+[> Constructing a Timestamp from Parts ]
+----------------------------------------
+
+A &.types.Timestamp can be constructed from time parts using the
+&.abstract.Time.of class method. This method takes
+arbitrary positional parameters and keyword parameters whose keys are the name
+of a unit of time known by the time context:
+
+#!python
+	ts = types.Timestamp.of(hour = 55, second = 78)
+
+Notably, the above is not particularly useful without a date:
+
+#!python
+	types.Timestamp.of(
+		date = (2015, 1, 1),
+		hour = 13, minute = 7,
+		second = 4,
+		microsecond = 324159
+	)
+
+[> Constructing a Timestamp from a UNIX Timestamp ]
+---------------------------------------------------
+
+The `unix` container keyword provides an interface from seconds since the
+UNIX-epoch, "January 1, 1970". A timestamp can be made using the
+&.abstract.Time.of method:
+
+#!python
+	epoch = types.Timestamp.of(unix=0)
+
+Subseqently, a given PiT can yield a UNIX timestamp using the
+&.abstract.Time.select method:
+
+#!python
+	now = system.utc()
+	unix = now.select('unix')
+
+And a contrived use-case where the file `f` contains lines containing unix timestamps:
+
+#!python
+	with open(...) as f:
+		times = list(map(from_unix, map(int, f.readlines())))
+
+[ Arithmetic of Points and Measures ]
+=====================================
+
+Time types are all based on subclasses of Python's &int.
+The usual arithmetic operators are essentially low-level operations that can be
+used in certain cases, but they should be restricted to performance critical
+situations where the higher-level methods cannot be used.
+
+[> Getting a Particular Day of the Week ]
+-----------------------------------------
+
+Points and scalars can both update arbitrary fields according to a boundary.
+With Timestamps and Dates aligned on the beginning of a week, an arbitrary
+day of week can be found by field modification:
+
+#!python
+	ts = types.Timestamp.of(iso="2000-01-01T3:30:00")
+	>>> print(ts.select('day', 'week'))
+	6
+	ts = ts.update('day', 1, 'week') # 0-6, Sun-Sat.
+	>>> print(ts)
+	'1999-12-27T03:30:00.000000'
+	>>> print(ts.select('weekday'))
+	'monday'
+
+By extension, to get the following Monday, just add seven:
+
+#!python
+	ts = types.Timestamp.of(iso="2000-01-01T3:30:00")
+	ts = ts.update('day', 8, 'week')
+	>>> print(ts)
+	'2000-01-03T03:30:00.000000'
+	>>> print(ts.select('weekday'))
+	'monday'
+
+Or, to get the preceding Monday, just substract seven:
+
+#!python
+	>>> ts = types.Timestamp.of(iso="2000-01-01T3:30:00")
+	>>> ts = ts.update('day', 1-7, 'week')
+	>>> print(ts)
+	1999-12-20T03:30:00.000000
+	>>> print(ts.select('weekday'))
+	monday
+
+And so on: `1+|-14`, `1+|-21`, ...
+
+[> Getting a Particular Weekday of a Month ]
+--------------------------------------------
+
+Occasionally, the need may arise to fetch the N-th weekday of the month. This is
+trickier than getting an arbitrary weekday as it requires the part to be aligned
+on a month. Given an arbitrary time type supporting gregorian units, `ts`, the
+month must first be adjusted to the beginning of the month:
+
+#!python
+	# Find the third Saturday of the month.
+	ts = types.Timestamp.of(...)
+
+	# Get the first of the month.
+	ts = ts.update('day', 0, 'month')
+	# Now the first Saturday of the month.
+	ts = ts.update('day', 6, 'week')
+	ts.elapse(day=14)
+
+The above, however, is hiding a factor due to Saturday's nature of being on
+the end of the week: alignment. Alignment allows the repositioning of the
+boundary that a part is selected from or updated by. This provides the ability
+to designate that a particular weekday be the beginning or end of the week.
+Subsequently, allowing quick identification:
+
+#!python
+	ts = types.Timestamp.of(...)
+	# Get the last day of the Month.
+	ts = ts.elapse(month=1).update('day', -1, 'month')
+	ts.update('day', 0, 'week', align=-2)
+
+===========================
+[ Working with Time Zones ]
+===========================
+
+Time zones are *difficult* to work with. In the best situations, use is not necessary, but that is,
+unfortunately, not often. Time zones offer a rather unique problem as programmers are
+indirectly forced into supporting designations often defined by local government. This
+imposition complicates the situation dramatically. Even in the case where the right
+process is followed, it is possible to come to the wrong conclusion given rotten time zone
+information.
+
+There is no easy mode when being time zone aware. It's an extra level of detail that
+*must* be managed by the application.
+
+[> Understanding Time Zones ]
+-----------------------------
+
+The difficulty of time zones stems from the need to transition to and from an
+offset for appropriating the representation of a Point in Time. This is referring to
+a couple tasks:
+
+	- Representing a UTC Point in Time in a local form.
+	- Converting a local form to a UTC Point in Time.
+
+While this is trivial on the face, the local form is actually a moving target. A
+time zone database is maintained by a standards body in order to keep
+track of how the local form varies. Often this involves daylight savings time,
+but extends into situations where political decisions alter the offsets for a
+given region altogether. At a wider scope the database *can* change entirely.
+Consider database corrections, updates, or complete substitutions.
+
+This subjective offsetting can create situations where a given time of day
+of a local form *is either ambiguous or invalid*. Proper handling of these cases
+is often dependent on the context in which a given local form is being used.
+
+When working with zoned PiTs, there are two situations:
+
+	# A canonical Point, normally a PiT in UTC associated with a zone.
+	# A local Point where the local form is being represented.
+
+Each situation has its own requirements for proper zone handling.
+
+In the first, the zone identifier should be associated with the PiT object.
+These objects should always be a type capable of designating a date and time of
+day, the &.types.Timestamp type. Representation types like
+&.types.Date don't require zone adjustments unless it
+is ultimately intended to refer to the beginning of the day in that particular
+zone in UTC.
+
+In the second, the actual offset *and* zone identifier applied to the zone
+should be associated with the PiT object.
+
+[> Getting an Offset from a UTC Point in Time ]
+-----------------------------------------------
+
+While &.views provides the implementation of Zone objects, high level
+access is provided via the &.views.Zone.open class method:
+
+#!python
+	tz = views.Zone.open('America/Los_Angeles')
+	pit = system.utc()
+	offset = tz.find(pit)
+
+Once the &.views.Zone.Offset object has been found for a given point in
+time, the UTC point can be adjusted:
+
+#!python
+	la_pit = pit.elapse(offset)
+
+[> Localizing a UTC Point in Time ]
+-----------------------------------
+
+The examples in the previous section show the details of localization.
+&.views.Zone instances have the above functionality packed into a
+single method, &.views.Zone.localize:
+
+#!python
+	pit, offset = views.Zone.open().localize(system.utc())
+
+The offset applied to the point in time is returned with the adjusted point as it is
+often necessary in order to properly represent the timestamp:
+
+#!python
+	offset.iso(pit)
+	# "2013-01-17T15:36:35.834813000 PST-28800"
+
+[> Normalizing a Local Point in Time ]
+--------------------------------------
+
+Normalization is the process of adjusting a localized timestamp by its *known* offset into
+a UTC timestamp and then localizing it. The &.views.Zone.normalize
+method has this functionality:
+
+#!python
+	pit, offset = views.Zone.open().localize(system.utc())
+	normalized_pit, new_offset = views.Zone.open().normalize(offset, pit)
+
+Where `normalized_pit` and `new_offset` are the *exact* same objects if no change was
+necessary.

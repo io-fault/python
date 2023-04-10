@@ -1,0 +1,64 @@
+[ Overview ]
+
+&..time is a time library based on the built-in Python &int.
+By default, timestamps have nanosecond precision granting common applications
+more than enough detail about a point in time. For specialized purposes, the
+units handled can be arbitrarily extended--the &int subclasses
+represent a designated unit and a common Time Context, group of unit classes,
+provides the necessary linkage and transformations for conversion across
+classes.
+
+Calendar Support:
+
+	- Proleptic Gregorian
+
+#!syntax/python
+	from fault.time.types import Date, Timestamp, Measure
+
+#!syntax/python
+	from fault.time.system import utc
+	now = utc()
+
+[ Unit Knowledge ]
+
+All of the following units are defined in the default Time Context.
+The emphasized units are the only units that have associated classes allocated by default.
+
+/earth/
+	- second
+	- minute
+	- hour
+	- *day*
+	- *week*
+	- annum (Julian Year)
+
+/gregorian/
+	- *month*
+	- year
+	- decade
+	- century
+	- millennium
+
+/metric subseconds/
+	- decisecond
+	- centisecond
+	- millisecond
+	- microsecond
+	- *nanosecond*
+	- picosecond
+	- femtosecond
+	- attosecond
+	- zeptosecond
+	- yoctosecond
+
+/metric seconds/
+	- decasecond
+	- hectosecond
+	- kilosecond
+	- megasecond
+	- gigasecond
+	- terasecond
+	- petasecond
+	- exasecond
+	- zettasecond
+	- yottasecond
