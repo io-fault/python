@@ -307,8 +307,8 @@ def main(inv:process.Invocation) -> process.Exit:
 	dl = Download(sys.stderr, path, 1, ri.parse(iri))
 
 	from ...kernel import system
-	process = system.dispatch(inv, dl)
-	system.set_root_process(process)
+	kprocess = system.dispatch(inv, dl)
+	system.set_root_process(kprocess)
 	system.control()
 
 if __name__ == '__main__':
