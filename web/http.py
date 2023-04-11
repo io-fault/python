@@ -15,9 +15,7 @@ from ..context.tools import cachedproperty, cachedcalls
 from ..time import types as timetypes
 from ..system import memory
 
-from ..internet.data import http as protocoldata # On disk (shared) hash for this is preferred.
-from ..internet import http as protocolcore
-
+from ..internet import http as protocol
 from ..internet import media
 from ..internet import ri
 
@@ -394,7 +392,7 @@ def _join_send_chunk(event, channel_id, transfer_events):
 	assert event == flows.fe_transfer
 	return [(3, x) for x in transfer_events]
 
-def _join_send_eom(event, channel_id, terminal, EOM=protocolcore.EOM):
+def _join_send_eom(event, channel_id, terminal, EOM=protocol.EOM):
 	assert event == flows.fe_terminate
 	return (EOM,)
 
@@ -459,7 +457,7 @@ def join(
 	# Join flow events into a proper HTTP stream.
 	"""
 
-	serializer = protocolcore.assembly()
+	serializer = protocol.assembly()
 	serialize = serializer.send
 	commands = {}
 	transfer = ()
@@ -498,15 +496,15 @@ def _fork_response_sync(state):
 
 def fork(
 		shared, allocate, close, overflow,
-		rline=protocolcore.ev_rline,
-		headers=protocolcore.ev_headers,
-		trailers=protocolcore.ev_trailers,
-		content=protocolcore.ev_content,
-		chunk=protocolcore.ev_chunk,
-		violation=protocolcore.ev_violation,
-		bypass=protocolcore.ev_bypass,
-		EOH=protocolcore.EOH,
-		EOM=protocolcore.EOM,
+		rline=protocol.ev_rline,
+		headers=protocol.ev_headers,
+		trailers=protocol.ev_trailers,
+		content=protocol.ev_content,
+		chunk=protocol.ev_chunk,
+		violation=protocol.ev_violation,
+		bypass=protocol.ev_bypass,
+		EOH=protocol.EOH,
+		EOM=protocol.EOM,
 		iter=iter, map=map, len=len,
 		chain=itertools.chain.from_iterable,
 		fc_initiate=flows.fe_initiate,
@@ -521,12 +519,12 @@ def fork(
 
 	if disposition == 'client':
 		rs = _fork_response_sync(shared)
-		tokenizer = protocolcore.disassembly(
+		tokenizer = protocol.disassembly(
 			disposition='client',
 			allocation=rs
 		)
 	else:
-		tokenizer = protocolcore.disassembly()
+		tokenizer = protocol.disassembly()
 
 	tokens = tokenizer.send
 
