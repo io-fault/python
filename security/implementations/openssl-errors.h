@@ -190,7 +190,7 @@ EDataType = {
 	sizeof(struct EData),           /* tp_basicsize */
 	0,                              /* tp_itemsize */
 	edata_dealloc,                  /* tp_dealloc */
-	NULL,                           /* tp_print */
+	0,                              /* (tp_print) */
 	NULL,                           /* tp_getattr */
 	NULL,                           /* tp_setattr */
 	NULL,                           /* tp_compare */

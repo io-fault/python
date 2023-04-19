@@ -769,7 +769,7 @@ CertificateType = {
 	sizeof(struct Certificate),        /* tp_basicsize */
 	0,                                 /* tp_itemsize */
 	certificate_dealloc,               /* tp_dealloc */
-	NULL,                              /* tp_print */
+	0,                                 /* (tp_print) */
 	NULL,                              /* tp_getattr */
 	NULL,                              /* tp_setattr */
 	NULL,                              /* tp_compare */
@@ -1148,7 +1148,7 @@ ContextType = {
 	sizeof(struct Context),          /* tp_basicsize */
 	0,                               /* tp_itemsize */
 	context_dealloc,                 /* tp_dealloc */
-	NULL,                            /* tp_print */
+	0,                               /* (tp_print) */
 	NULL,                            /* tp_getattr */
 	NULL,                            /* tp_setattr */
 	NULL,                            /* tp_compare */
@@ -2172,7 +2172,7 @@ TransportType = {
 	sizeof(struct Transport),        /* tp_basicsize */
 	0,                               /* tp_itemsize */
 	transport_dealloc,               /* tp_dealloc */
-	NULL,                            /* tp_print */
+	0,                               /* (tp_print) */
 	NULL,                            /* tp_getattr */
 	NULL,                            /* tp_setattr */
 	NULL,                            /* tp_compare */
