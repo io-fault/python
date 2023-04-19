@@ -451,7 +451,7 @@ DeviceType = {
 	sizeof(struct Device),          /* tp_basicsize */
 	0,                              /* tp_itemsize */
 	NULL,                           /* tp_dealloc */
-	NULL,                           /* tp_print */
+	0,                              /* (tp_print) */
 	NULL,                           /* tp_getattr */
 	NULL,                           /* tp_setattr */
 	NULL,                           /* tp_compare */

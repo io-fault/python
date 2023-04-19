@@ -31,7 +31,7 @@ ev_time_units(Event ev, PyObj args, PyObj kw)
 
 	ns = PyLong_AsUnsignedLongLong(src);
 	if (ns == (uint64_t)-1 && PyErr_Occurred())
-		return(NULL);
+		return(0);
 
 	#if __linux__
 	{
