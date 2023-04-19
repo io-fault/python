@@ -996,7 +996,16 @@ class Division(Channel):
 			self._f_terminated()
 			self.div_dispatch.i_receive_closed()
 		else:
+			# Connected flows with upstream termination.
 			self.start_termination()
+
+			try:
+				# Interrupt flows, but terminate normally.
+				for channel_id, flow in self.div_flows.items():
+					if flow is not None:
+						flow.fault(Exception('division upstream terminated'))
+			finally:
+				self._f_terminated()
 
 	def div_initiate(self, f_event, channel_id, initiate, partial=functools.partial):
 		"""
