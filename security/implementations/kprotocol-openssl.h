@@ -1330,6 +1330,7 @@ transport_decipher(PyObj self, PyObj buffer_sequence)
 	}
 	PyLoop_End()
 
+	/* Construct deciphered transmission. */
 	rob = PyList_New(0);
 	if (rob == NULL)
 		return(NULL);
@@ -1394,7 +1395,7 @@ transport_decipher(PyObj self, PyObj buffer_sequence)
 
 		Py_DECREF(buffer); /* New reference owned by return list or error */
 	}
-	while (xfer == DEFAULT_READ_SIZE);
+	while (xfer > 0);
 
 	/**
 		// Check if deciphering caused any writes and drain the transmit side

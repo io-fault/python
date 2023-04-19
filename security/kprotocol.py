@@ -132,6 +132,8 @@ class SecuredReceive(flows.Protocol):
 		self.srx_transmit_channel.stx_receive_closed()
 
 	def f_terminate(self):
+		self.p_drain()
+
 		if not self.terminating:
 			self.srx_transmit_channel.stx_receive_interrupt()
 		self._f_terminated()
