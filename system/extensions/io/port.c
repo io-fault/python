@@ -322,12 +322,12 @@ int
 port_kqueue(Port p)
 {
 	RETRY_STATE_INIT;
-	int fd = -1;
+	int kp = -1;
 
 	RETRY_SYSCALL:
-	ERRNO_RECEPTACLE(-1, &fd, kqueue);
+	ERRNO_RECEPTACLE(-1, &kp, kqueue);
 
-	if (fd < 0)
+	if (kp < 0)
 	{
 		switch (errno)
 		{
@@ -341,7 +341,26 @@ port_kqueue(Port p)
 		}
 	}
 
-	p->point = fd;
+	/* Set CLOEXEC */
+	{
+		int seterr = -1, flags = -1;
+		ERRNO_RECEPTACLE(-1, &flags, fcntl, kp, F_GETFD, 0);
+
+		if (flags == -1)
+		{
+			Port_NoteError(p, kc_fcntl);
+			return(2);
+		}
+
+		ERRNO_RECEPTACLE(-1, &seterr, fcntl, kp, F_SETFD, flags|FD_CLOEXEC);
+		if (seterr == -1)
+		{
+			Port_NoteError(p, kc_fcntl);
+			return(3);
+		}
+	}
+
+	p->point = kp;
 	return(0);
 }
 

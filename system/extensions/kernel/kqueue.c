@@ -403,6 +403,24 @@ kernelq_schedule(KernelQueue kq, int cyclic, Link ln)
 	return(0);
 }
 
+/**
+	// Explicitly set FD_CLOEXEC.
+*/
+int kp_chfd(kport_t, int, int);
+CONCEAL(int)
+kernelq_default_flags(KernelQueue kq)
+{
+	kport_t kp = kq->kq_root;
+
+	if (kp_chfd(kp, 1, FD_CLOEXEC) < 0)
+	{
+		PyErr_SetFromErrno(PyExc_OSError);
+		return(-1);
+	}
+
+	return(0);
+}
+
 CONCEAL(int)
 kernelq_initialize(KernelQueue kq)
 {
@@ -425,11 +443,22 @@ kernelq_initialize(KernelQueue kq)
 		return(-3);
 	}
 
+	/* XXX: Discarding close() failure. */
+
+	if (kernelq_default_flags(kq) < 0)
+	{
+		close(kq->kq_root);
+		errno = 0;
+		kq->kq_root = -1;
+		return(-4);
+	}
+
 	if (kernelq_interrupt_setup(kq) < 0)
 	{
 		close(kq->kq_root);
+		errno = 0;
 		kq->kq_root = -1;
-		return(-4);
+		return(-5);
 	}
 
 	return(0);
