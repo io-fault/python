@@ -9,7 +9,7 @@
 # [ Types ]
 
 # /Tree/
-	# The node tree produced by &Parser processing operations.
+	# The element tree produced by &Parser processing operations.
 
 # [ Engineering ]
 # The current implementation of the parser failed to achieve a desired level
@@ -24,7 +24,7 @@ import itertools
 from ..context import string
 from ..context import tools
 
-# The node tree produced by parsing a document.
+# The element tree produced by parsing a document.
 Tree = tuple[str, Sequence['Tree'], Mapping]
 
 def parse_section_selector(string:str) -> tuple[int, Sequence[str]]:
@@ -436,7 +436,9 @@ class Parser(object):
 		'/': create_variable_item,
 		'-': create_unordered_item,
 		'#': {
+			# Sequence Item
 			None: create_enumerated_item,
+			# Syntax Area / Block Quote
 			'!': create_block,
 		},
 
@@ -451,7 +453,7 @@ class Parser(object):
 
 		# essentially, this provides the basic paragraph formatting.
 		if lines and lines[0].startswith('#!'):
-			# initial #! is treated specially for title
+			# Initial #! is treated specially for the shebang.
 			yield (1, 'context', lines[0].split(' ', 2))
 			start = 1
 		else:
@@ -464,8 +466,8 @@ class Parser(object):
 			il = len(line) - len(content)
 
 			if il > self.indentation:
-				# identation increment detected.
-				# anonymouse block quote
+				# Indentation increment detected.
+				# Anonymous block quote.
 				oil = self.indentation
 				self.indentation = il
 				for x in range(oil+1, il+1):
@@ -479,33 +481,32 @@ class Parser(object):
 						self.pop()
 				self.indentation = il
 
-			# identify the line's purpose
+			# Identify the line's purpose.
 			command_code = ''
 			command = self.commands
 			while command.__class__ is dict:
 				if content and content[0] in command:
-					# commands are subjected to decoration tests.
+					# Commands are subjected to decoration tests.
 					command = command[content[0]]
 					command_code += content[0]
 					content = content[1:]
 				else:
-					# continuation of existing context; usually paragraph
+					# Continuation of existing context; usually paragraph.
 					command = command[None]
 
 			yield from command(self, lineno, command_code, il, content)
 
-	def process(self, sections, root, node, indentation, iterator):
+	def process(self, sections, root, element, indentation, iterator):
+		# Stack depth is proportional to the indentation level.
 		paragraph_content = {'paragraph'}
-		# Every call represents an indentation level; anticipated or not.
-		# Descent indicates a subgroup of nodes.
-		continuation = None
-		ntype, subnodes, *nts = node
+		ntype = element[0]
+		subelements = element[1]
 
 		for token in iterator:
 			# This should be a dictionary of operations like commands in tokenize.
 			line, event, *params = token
-			if subnodes:
-				context = subnodes[-1]
+			if subelements:
+				context = subelements[-1]
 				context_type = context[0] if context else None
 			else:
 				context = None
@@ -513,22 +514,22 @@ class Parser(object):
 
 			if event == 'paragraph-line':
 				# extend existing paragraph or create new if it's not a paragraph
-				if not subnodes or subnodes[-1][0] not in paragraph_content:
+				if not subelements or subelements[-1][0] not in paragraph_content:
 					if ntype in {'set', 'sequence'}:
-						if node[-1] == indentation:
-							# Indentation at the subject node's level.
+						if element[-1] == indentation:
+							# Indentation at the subject element's level.
 							# Handle the case following an exit inside
 							# a set or sequence.
 							iterator.replay(token)
 							break
 						else:
-							subnodes[-1][1][-1][1].extend(params[0])
+							subelements[-1][1][-1][1].extend(params[0])
 					else:
 						content = list(params[0])
 						content.append(('eol', ''))
-						subnodes.append(('paragraph', content, indentation))
+						subelements.append(('paragraph', content, indentation))
 				else:
-					subnodes[-1][1].extend(params[0])
+					subelements[-1][1].extend(params[0])
 
 			elif event in ('paragraph-break', 'decoration') or (
 					(event, ntype) in {
@@ -540,7 +541,7 @@ class Parser(object):
 				if ntype in {'set', 'sequence'}:
 					# Clear trailing whitespace before processing
 					# the next item.
-					trailing = subnodes[-1][1][-1][1]
+					trailing = subelements[-1][1][-1][1]
 					if trailing and trailing[-1][:2] == ('text', ' '):
 						del trailing[-1]
 					# Handle unindented process() descent performed by set.
@@ -549,8 +550,8 @@ class Parser(object):
 					break
 
 				# Actual paragraph break.
-				if subnodes and subnodes[-1][0] in paragraph_content:
-					if not subnodes[-1][1]:
+				if subelements and subelements[-1][0] in paragraph_content:
+					if not subelements[-1][1]:
 						# Don't add entries if it's already on an empty paragraph.
 						continue
 					else:
@@ -558,7 +559,7 @@ class Parser(object):
 						# paragraph line in order to provide proper spacing.
 						# However, it doesn't peek ahead in order to inhibit spaces
 						# at the end of a paragraph, so filter it here.
-						trailing = subnodes[-1][1]
+						trailing = subelements[-1][1]
 						trim = None
 						for i in range(-1, -(len(trailing) + 1), -1):
 							if trailing[i] == ('eol', ''):
@@ -569,22 +570,22 @@ class Parser(object):
 						if trim is not None:
 							del trailing[trim]
 
-				if not subnodes or subnodes[-1][0] in paragraph_content:
+				if not subelements or subelements[-1][0] in paragraph_content:
 					# it only needs to break inside paragraphs.
-					if subnodes:
-						subnodes[-1][1].append(('eol', ''))
+					if subelements:
+						subelements[-1][1].append(('eol', ''))
 
 					# Prepare a new paragraph.
-					subnodes.append(('paragraph', [('init', '')], None))
+					subelements.append(('paragraph', [('init', '')], None))
 			elif event == 'exit-indentation-level':
 				# block is treated specially because it doesn't descend on indentation
 				# events produced during the processing of literal-lines.
 
 				assert params[0] > 0 # indentation always > 0 on exit
 
-				if ntype == 'variable-content' and subnodes and subnodes[-1] and subnodes[-1][1]:
+				if ntype == 'variable-content' and subelements and subelements[-1] and subelements[-1][1]:
 					# Trim implicitly created paragraphs.
-					paras = subnodes[-1]
+					paras = subelements[-1]
 					if paras[1][-1] == ('eol', ''):
 						empty_addr = -2
 					else:
@@ -608,23 +609,23 @@ class Parser(object):
 			elif event == 'enter-indentation-level':
 				if ntype in {'set', 'sequence'}:
 					# Jump into the current working item on enter.
-					self.process(sections, root, subnodes[-1], params[-1], iterator)
+					self.process(sections, root, subelements[-1], params[-1], iterator)
 					# Exit processed inside call.
 
 				elif params[0] != indentation and ntype != 'syntax':
 					# if it didn't already push a process() call from anticipated descent
-					if subnodes and subnodes[-1][0] == 'paragraph':
+					if subelements and subelements[-1][0] == 'paragraph':
 						# Uninitialized paragraph start.
-						para = subnodes[-1]
+						para = subelements[-1]
 						if len(para) > 2 and para[2] is None:
-							subnodes[-1] = (para[0], para[1], params[-1])
+							subelements[-1] = (para[0], para[1], params[-1])
 
-					self.process(sections, root, node, params[-1], iterator)
+					self.process(sections, root, element, params[-1], iterator)
 					# Exit processed.
 
 			elif event == 'unordered-item':
 				if ntype in {'sequence'}:
-					trailing = subnodes[-1][1][-1][1]
+					trailing = subelements[-1][1][-1][1]
 					if trailing and trailing[-1][0] == 'text' and trailing[-1][1] == ' ':
 						del trailing[-1]
 
@@ -632,23 +633,23 @@ class Parser(object):
 					return False
 
 				if ntype != 'set':
-					node = (
+					element = (
 						'set', [
 							('set-item', [('paragraph', list(params[0]))])
 						],
 						params[-1]
 					)
-					subnodes.append(node)
+					subelements.append(element)
 
-					if self.process(sections, root, node, indentation, iterator):
+					if self.process(sections, root, element, indentation, iterator):
 						break
 				else:
 					# Remove trailing paragraph content from previous entry.
-					trailing = subnodes[-1][1][-1][1]
+					trailing = subelements[-1][1][-1][1]
 					if trailing and trailing[-1][0] == 'text' and trailing[-1][1] == ' ':
 						del trailing[-1]
 
-					subnodes.append((
+					subelements.append((
 						'set-item', [
 							('paragraph', list(params[0]))
 						]
@@ -656,7 +657,7 @@ class Parser(object):
 
 			elif event == 'enumerated-item':
 				if ntype in {'set'}:
-					trailing = subnodes[-1][1][-1][1]
+					trailing = subelements[-1][1][-1][1]
 					if trailing and trailing[-1][0] == 'text' and trailing[-1][1] == ' ':
 						del trailing[-1]
 
@@ -665,22 +666,22 @@ class Parser(object):
 
 				# Processed exactly as unordered-item.
 				if ntype != 'sequence':
-					node = (
+					element = (
 						'sequence', [
 							('sequence-item', [('paragraph', list(params[0]))])
 						],
 						params[-1]
 					)
-					subnodes.append(node)
+					subelements.append(element)
 
-					if self.process(sections, root, node, indentation, iterator):
+					if self.process(sections, root, element, indentation, iterator):
 						break
 				else:
-					trailing = subnodes[-1][1][-1][1]
+					trailing = subelements[-1][1][-1][1]
 					if trailing and trailing[-1][0] == 'text' and trailing[-1][1] == ' ':
 						del trailing[-1]
 
-					subnodes.append((
+					subelements.append((
 						'sequence-item', [
 							('paragraph', list(params[0]))
 						]
@@ -695,7 +696,7 @@ class Parser(object):
 				# that the next line will be indented.
 
 				if ntype in {'set', 'sequence'}:
-					trailing = subnodes[-1][1][-1][1]
+					trailing = subelements[-1][1][-1][1]
 					if trailing and trailing[-1][0] == 'text' and trailing[-1][1] == ' ':
 						del trailing[-1]
 
@@ -708,7 +709,7 @@ class Parser(object):
 				subtype, *params = params
 
 				# Indentation of the token *must* be greater
-				# than that of the working node as the exit
+				# than that of the working element as the exit
 				# events should have been present and processed
 				# otherwise.
 				assert params[-1] > indentation
@@ -716,19 +717,19 @@ class Parser(object):
 				if subtype == 'variable-key':
 					il = params[-1] # il of key
 
-					if not subnodes or subnodes[-1][0] not in {'dictionary', 'directory'}:
-						# New directory and new current working node.
-						subnodes.append(('directory', [], params[-1]))
+					if not subelements or subelements[-1][0] not in {'dictionary', 'directory'}:
+						# New directory and new current working element.
+						subelements.append(('directory', [], params[-1]))
 					else:
-						# Current subnode is a directory.
+						# Current subelement is a directory.
 						# If indentation is greater, it's
 						# inside the outer directory's indentation level,
 						# so it's a new dictioanry.
-						if il > subnodes[-1][-1]:
-							# il of key is greater than the current target node.
-							subnodes.append(('directory', [], params[-1]))
+						if il > subelements[-1][-1]:
+							# il of key is greater than the current target element.
+							subelements.append(('directory', [], params[-1]))
 
-					dn = subnodes[-1]
+					dn = subelements[-1]
 					dn_content = dn[1]
 					dn_content.append(('variable-key', params[0]))
 
@@ -740,32 +741,32 @@ class Parser(object):
 					# after variable-content
 				elif subtype == 'syntax':
 					block = (subtype, [], params[0])
-					subnodes.append(block)
+					subelements.append(block)
 					self.process(sections, root, block, params[-1], iterator)
 				elif subtype == 'admonition':
 					admonition = (subtype, [], params[0])
-					subnodes.append(admonition)
+					subelements.append(admonition)
 					self.process(sections, root, admonition, params[-1], iterator)
 			elif event == 'literal-line':
 				if ntype != 'syntax':
-					subnodes.append(('exception', (),
+					subelements.append(('exception', (),
 						"literal line outside of block", event, line, indentation, params))
 				else:
-					subnodes.append(params[0])
+					subelements.append(params[0])
 			elif event == 'key-syntax':
 				block = ('syntax', [], params[0])
-				subnodes.append(block)
-				node = block
+				subelements.append(block)
+				element = block
 				ntype = 'syntax'
-				subnodes = block[1]
+				subelements = block[1]
 			elif event == 'select-section':
 				if ntype in {'set', 'sequence'}:
-					trailing = subnodes[-1][1][-1][1]
+					trailing = subelements[-1][1][-1][1]
 					if trailing and trailing[-1][0] == 'text' and trailing[-1][1] == ' ':
 						del trailing[-1]
 
 				if indentation != 0:
-					subnodes.append(('exception', (),
+					subelements.append(('exception', (),
 						"section selected inside indentation",
 						event, line, indentation, params))
 				else:
@@ -788,11 +789,13 @@ class Parser(object):
 					self.path = title
 
 					# switch to the new section context
-					ntype, subnodes, *nts = node = section
+					element = section
+					ntype = element[0]
+					subelements = element[1]
 			elif event == 'decoration':
 				pass
 			else:
-				subnodes.append(('exception', (),
+				subelements.append(('exception', (),
 					"unknown event type",
 					event, line, indentation, params))
 

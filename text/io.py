@@ -18,7 +18,7 @@ def structure_paragraph_element(element, *, export=document.export) -> types.Par
 	"""
 	return export(element[1])
 
-# Methods for constructing the AST from raw parse nodes.
+# Methods for constructing the element tree from raw parse nodes.
 TreeOperations = document.Tree()
 
 def structure_chapter_lines(lines, *,

@@ -1,5 +1,5 @@
 """
-# Document finalization and query tools for raw text node trees.
+# Document finalization and query tools for raw text element trees.
 """
 import itertools
 import typing
@@ -9,7 +9,7 @@ from . import types
 
 def export(paragraph, literal=None, reference=None) -> types.Paragraph:
 	"""
-	# Convert the given paragraph node into terms defined by &types.
+	# Convert the given paragraph element into terms defined by &types.
 
 	# [ Parameters ]
 	# /paragraph/
@@ -91,22 +91,22 @@ def section(root, identifier) -> object:
 
 def concatenate(syntax) -> typing.Iterator[str]:
 	"""
-	# Concatenate the lines of the given syntax node.
+	# Concatenate the lines of the given syntax element.
 	"""
 	for x in syntax[1]:
 		if x[0] == 'line':
 			yield x[1][0]
 			yield '\n'
 
-def context(node):
+def context(element):
 	"""
 	# Structure a common context admonition.
 	"""
-	items = node[0][0][1]
+	items = element[0][0][1]
 	return dict(directory_pairs(items))
 
-def paragraph_as_string(node):
-	t, c, a = node
+def paragraph_as_string(element):
+	t, c, a = element
 
 	return ''.join(
 		''.join(x[1] or x[-1]['source']) if not isinstance(x, str) else x
@@ -114,11 +114,11 @@ def paragraph_as_string(node):
 		if x is not None
 	)
 
-def paragraph_only(node):
+def paragraph_only(element):
 	"""
-	# Select the only paragraph in the given node.
+	# Select the only paragraph in the given element.
 	"""
-	t, c, a = node
+	t, c, a = element
 	assert t == 'paragraph'
 
 	if len(c) == 1:
@@ -126,24 +126,24 @@ def paragraph_only(node):
 	else:
 		return None
 
-def paragraph_first(node):
+def paragraph_first(element):
 	"""
-	# Select the first paragraph in the given node.
+	# Select the first paragraph in the given element.
 	"""
-	for x in node[1]:
+	for x in element[1]:
 		if not isinstance(x, str) or x:
 			return x
 
-def paragraph_last(node):
+def paragraph_last(element):
 	"""
-	# Select the last paragraph in the given node.
+	# Select the last paragraph in the given element.
 	"""
-	for x in reversed(node[1]):
+	for x in reversed(element[1]):
 		if not isinstance(x, str) or x:
 			return x
 
-def paragraph_lines(node):
-	t, c, a = node
+def paragraph_lines(element):
+	t, c, a = element
 	assert t == 'paragraph'
 
 	init_line = True
@@ -155,22 +155,22 @@ def paragraph_lines(node):
 				append(current)
 				current = []
 
-def interpret_reference(node):
-	t, c, a = node
+def interpret_reference(element):
+	t, c, a = element
 	assert t == 'reference'
 	ref = a.get('url') or (c and c[0]) or a.get('source')
 
 	return Reference(ref, a.get('type'), a.get('cast'))
 
-def interpret_paragraph_single(node):
-	if isinstance(node, str):
-		return node
+def interpret_paragraph_single(element):
+	if isinstance(element, str):
+		return element
 
-	t, c, *a = node
+	t, c, *a = element
 	if t == 'literal':
 		return c[0]
 	elif t == 'reference':
-		return interpret_reference(node)
+		return interpret_reference(element)
 
 def directory_pairs(items:list):
 	"""
@@ -203,7 +203,7 @@ class Tree(object):
 	def element(self, element_name, content, *attributes, **kwattributes):
 		"""
 		# Serialize an element with the exact &element_name with the contents of
-		# &subnode_iterator as the inner nodes. &subnode_iterator must produce
+		# &subelement_iterator as the inner elements. &subelement_iterator must produce
 		# &bytes encoded objects.
 		"""
 
@@ -323,14 +323,14 @@ class Transform(object):
 		'reference': process_paragraph_reference,
 	}
 
-	def process_items(self, tree, node, name):
+	def process_items(self, tree, element, name):
 		chain = self.chain
 		items = [
 			(x[0], x[1], x[2] if x[2:] else None)
-			for x in node[1]
+			for x in element[1]
 			if x[0] in {'sequence-item', 'set-item'}
 		]
-		tail = node[1][len(items):]
+		tail = element[1][len(items):]
 		assert len(tail) == 0 # Failed to switch to new set of items.
 
 		yield from chain((
@@ -344,32 +344,33 @@ class Transform(object):
 			),
 		))
 
-	def process_set(self, tree, node):
-		return self.process_items(tree, node, 'set')
+	def process_set(self, tree, element):
+		return self.process_items(tree, element, 'set')
 
-	def process_sequence(self, tree, node):
-		return self.process_items(tree, node, 'sequence')
+	def process_sequence(self, tree, element):
+		return self.process_items(tree, element, 'sequence')
 
-	def process_directory(self, tree, vl_node):
-		assert vl_node[0] == 'directory'
+	def process_directory(self, tree, vl_element):
+		assert vl_element[0] == 'directory'
 		element = self.emit
 		chain = self.chain
 
-		# both the key is treated as paragraph data, but value is section data.
-		content = vl_node[1]
-		key_nodes = content[0::2]
+		# Both the key and value are treated as paragraph data.
+		# However, only the key is processed as section content.
+		content = vl_element[1]
+		key_elements = content[0::2]
 
 		keys = [element('key',
 			chain([
 				self.paragraph_index[part[0]](self, tree, *part[1:])
 				for part in parts
-			])) for parts in (x[1] for x in key_nodes)
+			])) for parts in (x[1] for x in key_elements)
 		]
 
-		# The period characters need to be transformed in order
+		# Escape periods in the identifier to protect against collisions.
 		key_ids = [
 			''.join([part[1] for part in parts]).replace('.', '∙')
-			for parts in (x[1] for x in key_nodes)
+			for parts in (x[1] for x in key_elements)
 		]
 
 		values = [
@@ -494,7 +495,7 @@ class Transform(object):
 		# Emit an exception element in order to report warnings or failures
 		# regarding syntax that was not entirely comprehensible.
 		"""
-		node_type, empty_content, msg, event, lineno, ilevel, params = exception
+		element_type, empty_content, msg, event, lineno, ilevel, params = exception
 		yield from self.emit('exception',
 			(),
 			('event', event),
