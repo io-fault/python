@@ -238,7 +238,7 @@ class Download(kcore.Context):
 		if 'port' in struct:
 			endpoint = endpoint.replace(port=int(struct['port']))
 
-		struct['fragment'] = '[%s]' %(str(endpoint.address),)
+		struct['address'] = str(endpoint.address)
 		struct['port'] = str(int(endpoint.port))
 		self.dl_pprint(screen, f_struct(struct))
 		self.dl_display.write('\n')
@@ -277,8 +277,10 @@ class Download(kcore.Context):
 		lendpoints = []
 
 		struct = self.dl_endpoint
-		host = struct['host'].strip('[').strip(']')
-		cname, a = network.select_endpoints(host, struct['scheme'])
+		host = struct['host']
+		addr = struct.get('address') or ''
+
+		cname, a = network.select_endpoints(addr or host, struct['scheme'])
 		for ep in a:
 			self.dl_display.write('Possible host: %s\n' %(str(ep),))
 			lendpoints.append((struct, ep))
