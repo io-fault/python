@@ -6,6 +6,8 @@ from ...internet import ri
 palette = {
 	'yellow': 0xffff87,
 	'blue': 0x0087ff,
+	'red': 0xff6961,
+	'orange': 0xffb347,
 }
 
 colors = {
@@ -17,6 +19,7 @@ colors = {
 	'password': 0x5f0000,
 
 	'host': 0x875faf,
+	'address': palette['orange'],
 	'port': 0x005f5f,
 
 	'path-root': -1024,
