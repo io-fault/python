@@ -290,9 +290,28 @@ def join(t):
 
 unsplit = join
 
-def split_netloc(netloc, fieldproc=decode_percent_escapes):
+def remap_ipv4_address(string):
 	"""
-	# Split a net location into a 4-tuple, (user, password, host, port).
+	# Recognize IPv4 hosts as addresses.
+	"""
+	if not string[:1].isdigit() or not string[-1:].isdigit():
+		# Fast path. Regular host.
+		return (string, None)
+
+	try:
+		for x in string.split('.'):
+			xi = int(x)
+			if xi > 255 or xi < 0:
+				return (string, None)
+	except ValueError:
+		return (string, None)
+
+	# IPv4 address.
+	return (None, string)
+
+def split_netloc(netloc, *, fieldproc=decode_percent_escapes):
+	"""
+	# Split a network location into a 4-tuple, (user, password, host, port).
 
 	# Set `fieldproc` to `str` if the components' percent escapes should not be
 	# decoded.
@@ -317,36 +336,70 @@ def split_netloc(netloc, fieldproc=decode_percent_escapes):
 		pos += 1
 
 	if pos >= len(netloc):
-		return (user, password, None, None)
+		return (user, password, None, None, None)
 
 	pos_chr = netloc[pos]
 	if pos_chr == '[':
-		# IPvN addr
-		next_pos = netloc.find(']', pos)
+		# Address only.
+		host = ''
+
+		next_pos = netloc.rfind(']', pos)
 		if next_pos == -1:
-			# unterminated IPvN block
-			next_pos = len(netloc) - 1
-		addr = netloc[pos:next_pos+1]
-		pos = next_pos + 1
-		next_pos = netloc.find(':', pos)
-		if next_pos == -1:
+			# Unterminated bracket.
+			host = netloc[pos:]
+			address = None
 			port = None
 		else:
-			port = fieldproc(netloc[next_pos+1:])
+			address = netloc[pos+1:next_pos]
+
+			pos = next_pos + 1
+			next_pos = netloc.find(':', pos)
+			if next_pos == -1:
+				port = None
+			else:
+				port = fieldproc(netloc[next_pos+1:])
 	else:
 		next_pos = netloc.find(':', pos)
 		if next_pos == -1:
-			addr = fieldproc(netloc[pos:])
 			port = None
+			# No port or IPv6 host address.
+			if netloc.endswith(']'):
+				# Address qualified.
+				addr_start = netloc.find(pos, '[')
+				host = netloc[:addr_start]
+				address = netloc[addr_start+1:-1]
+			else:
+				# No closing address.
+				host, address = remap_ipv4_address(fieldproc(netloc[pos:]))
 		else:
-			addr = fieldproc(netloc[pos:next_pos])
-			port = fieldproc(netloc[next_pos+1:])
+			# Port or IPv6 address or both.
+			addr_start = netloc.find('[', pos)
+			if addr_start == -1:
+				# Port qualified. No IPv6 address or address qualifier.
+				port = fieldproc(netloc[next_pos+1:])
+				host, address = remap_ipv4_address(fieldproc(netloc[pos:next_pos]))
+			else:
+				# Maybe port. IPv6 or address qualified.
+				host = fieldproc(netloc[pos:addr_start])
+				addr_end = netloc.find(']', addr_start)
+				if addr_end == -1:
+					# Open address constraint.
+					port = None
+					address = fieldproc(netloc[addr_start+1:])
+				else:
+					address = fieldproc(netloc[addr_start+1:addr_end])
+					next_pos = netloc.find(':', addr_end)
+					if next_pos == '-1':
+						port = None
+					else:
+						# ':' beyond ']'
+						port = fieldproc(netloc[next_pos+1:])
 
-	return (user, password, addr, port)
+	return (user, password, host, address, port)
 
 def join_netloc(t):
 	"""
-	# Create a netloc fragment from the given tuple(user,password,host,port).
+	# Create a netloc fragment from the given tuple(user, password, host, address, port).
 	"""
 
 	if t[0] is None and t[2] is None:
@@ -362,9 +415,15 @@ def join_netloc(t):
 
 	if t[2] is not None:
 		s += t[2].translate(_host_percent_translations)
-		if t[3] is not None:
-			s += ':'
-			s += t[3].translate(_port_percent_translations)
+
+	if t[3] is not None:
+		s += '['
+		s += t[3].translate(_port_percent_translations)
+		s += ']'
+
+	if t[4] is not None:
+		s += ':'
+		s += t[4].translate(_port_percent_translations)
 
 	return s
 
@@ -391,15 +450,17 @@ def structure(t, fieldproc=decode_percent_escapes, tuple=tuple, list=list, map=m
 	d['scheme'] = t[1]
 
 	if t[2] is not None:
-		uphp = split_netloc(t[2], fieldproc = fieldproc)
-		if uphp[0] is not None:
-			d['user'] = uphp[0]
-		if uphp[1] is not None:
-			d['password'] = uphp[1]
-		if uphp[2] is not None:
-			d['host'] = uphp[2]
-		if uphp[3] is not None:
-			d['port'] = uphp[3]
+		nl = split_netloc(t[2], fieldproc = fieldproc)
+		if nl[0] is not None:
+			d['user'] = nl[0]
+		if nl[1] is not None:
+			d['password'] = nl[1]
+		if nl[2] is not None:
+			d['host'] = nl[2]
+		if nl[3] is not None:
+			d['address'] = nl[3]
+		if nl[4] is not None:
+			d['port'] = nl[4]
 
 	if t[3] is not None:
 		if t[3]:
@@ -450,20 +511,16 @@ def construct(x):
 	if f is not None:
 		f = f.translate(_fragment_percent_translations)
 
-	u = x.get('user')
-	pw = x.get('password')
-	h = x.get('host')
-	port = x.get('port')
-
 	return (
 		x.get('type'),
 		x.get('scheme'),
 
-		# netloc: [user[:pass]@]host[:port]
+		# netloc: [user[:pass]@]host[[address]][:port]
 		join_netloc((
 			x.get('user'),
 			x.get('password'),
 			x.get('host'),
+			x.get('address'),
 			x.get('port'),
 		)),
 		p, q, f
@@ -473,7 +530,7 @@ def parse(iri, structure=structure, split=split, fieldproc=decode_percent_escape
 	"""
 	# Parse an RI into a dictionary object. Synonym for `structure(split(x))`.
 
-	# Set &fieldproc to &str if the components' percent escapes should not be
+	# Set `fieldproc` to `str` if the components' percent escapes should not be
 	# decoded.
 	"""
 
@@ -503,7 +560,7 @@ def http(struct):
 	return p
 
 def context_tokens(
-		scheme, type, user, password, host, port,
+		scheme, type, user, password, host, address, port,
 		ri_type_delimiters = {
 			'relative': '//',
 			'authority': '://',
@@ -533,6 +590,11 @@ def context_tokens(
 
 	if host is not None:
 		yield ('host', host.translate(_host_percent_translations))
+
+	if address is not None:
+		yield ('delimiter', '[')
+		yield ('address', address.translate(_port_percent_translations))
+		yield ('delimiter', ']')
 
 	if port is not None:
 		yield ('delimiter', ':')
@@ -622,7 +684,7 @@ def tokens(struct, list=list, map=map):
 	# to be used to reconstruct the Resource Indicator parsed
 	# into the given &struct.
 	"""
-	ctx = map(struct.get, ('scheme', 'type', 'user', 'password', 'host', 'port'))
+	ctx = map(struct.get, ('scheme', 'type', 'user', 'password', 'host', 'address', 'port'))
 	root = struct.get('root')
 	path = struct.get('path')
 	return \

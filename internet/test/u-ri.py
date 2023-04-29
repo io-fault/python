@@ -318,6 +318,22 @@ expectation_samples = (
 			'fragment' : '',
 		}
 	),
+	(
+		'http://us%40er:pa:ss@host[address]:port/pa%2Fth1/path2?%23=%23#',
+		('authority', 'http', 'us%40er:pa:ss@host[address]:port', 'pa%2Fth1/path2', '%23=%23', ''),
+		{
+			'type': 'authority',
+			'scheme': 'http',
+			'user': 'us@er',
+			'password': 'pa:ss',
+			'host': 'host',
+			'address': 'address',
+			'port': 'port',
+			'path': ['pa/th1','path2'],
+			'query': [('#', '#')],
+			'fragment': '',
+		}
+	),
 )
 
 sample_join_netlocs = (
@@ -334,6 +350,8 @@ sample_join_netlocs = (
 	':@host',
 	':@host:8080',
 	'user:@host:8080',
+	'user:@host[addr]:8080',
+	'user:@host[127.1]:8080',
 	'user:@[]:8080',
 	'user:@[::1]:8080',
 	'user:@[text]:8080',
@@ -344,17 +362,17 @@ sample_join_netlocs = (
 )
 
 sample_split_netlocs = (
-	('user', 'pass', 'host', 'port'),
-	('@', ':', 'host', 'port'),
-	('@user', 'pass:', 'host', 'port'),
-	('@user', 'pass:', 'host', ''),
-	('@user', 'pass:', '', ''),
-	('user', '@', 'host.com', ''),
-	('user', '@', 'å.com', '8080'),
-	('user', '', 'x--na.com', '8080'),
-	('', '', 'x--na.com', '8080'),
-	('', '', '', '8080'),
-	('', '', '', ''),
+	('user', 'pass', 'host', None, 'port'),
+	('@', ':', 'host', None, 'port'),
+	('@user', 'pass:', 'host', None, 'port'),
+	('@user', 'pass:', 'host', None, ''),
+	('@user', 'pass:', '', None, ''),
+	('user', '@', 'host.com', None, ''),
+	('user', '@', 'å.com', None, '8080'),
+	('user', '', 'x--na.com', None, '8080'),
+	('', '', 'x--na.com', None, '8080'),
+	('', '', '', None, '8080'),
+	('', '', '', None, ''),
 )
 
 sample_join_paths = (
@@ -396,10 +414,16 @@ sample_passwords = [
 
 sample_hosts = [
 	'',
-	'[::1]',
+	'host',
 	#'[::1', Fail case. Can't use this host and correctly identify the port.
 	#'::1]', Fail case. Can't use this host and correctly identify the port.
 	'remotehost.tld',
+]
+
+sample_addresses = [
+	None,
+	'',
+	'::1',
 ]
 
 sample_ports = [
@@ -440,22 +464,26 @@ def samples():
 		for u in sample_users[4:]:
 			for p in sample_passwords[2:]:
 				for h in sample_hosts:
-					for pt in sample_ports[2:]:
-						for path in sample_paths[:3]:
-							for q in sample_queries[2:]:
-								for f in sample_fragments[2:]:
-									r = {
-										'type' : s[0],
-										'scheme' : s[1],
-										'user' : u,
-										'password' : p,
-										'host' : h,
-										'port' : pt,
-										'path' : path,
-										'query' : q,
-										'fragment' : f,
-									}
-									yield r
+					for a in sample_addresses:
+						for pt in sample_ports[2:]:
+							for path in sample_paths[:3]:
+								for q in sample_queries[2:]:
+									for f in sample_fragments[2:]:
+										r = {
+											'type' : s[0],
+											'scheme' : s[1],
+											'user' : u,
+											'password' : p,
+											'host' : h,
+											'address' : a,
+											'port' : pt,
+											'path' : path,
+											'query' : q,
+											'fragment' : f,
+										}
+										if a is None:
+											del r['address']
+										yield r
 
 def test_expectations(test):
 	for x in expectation_samples:
