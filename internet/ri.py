@@ -79,12 +79,18 @@ def strict():
 	_fragment_percent_translations = \
 	str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in reserved_chars] + list(range(0,33))})
 
+	# Special case address to avoid colon escapes.
+	_address_percent_translations = \
+	str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in reserved_chars.replace(':','')] + list(range(0,33))})
+
 _uri_escape = (lambda x: ''.join(map(_pct_encode, x.encode('utf-8'))))
 _mktrans = (lambda z: str.maketrans({x:_pct_encode(x) for x in [ord(y) for y in z] + list(range(0,33))}))
 _percent_translations = _mktrans("%")
 _user_percent_translations = _mktrans("%@:/?#")
 _password_percent_translations = _mktrans("%@/?#")
-_host_percent_translations = _port_percent_translations = \
+_host_percent_translations = \
+_address_percent_translations = \
+_port_percent_translations = \
 _primary_percent_translations = _mktrans("%/?#")
 _fragment_percent_translations = _mktrans("%?#")
 _query_key_percent_translations = _mktrans("%&#=")
@@ -418,7 +424,7 @@ def join_netloc(t):
 
 	if t[3] is not None:
 		s += '['
-		s += t[3].translate(_port_percent_translations)
+		s += t[3].translate(_address_percent_translations)
 		s += ']'
 
 	if t[4] is not None:
@@ -593,7 +599,7 @@ def context_tokens(
 
 	if address is not None:
 		yield ('delimiter', '[')
-		yield ('address', address.translate(_port_percent_translations))
+		yield ('address', address.translate(_address_percent_translations))
 		yield ('delimiter', ']')
 
 	if port is not None:
