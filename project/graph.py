@@ -2,30 +2,31 @@
 # Project Graph processing tools.
 
 # Provides &Queue for managing the processing of projects in dependency order.
-# Usage:
+
+# [ Usage ]
 
 #!syntax/python
 	from fault.system import files
 	from fault.projects import system as lsf
 	from fault.projects import graph
 	ctx = lsf.Context()
-	# Configure paths making up the project context.
+	# # Configure paths making up the project context.
 	ctx.connect(files.root@"/product/path")
 	ctx.load()
 	q = Queue()
 	ext = q.extend(ctx)
 
 	def process(projects):
-		## Simply print dependency order for this example.
+		# # Print dependency order for this example.
 		for x in projects:
 			print(x)
 		return projects # Signals completion in this example.
 
-	## Unconditionally take initial jobset.
+	# # Unconditionally take initial set.
 	jobs = list(q.take(4))
 	while not q.terminal() and jobs:
 		finished_set = process(jobs)
-		## Notify queue state of completions.
+		# # Notify queue state of completions.
 		jobs = list(q.finish(*finished_set).take(4))
 
 # [ Engineering ]
