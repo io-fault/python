@@ -3,7 +3,7 @@
 """
 import sys
 import os
-from .. import events
+from . import events
 
 def loop(tty, prepare, restore):
 	prepare()
@@ -21,7 +21,7 @@ def loop(tty, prepare, restore):
 		restore()
 
 def main():
-	from .. import control
+	from . import control
 	screen = control.matrix.Screen()
 	sys.stdout.buffer.write(screen.set_window_title_text("Event Observations"))
 	loop(*control.setup(ctype='observe'))
