@@ -77,6 +77,16 @@ def test_Type_linecolor_transition(test):
 	# Reset
 	test/(transition(lc8, rp)) == b'\x1b[59m'
 
+def test_Type_replicate_parameters(test):
+	"""
+	# - &module.Type.replicate
+
+	# Validate field placement in the constructed sequence.
+	"""
+	t = module.Type('utf-8')
+	r = t.replicate((1, 2, 3, 4), 5, 6)
+	test/r == b"\x1b[1;2;3;4;0;6;5;0$v"
+
 def test_Context_render_transitions(test):
 	"""
 	# - &module.Context.render

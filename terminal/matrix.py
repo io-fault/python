@@ -168,6 +168,19 @@ class Type(object):
 		etitle = self.encode(title)
 		return self._osc_init + b"2;" + etitle + b"\x07"
 
+	def replicate(self, origin, h, v):
+		"""
+		# Copy the rectangle identified by &origin to the horizontal, &h,
+		# and the vertical, &v.
+		"""
+		return self.csi(b'v',
+			*map(self.cached_integer_encode, origin),
+			self.cached_integer_encode(0),
+			self.cached_integer_encode(v),
+			self.cached_integer_encode(h),
+			self.cached_integer_encode(0) + b'$',
+		)
+
 	def insert_characters(self, count):
 		"""
 		# ICH, make room for &count characters. Maintains characters after the insertion.
@@ -655,7 +668,7 @@ class Context(object):
 				yield indent(ic)
 				cc += ic
 
-			adjustment = width - cc
+			adjustment = (width - cc) - 1
 			if adjustment < 0:
 				# Cells exceeds width.
 				yield b''.join(render(x.rstripcells(-adjustment)))
