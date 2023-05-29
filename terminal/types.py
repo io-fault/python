@@ -7,12 +7,13 @@
 # /&Text/
 	# Alias to the builtin &str.
 """
+from typing import TypeAlias
 from collections.abc import Sequence
 import functools
 import itertools
 from ..system.tty import cells
 
-Text = str
+Text: TypeAlias = str
 
 class Point(tuple):
 	"""
@@ -424,7 +425,7 @@ def itergraphemes(text, getslice=grapheme, len=len):
 		yield s
 		i = s.stop
 
-Words = tuple[int, Text, RenderParameters]
+Words: TypeAlias = tuple[int, Text, RenderParameters]
 
 class Phrase(tuple):
 	"""
@@ -825,4 +826,4 @@ class Phrase(tuple):
 		return self.__class__(out)
 
 # Common descriptor endpoint.
-Page = Sequence[Phrase]
+Page: TypeAlias = Sequence[Phrase]
