@@ -168,17 +168,31 @@ class Type(object):
 		etitle = self.encode(title)
 		return self._osc_init + b"2;" + etitle + b"\x07"
 
-	def replicate(self, origin, h, v):
+	def replicate(self, vfrom, vto, vtarget):
 		"""
-		# Copy the rectangle identified by &origin to the horizontal, &h,
-		# and the vertical, &v.
+		# Copy the rectangle identified by &vfrom and &vto to the position identified
+		# by &vtarget.
 		"""
 		return self.csi(b'v',
-			*map(self.cached_integer_encode, origin),
+			self.cached_integer_encode(vfrom[1]),
+			self.cached_integer_encode(vfrom[0]),
+			self.cached_integer_encode(vto[1]),
+			self.cached_integer_encode(vto[0]),
 			self.cached_integer_encode(0),
-			self.cached_integer_encode(v),
-			self.cached_integer_encode(h),
+			self.cached_integer_encode(vtarget[1]),
+			self.cached_integer_encode(vtarget[0]),
 			self.cached_integer_encode(0) + b'$',
+		)
+
+	def erase(self, vfrom, vto):
+		"""
+		# Erase the rectangle identified by &area.
+		"""
+		return self.csi(b'z',
+			self.cached_integer_encode(vfrom[1]),
+			self.cached_integer_encode(vfrom[0]),
+			self.cached_integer_encode(vto[1]),
+			self.cached_integer_encode(vto[0]) + b'$',
 		)
 
 	def insert_characters(self, count):

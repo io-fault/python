@@ -84,8 +84,18 @@ def test_Type_replicate_parameters(test):
 	# Validate field placement in the constructed sequence.
 	"""
 	t = module.Type('utf-8')
-	r = t.replicate((1, 2, 3, 4), 5, 6)
-	test/r == b"\x1b[1;2;3;4;0;6;5;0$v"
+	r = t.replicate((2, 1), (4, 3), (6, 5))
+	test/r == b"\x1b[1;2;3;4;0;5;6;0$v"
+
+def test_Type_erase_parameters(test):
+	"""
+	# - &module.Type.erase
+
+	# Validate field placement in the constructed sequence.
+	"""
+	t = module.Type('utf-8')
+	r = t.erase((2, 1), (4, 3))
+	test/r == b"\x1b[1;2;3;4$z"
 
 def test_Context_render_transitions(test):
 	"""
