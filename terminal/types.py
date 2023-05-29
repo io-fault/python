@@ -1,11 +1,14 @@
 """
 # Fundamental classes for representing input from a terminal and caret state management.
 
-# [ Types ]
+# [ Elements ]
 # /&Page/
-	# &Phrase sequence.
+	# &Phrase sequence type.
 # /&Text/
 	# Alias to the builtin &str.
+# /&Words/
+	# Tuple identifying total cell count, text, and rendering options.
+	# The fundamentals of forming a &Phrase.
 """
 from typing import TypeAlias
 from collections.abc import Sequence
@@ -387,7 +390,7 @@ def grapheme(text, index, cells=cells, slice=slice, Units=Units, str=str):
 	# find all the zero width characters after it.
 
 	# ! WARNING:
-		# This is **not** consistent with Unicode grapheme (clusters).
+		# This is **not** consistent with Unicode grapheme clusters.
 	"""
 	if isinstance(text, Units):
 		# Units instances are one-to-one.

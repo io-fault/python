@@ -365,7 +365,7 @@ class Context(object):
 	# Majority of methods return &bytes or iterables of &bytes that should be sent
 	# to the terminal to cause the desired effect.
 
-	# [ Properties ]
+	# [ Elements ]
 	# /RenderParameters/
 		# Type containing data used to render &Text with the configured attributes.
 	# /Phrase/
@@ -472,7 +472,7 @@ class Context(object):
 
 	def context_set_line_color(self, color_id):
 		"""
-		# Configure the default cell color.
+		# Configure the default line color.
 		# Used by &reset_text and &reset_line_color.
 		"""
 		self._context_line_color = color_id
