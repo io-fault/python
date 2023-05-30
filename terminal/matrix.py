@@ -746,6 +746,21 @@ class Context(object):
 
 		return self._csi(b'X', self.encode(count))
 
+	def replicate(self, vstart, vend, vto):
+		"""
+		# Replicate the area identified by &vstart and &vend to the position
+		# identified by &vto.
+		"""
+		tvs = self.translate(self.point, vstart)
+		tve = self.translate(self.point, vend)
+		tvt = self.translate(self.point, vto)
+
+		return self.terminal_type.replicate(
+			(tvs[0]+1, tvs[1]+1),
+			(tve[0], tve[1]),
+			(tvt[0]+1, tvt[1]+1),
+		)
+
 	def seek_absolute(self, coordinates) -> bytes:
 		"""
 		# Primitive absolute seek; Context cursor poisition is *not* updated.
