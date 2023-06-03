@@ -168,7 +168,7 @@ class Type(object):
 		etitle = self.encode(title)
 		return self._osc_init + b"2;" + etitle + b"\x07"
 
-	def replicate(self, vfrom, vto, vtarget):
+	def replicate(self, vfrom, vto, vtarget, *, page=(1, 1)):
 		"""
 		# Copy the rectangle identified by &vfrom and &vto to the position identified
 		# by &vtarget.
@@ -178,10 +178,10 @@ class Type(object):
 			self.cached_integer_encode(vfrom[0]),
 			self.cached_integer_encode(vto[1]),
 			self.cached_integer_encode(vto[0]),
-			self.cached_integer_encode(0),
+			self.cached_integer_encode(page[0]),
 			self.cached_integer_encode(vtarget[1]),
 			self.cached_integer_encode(vtarget[0]),
-			self.cached_integer_encode(0) + b'$',
+			self.cached_integer_encode(page[1]) + b'$',
 		)
 
 	def erase(self, vfrom, vto):
@@ -746,7 +746,7 @@ class Context(object):
 
 		return self._csi(b'X', self.encode(count))
 
-	def replicate(self, vstart, vend, vto):
+	def replicate(self, vstart, vend, vto, page=(1,1)):
 		"""
 		# Replicate the area identified by &vstart and &vend to the position
 		# identified by &vto.
@@ -759,6 +759,7 @@ class Context(object):
 			(tvs[0]+1, tvs[1]+1),
 			(tve[0], tve[1]),
 			(tvt[0]+1, tvt[1]+1),
+			page = page,
 		)
 
 	def seek_absolute(self, coordinates) -> bytes:
