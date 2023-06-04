@@ -246,11 +246,20 @@ csi_terminator_keys = {
 
 csi_alternates = {
 	# Tabs; [.u makes this uncessary, but leave it in for compatibility.
-	'Z': ('control', 'i'),
+	("Z", ""): ('control', 'i'),
+}
 
+csi_signals = {
 	# xterm focus events
-	'I': ('focus', 'in'),
-	'O': ('focus', 'out'),
+	("I", ""): ('focus', 'in'),
+	("O", ""): ('focus', 'out'),
+
+	# DA1 and DA2 inquiry responses.
+	("c", "?"): ('device-attributes', 1),
+	("c", ">"): ('device-attributes', 2),
+
+	# Currently symbolic, DA3 responds with DCS -> ST.
+	("c", "="): ('device-attributes', 3),
 }
 
 def sequence_map(escape, stype, action, region, remainder, *, Zero=Zero):
@@ -262,25 +271,28 @@ def sequence_map(escape, stype, action, region, remainder, *, Zero=Zero):
 
 	intermediates, parameters, terminator = action
 
-	if parameters[1:2] and parameters[1] is not None:
-		mods = interpret_key_modifiers(parameters[1])
-
 	if intermediates == "<" and terminator in {'m', 'M'}:
 		return (mouse(origin, terminator, parameters), remainder)
 	elif terminator == '~':
 		assert len(parameters) > 0 # No key-id or modifiers
 		key_id = parameters[0]
-
 		type, ident = csi_keymap[key_id]
+		mods = interpret_key_modifiers(parameters[1])
 	elif terminator == 'u':
 		codepoint = parameters[0]
 		ident = chr(codepoint)
+		mods = interpret_key_modifiers(parameters[1])
 		return print(ident, source=origin, modifiers=mods), remainder
 	elif terminator in csi_terminator_keys:
 		type = 'navigation'
 		ident = csi_terminator_keys[terminator]
-	elif terminator in csi_alternates:
-		type, ident = csi_alternates[terminator]
+		mods = interpret_key_modifiers(parameters[1])
+	elif (terminator, intermediates) in csi_alternates:
+		type, ident = csi_alternates[(terminator, intermediates)]
+		mods = interpret_key_modifiers(parameters[1])
+	elif (terminator, intermediates) in csi_signals:
+		type, ident = csi_signals[(terminator, intermediates)]
+		mods = parameters
 	elif terminator == 'R':
 		type = 'cursor'
 		ident = parameters
