@@ -22,6 +22,8 @@
 
 # /line-wrap/
 	# Control line wrapping.
+# /horizontal-margins/
+	# Control the availability of horizontal margins. (DECLRMM/DECSLRM)
 # /origin-mode/
 	# Control the home cursor position to be absolute or scrolling region relative.
 # /margin-bell/
@@ -70,7 +72,7 @@
 	# A reasonable set of defaults for use with cooked line disciplines.
 	# ! NOTE: Used primarily as an inverse for &cursed.
 # /observe/
-	# Configuration used by &.bin.observe to maximize the perceived events.
+	# Configuration used by &.observe to maximize the perceived events.
 """
 from . import matrix
 
@@ -80,6 +82,7 @@ private_mode_options = {
 	'origin-mode': 6,
 	'line-wrap': 7,
 	'margin-bell': 44,
+	'horizontal-margins': 69,
 
 	'cursor-visible': 25,
 	'cursor-blink': 12,
@@ -128,6 +131,7 @@ ctypes = {
 	'cursed': (
 		'cooked', # revert using
 		'raw', {
+			'horizontal-margins',
 			'mouse-extended-protocol',
 			'mouse-drag',
 			'alternate-screen',
