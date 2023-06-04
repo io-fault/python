@@ -1,12 +1,15 @@
 """
-# Developer tool used to observe the transformed events from received from standard input.
+# Developer tool used to observe the transformed events received from standard input.
 """
 import sys
 import os
 from . import events
 
-def loop(tty, prepare, restore):
+def loop(screen, init, tty, prepare, restore):
 	prepare()
+	sys.stdout.buffer.write(screen.draw_unit_horizontal(init))
+	sys.stdout.buffer.flush()
+
 	try:
 		parser = events.parser()
 		fd = tty.fileno()
@@ -20,11 +23,11 @@ def loop(tty, prepare, restore):
 	finally:
 		restore()
 
-def main():
+def main(init=''):
 	from . import control
 	screen = control.matrix.Screen()
 	sys.stdout.buffer.write(screen.set_window_title_text("Event Observations"))
-	loop(*control.setup(ctype='observe'))
+	loop(screen, init, *control.setup(ctype='observe'))
 
 if __name__ == '__main__':
-	main()
+	main(*sys.argv[1:])
