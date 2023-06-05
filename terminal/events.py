@@ -270,6 +270,7 @@ def sequence_map(escape, stype, action, region, remainder, *, Zero=Zero):
 	mods = Zero
 
 	intermediates, parameters, terminator = action
+	nparams = len(parameters)
 
 	if intermediates == "<" and terminator in {'m', 'M'}:
 		return (mouse(origin, terminator, parameters), remainder)
@@ -277,19 +278,23 @@ def sequence_map(escape, stype, action, region, remainder, *, Zero=Zero):
 		assert len(parameters) > 0 # No key-id or modifiers
 		key_id = parameters[0]
 		type, ident = csi_keymap[key_id]
-		mods = interpret_key_modifiers(parameters[1])
+		if nparams > 1:
+			mods = interpret_key_modifiers(parameters[1])
 	elif terminator == 'u':
 		codepoint = parameters[0]
 		ident = chr(codepoint)
-		mods = interpret_key_modifiers(parameters[1])
+		if nparams > 1:
+			mods = interpret_key_modifiers(parameters[1])
 		return print(ident, source=origin, modifiers=mods), remainder
 	elif terminator in csi_terminator_keys:
 		type = 'navigation'
 		ident = csi_terminator_keys[terminator]
-		mods = interpret_key_modifiers(parameters[1])
+		if nparams > 1:
+			mods = interpret_key_modifiers(parameters[1])
 	elif (terminator, intermediates) in csi_alternates:
 		type, ident = csi_alternates[(terminator, intermediates)]
-		mods = interpret_key_modifiers(parameters[1])
+		if nparams > 1:
+			mods = interpret_key_modifiers(parameters[1])
 	elif (terminator, intermediates) in csi_signals:
 		type, ident = csi_signals[(terminator, intermediates)]
 		mods = parameters
