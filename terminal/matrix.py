@@ -762,6 +762,31 @@ class Context(object):
 			page = page,
 		)
 
+	def confine(self):
+		"""
+		# Adjust the margins of the terminal to isolate the context's area.
+		"""
+		l, t = self.point
+		s = b''
+		s += self._csi(b's', self.encode(l+1), self.encode(l+self.dimensions[0]))
+		s += self._csi(b'r', self.encode(t+1), self.encode(t+self.dimensions[1]))
+		return s
+
+	def scroll(self, lines:int):
+		"""
+		# Scroll forwards if quantity is positive or zero, backwards if negative.
+
+		# [ Returns ]
+		# The sequences to perform the scroll operation or an empty string
+		# if the &lines count is zero.
+		"""
+		if lines < 0:
+			return self.terminal_type.scroll_down(-lines)
+		elif lines > 0:
+			return self.terminal_type.scroll_up(lines)
+		else:
+			return b''
+
 	def seek_absolute(self, coordinates) -> bytes:
 		"""
 		# Primitive absolute seek; Context cursor poisition is *not* updated.
@@ -952,28 +977,6 @@ class Screen(Context):
 		"""
 		return self._csi(b'u')
 		# VT: return self.terminal_type.esc(b'8')
-
-	def scroll_up(self, count):
-		"""
-		# Adjust the scroll region's view by scrolling up &count rows.
-		"""
-		return self._csi(b'S', self.encode(count))
-
-	def scroll_down(self, count):
-		"""
-		# Adjust the scroll region's view by scrolling down &count rows.
-		"""
-		return self._csi(b'T', self.encode(count))
-
-	def scroll(self, lines:int):
-		"""
-		# Scroll forwards if quantity is positive or zero, backwards if negative.
-		"""
-		if lines < 0:
-			return self._csi(b'S', self.encode(-lines))
-		else:
-			# 0 or >0
-			return self._csi(b'T', self.encode(lines))
 
 	def enter_scrolling_region(self):
 		"""
