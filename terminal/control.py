@@ -131,7 +131,6 @@ ctypes = {
 	'cursed': (
 		'cooked', # revert using
 		'raw', {
-			'horizontal-margins',
 			'mouse-extended-protocol',
 			'mouse-drag',
 			'alternate-screen',
