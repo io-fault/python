@@ -520,12 +520,9 @@ class Context(object):
 
 	def draw_segment_vertical(self, unit, length):
 		e = self.encode
-		h, v = self._context_cursor
-		h -= self.point[0]
-		v -= self.point[1]
-
+		h, v = self.translate(self.point, self._context_cursor)
 		c = e(unit)
-		return b''.join([c + self.seek_absolute((h, v+i)) for i in range(length)])
+		return b''.join([self.seek_absolute((h, v+i)) + c for i in range(length)])
 
 	def draw_segment_horizontal(self, unit, length):
 		return self.draw_unit_horizontal(unit) * length
