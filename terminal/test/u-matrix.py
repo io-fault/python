@@ -177,10 +177,11 @@ def test_Screen_methods(test):
 	b'1' in test/sr
 	b'2' in test/sr
 
-	b's' in test/S.store_cursor_location()
-	b'u' in test/S.restore_cursor_location()
-	b'8' in test/S.scroll_up(8)
-	b'8' in test/S.scroll_down(8)
+	b'7' in test/S.store_cursor_position()
+	b'8' in test/S.restore_cursor_position()
+
+	b'9' in test/S.scroll_up(9)
+	b'10' in test/S.scroll_down(10)
 
 def test_Context_seek(test):
 	"""

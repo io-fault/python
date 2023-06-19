@@ -949,7 +949,7 @@ class Screen(Context):
 		"""
 		sr = self.set_scrolling_region(top, bottom)
 		en = self.terminal_type.decset((self.terminal_type._pm_origin,))
-		return self.store_cursor_location() + sr + en + self.restore_cursor_location()
+		return self.store_cursor_position() + sr + en + self.restore_cursor_position()
 
 	def close_scrolling_region(self):
 		"""
@@ -957,23 +957,26 @@ class Screen(Context):
 		# This preserves the screen's state after the transition.
 		"""
 		ttype = self.terminal_type
-		return self.store_cursor_location() + ttype.decset((ttype._pm_screen,)) + \
+		return self.store_cursor_position() + ttype.decset((ttype._pm_screen,)) + \
 			self.reset_scrolling_region() + \
 			ttype.decrst((ttype._pm_screen,)) + self.enter_scrolling_region()
 
-	def store_cursor_location(self):
+	def store_cursor_position(self):
 		"""
 		# Emulator level cursor storage.
 		"""
-		return self._csi(b's')
-		# VT: return self.terminal_type.esc(b'7')
+		return self.terminal_type.esc(b'7')
+		# Prefer the DEC form to avoid conflict with DECSLRM.
+		# return self._csi(b's')
+	store_cursor_location = store_cursor_position
 
-	def restore_cursor_location(self):
+	def restore_cursor_position(self):
 		"""
-		# Restore a previously stored cursor location.
+		# Restore cursor positionn saved by &store_cursor_position.
 		"""
-		return self._csi(b'u')
-		# VT: return self.terminal_type.esc(b'8')
+		return self.terminal_type.esc(b'8')
+		# return self._csi(b'u')
+	restore_cursor_location = restore_cursor_position
 
 	def enter_scrolling_region(self):
 		"""
@@ -981,14 +984,14 @@ class Screen(Context):
 		"""
 		return \
 			self.terminal_type.decset((self.terminal_type._pm_origin,)) + \
-			self.restore_cursor_location()
+			self.restore_cursor_position()
 
 	def exit_scrolling_region(self):
 		"""
 		# Exit scrolling region; allow out of region printing; saves cursor location.
 		"""
 		return \
-			self.store_cursor_location() + \
+			self.store_cursor_position() + \
 			self.terminal_type.decrst((self.terminal_type._pm_origin,))
 
 	def clear(self):
