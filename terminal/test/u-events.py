@@ -198,8 +198,8 @@ def test_Parser_focus_events(test):
 	p = events.parser()
 
 	# Run this multiple times to make sure the ground state is being properly maintained.
-	test/p.send(("\x1b[I", False)) == [C('focus', "\x1b[I", "in", 0)]
-	test/p.send(("\x1b[O", False)) == [C('focus', "\x1b[O", "out", 0)]
+	test/p.send(("\x1b[I", False)) == [C('focus', "\x1b[I", "in", ())]
+	test/p.send(("\x1b[O", False)) == [C('focus', "\x1b[O", "out", ())]
 
 def test_Parser_common_tabs(test):
 	"""

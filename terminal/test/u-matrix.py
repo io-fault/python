@@ -85,7 +85,7 @@ def test_Type_replicate_parameters(test):
 	"""
 	t = module.Type('utf-8')
 	r = t.replicate((2, 1), (4, 3), (6, 5))
-	test/r == b"\x1b[1;2;3;4;0;5;6;0$v"
+	test/r == b"\x1b[1;2;3;4;1;5;6;1$v"
 
 def test_Type_erase_parameters(test):
 	"""
@@ -180,8 +180,8 @@ def test_Screen_methods(test):
 	b'7' in test/S.store_cursor_position()
 	b'8' in test/S.restore_cursor_position()
 
-	b'9' in test/S.scroll_up(9)
-	b'10' in test/S.scroll_down(10)
+	b'9' in test/S.scroll(-9)
+	b'10' in test/S.scroll(10)
 
 def test_Context_seek(test):
 	"""
