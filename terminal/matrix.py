@@ -35,7 +35,7 @@ class Type(object):
 	_join = _field_separator.join
 	_csi_init = _escape_character + b'['
 	_osc_init = _escape_character + b']'
-	_st = _escape_character = b'\\' # String Terminator
+	_st = _escape_character + b'\\' # String Terminator
 	_wm = b't'
 	_ul_color = (b'58', b'59')
 
