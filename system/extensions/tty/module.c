@@ -118,8 +118,9 @@ measure(wchar_t *wcv, size_t ws, unsigned char ctlen, unsigned char tablen)
 				{
 					/*
 						// Text variant of emoji.
+						// Presumes text variant is single cell.
 					*/
-					lw = -1;
+					lw = -(prev-1);
 				}
 				else
 				{

@@ -85,7 +85,11 @@ def test_cells_vs(test):
 	test/cells("\ufe0f") == 0
 	test/cells("#\ufe0f") == 2
 	test/cells("A#\ufe0f") == 3
+
+	# Text Variant
 	test/cells("\ufe0e") == 0
+	# Undesirable behavior, only emojis should trigger the effect.
+	test/cells("天\ufe0e") == 1
 
 def test_cells_sequences(test):
 	"""
