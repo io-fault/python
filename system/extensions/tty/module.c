@@ -37,79 +37,194 @@ fs_device(PyObj self)
 	return(PyUnicode_FromString(ttyname(fd)));
 }
 
-static PyObj
-cells(PyObj self, PyObj parameter)
+/**
+	// Process the codepoints in the string handling cases
+	// not covered by wcwidth.
+
+	// Sequences are presumed valid; when encounted,, the character
+	// with the maximum cell count is used as the sequence cell count.
+
+	// This needs to be changed to only use the maximum given that wcswidth
+	// does recognize the sequence.
+*/
+static long
+measure(wchar_t *wcv, size_t ws, unsigned char ctlen, unsigned char tablen)
 {
-	int width;
+	long prev = -1, w = 0, max = 0, seq = 0;
+	size_t offset = 0;
+	wchar_t (*wca)[ws] = (wchar_t (*)[])wcv;
+
+	while (offset < ws)
+	{
+		long lw = 0;
+		wchar_t c = (*wca)[offset];
+
+		switch (c)
+		{
+			/* Tabsize */
+			case L'\t':
+				lw = tablen;
+			break;
+
+			/* Zero widths. */
+			case 0x2060:
+			case 0x200B:
+			case 0xFEFF:
+			{
+				/* ZWS and ZWNBS */
+				lw = 0;
+			}
+			break;
+
+			/* ZWNJ Break */
+			case 0x200C:
+			{
+				if (seq > 0)
+					seq = 1;
+			}
+			break;
+
+			/* ZWJ Sequence if any */
+			case 0x200D:
+			{
+				/* +0, continue sequence */
+				seq = 3;
+
+				/* Continue sequence */
+				if (max == 0)
+					max = prev;
+			}
+			break;
+
+			case 0xFE0F:
+			{
+				/* Emoji Variant */
+				if (prev == 1)
+				{
+					/*
+						// Emoji Variant of text.
+					*/
+					lw = 1;
+				}
+				else
+				{
+					/* Otherwise, +0 */
+				}
+			}
+			case 0xFE0E:
+			{
+				/* Text Variant */
+				if (prev > 1)
+				{
+					/*
+						// Text variant of emoji.
+					*/
+					lw = -1;
+				}
+				else
+				{
+					/* Otherwise, +0 */
+				}
+			}
+			break;
+
+			default:
+			{
+				if (c < 32)
+				{
+					/* Low ASCII */
+					lw = ctlen;
+				}
+				else
+				{
+					lw = wcwidth(c);
+					if (lw < 0)
+					{
+						/*
+							// Presume zero-width.
+						*/
+						lw = 0;
+					}
+				}
+			}
+			break;
+		}
+
+		/* Sequence in progress? */
+		if (seq > 0)
+		{
+			--seq;
+			if (seq > 0)
+			{
+				/* Check maximum */
+				if (lw > max)
+				{
+					w += (lw - max);
+					max = lw;
+				}
+			}
+			else
+			{
+				/* Terminate sequence */
+				max = 0;
+				w += lw;
+			}
+		}
+		else
+		{
+			/* Non-sequence case, add identified cell count. */
+			w += lw;
+		}
+
+		prev = lw; /* Needed for sequence termination. */
+		++offset;
+	}
+
+	return(w);
+}
+
+/**
+	// Cell count of string with some sequence and VS awareness.
+*/
+static PyObj
+cells(PyObj self, PyObj args)
+{
+	#ifndef CELL_STACK_ALLOC
+		#define CELL_STACK_ALLOC 16
+	#endif
+
+	int width, ctlen = 0, tablen = 4;
 	Py_ssize_t len, size;
 	PyObj str;
 
-	/**
-		// str(parameter) here in order to allow callers to avoid the composition.
-	*/
-	str = PyObject_Str(parameter);
-	if (str == NULL)
+	if (!PyArg_ParseTuple(args, "U|ii", &str, &ctlen, &tablen))
 		return(NULL);
 
-	if (!PyUnicode_Check(str))
-	{
-		PyErr_Format(PyExc_ValueError, "parameter was not properly converted to str object");
-		goto error;
-	}
-
 	len = PyUnicode_GET_LENGTH(str);
-
-	/**
-		// Fast path for ascii strings.
-		// XXX: Currently inconsistent with wcswidth regarding control characters.
-	*/
-	if (PyUnicode_IS_ASCII(str) || len == 0)
+	if (len < CELL_STACK_ALLOC)
 	{
-		Py_DECREF(str);
-		return(PyLong_FromSsize_t(len));
-	}
+		/* Use stack for small strings. */
+		wchar_t sawc[CELL_STACK_ALLOC];
 
-	/**
-		// Presume stack allocation is faster.
-		// If the codepoint is represented with a surrogate pair, wcswidth currently
-		// doesn't handle it anyways.
-	*/
-	if (len == 1)
-	{
-		wchar_t sawc[2];
-
-		size = PyUnicode_AsWideChar(str, sawc, 1);
+		size = PyUnicode_AsWideChar(str, (wchar_t *)sawc, CELL_STACK_ALLOC);
 		if (size == -1)
-			goto error;
+			return(NULL);
 
-		width = wcwidth(sawc[0]);
-		goto fexit;
+		width = measure(&sawc, size, ctlen, tablen);
 	}
-
-	/*
-		// goto skipped.
-	*/
+	else
 	{
 		wchar_t *wstr;
 
-		/*
-			// Switch to heap.
-		*/
 		wstr = PyUnicode_AsWideCharString(str, &size);
 		if (wstr == NULL)
-			goto error;
+			return(NULL);
 
-		width = wcswidth(wstr, (size_t) size);
+		width = measure(wstr, size, ctlen, tablen);
 		PyMem_Free(wstr);
 	}
 
-	fexit:
-		Py_DECREF(str);
-		return(PyLong_FromLong((long) width));
-
-	error:
-		Py_DECREF(str);
-		return(NULL);
+	return(PyLong_FromLong((long) width));
 }
 
 static PyObj
@@ -491,7 +606,7 @@ DeviceType = {
 	ID(Device)
 
 #define MODULE_FUNCTIONS() \
-	PYMETHOD(cells, cells, METH_O, NULL) \
+	PYMETHOD(cells, cells, METH_VARARGS, NULL) \
 	PYMETHOD(fs_device, fs_device, METH_NOARGS, NULL)
 
 #include <fault/metrics.h>
