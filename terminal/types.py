@@ -177,6 +177,12 @@ class Traits(int):
 	# The bitmap of attributes allows for conflicting decorations;
 	# &..terminal makes no presumptions about how the terminal responds to
 	# these, so constraints regarding exclusive settings are not present.
+
+	# [ Fields ]
+	# /unit/
+		# Indicates that the corresponding Word string is intended
+		# to be a single unit and that the rate of cells-per-codepoint
+		# is not consistent.
 	"""
 	__slots__ = ()
 
@@ -187,6 +193,10 @@ class Traits(int):
 
 	fields, field_index = _build(
 		(
+			# Client utility traits.
+			'unit', # Sole character indicator, Word cell count represents one UPC.
+
+			# Cell and Text traits.
 			'underline',
 			'double-underline',
 
@@ -355,31 +365,7 @@ class RenderParameters(tuple):
 		for text in strings:
 			yield (cells(text), text, self)
 
-class Units(tuple):
-	"""
-	# Explicitly partitioned string for forced segmentation.
-
-	# Provides a string-like object for explicitly designating User Perceived Characters.
-	"""
-	__slots__ = ()
-
-	def __str__(self, map=map, str=str, tuple=tuple):
-		return ''.join(map(str, super().__iter__()))
-
-	def encode(self, encoding, errors='surrogateescape'):
-		return str(self).encode(encoding, errors=errors)
-
-	def __getitem__(self, item, isinstance=isinstance, slice=slice):
-		if isinstance(item, slice):
-			# Make sure to return typed instance for slices.
-			return self.__class__(super().__getitem__(item))
-
-		return super().__getitem__(item)
-
-	def __add__(self, rhs):
-		return self.__class__(super().__add__(rhs))
-
-def grapheme(text, index, cells=cells, slice=slice, Units=Units, str=str):
+def grapheme(text, index, cells=cells, slice=slice, str=str):
 	"""
 	# Retrieve the slice to characters that make up an indivisible unit of cells.
 	# This is not always consistent with User Perceived Characters.
@@ -392,10 +378,6 @@ def grapheme(text, index, cells=cells, slice=slice, Units=Units, str=str):
 	# ! WARNING:
 		# This is **not** consistent with Unicode grapheme clusters.
 	"""
-	if isinstance(text, Units):
-		# Units instances are one-to-one.
-		return slice(index, index+1)
-
 	start = text[index:index+1]
 	count = 0
 
@@ -430,6 +412,58 @@ def itergraphemes(text, getslice=grapheme, len=len):
 
 Words: TypeAlias = tuple[int, Text, RenderParameters]
 
+def u_length(w):
+	if w[2].traits.test('unit'):
+		return 1
+	else:
+		# Non-unit word, offset is codepoint offset.
+		return len(w[1])
+
+def u_offset(w, i):
+	if w[2].traits.test('unit'):
+		if i >= len(w[1]):
+			return 1
+		else:
+			return 0
+	else:
+		# Non-unit word, offset is codepoint offset.
+		return i
+
+def u_index(w, i):
+	if w[2].traits.test('unit'):
+		if i >= 1:
+			return len(w[1]), i - 1
+		else:
+			return 0, i
+	else:
+		# Non-unit word, offset is codepoint offset.
+		return i, 0
+
+def c_length(w):
+	return w[0]
+
+def c_offset(w, i):
+	if w[2].traits.test('unit'):
+		if i < 1:
+			return 0
+		else:
+			return w[0]
+	else:
+		cr = w[0] // len(w[1])
+		return cr * i
+
+def c_index(w, i):
+	if w[2].traits.test('unit'):
+		if i >= w[0]:
+			return len(w[1]), 0
+		else:
+			return 0, 0
+	else:
+		# Non-unit word, offset is codepoint offset.
+		cr = w[0] // len(w[1])
+		cp = i // cr
+		return cp, 0
+
 class Phrase(tuple):
 	"""
 	# A terminal Phrase expressing a sequence of styled words.
@@ -438,6 +472,15 @@ class Phrase(tuple):
 	# background, and &Traits.
 	"""
 	__slots__ = ()
+
+	# ulength, uoffset, utranslate
+	m_unit = (u_length, u_offset, u_index)
+	m_cell = (c_length, c_offset, c_index)
+	m_codepoint = (
+		(lambda w: w[1].__len__()),
+		(lambda w, i: i),
+		(lambda w, i: (i, 0)),
+	)
 
 	@staticmethod
 	def default(text, traits=(Traits(0), None, None, None)):
@@ -690,7 +733,7 @@ class Phrase(tuple):
 				break
 			character_index += 1
 		else:
-			# End of word; empty string or empty Units
+			# End of word; empty string.
 			while not self[i][1][character_index:character_index+1]:
 				i += 1
 				if i == nwords:
@@ -827,6 +870,80 @@ class Phrase(tuple):
 		out[-1] = ((cells(txt), txt,) + out[-1][2:])
 
 		return self.__class__(out)
+
+	def seek(self, position, offset:int,
+			ulength=(lambda w: len(w[1])),
+			uoffset=(lambda w, i: i),
+			utranslate=(lambda w, i: (i, 0)),
+			*,
+			map=map, len=len, range=range, abs=abs,
+		):
+		"""
+		# Find the word offset and codepoint offset for the unit &offset
+		# relative to &position.
+		# The &offset is traversed using &ulength, &uoffset, and &uindex.
+		"""
+
+		wordi, chari = position
+		ui = uoffset(self[wordi], chari)
+		re = abs(offset) # Unit count; <= 0 and the target offset has been passed.
+
+		# Scan words forwards (+) or backwards (-) based on &offset.
+		# Maintain invariant here, align at start of word.
+		if offset < 0:
+			ri = range(wordi, -1, -1)
+			re += uoffset(self[wordi], len(self[wordi][1])) - ui
+			lswitch = -1
+		else:
+			ri = range(wordi, len(self), 1)
+			re += ui - uoffset(self[wordi], 0)
+			lswitch = 0
+
+		# Scan for word with offset.
+		for i in ri:
+			word = self[i]
+			ll = ulength(word)
+			if re <= ll:
+				# Boundary crossed within or at the edge of &word.
+				break
+			re -= ll
+		else:
+			assert re > 0
+			# Offset exceeded bounds.
+			# Report beginning or end and remaining offset.
+			if offset < 0:
+				return (0, 0), re
+			else:
+				return (len(self)-1, len(self[-1][1])), re
+
+		ci, r = utranslate(word, abs(re + (lswitch * ll)))
+		return (i, ci), r
+
+	def afirst(self, position):
+		"""
+		# Align the position to the beginning of the next word given
+		# that the character index is at the end of the word
+		# and that there is a following word. If realignment is not
+		# possible, return &position.
+		"""
+		wi, ci = position
+		if wi >= len(self) or ci < len(self[wi][1]):
+			return position
+		else:
+			return (wi+1, 0)
+
+	def alast(self, position):
+		"""
+		# Align the position to the end of the previous word given
+		# that the character index is at the start of the word
+		# and that there is a previous word. If realignment is not
+		# possible, return &position.
+		"""
+		wi, ci = position
+		if wi < 1 or ci > 0:
+			return position
+		else:
+			return (wi-1, len(self[wi-1][1]))
 
 # Common descriptor endpoint.
 Page: TypeAlias = Sequence[Phrase]

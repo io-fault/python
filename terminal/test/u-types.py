@@ -32,6 +32,9 @@ def test_Traits(test):
 	test/Traits.construct('underline').test('double-underline') == False
 	test/Traits.none() == module.NoTraits
 
+	test/Traits.none().test('unit') == False
+	test/Traits.construct('unit').test('unit') == True
+
 def test_Traits_unique(test):
 	"""
 	# - &module.Traits
@@ -46,6 +49,8 @@ def test_Traits_expected(test):
 	# - &module.Traits
 	"""
 	seq = [
+		'unit',
+
 		'underline',
 		'double-underline',
 		'cross',
@@ -129,46 +134,6 @@ def test_RenderParameters_equality(test):
 	test/rp != rp1
 	test/rp != rp2
 
-def test_Units(test):
-	"""
-	# - &module.Units
-	"""
-
-	# Validate rather features.
-	# They are important, however, for the use case
-	# of consolidating cells.
-
-	u = module.Units(("->",))
-	test/str(u) == "->"
-	test/len(u) == 1
-	test/u.encode('utf-8') == b"->"
-
-	u = module.Units(("->", "::"))
-	test/str(u) == "->::"
-	test/len(u) == 2
-	test/u.encode('utf-8') == b"->::"
-
-	# Check iter() and __add__
-	test.isinstance(u + ("rhs",), module.Units)
-	test/''.join(list(u)) == str(u)
-
-def test_Units_slice(test):
-	"""
-	# - &module.Units.__getitem__
-	"""
-
-	u = module.Units(("->", "::"))
-	test/str(u) == "->::"
-	test/len(u) == 2
-	test/u.encode('utf-8') == b"->::"
-
-	test/u[0] == "->"
-	test/u[1] == "::"
-	test.isinstance(u[:1], module.Units)
-	u += ("rhs",)
-	test.isinstance(u, module.Units)
-	test/u[:] == u
-
 def test_grapheme(test):
 	"""
 	# - &module.Phrase.grapheme
@@ -176,6 +141,7 @@ def test_grapheme(test):
 	getg = module.grapheme
 	t = "謝了春\u0353."
 
+	# Sanity
 	test/t[getg(t, 0)] == t[0]
 	test/t[getg(t, 1)] == t[1]
 	test/t[getg(t, 4)] == t[-1]
@@ -257,10 +223,10 @@ findcell_phrase_1_cc = module.Phrase.construct([
 # Only with respect to single unit words.
 findcell_phrase_1_units = module.Phrase.construct([
 	("field", None, None, notraits),
-	(module.Units((" ",)), None, None, notraits),
+	(" ", None, None, notraits),
 	("sequence", None, None, notraits),
-	(module.Units((",",)), None, None, notraits),
-	(module.Units((" ",)), None, None, notraits),
+	(",", None, None, notraits),
+	(" ", None, None, notraits),
 	("terminal", None, None, notraits),
 ])
 
@@ -632,6 +598,108 @@ def test_Phrase_join(test):
 	r = tab.join([])
 	test/''.join([x[1] for x in r]) == ""
 
+def test_Phrase_seek_forwards(test):
+	"""
+	# - &module.Phrase.seek
+
+	# Check positive offsets.
+	"""
+	normal = module.RenderParameters((module.Traits(0), 0xFFFFFF, 0x000000, None))
+	fields = module.Phrase(normal.form("field-1", "field-2", "field-3"))
+	total_len = sum(map(len, (x[1] for x in fields)))
+
+	# Check edges.
+	test/fields.seek((0, 0), total_len-1) == ((2, len("field-3")-1), 0)
+	test/fields.seek((0, 0), total_len+0) == ((2, len("field-3")), 0)
+	test/fields.seek((0, 0), total_len+1) == ((2, len("field-3")), 1)
+	test/fields.seek((0, 0), total_len+2) == ((2, len("field-3")), 2)
+
+	# Skip last to avoid zero's next word case.
+	for f, w in enumerate(fields):
+		l = len(w[1])
+		points = [((f, i), l-i) for i in range(l)]
+
+		for p, d in points:
+			test/fields.seek(p, d) == ((f, l), 0)
+
+	# Check word edge transition.
+	test/fields.seek((0, 0), len(fields[0][1])+0) != ((1, 0), 0)
+	test/fields.seek((0, 0), len(fields[0][1])+1) == ((1, 1), 0)
+	test/fields.seek((0, 0), len(fields[0][1])+2) == ((1, 2), 0)
+
+def test_Phrase_seek_backwards(test):
+	"""
+	# - &module.Phrase.seek
+
+	# Check negative offsets.
+	"""
+	normal = module.RenderParameters((module.Traits(0), 0xFFFFFF, 0x000000, None))
+	fields = module.Phrase(normal.form("field-1", "field-2", "field-3"))
+	total_len = sum(map(len, (x[1] for x in fields)))
+
+	# Check edges.
+	test/fields.seek((2, len("field-3")), -(total_len-1)) == ((0, 1), 0)
+	test/fields.seek((2, len("field-3")), -(total_len+0)) == ((0, 0), 0)
+	test/fields.seek((2, len("field-3")), -(total_len+1)) == ((0, 0), 1)
+	test/fields.seek((2, len("field-3")), -(total_len+2)) == ((0, 0), 2)
+
+	for f, w in enumerate(fields):
+		l = len(w[1])
+		points = [((f, l-i), -(l-i)) for i in range(l)]
+
+		for p, d in points:
+			test/fields.seek(p, d) == ((f, 0), 0)
+
+	# Check word edge transition.
+	fl = len(fields[1][1])
+	test/fields.seek((1, fl), -(fl+0)) != ((0, len(fields[0][1])), 0)
+	test/fields.seek((2, 0), -(fl-1)) == ((1, 1), 0)
+	test/fields.seek((2, 0), -(fl-2)) == ((1, 2), 0)
+
+def test_Phrase_seek_units(test):
+	"""
+	# - &module.Phrase.seek
+
+	# Check Character Unit and Character Cell seeks.
+	"""
+	import itertools
+	normal = module.RenderParameters((module.Traits(0), 0xFFFFFF, 0x000000, None))
+	unitra = module.RenderParameters((module.Traits.construct('unit'), 0xFFFFFF, 0x000000, None))
+
+	qfield = module.Phrase(itertools.chain(
+		normal.form('prefix:'),
+		unitra.form('quad'),
+		normal.form(':suffix'),
+	))
+
+	test/qfield.seek((0,0), 7, *module.Phrase.m_unit) == ((0, 7), 0)
+	test/qfield.seek((0,0), 8, *module.Phrase.m_unit) == ((1, 4), 0)
+	test/qfield.seek((0,0), 9, *module.Phrase.m_unit) == ((2, 1), 0)
+
+def test_Phrase_afirst(test):
+	"""
+	# - &module.Phrase.afirst
+	"""
+	normal = module.RenderParameters((module.Traits(0), 0xFFFFFF, 0x000000, None))
+	fields = module.Phrase(normal.form("field-1", "field-2", "field-3"))
+	f1l = len(fields[0][1])
+
+	test/fields.afirst((0, f1l)) == (1, 0)
+	test/fields.afirst((1, 0)) == (1, 0)
+	test/fields.afirst((1, 1)) == (1, 1)
+
+def test_Phrase_alast(test):
+	"""
+	# - &module.Phrase.alast
+	"""
+	normal = module.RenderParameters((module.Traits(0), 0xFFFFFF, 0x000000, None))
+	fields = module.Phrase(normal.form("field-1", "field-2", "field-3"))
+	f1l = len(fields[0][1])
+
+	test/fields.alast((0, f1l)) == (0, f1l)
+	test/fields.alast((1, 0)) == (0, f1l)
+	test/fields.alast((1, 1)) == (1, 1)
+
 def test_Constructors(test):
 	"""
 	# - &module.RenderParameters.form
@@ -649,11 +717,7 @@ def test_Constructors(test):
 
 	# Check units usage.
 	ph = module.Phrase.from_words(
-		rp1.form("Former", " ", "sentence", module.Units(("->",))),
-		rp2.form("Latter sentence", module.Units((";",))),
+		rp1.form("Former", " ", "sentence", "->"),
+		rp2.form("Latter sentence", ";"),
 	)
 	test/"".join([str(x[1]) for x in ph]) == "Former sentence->Latter sentence;"
-
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules[__name__])

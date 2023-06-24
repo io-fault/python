@@ -413,7 +413,6 @@ class Context(object):
 	# The types may be overridden globally by patching &.types prior to importing &.matrix.
 	from .types import \
 		Text, \
-		Units, \
 		Traits, \
 		RenderParameters, \
 		Words, \
