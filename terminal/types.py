@@ -478,7 +478,7 @@ class Words(tuple):
 		"""
 		# Translate the word relative &celloffset to the word relative codepoint offset.
 		"""
-		return divmod(celloffset // self.cellrate)
+		return divmod(celloffset, self.cellrate)
 
 	def unitcount(self) -> int:
 		"""
@@ -1021,7 +1021,7 @@ class Phrase(tuple):
 				return (len(self)-1, len(self[-1][1])), re
 
 		ci, r = utranslate(word, abs(re + (lswitch * ll)))
-		return (i, ci), r
+		return (i, ci), -r
 
 	def afirst(self, position):
 		"""

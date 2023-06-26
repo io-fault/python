@@ -675,6 +675,26 @@ def test_Phrase_seek_units(test):
 	test/qfield.seek((0,0), 8, *module.Phrase.m_unit) == ((1, 4), 0)
 	test/qfield.seek((0,0), 9, *module.Phrase.m_unit) == ((2, 1), 0)
 
+def test_Phrase_seek_unit_cells(test):
+	"""
+	# - &module.Phrase.seek
+
+	# Check underflow conditions.
+	"""
+	normal = module.RenderParameters((module.Traits(0), 0xFFFFFF, 0x000000, None))
+
+	qfield = module.Phrase([
+		module.Unit((4, 'quad', normal)),
+	])
+
+	test/qfield.seek((0,0), 1, *module.Phrase.m_cell) == ((0, 0), -1)
+	test/qfield.seek((0,0), 2, *module.Phrase.m_cell) == ((0, 0), -2)
+	test/qfield.seek((0,0), 3, *module.Phrase.m_cell) == ((0, 0), -3)
+
+	test/qfield.seek((0,4), -1, *module.Phrase.m_cell) == ((0, 0), -3)
+	test/qfield.seek((0,4), -2, *module.Phrase.m_cell) == ((0, 0), -2)
+	test/qfield.seek((0,4), -3, *module.Phrase.m_cell) == ((0, 0), -1)
+
 def test_Phrase_afirst(test):
 	"""
 	# - &module.Phrase.afirst
