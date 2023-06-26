@@ -49,8 +49,6 @@ def test_Traits_expected(test):
 	# - &module.Traits
 	"""
 	seq = [
-		'unit',
-
 		'underline',
 		'double-underline',
 		'cross',
@@ -605,7 +603,8 @@ def test_Phrase_seek_forwards(test):
 	# Check positive offsets.
 	"""
 	normal = module.RenderParameters((module.Traits(0), 0xFFFFFF, 0x000000, None))
-	fields = module.Phrase(normal.form("field-1", "field-2", "field-3"))
+	fields = module.Phrase(map(module.Words, normal.form("field-1", "field-2", "field-3")))
+	seek = (lambda x, y: fields.seek(x, y, *module.Phrase.m_codepoint))
 	total_len = sum(map(len, (x[1] for x in fields)))
 
 	# Check edges.
@@ -634,27 +633,28 @@ def test_Phrase_seek_backwards(test):
 	# Check negative offsets.
 	"""
 	normal = module.RenderParameters((module.Traits(0), 0xFFFFFF, 0x000000, None))
-	fields = module.Phrase(normal.form("field-1", "field-2", "field-3"))
+	fields = module.Phrase(map(module.Words, normal.form("field-1", "field-2", "field-3")))
+	seek = (lambda x, y: fields.seek(x, y, *module.Phrase.m_codepoint))
 	total_len = sum(map(len, (x[1] for x in fields)))
 
 	# Check edges.
-	test/fields.seek((2, len("field-3")), -(total_len-1)) == ((0, 1), 0)
-	test/fields.seek((2, len("field-3")), -(total_len+0)) == ((0, 0), 0)
-	test/fields.seek((2, len("field-3")), -(total_len+1)) == ((0, 0), 1)
-	test/fields.seek((2, len("field-3")), -(total_len+2)) == ((0, 0), 2)
+	test/seek((2, len("field-3")), -(total_len-1)) == ((0, 1), 0)
+	test/seek((2, len("field-3")), -(total_len+0)) == ((0, 0), 0)
+	test/seek((2, len("field-3")), -(total_len+1)) == ((0, 0), 1)
+	test/seek((2, len("field-3")), -(total_len+2)) == ((0, 0), 2)
 
 	for f, w in enumerate(fields):
 		l = len(w[1])
 		points = [((f, l-i), -(l-i)) for i in range(l)]
 
 		for p, d in points:
-			test/fields.seek(p, d) == ((f, 0), 0)
+			test/seek(p, d) == ((f, 0), 0)
 
 	# Check word edge transition.
 	fl = len(fields[1][1])
-	test/fields.seek((1, fl), -(fl+0)) != ((0, len(fields[0][1])), 0)
-	test/fields.seek((2, 0), -(fl-1)) == ((1, 1), 0)
-	test/fields.seek((2, 0), -(fl-2)) == ((1, 2), 0)
+	test/seek((1, fl), -(fl+0)) != ((0, len(fields[0][1])), 0)
+	test/seek((2, 0), -(fl-1)) == ((1, 1), 0)
+	test/seek((2, 0), -(fl-2)) == ((1, 2), 0)
 
 def test_Phrase_seek_units(test):
 	"""
@@ -664,12 +664,11 @@ def test_Phrase_seek_units(test):
 	"""
 	import itertools
 	normal = module.RenderParameters((module.Traits(0), 0xFFFFFF, 0x000000, None))
-	unitra = module.RenderParameters((module.Traits.construct('unit'), 0xFFFFFF, 0x000000, None))
 
 	qfield = module.Phrase(itertools.chain(
-		normal.form('prefix:'),
-		unitra.form('quad'),
-		normal.form(':suffix'),
+		map(module.Words, normal.form('prefix:')),
+		map(module.Unit, normal.form('quad')),
+		map(module.Words, normal.form(':suffix')),
 	))
 
 	test/qfield.seek((0,0), 7, *module.Phrase.m_unit) == ((0, 7), 0)
@@ -699,6 +698,49 @@ def test_Phrase_alast(test):
 	test/fields.alast((0, f1l)) == (0, f1l)
 	test/fields.alast((1, 0)) == (0, f1l)
 	test/fields.alast((1, 1)) == (1, 1)
+
+def test_Words_split(test):
+	"""
+	# - &module.Words.split
+	"""
+	w = module.Words((4, "open", module.RenderParameters((module.NoTraits,))))
+
+	# Middle
+	f, l = w.split(2)
+	test/f[1] == 'op'
+	test/l[1] == 'en'
+	test/set([l.style, f.style]) == set([w.style])
+
+	# Front
+	f, l = w.split(0)
+	test/f[1] == ''
+	test/l[1] == 'open'
+	test/set([l.style, f.style]) == set([w.style])
+
+	# Back
+	f, l = w.split(4)
+	test/f[1] == 'open'
+	test/l[1] == ''
+	test/set([l.style, f.style]) == set([w.style])
+
+def test_Phrase_split(test):
+	"""
+	# - &module.Phrase.split
+	# - &module.Words.split
+	"""
+	ph = module.Phrase([
+		module.Words((4, "open", module.NoTraits)),
+		module.Words((5, "close", module.NoTraits)),
+	])
+	w = (0,0)
+	end = (1, 5)
+	points = []
+	import sys
+	for i in range(4+5):
+		to, re = ph.seek(w, i)
+		test/re == 0
+		f, l = ph.split(to)
+		test/(f.text + l.text) == "openclose"
 
 def test_Constructors(test):
 	"""

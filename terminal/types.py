@@ -410,59 +410,146 @@ def itergraphemes(text, getslice=grapheme, len=len):
 		yield s
 		i = s.stop
 
-Words: TypeAlias = tuple[int, Text, RenderParameters]
+class Words(tuple):
+	"""
+	# &Phrase segments identifying the cell count of the word text
+	# and the &RenderParameters that should be used to style the text.
+	"""
+	__slots__ = ()
 
-def u_length(w):
-	if w[2].traits.test('unit'):
+	@property
+	def unit(self) -> int:
+		"""
+		# The codepoints per character units.
+		# Normally (python/constant)`1`.
+		"""
 		return 1
-	else:
-		# Non-unit word, offset is codepoint offset.
-		return len(w[1])
 
-def u_offset(w, i):
-	if w[2].traits.test('unit'):
-		if i >= len(w[1]):
-			return 1
+	@property
+	def cellrate(self) -> int:
+		"""
+		# Number of cells required to display a *character unit* of the word text.
+		"""
+		return self[0] // self.unitcount()
+
+	@property
+	def text(self) -> str:
+		"""
+		# The codepoints used to represent the words.
+		"""
+		return self[1]
+
+	@property
+	def style(self) -> RenderParameters:
+		"""
+		# The traits and colors to use when rendering the text.
+		"""
+		return self[2]
+
+	def split(self, whence):
+		"""
+		# Split the word at the given codepoint offset, &whence.
+		"""
+		former = self[1][:whence]
+		latter = self[1][whence:]
+		cr = self.cellrate
+		return (
+			self.__class__((len(former) * cr, former, self[2])),
+			self.__class__((len(latter) * cr, latter, self[2])),
+		)
+
+	def cellcount(self) -> int:
+		"""
+		# Number of cells required to display the word text.
+
+		# This measurement is stored alongside of the string that will be rendered.
+		# It is possible, if not likely, that this override be respected above
+		# a system's `wcswidth` implementation.
+		"""
+		return self[0]
+
+	def celloffset(self, offset:int) -> int:
+		"""
+		# Translate word relative codepoint offset to word relative cell offset.
+		"""
+		return offset * self.cellrate
+
+	def cellpoint(self, celloffset, *, divmod=divmod):
+		"""
+		# Translate the word relative &celloffset to the word relative codepoint offset.
+		"""
+		return divmod(celloffset // self.cellrate)
+
+	def unitcount(self) -> int:
+		"""
+		# The number of character units in the &text.
+		"""
+		return self[1].__len__() // self.unit
+
+	def unitoffset(self, offset:int) -> int:
+		"""
+		# Translate word relative codepoint offset to word relative character unit offset.
+		"""
+		uc = self.unitcount()
+		return offset
+
+	def unitpoint(self, unitoffset):
+		uc = self.unitcount()
+		if unitoffset < 0:
+			return 0, unitoffset
+		elif unitoffset < uc:
+			return unitoffset, 0
 		else:
-			return 0
-	else:
-		# Non-unit word, offset is codepoint offset.
-		return i
+			return self[1].__len__(), unitoffset - uc
 
-def u_index(w, i):
-	if w[2].traits.test('unit'):
-		if i >= 1:
-			return len(w[1]), i - 1
+	def codecount(self):
+		"""
+		# Number of codepoints used to represent the words' text.
+
+		# This is equivalent to `len(Words(...).text)`, but
+		# offers a point of abstraction in, very unlikely, implementation changes.
+		"""
+		return self[1].__len__()
+
+	def codeoffset(self, codeoffset):
+		"""
+		# The codepoint offset; returns &codeoffset.
+		"""
+		return codeoffset
+
+	def codepoint(self, codeoffset):
+		"""
+		# Translate the word relative &codepoint offset to the word relative codepoint offset.
+		# A reflective mapping, but bind the returned offset to the word's range returning
+		# overflow or underflow as the remainder.
+		"""
+		txtlen = self.codecount()
+		if codeoffset < 0:
+			return 0, codeoffset
+		elif codeoffset < txtlen:
+			return codeoffset, 0
 		else:
-			return 0, i
-	else:
-		# Non-unit word, offset is codepoint offset.
-		return i, 0
+			return txtlen, codeoffset - txtlen
 
-def c_length(w):
-	return w[0]
+class Unit(Words):
+	"""
+	# Words representing a single character unit composed from a
+	# unicode codepoint expression. Expressions being regional indicator
+	# pairs, emoji ZWJ sequences, and Variant Selector qualified codepoints.
 
-def c_offset(w, i):
-	if w[2].traits.test('unit'):
-		if i < 1:
-			return 0
-		else:
-			return w[0]
-	else:
-		cr = w[0] // len(w[1])
-		return cr * i
+	# Unit words provides the necessary compensation for inconsistent &Words.cellrate.
+	"""
+	__slots__ = ()
 
-def c_index(w, i):
-	if w[2].traits.test('unit'):
-		if i >= w[0]:
-			return len(w[1]), 0
-		else:
-			return 0, 0
-	else:
-		# Non-unit word, offset is codepoint offset.
-		cr = w[0] // len(w[1])
-		cp = i // cr
-		return cp, 0
+	@property
+	def unit(self) -> int:
+		return self[1].__len__()
+
+	def split(self, offset):
+		"""
+		# Maintain &Words.split interface, but always return a tuple with a sole element.
+		"""
+		return (self,)
 
 class Phrase(tuple):
 	"""
@@ -473,14 +560,28 @@ class Phrase(tuple):
 	"""
 	__slots__ = ()
 
-	# ulength, uoffset, utranslate
-	m_unit = (u_length, u_offset, u_index)
-	m_cell = (c_length, c_offset, c_index)
-	m_codepoint = (
-		(lambda w: w[1].__len__()),
-		(lambda w, i: i),
-		(lambda w, i: (i, 0)),
+	m_unit = (
+		Words.unitcount,
+		Words.unitoffset,
+		Words.unitpoint,
 	)
+	m_cell = (
+		Words.cellcount,
+		Words.celloffset,
+		Words.cellpoint,
+	)
+	m_codepoint = (
+		Words.codecount,
+		Words.codeoffset,
+		Words.codepoint,
+	)
+
+	@property
+	def text(self) -> str:
+		"""
+		# The text content of the phrase.
+		"""
+		return ''.join(w.text for w in self)
 
 	@staticmethod
 	def default(text, traits=(Traits(0), None, None, None)):
@@ -871,7 +972,7 @@ class Phrase(tuple):
 
 		return self.__class__(out)
 
-	def seek(self, position, offset:int,
+	def seek(self, whence, offset:int,
 			ulength=(lambda w: len(w[1])),
 			uoffset=(lambda w, i: i),
 			utranslate=(lambda w, i: (i, 0)),
@@ -880,21 +981,24 @@ class Phrase(tuple):
 		):
 		"""
 		# Find the word offset and codepoint offset for the unit &offset
-		# relative to &position.
+		# relative to &whence.
 		# The &offset is traversed using &ulength, &uoffset, and &uindex.
 		"""
 
-		wordi, chari = position
+		wordi, chari = whence
 		ui = uoffset(self[wordi], chari)
-		re = abs(offset) # Unit count; <= 0 and the target offset has been passed.
 
 		# Scan words forwards (+) or backwards (-) based on &offset.
-		# Maintain invariant here, align at start of word.
+		# Maintain invariant here by adjusting &re to be relative
+		# to beginning or end of the word. Enables the following loop
+		# to always subtract the length of the word.
 		if offset < 0:
+			re = -offset
 			ri = range(wordi, -1, -1)
 			re += uoffset(self[wordi], len(self[wordi][1])) - ui
 			lswitch = -1
 		else:
+			re = offset
 			ri = range(wordi, len(self), 1)
 			re += ui - uoffset(self[wordi], 0)
 			lswitch = 0
@@ -944,6 +1048,17 @@ class Phrase(tuple):
 			return position
 		else:
 			return (wi-1, len(self[wi-1][1]))
+
+	def split(self, whence, *, chain=itertools.chain):
+		"""
+		# Split the phrase at the given position, &whence.
+		"""
+		wordi, codei = whence
+		Class = self.__class__
+		w = self[wordi]
+		pair = w.split(codei)
+		yield Class(chain(self[0:wordi], pair[:1]))
+		yield Class(chain(pair[1:], self[wordi+1:]))
 
 # Common descriptor endpoint.
 Page: TypeAlias = Sequence[Phrase]
