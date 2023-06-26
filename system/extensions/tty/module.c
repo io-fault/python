@@ -41,7 +41,7 @@ fs_device(PyObj self)
 	// Process the codepoints in the string handling cases
 	// not covered by wcwidth.
 
-	// Sequences are presumed valid; when encounted,, the character
+	// Sequences are presumed valid; when encountered, the character
 	// with the maximum cell count is used as the sequence cell count.
 
 	// This needs to be changed to only use the maximum given that wcswidth
@@ -50,7 +50,7 @@ fs_device(PyObj self)
 static long
 measure(wchar_t *wcv, size_t ws, unsigned char ctlen, unsigned char tablen)
 {
-	long prev = -1, w = 0, max = 0, seq = 0;
+	long prev = 0, w = 0, max = 0, seq = 0;
 	size_t offset = 0;
 	wchar_t (*wca)[ws] = (wchar_t (*)[])wcv;
 
@@ -96,36 +96,44 @@ measure(wchar_t *wcv, size_t ws, unsigned char ctlen, unsigned char tablen)
 			}
 			break;
 
+			/* Emoji Variant */
 			case 0xFE0F:
 			{
-				/* Emoji Variant */
-				if (prev == 1)
-				{
-					/*
-						// Emoji Variant of text.
-					*/
-					lw = 1;
-				}
-				else
-				{
-					/* Otherwise, +0 */
-				}
+				/*
+					// Calculate difference from the expected emoji size.
+				*/
+				lw = 2 - prev;
 			}
+
+			/* Text Variant */
 			case 0xFE0E:
 			{
-				/* Text Variant */
-				if (prev > 1)
-				{
-					/*
-						// Text variant of emoji.
-						// Presumes text variant is single cell.
-					*/
-					lw = -(prev-1);
-				}
-				else
-				{
-					/* Otherwise, +0 */
-				}
+				/*
+					// Calculate the difference from expected text size.
+
+					// Inaccurate if the former character is not an emoji.
+				*/
+				lw = 1 - prev;
+			}
+			break;
+
+			/* Variant Selectors */
+			case 0xFE00:
+			case 0xFE01:
+			case 0xFE02:
+			case 0xFE03:
+			case 0xFE04:
+			case 0xFE05:
+			case 0xFE06:
+			case 0xFE07:
+			case 0xFE08:
+			case 0xFE09:
+			case 0xFE0A:
+			case 0xFE0B:
+			case 0xFE0C:
+			case 0xFE0D:
+			{
+				lw = 0;
 			}
 			break;
 
@@ -136,15 +144,33 @@ measure(wchar_t *wcv, size_t ws, unsigned char ctlen, unsigned char tablen)
 					/* Low ASCII */
 					lw = ctlen;
 				}
+				else if (c >= 0x1F1E6 && c <= 0x1F1FF)
+				{
+					/* flag range; only double width if consecutive */
+					if (offset + 1 < ws)
+					{
+						wchar_t n = (*wca)[offset+1];
+
+						if (n >= 0x1F1E6 && n <= 0x1F1FF)
+						{
+							++offset;
+							lw = 2;
+						}
+						else
+							lw = 1;
+					}
+					else
+						lw = 1;
+				}
 				else
 				{
 					lw = wcwidth(c);
 					if (lw < 0)
 					{
 						/*
-							// Presume zero-width.
+							// Presume single.
 						*/
-						lw = 0;
+						lw = 1;
 					}
 				}
 			}
