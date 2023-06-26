@@ -32,9 +32,6 @@ def test_Traits(test):
 	test/Traits.construct('underline').test('double-underline') == False
 	test/Traits.none() == module.NoTraits
 
-	test/Traits.none().test('unit') == False
-	test/Traits.construct('unit').test('unit') == True
-
 def test_Traits_unique(test):
 	"""
 	# - &module.Traits

@@ -193,9 +193,6 @@ class Traits(int):
 
 	fields, field_index = _build(
 		(
-			# Client utility traits.
-			'unit', # Sole character indicator, Word cell count represents one UPC.
-
 			# Cell and Text traits.
 			'underline',
 			'double-underline',
