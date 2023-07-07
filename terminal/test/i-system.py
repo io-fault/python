@@ -10,8 +10,8 @@ def test_graphemes_control(test):
 
 	# Validate control character length parameter.
 	"""
-	test/list(module.graphemes("none", ctlen=1)) == list(zip(repeat(1), "none"))
-	test/list(module.graphemes("\x00", ctlen=2)) == list(zip(repeat(2), "\x00"))
+	test/list(module.graphemes("none", ctlsize=1)) == list(zip(repeat(1), "none"))
+	test/list(module.graphemes("\x00", ctlsize=2)) == list(zip(repeat(2), "\x00"))
 
 def test_graphemes_tab(test):
 	"""
@@ -19,14 +19,14 @@ def test_graphemes_tab(test):
 
 	# Validate tab length parameter.
 	"""
-	test/list(module.graphemes("\t\t", tablen=6)) == list(zip(repeat(6), repeat("\t", 2)))
+	test/list(module.graphemes("\t\t", tabsize=6)) == list(zip(repeat(6), repeat("\t", 2)))
 
 def test_words_unit(test):
 	"""
 	# - &.module.graphemes
 	# - &.module.words
 	"""
-	gi = module.graphemes("none\x00", ctlen=4)
+	gi = module.graphemes("none\x00", ctlsize=4)
 	test/list(module.words(gi)) == [(4, "none"), (-4, "\x00")]
 
 def test_words_unit_tabs(test):
@@ -36,7 +36,7 @@ def test_words_unit_tabs(test):
 
 	# Check tab sizing and unit isolation.
 	"""
-	gi = module.graphemes("former\tlatter", ctlen=4, tablen=8)
+	gi = module.graphemes("former\tlatter", ctlsize=4, tabsize=8)
 	test/list(module.words(gi)) == [(6, "former"), (-8, "\t"), (6, "latter")]
 
 def test_words_zwj_unit(test):
@@ -87,6 +87,20 @@ def test_words_chinese_sample(test):
 	gi = module.graphemes(ch_sample)
 	test/list(module.words(gi)) == [(6, ch_sample)]
 
-	# Iden
 	gi = module.graphemes(f"Prefix, {ch_sample}, suffix")
 	test/list(module.words(gi)) == [(8, "Prefix, "), (6, ch_sample), (8, ", suffix")]
+
+def test_words_phrasing(test):
+	"""
+	# Validate that &.module.words can be processed by the Phrase constructor.
+	"""
+	from ..types import Phrase
+	wi = module.words(module.graphemes("Test\x01", ctlsize=4))
+	ph = Phrase.from_segmentation([
+		(None, wi),
+	])
+	test/len(ph) == 2
+	test/ph[0][2] == None
+	test/ph[1][2] == None
+	test/ph[0][1] == "Test"
+	test/ph[1][1] == "\x01"

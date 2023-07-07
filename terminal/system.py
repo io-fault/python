@@ -10,7 +10,7 @@
 from collections.abc import Iterable
 from ..system.tty import cells
 
-def graphemes(ci:Iterable[str], ctlen=0, tablen=8):
+def graphemes(ci:Iterable[str], ctlsize=0, tabsize=8):
 	"""
 	# Recognize Character Units from an iterator of codepoints using &cells.
 
@@ -29,9 +29,9 @@ def graphemes(ci:Iterable[str], ctlen=0, tablen=8):
 	# [ Parameters ]
 	# /ci/
 		# Iterable of unicode characters.
-	# /ctlen/
+	# /ctlsize/
 		# Cell count to assign to low-ascii control characters.
-	# /tablen/
+	# /tabsize/
 		# Cell count to assign to tab characters.
 
 	# [ Regional Indicators ]
@@ -83,7 +83,7 @@ def graphemes(ci:Iterable[str], ctlen=0, tablen=8):
 					# Qualifies the former codepoint.
 					# Always overwrites previous unitlen.
 					unit += cp
-					unitlen = cells(unit, ctlen, tablen)
+					unitlen = cells(unit, ctlsize, tabsize)
 					continue
 				elif cp >= '\U0001F1E6' and cp <= '\U0001F1FF':
 					# Handle Variation Selector, ZWNJ and ZWJ specially.
@@ -94,12 +94,12 @@ def graphemes(ci:Iterable[str], ctlen=0, tablen=8):
 							# Three consecutive RIs, break unit.
 							yield (unitlen, unit)
 							unit = cp
-							unitlen = cells(cp, ctlen, tablen)
+							unitlen = cells(cp, ctlsize, tabsize)
 							continue
 						else:
 							# Two consecutive RIs.
 							unit += cp
-							unitlen = cells(unit, ctlen, tablen)
+							unitlen = cells(unit, ctlsize, tabsize)
 							continue
 		else:
 			# Avoid optimizing here as probing the system's
@@ -112,13 +112,13 @@ def graphemes(ci:Iterable[str], ctlen=0, tablen=8):
 		# Zero-length additions are continued until terminated by
 		# a change in the cell count.
 		ext = unit + cp
-		extlen = cells(ext, ctlen, tablen)
+		extlen = cells(ext, ctlsize, tabsize)
 
 		if unit and extlen > unitlen:
 			# Completed.
 			yield (unitlen, unit)
 			unit = cp
-			unitlen = cells(cp, ctlen, tablen)
+			unitlen = cells(cp, ctlsize, tabsize)
 		else:
 			# Continued.
 			unit = ext
