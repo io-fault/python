@@ -13,6 +13,7 @@ route_colors = {
 	'warning': palette['yellow'],
 
 	'directory': 0x0087ff,
+	'relatives': 0xff0000,
 	'executable': 0x008700,
 	'data': 0xc6c6c6,
 
@@ -28,10 +29,7 @@ route_colors = {
 	'path-link': 0x005f87,
 	'root-segments': 0x4e4e4e,
 
-	'text/plain;pl=python': 0x875faf,
-	'text/plain;sf=fault.txt': 0x875faf,
-	'text/xml': 0x4e4e4e,
-
+	'typed': 0x875faf,
 	None: None,
 }
 
@@ -41,48 +39,32 @@ def route_is_link(route, islink=os.path.islink):
 	except OSError:
 		return False
 
-def _f_route_factor_type(route, ia_link=route_is_link):
-	idotpy = route / '__init__.py'
-	file_exists = idotpy.fs_type() != 'void'
-	path = str(idotpy)
-	islink = ia_link(path)
-	if islink:
-		if os.readlink(path) == 'context/root.py':
-			return 'context'
-	else:
-		if file_exists:
-			if (route / '.git').fs_type() == 'directory':
-				return 'project'
-
-	return 'unqualified'
-
 def _f_route_path(root, route, _is_link=route_is_link):
 	tid = route.identifier
-	color = route_colors['path']
 
 	while route.absolute != root.absolute and tid is not None:
 
 		if tid in {'.', '..'}:
-			yield ('/', color)
-			yield (tid, 0xff0000)
+			yield ('path', '/')
+			yield ('relatives', tid)
 		else:
 			if _is_link(route):
-				yield ('/', color)
-				yield (tid, route_colors['path-link'])
+				yield ('path', '/')
+				yield ('path-link', tid)
 			else:
-				yield (tid + '/', color)
+				yield ('path', tid + '/')
 
 		route = route.container
 		tid = route.identifier
 	else:
-		yield ('/', color)
+		yield ('path', '/')
 
 def f_route_path(root, route):
 	l = list(_f_route_path(root, route))
 	l.reverse()
 	return l
 
-def f_route_identifier(route, warning=False):
+def f_route_identifier(route, *, warning=False):
 	path = route.absolute
 	if warning:
 		t = 'warning'
@@ -92,43 +74,24 @@ def f_route_identifier(route, warning=False):
 		if t == 'data':
 			if route.fs_executable():
 				t = 'executable'
-			elif rid.endswith('.py'):
-				t = 'text/plain;pl=python'
-			elif rid == 'kfile':
-				t = 'text/plain;sf=fault.txt'
 			elif rid[:1] == ".":
 				t = 'dot-file'
 		elif t == 'void':
 			t = 'file-not-found'
 
-	return [(route.identifier, route_colors[t])]
+	return [(t, route.identifier)]
 
-def f_route_absolute(route, warning=False):
+def f_route_absolute(route, *, warning=False):
 	"""
 	# Format the absolute path of the given route.
 	"""
 
 	if route.identifier is None:
 		# root directory path
-		return [('/', route_colors['filesystem-root'])]
+		return [('filesystem-root', '/')]
 
 	root = route.container
-	last = None
-
-	while root.identifier is not None:
-		ftyp = _f_route_factor_type(root)
-		if ftyp == 'context':
-			prefix = [(str(root), -1024)]
-			break
-
-		last = root
-		root = root.container
-	else:
-		# no context package in path
-		root = route.from_path('/')
-		prefix = []
-
-	return prefix + f_route_path(root, route.container) + f_route_identifier(route, warning=warning)
+	return f_route_path(root, route.container) + f_route_identifier(route, warning=warning)
 
 if __name__ == '__main__':
 	import sys, itertools
@@ -142,8 +105,8 @@ if __name__ == '__main__':
 		r = sysfiles.Path.from_path(x)
 		phrase = screen.Phrase.from_words(
 			itertools.chain.from_iterable(
-				rp.apply(textcolor=color).form(s)
-				for s, color in f_route_absolute(r)
+				rp.apply(textcolor=route_colors[typ]).form(s)
+				for typ, s in f_route_absolute(r)
 			)
 		)
 		sys.stderr.buffer.write(b''.join(screen.render(phrase)) + screen.reset_text())
