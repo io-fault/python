@@ -3,33 +3,29 @@
 """
 import os
 
-palette = {
-	'yellow': 0xffff87,
-	'blue': 0x0087ff,
-}
+from .. import palette
 
 route_colors = {
-	'filesystem-root': palette['blue'],
-	'warning': palette['yellow'],
+	'filesystem-root': 0xfafafa,
+	'warning': palette.colors['yellow'],
 
-	'directory': 0x0087ff,
+	'directory': palette.colors['blue'],
 	'relatives': 0xff0000,
-	'executable': 0x008700,
+	'executable': palette.colors['green'],
 	'data': 0xc6c6c6,
 
-	'dot-file': 0x808080,
-	'file-not-found': 0xaf0000,
+	'dot-file': palette.colors['gray'],
+	'file-not-found': palette.colors['red'],
 
-	'link': 0xff0000,
+	'link': palette.colors['violet'],
 	'device': 0xff5f00,
 	'socket': 0xff5f00,
 	'pipe': 0xff5f00,
 
-	'path': 0x6e6e6e,
-	'path-link': 0x005f87,
-	'root-segments': 0x4e4e4e,
+	'path-separator': palette.colors['background-adjacent'],
+	'path-directory': palette.colors['gray'],
+	'path-link': palette.colors['violet'],
 
-	'typed': 0x875faf,
 	None: None,
 }
 
@@ -45,19 +41,24 @@ def _f_route_path(root, route, _is_link=route_is_link):
 	while route.absolute != root.absolute and tid is not None:
 
 		if tid in {'.', '..'}:
-			yield ('path', '/')
+			yield ('path-separator', '/')
 			yield ('relatives', tid)
 		else:
 			if _is_link(route):
-				yield ('path', '/')
+				yield ('path-separator', '/')
 				yield ('path-link', tid)
 			else:
-				yield ('path', tid + '/')
+				yield ('path-separator', '/')
+				pd, = f_route_identifier(route)
+				if pd[0] == 'directory':
+					yield ('path-directory', tid)
+				else:
+					yield pd
 
 		route = route.container
 		tid = route.identifier
 	else:
-		yield ('path', '/')
+		yield ('path-separator', '/')
 
 def f_route_path(root, route):
 	l = list(_f_route_path(root, route))
@@ -90,7 +91,7 @@ def f_route_absolute(route, *, warning=False):
 		# root directory path
 		return [('filesystem-root', '/')]
 
-	root = route.container
+	root = route@'/'
 	return f_route_path(root, route.container) + f_route_identifier(route, warning=warning)
 
 if __name__ == '__main__':
