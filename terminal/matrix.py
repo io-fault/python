@@ -737,8 +737,11 @@ class Context(object):
 		# Erase the given &count of characters after the cursor.
 		# Cursor position should be unchanged after the erase.
 
-		# This should respect the current cell color, but not traits like underline.
+		# This should respect the current cell color, but disregard traits like underline.
 		"""
+
+		if count == 0:
+			return b''
 
 		return self._csi(b'X', self.encode(count))
 

@@ -97,6 +97,16 @@ def test_Type_erase_parameters(test):
 	r = t.erase((2, 1), (4, 3))
 	test/r == b"\x1b[1;2;3;4$z"
 
+def test_Context_erase_zero(test):
+	"""
+	# - &module.Type.erase
+
+	# Validate empty string result when zero.
+	# Emulators will not respect the value.
+	"""
+	ctx = module.Screen()
+	test/ctx.erase(0) == b''
+
 def test_Context_render_transitions(test):
 	"""
 	# - &module.Context.render
