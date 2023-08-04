@@ -771,6 +771,15 @@ class Context(object):
 		s += self._csi(b'r', self.encode(t+1), self.encode(t+self.dimensions[1]))
 		return s
 
+	def free(self):
+		"""
+		# Reset the margins of the terminal to include the entire screen.
+		"""
+		s = b''
+		s += self._csi(b's', self.encode(1))
+		s += self._csi(b'r', self.encode(1))
+		return s
+
 	def scroll(self, lines:int):
 		"""
 		# Scroll forwards if quantity is positive or zero, backwards if negative.
