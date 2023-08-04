@@ -66,11 +66,14 @@ def f_route_path(root, route):
 	return l
 
 def f_route_identifier(route, *, warning=False):
-	path = route.absolute
 	if warning:
 		t = 'warning'
 	else:
-		t = route.fs_type()
+		try:
+			t = route.fs_type()
+		except OSError:
+			t = 'warning'
+
 		rid = route.identifier
 		if t == 'data':
 			if route.fs_executable():
