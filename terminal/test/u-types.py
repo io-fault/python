@@ -692,6 +692,48 @@ def test_Phrase_seek_unit_cells(test):
 	test/qfield.seek((0,4), -2, *module.Phrase.m_cell) == ((0, 0), -2)
 	test/qfield.seek((0,4), -3, *module.Phrase.m_cell) == ((0, 0), -1)
 
+def test_Phrase_seek_unit_redirect(test):
+	"""
+	# - &module.Phrase.seek
+
+	# Validate redirects are identified as a single units.
+	"""
+	normal = module.RenderParameters((module.Traits(0), -1024, -1024, -1024))
+
+	for rtxt in ['[qw]', '', '22', '1']:
+		ph = module.Phrase([
+			module.Redirect((len(rtxt), rtxt, normal, '<>')),
+		])
+		test/ph.unitcount() == 1
+		test/ph[0].unitoffset(0) == 0
+		test/ph[0].unitoffset(1) == 0
+		test/ph[0].unitoffset(2) == 1
+		p, r = ph.seek((0, 0), 1, *module.Phrase.m_unit)
+
+		# In this case, one Character Unit needs to map to two Codepoints('<>').
+		# The representation text, rtxt, being irrelevant here.
+		test/p == (0,2)
+
+def test_Phrase_tell_cells(test):
+	"""
+	# - &module.Phrase.tell
+
+	# Check cell count accuracy.
+	"""
+	normal = module.RenderParameters((module.Traits(0), -1024, -1024, -1024))
+
+	qfield = module.Phrase([
+		module.Unit((4, 'quad', normal)),
+	])
+	test/qfield.tell((0,0), *module.Phrase.m_cell) == 0
+	test/qfield.tell((0,4), *module.Phrase.m_cell) == 4
+
+	extf = module.Phrase([
+		module.Redirect((4, '[qw]', normal, '<>')),
+	])
+	test/extf.tell((0,0), *module.Phrase.m_cell) == 0
+	test/extf.tell((0,2), *module.Phrase.m_cell) == 4
+
 def test_Phrase_afirst(test):
 	"""
 	# - &module.Phrase.afirst
@@ -780,3 +822,21 @@ def test_Constructors(test):
 		rp2.form("Latter sentence", ";"),
 	)
 	test/"".join([str(x[1]) for x in ph]) == "Former sentence->Latter sentence;"
+
+def test_Phrase_segment_constructor(test):
+	"""
+	# - &module.Phrase.from_segmentation
+	"""
+	rp1 = module.RenderParameters((module.Traits(0), 0xFFFFFF, 0x000000, None))
+	rp2 = module.RenderParameters((module.Traits(0), -1024, 0x000000, None))
+	ph = module.Phrase.from_segmentation([
+		(rp1, [(-4, "four"), (3, "tri")]),
+		(rp2, [(4, "word")]),
+	])
+	test.isinstance(ph[0], module.Unit)
+	test.isinstance(ph[1], module.Words)
+	test.isinstance(ph[1], module.Words)
+	test.isinstance(ph[2], module.Words)
+	test/ph[0][2] == rp1
+	test/ph[1][2] == rp1
+	test/ph[2][2] == rp2

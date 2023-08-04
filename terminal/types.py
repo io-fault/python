@@ -10,10 +10,13 @@
 	# Tuple identifying total cell count, text, and rendering options.
 	# The fundamentals of forming a &Phrase.
 """
-from typing import TypeAlias
 from collections.abc import Sequence
 import functools
 import itertools
+import operator
+from dataclasses import dataclass
+from typing import TypeAlias
+
 from ..system.tty import cells
 
 Text: TypeAlias = str
@@ -177,12 +180,6 @@ class Traits(int):
 	# The bitmap of attributes allows for conflicting decorations;
 	# &..terminal makes no presumptions about how the terminal responds to
 	# these, so constraints regarding exclusive settings are not present.
-
-	# [ Fields ]
-	# /unit/
-		# Indicates that the corresponding Word string is intended
-		# to be a single unit and that the rate of cells-per-codepoint
-		# is not consistent.
 	"""
 	__slots__ = ()
 
@@ -271,7 +268,6 @@ class Traits(int):
 		return NoTraits
 
 NoTraits = Traits(0)
-
 class RenderParameters(tuple):
 	"""
 	# Rendering context parameters to use for displaying text on a Terminal.
@@ -282,6 +278,11 @@ class RenderParameters(tuple):
 	_cc_none = -1024
 	_tc_none = -1024
 	_lc_none = -1024
+
+	@classmethod
+	@property
+	def default(Class):
+		return Class((NoTraits, Class._tc_none, Class._cc_none, Class._lc_none))
 
 	@property
 	def traits(self) -> Traits:
@@ -320,7 +321,7 @@ class RenderParameters(tuple):
 		return None
 
 	@classmethod
-	def from_colors(Class, textcolor:int, cellcolor:int):
+	def from_colors(Class, textcolor:int, cellcolor:int=-1024):
 		return Class((NoTraits, textcolor, cellcolor, -1024))
 
 	def set(self, traits:Traits):
@@ -360,7 +361,7 @@ class RenderParameters(tuple):
 		# Construct words suitable for use by &Phrase associated with the parameters, &self.
 		"""
 		for text in strings:
-			yield (cells(text), text, self)
+			yield Words((cells(text), text, self))
 
 def grapheme(text, index, cells=cells, slice=slice, str=str):
 	"""
@@ -418,7 +419,7 @@ class Words(tuple):
 	def unit(self) -> int:
 		"""
 		# The codepoints per character units.
-		# Normally (python/constant)`1`.
+		# Normally `1`. Codepoint length for &Unit and &Redirect.
 		"""
 		return 1
 
@@ -427,14 +428,11 @@ class Words(tuple):
 		"""
 		# Number of cells required to display a *character unit* of the word text.
 		"""
-		return self[0] // self.unitcount()
+		return self[0] // (self.unitcount() or 1)
 
-	@property
-	def text(self) -> str:
-		"""
-		# The codepoints used to represent the words.
-		"""
-		return self[1]
+	# Consistent in &Words case, but intend for &text to be adjustable
+	# for subclasses like &Redirect.
+	text = property(operator.itemgetter(1))
 
 	@property
 	def style(self) -> RenderParameters:
@@ -469,7 +467,7 @@ class Words(tuple):
 		"""
 		# Translate word relative codepoint offset to word relative cell offset.
 		"""
-		return offset * self.cellrate
+		return (offset // (self.unit or 1)) * self.cellrate
 
 	def cellpoint(self, celloffset, *, divmod=divmod):
 		"""
@@ -479,25 +477,27 @@ class Words(tuple):
 
 	def unitcount(self) -> int:
 		"""
-		# The number of character units in the &text.
+		# The number of character units in the &codepoints.
 		"""
-		return self[1].__len__() // self.unit
+		return self.text.__len__() // (self.unit or 1)
 
 	def unitoffset(self, offset:int) -> int:
 		"""
 		# Translate word relative codepoint offset to word relative character unit offset.
 		"""
-		uc = self.unitcount()
-		return offset
+		return (offset // (self.unit or 1))
 
 	def unitpoint(self, unitoffset):
+		"""
+		# Translate word relative Character Unit offset into word relative codepoint offset.
+		"""
 		uc = self.unitcount()
-		if unitoffset < 0:
+		if unitoffset < 1:
 			return 0, unitoffset
 		elif unitoffset < uc:
 			return unitoffset, 0
 		else:
-			return self[1].__len__(), unitoffset - uc
+			return self.text.__len__(), unitoffset - uc
 
 	def codecount(self):
 		"""
@@ -506,7 +506,7 @@ class Words(tuple):
 		# This is equivalent to `len(Words(...).text)`, but
 		# offers a point of abstraction in, very unlikely, implementation changes.
 		"""
-		return self[1].__len__()
+		return self.text.__len__()
 
 	def codeoffset(self, codeoffset):
 		"""
@@ -540,22 +540,57 @@ class Unit(Words):
 
 	@property
 	def unit(self) -> int:
-		return self[1].__len__()
+		return self.text.__len__()
 
 	def split(self, offset):
 		"""
 		# Maintain &Words.split interface, but always return a tuple with a sole element.
 		"""
-		return (self,)
+		if offset < self.codecount():
+			return (Unit((0, "", self.style)), self)
+		else:
+			return (self, Unit((0, "", self.style)))
+
+class Redirect(Unit):
+	"""
+	# A &Unit that explicitly remaps its display text.
+	# Used to control the transmitted representations of control characters and indentation.
+	"""
+
+	text = property(operator.itemgetter(3))
 
 class Phrase(tuple):
 	"""
-	# A terminal Phrase expressing a sequence of styled words.
-
-	# Each Word in the Phrase contains an arbitrary string associated with a foreground,
-	# background, and &Traits.
+	# A sequence &Words providing translation interfaces for codepoints, cells, and character
+	# units.
 	"""
 	__slots__ = ()
+
+	@staticmethod
+	def frame_word(rp, cells, text):
+		"""
+		# Select the appropriate &Words class for containing the &text.
+		# Order of parameters is intended to support &from_segmentation.
+		"""
+		if cells < 0:
+			# Negative cell counts are the indicator used by &..system.words
+			# to isolate Character Units. It's applied here using &Unit.
+			return Unit((-cells, text, rp))
+		else:
+			return Words((cells, text, rp))
+
+	@classmethod
+	def segment(Class, qwords, *,
+			starmap=itertools.starmap,
+			chain=itertools.chain,
+			partial=functools.partial,
+		):
+		return chain.from_iterable(
+			# Partial the RenderParameters to frame_word in order to
+			# distribute the styles to all the words.
+			starmap(partial(Class.frame_word, rp), wordi)
+			for rp, wordi in qwords
+		)
 
 	m_unit = (
 		Words.unitcount,
@@ -581,7 +616,7 @@ class Phrase(tuple):
 		return ''.join(w.text for w in self)
 
 	@staticmethod
-	def default(text, traits=(Traits(0), None, None, None)):
+	def default(text, traits=RenderParameters((Traits(0), None, None, None))):
 		"""
 		# Construct a Word Specification with default text attributes.
 		"""
@@ -597,6 +632,10 @@ class Phrase(tuple):
 	@classmethod
 	def from_words(Class, *words:Words, ichain=itertools.chain.from_iterable):
 		return Class(ichain(words))
+
+	@classmethod
+	def from_segmentation(Class, qwords):
+		return Class(Class.segment(qwords))
 
 	def join(self, phrases, zip=zip, repeat=itertools.repeat, ichain=itertools.chain.from_iterable):
 		"""
@@ -625,7 +664,7 @@ class Phrase(tuple):
 			# The words and their attributes making up the phrase.
 		"""
 		specs = [
-			(cells(str(spec[0])), spec[0], RenderParameters(spec[1:]))
+			Words((cells(str(spec[0])), spec[0], RenderParameters(spec[1:])))
 			for spec in specifications
 		]
 
@@ -659,7 +698,7 @@ class Phrase(tuple):
 		"""
 		# Number of character units contained by the phrase.
 		"""
-		return sum(len(x[1]) for x in self)
+		return sum(x.unitcount() for x in self)
 
 	def translate(self, *indexes, iter=iter, len=len, next=next, cells=cells):
 		"""
@@ -970,7 +1009,7 @@ class Phrase(tuple):
 		return self.__class__(out)
 
 	def seek(self, whence, offset:int,
-			ulength=(lambda w: len(w[1])),
+			ulength=(lambda w: len(w.text)),
 			uoffset=(lambda w, i: i),
 			utranslate=(lambda w, i: (i, 0)),
 			*,
@@ -982,8 +1021,12 @@ class Phrase(tuple):
 		# The &offset is traversed using &ulength, &uoffset, and &uindex.
 		"""
 
+		if offset == 0 or not self:
+			return whence, offset
+
 		wordi, chari = whence
-		ui = uoffset(self[wordi], chari)
+		fword = self[wordi]
+		ui = uoffset(fword, chari)
 
 		# Scan words forwards (+) or backwards (-) based on &offset.
 		# Maintain invariant here by adjusting &re to be relative
@@ -992,12 +1035,12 @@ class Phrase(tuple):
 		if offset < 0:
 			re = -offset
 			ri = range(wordi, -1, -1)
-			re += uoffset(self[wordi], len(self[wordi][1])) - ui
+			re += uoffset(fword, len(fword.text)) - ui
 			lswitch = -1
 		else:
 			re = offset
 			ri = range(wordi, len(self), 1)
-			re += ui - uoffset(self[wordi], 0)
+			re += ui - uoffset(fword, 0)
 			lswitch = 0
 
 		# Scan for word with offset.
@@ -1028,10 +1071,14 @@ class Phrase(tuple):
 		# possible, return &position.
 		"""
 		wi, ci = position
-		if wi >= len(self) or ci < len(self[wi][1]):
+
+		if wi >= (len(self) - 1):
 			return position
-		else:
-			return (wi+1, 0)
+
+		if ci < len(self[wi].text):
+			return position
+
+		return (wi+1, 0)
 
 	def alast(self, position):
 		"""
@@ -1044,7 +1091,7 @@ class Phrase(tuple):
 		if wi < 1 or ci > 0:
 			return position
 		else:
-			return (wi-1, len(self[wi-1][1]))
+			return (wi-1, len(self[wi-1].text))
 
 	def split(self, whence, *, chain=itertools.chain):
 		"""
@@ -1052,10 +1099,33 @@ class Phrase(tuple):
 		"""
 		wordi, codei = whence
 		Class = self.__class__
+		if not self:
+			yield Class(())
+			yield Class(())
+			return
 		w = self[wordi]
 		pair = w.split(codei)
 		yield Class(chain(self[0:wordi], pair[:1]))
 		yield Class(chain(pair[1:], self[wordi+1:]))
+
+	def tell(self, position,
+			ulength=(lambda w: len(w.text)),
+			uoffset=(lambda w, i: i),
+			utranslate=(lambda w, i: (i, 0)), *,
+			sum=sum, range=range
+		):
+		"""
+		# Identify the absolute unit offset for the given phrase position.
+
+		# [ Parameters ]
+		# /position/
+			# The Word-Codepoint offset pair being described.
+		"""
+		if not self:
+			return 0
+		wi, ci = position
+		offset = uoffset(self[wi], ci)
+		return offset + sum(ulength(self[i]) for i in range(wi))
 
 # Common descriptor endpoint.
 Page: TypeAlias = Sequence[Phrase]

@@ -397,11 +397,15 @@ class Context(object):
 		# Type containing data used to render &Text with the configured attributes.
 	# /Phrase/
 		# Sequence of &Words type. The primary interest of higher-level methods on &Context.
-		# Passed to &render and &print.
+		# Passed to &render.
 	# /Words/
-		# Named type annotation describing the contents of a &Phrase.
-	# /Page/
-		# Named type annotation for a sequence of &Phrase.
+		# Primary &Phrase element providing the cell count and render parameters
+		# of the text to be displayed.
+	# /Unit/
+		# &Words subclass defining a sole Character Unit.
+	# /Redirect/
+		# &Unit subclass defining a sole Character Unit that is displayed with an
+		# alternate representation.
 	# /Text/
 		# Alias to the builtin &str.
 	# /normal_render_parameters/
@@ -416,6 +420,8 @@ class Context(object):
 		Traits, \
 		RenderParameters, \
 		Words, \
+		Unit, \
+		Redirect, \
 		Phrase, \
 		Page
 
@@ -456,6 +462,9 @@ class Context(object):
 
 	@property
 	def context_render_parameters(self):
+		"""
+		# The context configured render parameters.
+		"""
 		return self.RenderParameters((
 			self.Traits.none(),
 			self._context_text_color,
@@ -595,6 +604,45 @@ class Context(object):
 		return self.terminal_type.encode(text)
 	draw_words = draw_text
 
+	def view(self, phrase, whence, celloffset, celllimit):
+		"""
+		# Generate &Words compatible tuples from &phrase starting from &whence and &celloffset,
+		# and stopping at &celllimit. Where &celloffset and &celllimit properly tear the
+		# Character Units clipped from &phrase.
+
+		# [ Engineering ]
+		# View is implemented here in order to leverage knownledge of the display
+		# environment. Teletype terminal emulators may not support torn characters and
+		# compensation may be necessary to display clipped Character Units.
+		"""
+		if not phrase:
+			return
+		wi, cp = whence
+		if cp:
+			fw = phrase[wi].split(cp)[1]
+		else:
+			fw = phrase[wi]
+
+		if celloffset > 0:
+			# Handle leading edge word.
+			cp, re = fw.cellpoint(celloffset)
+			fw = fw.split(cp)[1]
+			skipped = fw.cellcount() - re
+		yield fw
+
+		cc = fw[0]
+		del fw
+		for w in phrase[wi+1:]:
+			cc += w[0]
+			if cc > celllimit:
+				# Handle trailing edge word.
+				cp, truncated = w.cellpoint(celllimit - cc)
+				yield w.split(cp)[0]
+				break
+			yield w
+		else:
+			celllimit - cc
+
 	def render(self, phrase:Phrase, rparams:RenderParameters=None) -> Iterable[bytes]:
 		"""
 		# Render the given &phrase for display on the terminal.
@@ -623,15 +671,18 @@ class Context(object):
 
 		for words in phrase:
 			# Don't bother catenating the strings; allows for style stripping.
-			w, to = words[1:3]
+			to = words.style
 			yield transition(last, to)
 			last = to
-			yield e(w)
+			yield e(words[1])
 
 	def print(self,
 			phrases:Page,
 			cellcounts:Sequence[int],
+			*,
 			indentations:Sequence[int]=itertools.repeat(0),
+			offset=0,
+			limit=None,
 			width=None,
 			zip=zip
 		) -> Iterable[bytes]:
@@ -652,11 +703,15 @@ class Context(object):
 			# The result of the corresponding &Phrase.cellcount method.
 			# Usually cached alongside &phrases.
 		# /indentation/
+			# &<deprecated>
 			# An optional sequence of integers specifying the leading empty cells
 			# that should be used to indent the corresponding &Phrase.
 			# If &Phrase instances manage their own indentation, this should normally be ignored.
-		# /width/
-			# Optional width override. Defaults to &self.width.
+		# /offset/
+			# Horizontal origin to use for each line. Defaults to `0`.
+		# /limit/
+			# Horizontal cell limit. Defaults to &self.width.
+			# (Was `width`)
 		"""
 
 		rst = self.reset_text()
@@ -665,7 +720,7 @@ class Context(object):
 		render = self.render
 		indent = self.spaces
 
-		width = width or self.width
+		width = limit or width or self.width
 		adjustment = 0
 		assert width is not None and width >= 0 #:Rendering Context misconfigured or bad &width parameter.
 
