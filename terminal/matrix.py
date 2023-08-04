@@ -587,13 +587,13 @@ class Context(object):
 			self.terminal_type.select_color('line', self._context_line_color)
 		))
 
-	def draw_words(self, phrasewordtext, control_map=control_table):
+	def draw_text(self, text):
 		"""
-		# Translate the given &phraseword with &control_map and encode it
-		# with the Context's configured encoding.
+		# Draw the given &text according to the context's configuration.
 		"""
 
-		return self.terminal_type.encode(phrasewordtext.translate(control_map))
+		return self.terminal_type.encode(text)
+	draw_words = draw_text
 
 	def render(self, phrase:Phrase, rparams:RenderParameters=None) -> Iterable[bytes]:
 		"""
