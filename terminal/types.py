@@ -2,56 +2,59 @@
 # Fundamental classes for representing input from a terminal and caret state management.
 
 # [ Elements ]
-# /&Page/
-	# &Phrase sequence type.
 # /&Text/
 	# Alias to the builtin &str.
-# /&Words/
-	# Tuple identifying total cell count, text, and rendering options.
-	# The fundamentals of forming a &Phrase.
 """
-from collections.abc import Sequence
 import functools
 import itertools
 import operator
 from dataclasses import dataclass
+from collections.abc import Sequence
 from typing import TypeAlias
-
-from ..system.tty import cells
 
 Text: TypeAlias = str
 
 class Point(tuple):
 	"""
 	# A pair of integers locating a cell on the screen.
-	# Used by &.events.mouse to specify the cursor location.
 
-	# Usually referenced from &.events.Point.
+	# Primarily exists to provide an override for `__add__` so that
+	# translation is performed rather than fields being combined.
 	"""
 	__slots__ = ()
 
 	@property
-	def x(self):
+	def x(self) -> int:
 		return self[0]
 
 	@property
-	def y(self):
+	def y(self) -> int:
 		return self[1]
 
-	def __add__(self, point, op=int.__add__):
-		"""
-		# Translate the point relative to another.
-		"""
-		return self.__class__((op(self[0], point[0]), op(self[1], point[1])))
+	def __add__(self, point, *, Op=int.__add__):
+		return self.__class__((Op(self[0], point[0]), Op(self[1], point[1])))
+	__radd__ = __add__
 
-	def __sub__(self, point, op=int.__sub__):
+	def __sub__(self, point, *, Op=int.__sub__):
+		return self.__class__((Op(self[0], point[0]), Op(self[1], point[1])))
+
+	def __neg__(self):
+		return self.__class__((-self[0], -self[1]))
+
+	def __rsub__(self, point, *, Op=int.__sub__):
+		return self.__class__((Op(point[0], self[0]), Op(point[1], self[1])))
+
+	def adjust(self, x=0, y=0):
 		"""
-		# Subtract the point from another.
+		# Add the given arguments to their corresponding fields.
 		"""
-		return self.__class__((op(self[0], point[0]), op(self[1], point[1])))
+
+		return self.__class__((self[0] + x, self[1] + y))
 
 	@classmethod
 	def construct(Class, *points):
+		if len(points) != 2:
+			raise ValueError("Point class requires two positions")
 		return Class(points)
 
 class Modifiers(int):
@@ -148,6 +151,7 @@ class Event(tuple):
 		"""
 		# The classification of the character with respect to the source.
 		"""
+
 		return self[0]
 	type=subtype
 
@@ -156,6 +160,7 @@ class Event(tuple):
 		"""
 		# The literal characters, if any, of the event. Used for forwarding key events.
 		"""
+
 		return self[1]
 
 	@property
@@ -164,6 +169,7 @@ class Event(tuple):
 		# A name for the &string contents; often the appropriate way to process
 		# character events. For complex events, this field holds a structure.
 		"""
+
 		return self[2]
 
 	@property
@@ -171,6 +177,7 @@ class Event(tuple):
 		"""
 		# The identified &Modifiers of the Character.
 		"""
+
 		return self[3]
 
 class Traits(int):
@@ -356,57 +363,12 @@ class RenderParameters(tuple):
 			linecolor if linecolor is not None else self[3],
 		))
 
-	def form(self, *strings, cells=cells):
+	def form(self, *strings):
 		"""
 		# Construct words suitable for use by &Phrase associated with the parameters, &self.
 		"""
 		for text in strings:
-			yield Words((cells(text), text, self))
-
-def grapheme(text, index, cells=cells, slice=slice, str=str):
-	"""
-	# Retrieve the slice to characters that make up an indivisible unit of cells.
-	# This is not always consistent with User Perceived Characters.
-
-	# If the given &index refers to a zero width character,
-	# find the non-zero width character before the index.
-	# If the given &index refers to a non-zero width character,
-	# find all the zero width characters after it.
-
-	# ! WARNING:
-		# This is **not** consistent with Unicode grapheme clusters.
-	"""
-	start = text[index:index+1]
-	count = 0
-
-	c = cells(str(start))
-	if c < 0:
-		# check surrogate pair; identify latter part of pair
-		# and consume following combinations normally.
-		pass
-
-	if c > 0:
-		# check after
-		for i in range(index+1, len(text)):
-			if cells(text[i]):
-				break
-			count += 1
-		return slice(index, index+count+1)
-	else: # c==0
-		# check before
-		for i in range(index-1, -1, -1):
-			if cells(text[i]):
-				break
-			count += 1
-		return slice(index-count-1, index+1)
-
-def itergraphemes(text, getslice=grapheme, len=len):
-	end = len(text)
-	i = 0
-	while i < end:
-		s = getslice(text, i)
-		yield s
-		i = s.stop
+			yield Words((len(text), text, self))
 
 class Words(tuple):
 	"""
@@ -612,6 +574,7 @@ class Phrase(tuple):
 	def text(self) -> str:
 		"""
 		# The text content of the phrase.
+		# May not be consistent with what is sent to a display in &Redirect cases.
 		"""
 		return ''.join(w.text for w in self)
 
@@ -650,10 +613,10 @@ class Phrase(tuple):
 		return self.__class__((i))
 
 	@classmethod
-	def construct(Class,
-			specifications:Sequence[object],
+	def construct(Class, specifications:Sequence[object],
+			*,
 			RenderParametersConstructor=RenderParameters,
-			cells=cells, str=str
+			str=str
 		):
 		"""
 		# Create a &Phrase instance from the &specifications designating
@@ -664,7 +627,7 @@ class Phrase(tuple):
 			# The words and their attributes making up the phrase.
 		"""
 		specs = [
-			Words((cells(str(spec[0])), spec[0], RenderParameters(spec[1:])))
+			Words((len(str(spec[0])), spec[0], RenderParameters(spec[1:])))
 			for spec in specifications
 		]
 
@@ -700,65 +663,6 @@ class Phrase(tuple):
 		"""
 		return sum(x.unitcount() for x in self)
 
-	def translate(self, *indexes, iter=iter, len=len, next=next, cells=cells):
-		"""
-		# Get the cell offsets of the given character indexes.
-
-		# [ Parameters ]
-		# /indexes/
-			# Ordered sequence of grapheme (cluster) indexes to resolve.
-			# (Currently a lie, it is mere character index translation)
-		"""
-		offset = 0
-		nc = 0
-		noffset = 0
-
-		if not self:
-			for x in indexes:
-				if x == 0:
-					yield 0
-				else:
-					raise IndexError(indexes[0])
-			return
-
-		i = iter(y[:2] for y in self)
-		x = next(i)
-
-		c, t = x
-		chars = len(t)
-		noffset = offset + chars
-
-		for y in indexes:
-			while x is not None:
-				if noffset >= y:
-					# found index, report and jump to next index
-					yield nc + cells(t[:y-offset])
-					break
-
-				nc += c
-				offset = noffset
-				try:
-					x = next(i)
-				except StopIteration:
-					yield None
-					break
-
-				# New words.
-				c, t = x
-				chars = len(t)
-				noffset = offset + chars
-			else:
-				# index out of range
-				yield None
-
-	def findcells(self, *offsets, index=(0,0,0)):
-		lfc = self.lfindcell
-		last = 0
-		for co in offsets:
-			index = lfc(co - last, index)
-			last = co
-			yield index
-
 	def reverse(self):
 		"""
 		# Construct an iterator to the concrete words for creating a new &Phrase
@@ -777,7 +681,7 @@ class Phrase(tuple):
 
 		return self.__class__(self.select(start, stop, adjust))
 
-	def select(self, start, stop, adjust=(lambda x: x), cells=cells):
+	def select(self, start, stop, adjust=(lambda x: x)):
 		"""
 		# Extract the subphrase at the given indexes.
 
@@ -793,220 +697,19 @@ class Phrase(tuple):
 			# Single word phrase.
 			word = self[start_i]
 			text = word[1][char_i:schar_i]
-			yield (cells(text), text, adjust(word[2]))
+			yield (len(text), text, adjust(word[2]))
 		else:
 			word = self[start_i]
 			text = word[1][char_i:]
 			if text:
-				yield (cells(text), text, adjust(word[2]))
+				yield (len(text), text, adjust(word[2]))
 
 			yield from self[start_i+1:stop_i]
 
 			word = self[stop_i]
 			text = word[1][:schar_i]
 			if text:
-				yield (cells(text), text, adjust(word[2]))
-
-	# lfindcell and rfindcell are conceptually identical,
-	# but it's a little tricky to keep the Python implementation dry
-	# without introducing some unwanted overhead.
-	# So, the implementation redundancy is permitted with the minor variations.
-
-	def lfindcell(self,
-			celloffset:int, start=(0,0,0),
-			map=map, len=len, range=range,
-			cells=cells, islice=itertools.islice
-		):
-		"""
-		# Find the word and character index using a cell offset.
-		"""
-
-		wordoffset, character_index, wordcell = start
-		# relative to wordcell for continuation support
-		offset = celloffset + wordcell
-		cell_index = wordcell
-
-		i = l = 0
-		if wordoffset < 16:
-			# Small offset? recalc from sum.
-			s = sum(x[0] for x in self[:wordoffset])
-		elif character_index:
-			# Large offset, recalc from cells.
-			s = wordcell - cells(self[wordoffset][1][:character_index])
-		else:
-			s = wordcell
-
-		nwords = len(self)
-		ri = range(wordoffset, nwords, 1)
-
-		# Scan for offset wrt the cells.
-		for i in ri:
-			l = self[i][0]
-			s += l
-			if s >= offset:
-				if i != wordoffset:
-					# Reset index if in a new word.
-					character_index = 0
-				break
-			cell_index = s
-		else:
-			# celloffset is beyond the end of the phrase
-			return None
-
-		itext = self[i][1]
-
-		charcells = 0
-		for charcells in map(cells, islice(itext, character_index, None)):
-			if cell_index >= offset:
-				break
-			cell_index += charcells
-			character_index += 1
-
-		# Greedily skip any adjacent zerowidth characters.
-		# rfindcell does this naturally.
-		for charcells in map(cells, islice(itext, character_index, None)):
-			if charcells:
-				# Not zero width, keep current index.
-				break
-			character_index += 1
-		else:
-			# End of word; empty string.
-			while not self[i][1][character_index:character_index+1]:
-				i += 1
-				if i == nwords:
-					i -= 1
-					break
-				character_index = 0
-
-		return (i, character_index, cell_index)
-
-	def rfindcell(self,
-			celloffset:int, start=(-1,0,0),
-			map=map, len=len, range=range,
-			cells=cells, islice=itertools.islice
-		):
-		"""
-		# Find the word and character index using a cell offset.
-		"""
-
-		wordoffset, character_index, wordcell = start
-
-		# relative to wordcell for continuation support
-		offset = celloffset + wordcell
-		cell_index = wordcell
-
-		i = l = 0
-		nwords = len(self)
-		ri = range(wordoffset, -nwords-1, -1)
-
-		if wordoffset > -16:
-			s = sum(x[0] for x in self[nwords+wordoffset+1:])
-		elif character_index:
-			s = wordcell - cells(self[wordoffset][1][-character_index:])
-		else:
-			s = wordcell
-
-		for i in ri:
-			l = self[i][0]
-			s += l
-			if s >= offset:
-				if i != wordoffset:
-					character_index = 0
-				break
-			cell_index = s
-		else:
-			# celloffset is beyond the beginning of the phrase.
-			return None
-
-		itext = self[i][1]
-		istart = len(itext)-character_index-1
-
-		for charcells in map(cells, (itext[x] for x in range(istart, -1, -1))):
-			if cell_index >= offset:
-				break
-			cell_index += charcells
-			character_index += 1
-		else:
-			# End of word
-			if nwords + i == 0:
-				# End of Phrase.
-				pass
-			elif cell_index == offset:
-				# Only step into the next word if it's not torn.
-				i -= 1
-				character_index = 0
-
-		return (i, character_index, cell_index)
-
-	def lstripcells(self,
-			cellcount:int, substitute=(lambda x: '*'),
-			list=list, len=len, range=range,
-			cells=cells
-		):
-		"""
-		# Remove the given number of cells from the start of the phrase.
-
-		# If the cell count traverses a wide character, the &substitute parameter is
-		# called with the character as its only argument and the result is prefixed
-		# to the start of the phrase.
-		"""
-
-		if cellcount <= 0:
-			# Zero offset, no trim.
-			return self
-
-		i, character_index, cell_index = self.lfindcell(cellcount)
-		itext = self[i][1]
-
-		if cellcount == cell_index:
-			# Aligned.
-			txt = itext[character_index:]
-		else:
-			# Cut on wide character and substitute.
-			g = grapheme(itext, character_index - 1)
-			txt = substitute(itext[g]) + itext[character_index:]
-
-		# final words
-		out = list(self[i:]) # Include the i'th; it will be overwritten.
-		out[0] = ((cells(txt), txt,) + out[0][2:])
-
-		return self.__class__(out)
-
-	def rstripcells(self,
-			cellcount:int, substitute=(lambda x: '*'),
-			list=list, len=len, range=range,
-			cells=cells
-		):
-		"""
-		# Remove the given number of cells from the end of the phrase.
-
-		# If the cell count traverses a wide character, the &substitute parameter is
-		# called with the character as its only argument and the result is suffixed
-		# to the end of the phrase.
-		"""
-
-		if cellcount <= 0:
-			# Zero offset, no trim.
-			return self
-
-		i, rcharacter_index, cell_index = self.rfindcell(cellcount)
-
-		out = list(self[:len(self)+i+1])
-		itext = out[-1][1]
-		character_right_offset = len(itext) - rcharacter_index
-
-		if cellcount == cell_index:
-			# Aligned on character.
-			txt = itext[:character_right_offset]
-		else:
-			# Tear multicell character and substitute.
-			g = grapheme(itext, character_right_offset)
-			txt = itext[:g.start] + substitute(itext[g])
-
-		# final words
-		out[-1] = ((cells(txt), txt,) + out[-1][2:])
-
-		return self.__class__(out)
+				yield (len(text), text, adjust(word[2]))
 
 	def seek(self, whence, offset:int,
 			ulength=(lambda w: len(w.text)),
@@ -1126,6 +829,3 @@ class Phrase(tuple):
 		wi, ci = position
 		offset = uoffset(self[wi], ci)
 		return offset + sum(ulength(self[i]) for i in range(wi))
-
-# Common descriptor endpoint.
-Page: TypeAlias = Sequence[Phrase]

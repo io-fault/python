@@ -422,8 +422,7 @@ class Context(object):
 		Words, \
 		Unit, \
 		Redirect, \
-		Phrase, \
-		Page
+		Phrase
 
 	control_mapping = {chr(i): chr(0x2400 + i) for i in range(32)}
 	control_table = str.maketrans(control_mapping)
@@ -675,73 +674,6 @@ class Context(object):
 			yield transition(last, to)
 			last = to
 			yield e(words[1])
-
-	def print(self,
-			phrases:Page,
-			cellcounts:Sequence[int],
-			*,
-			indentations:Sequence[int]=itertools.repeat(0),
-			offset=0,
-			limit=None,
-			width=None,
-			zip=zip
-		) -> Iterable[bytes]:
-		"""
-		# Print the page of phrases using &render.
-
-		# Text Properties will be unconditionally reset, and lines will
-		# be presumed dirty causing a following erase to be emitted after
-		# the phrase is rendered.
-
-		# &print, tentatively, expects the cursor to be at the desired starting location and
-		# that the number of &phrases not exceed the &height of the context.
-
-		# [ Parameters ]
-		# /phrases/
-			# The &Phrase instances that populate each line in the page.
-		# /cellcounts/
-			# The result of the corresponding &Phrase.cellcount method.
-			# Usually cached alongside &phrases.
-		# /indentation/
-			# &<deprecated>
-			# An optional sequence of integers specifying the leading empty cells
-			# that should be used to indent the corresponding &Phrase.
-			# If &Phrase instances manage their own indentation, this should normally be ignored.
-		# /offset/
-			# Horizontal origin to use for each line. Defaults to `0`.
-		# /limit/
-			# Horizontal cell limit. Defaults to &self.width.
-			# (Was `width`)
-		"""
-
-		rst = self.reset_text()
-		nl = self.seek_next_line
-		erase = self.erase
-		render = self.render
-		indent = self.spaces
-
-		width = limit or width or self.width
-		adjustment = 0
-		assert width is not None and width >= 0 #:Rendering Context misconfigured or bad &width parameter.
-
-		yield rst
-
-		for x, cc, ic in zip(phrases, cellcounts, indentations):
-			if ic:
-				# Don't bother with sequence alignment for print.
-				# Skip the yield if there's nothing to yield.
-				yield indent(ic)
-				cc += ic
-
-			adjustment = (width - cc) - 1
-			if adjustment < 0:
-				# Cells exceeds width.
-				yield b''.join(render(x.rstripcells(-adjustment)))
-				yield rst + nl()
-			else:
-				# Width exceeds cells.
-				yield b''.join(render(x))
-				yield rst + erase(adjustment) + nl()
 
 	def spaces(self, count):
 		"""
