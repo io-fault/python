@@ -692,7 +692,7 @@ class Platform(object):
 	@classmethod
 	def from_system(Class, system, origins):
 		"""
-		# Compose an &execution.Platform from a sequence of paths given
+		# Compose a &Platform from a sequence of paths given
 		# that they are extensions of &system.
 		"""
 
