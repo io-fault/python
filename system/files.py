@@ -6,6 +6,10 @@
 # [ Elements ]
 # /root/
 	# The &Path to the root directory of the operating system.
+# /null/
+	# The &Path to the file that has no content and will discard writes.
+# /empty/
+	# The &Path to the directory that contains no files.
 # /type_codes/
 	# Single character representations for file types.
 	# Primarily used by &Path.fs_require.
@@ -883,7 +887,7 @@ class Path(Selector[str]):
 		st = self.fs_status()
 		return (st.created, st.last_modified, st.st_size)
 
-	def fs_void(self, rmtree=shutil.rmtree, remove=os.remove):
+	def fs_void(self, *, rmtree=shutil.rmtree, remove=os.remove):
 		fp = self.fullpath
 
 		try:
@@ -1076,3 +1080,5 @@ class Path(Selector[str]):
 			return self
 
 root = Path(None, ())
+null = root/'dev'/'null'
+empty = (root/'var'/'empty').delimit()

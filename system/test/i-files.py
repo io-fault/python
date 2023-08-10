@@ -5,7 +5,8 @@ import sys
 import functools
 import os.path
 
-from .. import files as lib
+from .. import files as module
+lib = module
 from ...time.system import utc as time
 
 @functools.singledispatch
@@ -17,16 +18,25 @@ def _(x:dict, path:lib.Path):
 	for k, v in x.items():
 		d_setup(v, path/k)
 
-def test_root(test):
+def test_constants(test):
 	"""
 	# Check for &.files.root presence and sanity.
 	"""
-	test/hasattr(lib, 'root') == True
-	test.isinstance(lib.root, lib.Path)
-	test/str(lib.root) == "/"
+
+	names = ['root', 'null', 'empty']
+
+	for n in names:
+		test/hasattr(module, n) == True
+		cp = getattr(module, n)
+		test.isinstance(cp, module.Path)
+
+	test/str(module.root) == "/"
+	test/str(module.null) == "/dev/null"
+	test/str(module.empty) == "/var/empty"
 
 	for i in range(8):
-		test/(lib.root ** i) == lib.root
+		test/(module.root ** i) == module.root
+	test/(module.empty/'context-test').context == module.empty
 
 def test_Path(test):
 	dir = os.path.dirname(os.path.realpath(__file__))
