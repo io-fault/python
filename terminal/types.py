@@ -508,6 +508,7 @@ class Unit(Words):
 		"""
 		# Maintain &Words.split interface, but always return a tuple with a sole element.
 		"""
+
 		if offset < self.codecount():
 			return (Unit((0, "", self.style)), self)
 		else:

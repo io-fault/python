@@ -227,6 +227,82 @@ def test_Context_draw_text(test):
 
 	b'test' in test/ctx.draw_text("test")
 
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules[__name__])
+def test_Context_subcells_redirect(test):
+	"""
+	# - &module.Context.subcells
+
+	# Check that redirect display text is sliced directly.
+	# Redirects are units too and all word text is included.
+	"""
+
+	ctx = module.Context()
+	style = ctx.RenderParameters.default
+	subcells = ctx.subcells
+
+	u = ctx.Redirect((4, "1234", style, "ABCXYZ"))
+	for i in range(1, 4):
+		r = subcells(u, 0, i)
+		test.isinstance(r, ctx.Redirect)
+		test/r[1] == u[1][0:i]
+		test/r.text == "ABCXYZ"
+
+	test/subcells(u, 0, 4) == u
+
+def test_Context_subcells_unit(test):
+	"""
+	# - &module.Context.subcells
+	"""
+
+	ctx = module.Context()
+	style = ctx.RenderParameters.default
+	subcells = ctx.subcells
+
+	u = ctx.Unit((4, "-", style))
+	for i in range(1, 4):
+		r = subcells(u, 0, i)
+		test.isinstance(r, ctx.Redirect)
+		test/r[1] == ("+" * i) # Default substitute.
+		test/r.text == "-"
+
+	test/subcells(u, 0, 4) == u
+
+def test_Context_subcells_chinese(test):
+	"""
+	# - &module.Context.subcells
+	"""
+
+	ctx = module.Context()
+	style = ctx.RenderParameters.default
+	subcells = ctx.subcells
+
+	w = ctx.Words((6, "中国人", style))
+	r = subcells(w, 1, 6, substitute=":")
+	test.isinstance(r, ctx.Redirect)
+	test/r[1] == ":" + w[1][1:]
+	test/r.text == w[1]
+
+	# First cell of the first codepoint.
+	r = subcells(w, 0, 1, substitute=":")
+	test.isinstance(r, ctx.Redirect)
+	test/r[1] == ":"
+	test/r.text == w[1][0]
+
+	# Prefix and suffix.
+	r = subcells(w, 1, 3, substitute=":")
+	test.isinstance(r, ctx.Redirect)
+	test/r[1] == "::"
+	test/r.text == w[1][0:2]
+
+	# Prefix and suffix with inner whole.
+	r = subcells(w, 1, 5, substitute=":")
+	test.isinstance(r, ctx.Redirect)
+	test/r[1] == ":" + w[1][1] + ":"
+	test/r.text == w[1]
+
+	# Check wholes.
+	for i in range(0, 6, 2):
+		idx = i // 2
+		r = subcells(w, i, i+2, substitute=":")
+		test.isinstance(r, ctx.Redirect)
+		test/r[1] == w[1][idx:idx+1]
+		test/r.text == w[1][idx:idx+1]

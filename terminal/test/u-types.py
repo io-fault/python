@@ -3,6 +3,7 @@
 """
 from .. import types as module
 notraits = module.NoTraits
+drp = module.RenderParameters.default
 
 def test_Point_interfaces(test):
 	"""
@@ -374,6 +375,29 @@ def test_Phrase_tell_cells(test):
 	])
 	test/extf.tell((0,0), *module.Phrase.m_cell) == 0
 	test/extf.tell((0,2), *module.Phrase.m_cell) == 4
+
+def test_Phrase_fragment_seek(test):
+	"""
+	# - &module.Phrase.seek
+
+	# Check the effect of seeking to cells in the middle of a Word
+	# with a non-single cell usage rate.
+	"""
+
+	wc = "中国人"
+	p1 = module.Phrase([module.Words((6, wc, drp))])
+	for i in range(3):
+		co = ((i+1) * 2) - 1
+		(wi, cp), r = p1.seek((0, 0), co, *p1.m_cell)
+		test/(wi, cp) == (0, i)
+		test/r == -1
+
+	# With Redirects now.
+	r1 = module.Phrase([module.Redirect((8, ' '*8, drp, '\t'))])
+	for i in range(8):
+		(wi, cp), r = r1.seek((0, 0), i, *p1.m_cell)
+		test/(wi, cp) == (0, 0)
+		test/r == -i
 
 def test_Phrase_afirst(test):
 	"""

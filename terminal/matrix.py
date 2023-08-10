@@ -603,7 +603,48 @@ class Context(object):
 		return self.terminal_type.encode(text)
 	draw_words = draw_text
 
-	def view(self, phrase, whence, celloffset, celllimit):
+	def subcells(self, word, start, stop, *, substitute='+', isinstance=isinstance):
+		"""
+		# Slice the word using the cell offsets &start and &stop.
+		"""
+
+		d = stop - start
+		if d == word[0] and start == 0:
+			return word
+
+		t = word[1]
+		style = word.style.apply(textcolor=-523) # Bright Yellow.
+
+		if isinstance(word, self.Redirect):
+			return self.Redirect((d, t[start:stop], style, word.text))
+		if isinstance(word, self.Unit):
+			return self.Redirect((d, substitute * d, style, word[1]))
+		else:
+			cur = word.cellrate
+			start_cp, start_r = word.cellpoint(start)
+			stop_cp, stop_r = word.cellpoint(stop)
+
+			prefix = ""
+			start = start_cp
+			if start_r != 0:
+				# Tear at start.
+				prefix += substitute * start_r
+				# Exclude start in &display as prefix contains the substitute.
+				start += 1
+
+			suffix = ""
+			stop = stop_cp
+			if stop_r != 0:
+				# Tear at stop.
+				suffix += substitute * (cur - stop_r)
+				# Include the stop character in &text.
+				stop_cp += 1
+
+			display = word[1][start:stop]
+			text = word[1][start_cp:stop_cp]
+			return self.Redirect((d, prefix + display + suffix, style, text))
+
+	def view(self, phrase, whence, celloffset, celllimit, *, islice=itertools.islice):
 		"""
 		# Generate &Words compatible tuples from &phrase starting from &whence and &celloffset,
 		# and stopping at &celllimit. Where &celloffset and &celllimit properly tear the
@@ -614,29 +655,54 @@ class Context(object):
 		# environment. Teletype terminal emulators may not support torn characters and
 		# compensation may be necessary to display clipped Character Units.
 		"""
+
 		if not phrase:
 			return
+
 		wi, cp = whence
 		if cp:
 			fw = phrase[wi].split(cp)[1]
 		else:
 			fw = phrase[wi]
 
-		if celloffset > 0:
-			# Handle leading edge word.
-			cp, re = fw.cellpoint(celloffset)
-			fw = fw.split(cp)[1]
-			skipped = fw.cellcount() - re
+		cc = 0
+		if celloffset < 0:
+			assert fw.cellrate > 1
+			if isinstance(fw, self.Unit):
+				fw = self.subcells(fw, abs(celloffset), fw[0], substitute='/')
+			else:
+				# Harder case where the split is in the middle of a Words instance.
+				pw, fw = fw.split(1)
+				pw = self.subcells(pw, abs(celloffset), pw[0], substitute='/')
+				cc = pw[0]
+				yield pw
 		yield fw
 
-		cc = fw[0]
+		cc += fw[0]
 		del fw
-		for w in phrase[wi+1:]:
+		for w in islice(phrase, wi+1, None):
 			cc += w[0]
 			if cc > celllimit:
 				# Handle trailing edge word.
-				cp, truncated = w.cellpoint(celllimit - cc)
-				yield w.split(cp)[0]
+				stop_cell = w[0] - (cc - celllimit)
+
+				if isinstance(w, self.Unit):
+					yield self.subcells(w, 0, stop_cell, substitute='\\')
+				else:
+					# Harder case where the split is in the middle of a Words instance.
+					assert isinstance(w, self.Words)
+
+					# Find the word relative codepoint.
+					stop_cp, rcells = w.cellpoint(stop_cell)
+					w, pw = w.split(stop_cp)
+					# Anything before the split should fit.
+					yield w
+
+					if rcells > 0:
+						# Partial remainder; split after first codepoint.
+						pw = pw.split(1)[0]
+						pw = self.subcells(pw, 0, pw[0] - rcells, substitute='\\')
+						yield pw
 				break
 			yield w
 		else:
