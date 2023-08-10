@@ -644,7 +644,11 @@ class Context(object):
 			text = word[1][start_cp:stop_cp]
 			return self.Redirect((d, prefix + display + suffix, style, text))
 
-	def view(self, phrase, whence, celloffset, celllimit, *, islice=itertools.islice):
+	def view(self, phrase, whence, celloffset, celllimit, *,
+			islice=itertools.islice,
+			chain=itertools.chain,
+			iter=iter, isinstance=isinstance, abs=abs,
+		):
 		"""
 		# Generate &Words compatible tuples from &phrase starting from &whence and &celloffset,
 		# and stopping at &celllimit. Where &celloffset and &celllimit properly tear the
@@ -665,7 +669,8 @@ class Context(object):
 		else:
 			fw = phrase[wi]
 
-		cc = 0
+		init = []
+
 		if celloffset < 0:
 			assert fw.cellrate > 1
 			if isinstance(fw, self.Unit):
@@ -674,13 +679,14 @@ class Context(object):
 				# Harder case where the split is in the middle of a Words instance.
 				pw, fw = fw.split(1)
 				pw = self.subcells(pw, abs(celloffset), pw[0], substitute='/')
-				cc = pw[0]
-				yield pw
-		yield fw
-
-		cc += fw[0]
+				init.append(pw)
+				del pw
+		init.append(fw)
 		del fw
-		for w in islice(phrase, wi+1, None):
+		init = iter(init)
+
+		cc = 0
+		for w in chain(init, islice(phrase, wi+1, None)):
 			cc += w[0]
 			if cc > celllimit:
 				# Handle trailing edge word.
@@ -705,8 +711,6 @@ class Context(object):
 						yield pw
 				break
 			yield w
-		else:
-			celllimit - cc
 
 	def render(self, phrase:Phrase, rparams:RenderParameters=None) -> Iterable[bytes]:
 		"""
