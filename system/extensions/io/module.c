@@ -11,7 +11,6 @@
 #include <sys/un.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <unistd.h>
 #include <stdint.h>
 
 /* file descriptor transfers */
