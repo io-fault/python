@@ -28,7 +28,7 @@ class Type(object):
 	# Currently unstable API. It was quickly ripped out of &Context.
 	"""
 
-	normal_render_parameters = types.RenderParameters((types.NoTraits, -1024, -1024, -1024))
+	normal_render_parameters = types.RenderParameters.default
 
 	_escape_character = b'\x1b'
 	_field_separator = b';'
@@ -650,12 +650,12 @@ class Context(object):
 			iter=iter, isinstance=isinstance, abs=abs,
 		):
 		"""
-		# Generate &Words compatible tuples from &phrase starting from &whence and &celloffset,
-		# and stopping at &celllimit. Where &celloffset and &celllimit properly tear the
-		# Character Units clipped from &phrase.
+		# Generate &Words from &phrase starting from &whence and &celloffset,
+		# to &celllimit. The Character Units on the edges will be torn according
+		# to the capabilities of the display.
 
 		# [ Engineering ]
-		# View is implemented here in order to leverage knownledge of the display
+		# View is implemented here in order to leverage knowledge of the display
 		# environment. Teletype terminal emulators may not support torn characters and
 		# compensation may be necessary to display clipped Character Units.
 		"""
