@@ -111,27 +111,18 @@ clockwork_new(PyTypeObject *subtype, PyObj args, PyObj kw)
 
 static PyMemberDef
 clockwork_members[] = {
-	{"offset", T_LONGLONG, offsetof(struct Clockwork, cw_offset), 0,
-		PyDoc_STR("second offset to apply to all tells")},
+	{"offset", T_LONGLONG, offsetof(struct Clockwork, cw_offset), 0, NULL},
 	{NULL,},
 };
 
 static PyMethodDef
 clockwork_methods[] = {
-	{"snapshot", (PyCFunction) clockwork_snapshot, METH_NOARGS,
-		PyDoc_STR("retrieve the (seconds, nanoseconds) pair describing the clock's state")},
-	{"get", (PyCFunction) clockwork_get, METH_NOARGS,
-		PyDoc_STR("get a snapshot from the clock in nanoseconds")},
-	{"set", (PyCFunction) clockwork_set, METH_VARARGS,
-		PyDoc_STR("set the clock to a specific time by configuring its offsets")},
-	{"adjust", (PyCFunction) clockwork_adjust, METH_VARARGS,
-		PyDoc_STR("change the clock's configured offsets.")},
+	{"snapshot", (PyCFunction) clockwork_snapshot, METH_NOARGS, NULL},
+	{"get", (PyCFunction) clockwork_get, METH_NOARGS, NULL},
+	{"set", (PyCFunction) clockwork_set, METH_VARARGS, NULL},
+	{"adjust", (PyCFunction) clockwork_adjust, METH_VARARGS, NULL},
 	{NULL},
 };
-
-const char clockwork_doc[] =
-"Clock type providing access to system clocks adjusted by a configured offset."
-;
 
 static PyTypeObject
 ClockworkType = {
@@ -154,9 +145,9 @@ ClockworkType = {
 	NULL,                           /* tp_getattro */
 	NULL,                           /* tp_setattro */
 	NULL,                           /* tp_as_buffer */
-	Py_TPFLAGS_BASETYPE|
-	Py_TPFLAGS_DEFAULT,             /* tp_flags */
-	clockwork_doc,                  /* tp_doc */
+	Py_TPFLAGS_BASETYPE|            /* tp_flags */
+	Py_TPFLAGS_DEFAULT,
+	NULL,                           /* tp_doc */
 	NULL,                           /* tp_traverse */
 	NULL,                           /* tp_clear */
 	NULL,                           /* tp_richcompare */
@@ -176,7 +167,7 @@ ClockworkType = {
 	clockwork_new,                  /* tp_new */
 };
 
-#define ClockType(NAME, DOCS) \
+#define ClockType(NAME) \
 	NAME##ClockType = { \
 		PyVarObject_HEAD_INIT(NULL, 0) \
 		.tp_name = PYTHON_MODULE_PATH(#NAME), \
@@ -184,13 +175,12 @@ ClockworkType = {
 		.tp_base = &ClockworkType, \
 		.tp_flags = Py_TPFLAGS_DEFAULT, \
 		.tp_methods = NULL, \
-		.tp_doc = PyDoc_STR(DOCS), \
 		.tp_new = NAME##_new \
 	}
 
 #define Clocks(...) \
-	CLOCK_RECORD(Real, LOCAL_REAL_CLOCK_ID, "realtime clock supplied by the system") \
-	CLOCK_RECORD(Monotonic, LOCAL_MONOTONIC_CLOCK_ID, "monotonic clock supplied by the system")
+	CLOCK_RECORD(Real, LOCAL_REAL_CLOCK_ID) \
+	CLOCK_RECORD(Monotonic, LOCAL_MONOTONIC_CLOCK_ID)
 
 static PyObj
 Real_new(PyTypeObject *subtype, PyObj args, PyObj kw)
@@ -237,14 +227,14 @@ Monotonic_new(PyTypeObject *subtype, PyObj args, PyObj kw)
 /**
 	// Declare types.
 */
-#define CLOCK_RECORD(NAME, CLOCK_ID, DOCS) static PyTypeObject ClockType(NAME, DOCS);
+#define CLOCK_RECORD(NAME, CLOCK_ID) static PyTypeObject ClockType(NAME);
 	Clocks()
 #undef CLOCK_RECORD
 
 #define MODULE_FUNCTIONS()
 #include <fault/metrics.h>
 #include <fault/python/module.h>
-INIT(module, 0, PyDoc_STR("clock types for retrieving system time"))
+INIT(module, 0, NULL)
 {
 	if (PyType_Ready(&ClockworkType) != 0)
 		goto error;
