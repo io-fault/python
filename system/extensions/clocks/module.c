@@ -231,22 +231,24 @@ Monotonic_new(PyTypeObject *subtype, PyObj args, PyObj kw)
 	Clocks()
 #undef CLOCK_RECORD
 
+#define PYTHON_TYPES() \
+	ID(Clockwork, Clockwork) \
+	ID(Real, RealClock) \
+	ID(Monotonic, MonotonicClock)
+
 #define MODULE_FUNCTIONS()
 #include <fault/metrics.h>
 #include <fault/python/module.h>
 INIT(module, 0, NULL)
 {
-	if (PyType_Ready(&ClockworkType) != 0)
-		goto error;
-	PyModule_AddObject(module, "Clockwork", (PyObj) (&ClockworkType));
-
-	if (PyType_Ready(&RealClockType) != 0)
-		goto error;
-	PyModule_AddObject(module, "Real", (PyObj) (&RealClockType));
-
-	if (PyType_Ready(&MonotonicClockType) != 0)
-		goto error;
-	PyModule_AddObject(module, "Monotonic", (PyObj) (&MonotonicClockType));
+	#define ID(NAME, TYPNAME) \
+		if (PyType_Ready((PyTypeObject *) &( TYPNAME##Type ))) \
+			goto error; \
+		Py_INCREF((PyObj) &( TYPNAME##Type )); \
+		if (PyModule_AddObject(module, #NAME, (PyObj) &( TYPNAME##Type )) < 0) \
+			{ Py_DECREF((PyObj) &( TYPNAME##Type )); goto error; }
+		PYTHON_TYPES()
+	#undef ID
 
 	return(0);
 

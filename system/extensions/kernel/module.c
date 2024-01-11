@@ -543,8 +543,9 @@ INIT(module, 0, NULL)
 	#define ID(NAME) \
 		if (PyType_Ready((PyTypeObject *) &( NAME##Type ))) \
 			goto error; \
+		Py_INCREF((PyObj) &( NAME##Type )); \
 		if (PyModule_AddObject(module, #NAME, (PyObj) &( NAME##Type )) < 0) \
-			goto error;
+			{ Py_DECREF((PyObj) &( NAME##Type )); goto error; }
 		PYTHON_TYPES()
 	#undef ID
 
