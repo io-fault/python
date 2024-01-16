@@ -71,6 +71,12 @@ def install_packages(rename, modules, bytecode, path, root, package_list):
 	"""
 	# Allocate new package module instances and assign them into &modules.
 	"""
+
+	fault_pkg = types.ModuleType(root)
+	fault_pkg.__path__ = [path]
+	fault_pkg.__file__ = path + '/__init__.py'
+	modules[root] = fault_pkg
+
 	f = (lambda x: package_import(bytecode, path, root, x))
 	for pkg, mpath, src, bc in map(f, package_list):
 		name = rename(pkg)
