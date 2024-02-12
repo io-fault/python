@@ -1,0 +1,107 @@
+VERSION10 = b'HTTP/1.0'
+VERSION11 = b'HTTP/1.1'
+
+VERSIONS = frozenset((VERSION10, VERSION11))
+
+#: Carriage Return, Line Feed (Separates Headers)
+CRLF = b'\r\n'
+
+#: Space
+SP = b' '
+
+#: Header Field Separator
+HFS = b': '
+
+classes = dict(
+	CLASS_INFORMATIONAL = b'1',
+	CLASS_SUCCESS = b'2',
+	CLASS_REDIRECTION = b'3',
+	CLASS_CLIENT_ERROR = b'4',
+	CLASS_SERVER_ERROR = b'5',
+)
+class_names = (
+	None,
+	'INFORMATIONAL',
+	'SUCCES',
+	'REDIRECTION',
+	'CLIENT_ERROR',
+	'SERVER_ERROR',
+)
+
+##
+# HTTP Data
+##
+# 1xx: Informational
+#  Request received, continuing process
+codes = {
+	100: 'CONTINUE',
+	101: 'SWITCHING PROTOCOL',
+
+##
+# 2xx: Success
+#  The action was successfully received, understood, and accepted
+	200: 'OK',
+	201: 'CREATED',
+	202: 'ACCEPTED',
+	203: 'NON-AUTHORITATIVE',
+	204: 'NO CONTENT',
+	205: 'RESET CONTEXT',
+	206: 'PARTIAL CONTENT',
+	207: 'MULTI-STATUS',
+	208: 'ALREADY REPORTED',
+	226: 'IM USED',
+
+##
+# 3xx: Redirection
+#  Further action must be taken in order to complete the request
+	300: 'MULTIPLE CHOICES',
+	301: 'MOVED PERMANENTLY',
+	302: 'FOUND',
+	303: 'SEE OTHER',
+	304: 'NOT MODIFIED',
+	305: 'USE PROXY',
+	307: 'TEMPORARY REDIRECT',
+
+##
+# 4xx: Client Error
+#  The request contains bad syntax or cannot be fulfilled
+	400: 'BAD REQUEST',
+	401: 'UNAUTHORIZED',
+	402: 'PAYMENT REQUIRED',
+	403: 'FORBIDDEN',
+	404: 'NOT FOUND',
+	405: 'METHOD NOT ALLOWED',
+	406: 'NOT ACCEPTABLE',
+	407: 'PROXY AUTHENTICATION REQUIRED',
+	408: 'REQUEST TIMEOUT',
+	409: 'CONFLICT',
+	410: 'GONE',
+	411: 'LENGTH REQUIRED',
+	412: 'PRECONDITION FAILED',
+	413: 'REQUEST ENTITY TOO LARGE',
+	414: 'REQUEST URI TOO LARGE',
+	415: 'UNSUPPORTED MEDIA TYPE',
+	416: 'REQUESTED RANGE NOT SATISFIABLE',
+	417: 'EXPECTATION FAILED',
+	422: 'UNPROCESSABLE ENTITY',
+	423: 'LOCKED',
+	424: 'FAILED DEPENDENCY',
+	426: 'UPGRADE REQUIRED',
+	428: 'PRECONDITION REQUIRED',
+	429: 'TOO MANY REQUESTS',
+	431: 'REQUEST HEADER FIELDS TOO LARGE',
+
+##
+# 5xx: Server Error
+#  The server failed to fulfill an apparently valid request
+	500: 'INTERNAL SERVER ERROR',
+	501: 'NOT IMPLEMENTED',
+	502: 'BAD GATEWAY',
+	503: 'SERVICE UNAVAILABLE',
+	504: 'GATEWAY TIMEOUT',
+	505: 'UNSUPPORTED HTTP VERSION',
+	507: 'INSUFFICIENT STORAGE',
+	508: 'LOOP DETECTED',
+	510: 'NOT EXTENDED',
+	511: 'NETWORK AUTHENTICATION REQUIRED',
+}
