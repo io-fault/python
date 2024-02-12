@@ -1,0 +1,658 @@
+/**
+	// system tty device interface
+
+	// The functionality is purposefully incomplete and primarily intended for
+	// use by terminal applications.
+*/
+#include <wchar.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+#include <fault/libc.h>
+#include <fault/internal.h>
+#include <fault/python/environ.h>
+
+#include "tty.h"
+
+static PyObj
+fs_device(PyObj self)
+{
+	int fd = -1;
+
+	if (isatty(STDERR_FILENO))
+		fd = STDERR_FILENO;
+	else if (isatty(STDIN_FILENO))
+		fd = STDIN_FILENO;
+	else if (isatty(STDOUT_FILENO))
+		fd = STDOUT_FILENO;
+	else
+	{
+		/* Set errno if unset. */
+		if (errno != 0)
+			errno = ENXIO;
+
+		return(PyErr_SetFromErrno(PyExc_OSError));
+	}
+
+	return(PyUnicode_FromString(ttyname(fd)));
+}
+
+/**
+	// Process the codepoints in the string handling cases
+	// not covered by wcwidth.
+
+	// Sequences are presumed valid; when encountered, the character
+	// with the maximum cell count is used as the sequence cell count.
+
+	// This needs to be changed to only use the maximum given that wcswidth
+	// does recognize the sequence.
+*/
+static long
+measure(wchar_t *wcv, size_t ws, unsigned char ctlen, unsigned char tablen)
+{
+	long prev = 0, w = 0, max = 0, seq = 0;
+	size_t offset = 0;
+	wchar_t (*wca)[ws] = (wchar_t (*)[])wcv;
+
+	while (offset < ws)
+	{
+		long lw = 0;
+		wchar_t c = (*wca)[offset];
+
+		switch (c)
+		{
+			/* Tabsize */
+			case L'\t':
+				lw = tablen;
+			break;
+
+			/* Zero widths. */
+			case 0x2060:
+			case 0x200B:
+			case 0xFEFF:
+			{
+				/* ZWS and ZWNBS */
+				lw = 0;
+			}
+			break;
+
+			/* ZWNJ Break */
+			case 0x200C:
+			{
+				if (seq > 0)
+					seq = 1;
+			}
+			break;
+
+			/* ZWJ Sequence if any */
+			case 0x200D:
+			{
+				/* +0, continue sequence */
+				seq = 3;
+
+				/* Continue sequence */
+				if (max == 0)
+					max = prev;
+			}
+			break;
+
+			/* Emoji Variant */
+			case 0xFE0F:
+			{
+				/*
+					// Calculate difference from the expected emoji size.
+				*/
+				lw = 2 - prev;
+			}
+
+			/* Text Variant */
+			case 0xFE0E:
+			{
+				/*
+					// Calculate the difference from expected text size.
+
+					// Inaccurate if the former character is not an emoji.
+				*/
+				lw = 1 - prev;
+			}
+			break;
+
+			/* Variant Selectors */
+			case 0xFE00:
+			case 0xFE01:
+			case 0xFE02:
+			case 0xFE03:
+			case 0xFE04:
+			case 0xFE05:
+			case 0xFE06:
+			case 0xFE07:
+			case 0xFE08:
+			case 0xFE09:
+			case 0xFE0A:
+			case 0xFE0B:
+			case 0xFE0C:
+			case 0xFE0D:
+			{
+				lw = 0;
+			}
+			break;
+
+			default:
+			{
+				if (c < 32)
+				{
+					/* Low ASCII */
+					lw = ctlen;
+				}
+				else if (c >= 0x1F1E6 && c <= 0x1F1FF)
+				{
+					/* flag range; only double width if consecutive */
+					if (offset + 1 < ws)
+					{
+						wchar_t n = (*wca)[offset+1];
+
+						if (n >= 0x1F1E6 && n <= 0x1F1FF)
+						{
+							++offset;
+							lw = 2;
+						}
+						else
+							lw = 1;
+					}
+					else
+						lw = 1;
+				}
+				else
+				{
+					lw = wcwidth(c);
+					if (lw < 0)
+					{
+						/*
+							// Presume single.
+						*/
+						lw = 1;
+					}
+				}
+			}
+			break;
+		}
+
+		/* Sequence in progress? */
+		if (seq > 0)
+		{
+			--seq;
+			if (seq > 0)
+			{
+				/* Check maximum */
+				if (lw > max)
+				{
+					w += (lw - max);
+					max = lw;
+				}
+			}
+			else
+			{
+				/* Terminate sequence */
+				max = 0;
+				w += lw;
+			}
+		}
+		else
+		{
+			/* Non-sequence case, add identified cell count. */
+			w += lw;
+		}
+
+		prev = lw; /* Needed for sequence termination. */
+		++offset;
+	}
+
+	return(w);
+}
+
+/**
+	// Cell count of string with some sequence and VS awareness.
+*/
+static PyObj
+cells(PyObj self, PyObj args)
+{
+	#ifndef CELL_STACK_ALLOC
+		#define CELL_STACK_ALLOC 16
+	#endif
+
+	int width, ctlen = 0, tablen = 4;
+	Py_ssize_t len, size;
+	PyObj str;
+
+	if (!PyArg_ParseTuple(args, "U|ii", &str, &ctlen, &tablen))
+		return(NULL);
+
+	len = PyUnicode_GET_LENGTH(str);
+	if (len < CELL_STACK_ALLOC)
+	{
+		/* Use stack for small strings. */
+		wchar_t sawc[CELL_STACK_ALLOC];
+
+		size = PyUnicode_AsWideChar(str, (wchar_t *)sawc, CELL_STACK_ALLOC);
+		if (size == -1)
+			return(NULL);
+
+		width = measure(&sawc, size, ctlen, tablen);
+	}
+	else
+	{
+		wchar_t *wstr;
+
+		wstr = PyUnicode_AsWideCharString(str, &size);
+		if (wstr == NULL)
+			return(NULL);
+
+		width = measure(wstr, size, ctlen, tablen);
+		PyMem_Free(wstr);
+	}
+
+	return(PyLong_FromLong((long) width));
+}
+
+static PyObj
+device_set_controlling_process(PyObj self, PyObj ob)
+{
+	Device dev = (Device) self;
+	long pgid;
+
+	pgid = PyLong_AsLong(ob);
+	if (PyErr_Occurred())
+		return(NULL);
+
+	if (tcsetpgrp(dev->dev_fd, (pid_t) pgid))
+		return(PyErr_SetFromErrno(PyExc_OSError));
+
+	Py_RETURN_NONE;
+}
+
+static PyObj
+device_get_controlling_process(PyObj self)
+{
+	Device dev = (Device) self;
+	pid_t pgid;
+
+	pgid = tcgetpgrp(dev->dev_fd);
+	if (pgid == -1)
+		return(PyErr_SetFromErrno(PyExc_OSError));
+
+	return(PyLong_FromLong((long) pgid));
+}
+
+static PyObj
+device_get_window_dimensions(PyObj self)
+{
+	int r;
+	Device dev = (Device) self;
+	struct winsize ws;
+	PyObj rob, h, v;
+
+	Py_BEGIN_ALLOW_THREADS
+	r = ioctl((int) dev->dev_fd, TIOCGWINSZ, &ws);
+	Py_END_ALLOW_THREADS
+
+	if (r)
+		return(PyErr_SetFromErrno(PyExc_OSError));
+
+	h = PyLong_FromLong(ws.ws_col);
+	if (h == NULL)
+		return(NULL);
+	v = PyLong_FromLong(ws.ws_row);
+	if (v == NULL)
+		goto herror;
+
+	rob = PyTuple_New(2);
+	if (rob == NULL)
+		goto error;
+
+	PyTuple_SET_ITEM(rob, 0, h);
+	PyTuple_SET_ITEM(rob, 1, v);
+
+	return(rob);
+
+	error:
+		Py_DECREF(v);
+	herror:
+		Py_DECREF(h);
+
+	return(NULL);
+}
+
+static PyObj
+device_fs_path(PyObj self)
+{
+	Device dev = (Device) self;
+	char *path = ttyname(dev->dev_fd);
+
+	if (path == NULL)
+	{
+		PyErr_SetFromErrno(PyExc_OSError);
+		return(NULL);
+	}
+
+	return(PyUnicode_FromString(path));
+}
+
+static PyObj
+device_send_break(PyObj self, PyObj args)
+{
+	Device dev = (Device) self;
+	int duration = 0;
+
+	if (!PyArg_ParseTuple(args, "|i", &duration))
+		return(NULL);
+
+	if (tcsendbreak(dev->dev_fd, duration) != 0)
+		return(PyErr_SetFromErrno(PyExc_OSError));
+
+	Py_INCREF(self);
+	return(self);
+}
+
+static PyObj
+device_drain(PyObj self)
+{
+	Device dev = (Device) self;
+
+	if (tcdrain(dev->dev_fd) != 0)
+		return(PyErr_SetFromErrno(PyExc_OSError));
+
+	Py_INCREF(self);
+	return(self);
+}
+
+static PyObj
+device_record(PyObj self)
+{
+	Device dev = (Device) self;
+
+	if (tcgetattr(dev->dev_fd, &(dev->dev_ts)) == -1)
+		return(PyErr_SetFromErrno(PyExc_OSError));
+
+	Py_INCREF(self);
+	return(self);
+}
+
+static PyObj
+device_restore(PyObj self)
+{
+	Device dev = (Device) self;
+
+	if (tcsetattr(dev->dev_fd, TCSAFLUSH, &(dev->dev_ts)) == -1)
+		return(PyErr_SetFromErrno(PyExc_OSError));
+
+	Py_INCREF(self);
+	return(self);
+}
+
+static PyObj
+device_set_message_limits(PyObj self, PyObj args)
+{
+	Device dev = (Device) self;
+	struct termios ts;
+	unsigned char vmin, vtime;
+
+	if (!PyArg_ParseTuple(args, "bb", &vmin, &vtime))
+		return(NULL);
+
+	if (tcgetattr(dev->dev_fd, &ts) == -1)
+		return(PyErr_SetFromErrno(PyExc_OSError));
+
+	ts.c_cc[VMIN] = vmin;
+	ts.c_cc[VTIME] = vtime;
+
+	if (tcsetattr(dev->dev_fd, TCSAFLUSH, &ts))
+		return(PyErr_SetFromErrno(PyExc_OSError));
+
+	Py_INCREF(self);
+	return(self);
+}
+
+static PyObj
+device_set_raw(PyObj self)
+{
+	Device dev = (Device) self;
+	struct termios ts;
+
+	if (tcgetattr(dev->dev_fd, &ts) == -1)
+		return(PyErr_SetFromErrno(PyExc_OSError));
+
+	ts.c_iflag &= ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
+	ts.c_oflag &= ~OPOST;
+	ts.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+	ts.c_cflag &= ~(CSIZE | PARENB);
+	ts.c_cflag |= CS8;
+	ts.c_cc[VMIN] = 1;
+	ts.c_cc[VTIME] = 0;
+
+	if (tcsetattr(dev->dev_fd, TCSAFLUSH, &ts))
+		return(PyErr_SetFromErrno(PyExc_OSError));
+
+	Py_INCREF(self);
+	return(self);
+}
+
+static PyObj
+device_set_cbreak(PyObj self)
+{
+	Device dev = (Device) self;
+	struct termios ts;
+
+	if (tcgetattr(dev->dev_fd, &ts) == -1)
+		return(PyErr_SetFromErrno(PyExc_OSError));
+
+	ts.c_lflag &= ~(ECHO | ICANON);
+	ts.c_cc[VMIN] = 1;
+	ts.c_cc[VTIME] = 0;
+
+	if (tcsetattr(dev->dev_fd, TCSAFLUSH, &ts))
+		return(PyErr_SetFromErrno(PyExc_OSError));
+
+	Py_INCREF(self);
+	return(self);
+}
+
+static PyObj
+device_set_cooked(PyObj self)
+{
+	Device dev = (Device) self;
+	struct termios ts = {0,};
+
+	/**
+		// Retrieve settings snapshot for existing keybinds in c_cc.
+		// This function is not looking to implement a total
+		// reset as it's not expected to perform that kind of cleanup.
+	*/
+	if (tcgetattr(dev->dev_fd, &ts) == -1)
+		return(PyErr_SetFromErrno(PyExc_OSError));
+
+	#ifndef IMAXBEL
+		#define IMAXBEL 0
+	#endif
+	#ifndef ECHOCTL
+		#define ECHOCTL 0
+	#endif
+
+	ts.c_iflag = (BRKINT| ICRNL| IMAXBEL | IXON | IXANY);
+	ts.c_oflag = (OPOST | ONLCR);
+	ts.c_lflag = (ICANON | ISIG | IEXTEN | ECHO | ECHOE | ECHOKE | ECHOCTL);
+	ts.c_cflag = (CREAD | CS8 | HUPCL);
+	ts.c_ispeed = B9600;
+	ts.c_ospeed = B9600;
+	ts.c_cc[VMIN] = 1;
+	ts.c_cc[VTIME] = 0;
+
+	if (tcsetattr(dev->dev_fd, TCSAFLUSH, &ts))
+		return(PyErr_SetFromErrno(PyExc_OSError));
+
+	Py_INCREF(self);
+	return(self);
+}
+
+static PyObj
+device_open(PyObj subtype, PyObj args)
+{
+	PyObj bytespath = NULL;
+	Device dev;
+	PyObj rob;
+
+	if (!PyArg_ParseTuple(args, "|O&", PyUnicode_FSConverter, &bytespath))
+		return(NULL);
+
+	rob = PyAllocate(subtype);
+	if (rob == NULL)
+	{
+		Py_XDECREF(bytespath);
+		return(NULL);
+	}
+
+	dev = (Device) rob;
+	if (bytespath != NULL)
+	{
+		dev->dev_fd = open(PyBytes_AS_STRING(bytespath), O_CLOEXEC|O_RDWR);
+		Py_DECREF(bytespath);
+	}
+	else
+		dev->dev_fd = open(SYSTEM_TTY_DEVICE_PATH, O_CLOEXEC|O_RDWR);
+
+	if (dev->dev_fd == -1)
+	{
+		Py_DECREF(rob);
+		return(PyErr_SetFromErrno(PyExc_OSError));
+	}
+
+	return(rob);
+}
+
+static PyObj
+device_fileno(PyObj self)
+{
+	Device dev = (Device) self;
+	return PyLong_FromLong((long) dev->dev_fd);
+}
+
+static PyMethodDef
+device_methods[] = {
+	{"open", (PyCFunction) device_open, METH_VARARGS|METH_CLASS, NULL},
+	{"fileno", (PyCFunction) device_fileno, METH_NOARGS, NULL},
+	{"fs_path", (PyCFunction) device_fs_path, METH_NOARGS, NULL},
+
+	{"set_controlling_process", (PyCFunction) device_set_controlling_process, METH_O, NULL},
+	{"get_controlling_process", (PyCFunction) device_get_controlling_process, METH_NOARGS, NULL},
+
+	{"get_window_dimensions", (PyCFunction) device_get_window_dimensions, METH_NOARGS, NULL},
+
+	{"record", (PyCFunction) device_record, METH_NOARGS, NULL},
+	{"restore", (PyCFunction) device_restore, METH_NOARGS, NULL},
+
+	{"send_break", (PyCFunction) device_send_break, METH_VARARGS, NULL},
+	{"drain", (PyCFunction) device_drain, METH_NOARGS, NULL},
+
+	{"set_message_limits", (PyCFunction) device_set_message_limits, METH_VARARGS, NULL},
+
+	{"set_raw", (PyCFunction) device_set_raw, METH_NOARGS, NULL},
+	{"set_cbreak", (PyCFunction) device_set_cbreak, METH_NOARGS, NULL},
+	{"set_cooked", (PyCFunction) device_set_cooked, METH_NOARGS, NULL},
+	{NULL},
+};
+
+static PyMemberDef
+device_members[] = {
+	{"kport", T_INT, offsetof(struct Device, dev_fd), READONLY, NULL},
+	{NULL},
+};
+
+static PyObj
+device_new(PyTypeObject *subtype, PyObj args, PyObj kw)
+{
+	static char *kwlist[] = {"fd", NULL};
+	long fd;
+	Device dev;
+	PyObj rob;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kw, "l", kwlist, &fd))
+		return(NULL);
+
+	rob = PyAllocate(subtype);
+	if (rob == NULL)
+		return(NULL);
+
+	dev = (Device) rob;
+	dev->dev_fd = fd;
+	return(rob);
+}
+
+static PyTypeObject
+DeviceType = {
+	PyVarObject_HEAD_INIT(NULL, 0)
+	PYTHON_MODULE_PATH("Device"),   /* tp_name */
+	sizeof(struct Device),          /* tp_basicsize */
+	0,                              /* tp_itemsize */
+	NULL,                           /* tp_dealloc */
+	0,                              /* (tp_print) */
+	NULL,                           /* tp_getattr */
+	NULL,                           /* tp_setattr */
+	NULL,                           /* tp_compare */
+	NULL,                           /* tp_repr */
+	NULL,                           /* tp_as_number */
+	NULL,                           /* tp_as_sequence */
+	NULL,                           /* tp_as_mapping */
+	NULL,                           /* tp_hash */
+	NULL,                           /* tp_call */
+	NULL,                           /* tp_str */
+	NULL,                           /* tp_getattro */
+	NULL,                           /* tp_setattro */
+	NULL,                           /* tp_as_buffer */
+	Py_TPFLAGS_BASETYPE|
+	Py_TPFLAGS_DEFAULT,             /* tp_flags */
+	NULL,                           /* tp_doc */
+	NULL,                           /* tp_traverse */
+	NULL,                           /* tp_clear */
+	NULL,                           /* tp_richcompare */
+	0,                              /* tp_weaklistoffset */
+	NULL,                           /* tp_iter */
+	NULL,                           /* tp_iternext */
+	device_methods,                 /* tp_methods */
+	device_members,                 /* tp_members */
+	NULL,                           /* tp_getset */
+	NULL,                           /* tp_base */
+	NULL,                           /* tp_dict */
+	NULL,                           /* tp_descr_get */
+	NULL,                           /* tp_descr_set */
+	0,                              /* tp_dictoffset */
+	NULL,                           /* tp_init */
+	NULL,                           /* tp_alloc */
+	device_new,                     /* tp_new */
+};
+
+#define PYTHON_TYPES() \
+	ID(Device)
+
+#define MODULE_FUNCTIONS() \
+	PYMETHOD(cells, cells, METH_VARARGS, NULL) \
+	PYMETHOD(fs_device, fs_device, METH_NOARGS, NULL)
+
+#include <fault/metrics.h>
+#include <fault/python/module.h>
+INIT(module, 0, NULL)
+{
+	#define ID(NAME) \
+		if (PyType_Ready((PyTypeObject *) &( NAME##Type ))) \
+			goto error; \
+		Py_INCREF((PyObj) &( NAME##Type )); \
+		if (PyModule_AddObject(module, #NAME, (PyObj) &( NAME##Type )) < 0) \
+			{ Py_DECREF((PyObj) &( NAME##Type )); goto error; }
+		PYTHON_TYPES()
+	#undef ID
+
+	return(0);
+
+	error:
+	{
+		return(-1);
+	}
+}

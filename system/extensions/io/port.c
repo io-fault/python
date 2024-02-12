@@ -1,0 +1,1130 @@
+/**
+	// Abstraction for kernel ports (file descriptors).
+*/
+#include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/un.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <unistd.h>
+
+/* file descriptor transfers */
+#include <sys/param.h>
+
+#include <fault/libc.h>
+#include <fault/python/environ.h>
+#include <fault/python/injection.h>
+
+#include <endpoint.h>
+
+#include "port.h"
+
+#define errpf(...) fprintf(stderr, __VA_ARGS__)
+
+/*
+	// Manage retry state for limiting the number of times we'll accept EINTR.
+*/
+#define _RETRY_STATE _avail_retries
+#define RETRY_STATE_INIT int _RETRY_STATE = CONFIG_SYSCALL_RETRY
+#define LIMITED_RETRY() do { \
+	if (_RETRY_STATE > 0) { \
+		errno = 0; \
+		--_RETRY_STATE; \
+		goto RETRY_SYSCALL; \
+	} \
+} while(0);
+#define UNLIMITED_RETRY() errno = 0; goto RETRY_SYSCALL;
+
+/*
+	// It seems unlikely that users will be sending dozens of file descriptors(Ports), so
+	// keep the internal buffer size limited.
+
+	// WARNING: Changing this *REQUIRES* code changes. Currently, the implementation does not
+	// properly handle messages containing more than file descriptor.
+*/
+#ifndef CONFIG_TRAFFIC_PORTS_PER_CALL
+	#define CONFIG_TRAFFIC_PORTS_PER_CALL 1
+#endif
+
+int
+socket_receive_buffer(kport_t kp)
+{
+	int size = -1;
+	socklen_t ssize = sizeof(size);
+	getsockopt(kp, SOL_SOCKET, SO_RCVBUF, &size, &ssize);
+	return(size);
+}
+
+int
+socket_send_buffer(kport_t kp)
+{
+	int size = -1;
+	socklen_t ssize = sizeof(size);
+	getsockopt(kp, SOL_SOCKET, SO_SNDBUF, &size, &ssize);
+	return(size);
+}
+
+static ktype_t
+map_st_mode(mode_t mode)
+{
+	switch (mode & S_IFMT)
+	{
+		case S_IFSOCK:
+			return(kt_socket);
+		break;
+		case S_IFIFO:
+			return(kt_fifo);
+		break;
+
+		case S_IFCHR:
+		case S_IFBLK:
+		case S_IFDIR:
+		case S_IFLNK:
+		case S_IFREG:
+			return(kt_file);
+		break;
+
+		default:
+			return(kt_pipe); /* assume pipe? */
+		break;
+	}
+
+	return(kt_unknown);
+}
+
+int
+port_identify_type(Port p)
+{
+	RETRY_STATE_INIT;
+	int r;
+	kport_t kp = p->point;
+
+	struct stat st;
+
+	RETRY_SYSCALL:
+	ERRNO_RECEPTACLE(-1, &r, fstat, kp, &st);
+
+	if (r < 0)
+	{
+		switch (errno)
+		{
+			case EIO:
+			case AGAIN:
+			case EINTR:
+				LIMITED_RETRY()
+			default:
+				/*
+					// Port will be closed by the usual mechanism.
+				*/
+				Port_NoteError(p, kc_fstat);
+				return(1);
+			break;
+		}
+	}
+
+	p->type = map_st_mode(st.st_mode);
+	return(0);
+}
+
+int
+port_getpeername(Port p, if_addr_ref_t addr, socklen_t *addrlen)
+{
+	RETRY_STATE_INIT;
+	int r;
+	kport_t kp = p->point;
+
+	RETRY_SYSCALL:
+	ERRNO_RECEPTACLE(-1, &r, getpeername, kp, addr, addrlen);
+
+	if (r < 0)
+	{
+		switch (errno)
+		{
+			/*
+				// Invalidate point to avoid future close().
+			*/
+			case AGAIN:
+			case EINTR:
+				LIMITED_RETRY()
+			default:
+				/*
+					// Port will be closed by the usual mechanism.
+				*/
+				Port_NoteError(p, kc_getpeername);
+				return(1);
+			break;
+		}
+	}
+
+	return(0);
+}
+
+int
+port_getsockname(Port p, if_addr_ref_t addr, socklen_t *addrlen)
+{
+	RETRY_STATE_INIT;
+	int r;
+	kport_t kp = p->point;
+
+	RETRY_SYSCALL:
+	ERRNO_RECEPTACLE(-1, &r, getsockname, kp, addr, addrlen);
+
+	if (r < 0)
+	{
+		switch (errno)
+		{
+			/*
+				// Invalidate point to avoid future close().
+			*/
+			case AGAIN:
+			case EINTR:
+				LIMITED_RETRY()
+			default:
+				/*
+					// Port will be closed by the usual mechanism.
+				*/
+				Port_NoteError(p, kc_getsockname);
+				return(1);
+			break;
+		}
+	}
+
+	return(0);
+}
+
+int
+port_set_socket_option(Port p, int option, int setting)
+{
+	RETRY_STATE_INIT;
+	int r;
+	socklen_t outsize = sizeof(setting);
+
+	RETRY_SYSCALL:
+	ERRNO_RECEPTACLE(-1, &r, setsockopt, p->point, SOL_SOCKET, option, &setting, sizeof(setting));
+
+	if (r)
+	{
+		switch(errno)
+		{
+			case AGAIN:
+			case EINTR:
+				LIMITED_RETRY()
+				/*
+					// Just give up for set socket option.
+					// Setting an error here may or may not be a good idea,
+					// be optimistic about it not being critical.
+				*/
+			break;
+
+			default:
+				Port_NoteError(p, kc_setsockopt);
+				return(1);
+			break;
+		}
+	}
+
+	return(0);
+}
+
+#ifdef EVMECH_EPOLL
+int
+port_epoll_create(Port p)
+{
+	RETRY_STATE_INIT;
+	int fd = -1;
+
+	RETRY_SYSCALL:
+	ERRNO_RECEPTACLE(-1, &fd, epoll_create1, EPOLL_CLOEXEC);
+
+	if (fd < 0)
+	{
+		switch (errno)
+		{
+			case AGAIN:
+			case EINTR:
+				LIMITED_RETRY()
+			default:
+				Port_NoteError(p, epoll_create);
+				return(1);
+			break;
+		}
+	}
+
+	p->point = fd;
+	return(0);
+}
+
+int
+port_epoll_ctl(Port epp, int op, Port t, kevent_t *ke)
+{
+	RETRY_STATE_INIT;
+	int r = -1;
+
+	RETRY_SYSCALL:
+	ERRNO_RECEPTACLE(-1, &r, epoll_ctl, epp->point, op, t->point, ke);
+
+	if (r != 0)
+	{
+		switch (errno)
+		{
+			case AGAIN:
+			case EINTR:
+				LIMITED_RETRY()
+			default:
+				Port_NoteError(t, epoll_ctl);
+				return(1);
+			break;
+		}
+	}
+
+	return(0);
+}
+
+/* wait is always collecting, so no retry limit. */
+int
+port_epoll_wait(Port p, int *out, kevent_t *ke, int nevents, int timeout)
+{
+	RETRY_STATE_INIT;
+	int r = -1;
+
+	RETRY_SYSCALL:
+	ERRNO_RECEPTACLE(-1, &r, epoll_wait, p->point, ke, nevents, timeout);
+
+	if (r >= 0)
+	{
+		*out = r;
+	}
+	else
+	{
+		switch (errno)
+		{
+			case AGAIN:
+			case EINTR:
+				LIMITED_RETRY()
+			default:
+				*out = 0;
+				Port_NoteError(p, epoll_wait);
+				return(1);
+			break;
+		}
+	}
+
+	return(0);
+}
+
+#else
+
+int
+port_kqueue(Port p)
+{
+	RETRY_STATE_INIT;
+	int kp = -1;
+
+	RETRY_SYSCALL:
+	ERRNO_RECEPTACLE(-1, &kp, kqueue);
+
+	if (kp < 0)
+	{
+		switch (errno)
+		{
+			case AGAIN:
+			case EINTR:
+				LIMITED_RETRY()
+			default:
+				Port_NoteError(p, kc_kqueue);
+				return(1);
+			break;
+		}
+	}
+
+	/* Set CLOEXEC */
+	{
+		int seterr = -1, flags = -1;
+		ERRNO_RECEPTACLE(-1, &flags, fcntl, kp, F_GETFD, 0);
+
+		if (flags == -1)
+		{
+			Port_NoteError(p, kc_fcntl);
+			return(2);
+		}
+
+		ERRNO_RECEPTACLE(-1, &seterr, fcntl, kp, F_SETFD, flags|FD_CLOEXEC);
+		if (seterr == -1)
+		{
+			Port_NoteError(p, kc_fcntl);
+			return(3);
+		}
+	}
+
+	p->point = kp;
+	return(0);
+}
+
+int
+port_kevent(Port p, int retry, int *out, kevent_t *changes, int nchanges, kevent_t *events, int nevents, const struct timespec *timeout)
+{
+	RETRY_STATE_INIT;
+	int r = -1;
+
+	RETRY_SYSCALL:
+	ERRNO_RECEPTACLE(-1, &r, kevent, p->point, changes, nchanges, events, nevents, timeout);
+
+	if (r >= 0)
+	{
+		/*
+			// EV_ERROR is used in cases where kevent(2) fails after it already processed
+			// some events. In these cases, the EV_ERROR flag is used to note the case.
+		*/
+		if (r > 0 && events[r-1].flags & EV_ERROR)
+		{
+			--r;
+			*out = r;
+			/*
+				// XXX: Set error from EV_ERROR?
+			*/
+		}
+		else
+			*out = r;
+	}
+	else
+	{
+		*out = 0;
+
+		switch (errno)
+		{
+			case AGAIN:
+			case EINTR:
+				/*
+					// The caller can designate whether or not retry will occur.
+				*/
+				switch (retry)
+				{
+					case -1:
+						UNLIMITED_RETRY();
+					break;
+
+					case 1:
+						LIMITED_RETRY();
+					break;
+				}
+			case ENOMEM:
+				LIMITED_RETRY();
+
+			default:
+				Port_NoteError(p, kc_kevent);
+				return(1);
+			break;
+		}
+	}
+
+	return(0);
+}
+
+#endif
+
+int
+port_listen(Port p, int backlog)
+{
+	RETRY_STATE_INIT;
+	kport_t kp = p->point;
+	int r = -1;
+
+	RETRY_SYSCALL:
+	ERRNO_RECEPTACLE(-1, &r, listen, kp, backlog);
+
+	if (r)
+	{
+		switch (errno)
+		{
+			case AGAIN:
+			case EINTR:
+				LIMITED_RETRY()
+			default:
+				Port_NoteError(p, kc_listen);
+				return(1);
+			break;
+		}
+	}
+
+	return(0);
+}
+
+/**
+	// These are technically optional, so clear errno and do not report failures.
+	// XXX: socket option warnings may be useful.
+**/
+static void
+init_socket(kport_t kp)
+{
+	static int true_indicator = 1;
+
+	#if 0
+		/*
+			// Covered by fcntl().
+		*/
+		const static struct timeval tv = {0,0,};
+
+		setsockopt(kp, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+		setsockopt(kp, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+	#endif
+
+	#ifdef TCP_NODELAY
+		/*
+			// By default. However, we should expose an interface to turn it back on.
+		*/
+		setsockopt(kp, IPPROTO_TCP, TCP_NODELAY, &true_indicator, sizeof(true_indicator));
+	#endif
+
+	#ifdef SO_KEEPALIVE
+		setsockopt(kp, SOL_SOCKET, SO_KEEPALIVE, &true_indicator, sizeof(true_indicator));
+	#endif
+
+	/*
+		// Inline out of band data. Apparently, some implementations can stall in the
+		// presenece of unhandled OOB data.
+	*/
+	#ifdef SO_OOBINLINE
+		setsockopt(kp, SOL_SOCKET, SO_OOBINLINE, &true_indicator, sizeof(true_indicator));
+	#endif
+
+	#ifndef F_SETNOSIGPIPE
+		#ifdef SO_NOSIGPIPE
+			setsockopt(kp, SOL_SOCKET, SO_NOSIGPIPE, &true_indicator, sizeof(true_indicator));
+		#endif
+	#endif
+}
+
+static void
+init_listening_socket(kport_t kp)
+{
+	#ifdef SO_ACCEPTFILTER
+	{
+		struct accept_filter_arg afa = {0,};
+
+		strcpy(afa.af_name, "dataready");
+		setsockopt(kp, SOL_SOCKET, SO_ACCEPTFILTER, &afa, sizeof(afa));
+	}
+	#else
+		#ifdef TCP_DEFER_ACCEPT
+		{
+			int timeout = 1;
+			setsockopt(kp, SOL_TCP, TCP_DEFER_ACCEPT, &timeout, sizeof(int));
+		}
+		#else
+			#warning system does not support accept filters
+		#endif
+	#endif
+}
+
+int
+port_init_socket(Port p)
+{
+	init_socket(p->point);
+	errno = 0;
+	return(0);
+}
+
+int
+port_init_listening_socket(Port p)
+{
+	init_listening_socket(p->point);
+	errno = 0;
+	return(0);
+}
+
+#ifdef F_SETNOSIGPIPE
+	int
+	port_nosigpipe(Port p)
+	{
+		RETRY_STATE_INIT;
+		kport_t kp = p->point;
+		int r;
+
+		RETRY_SYSCALL:
+		ERRNO_RECEPTACLE(-1, &r, fcntl, kp, F_SETNOSIGPIPE, 1);
+
+		if (r)
+		{
+			switch (errno)
+			{
+				case AGAIN:
+				case EINTR:
+					LIMITED_RETRY()
+				default:
+					Port_NoteError(p, kc_fcntl);
+					return(1);
+				break;
+			}
+		}
+
+		return(0);
+	}
+#else
+	#define port_nosigpipe(p) 0
+#endif
+
+int
+port_noblocking(Port p)
+{
+	RETRY_STATE_INIT;
+	kport_t kp = p->point;
+	int r;
+
+	RETRY_SYSCALL:
+	ERRNO_RECEPTACLE(-1, &r, fcntl, kp, F_SETFL, O_NONBLOCK);
+
+	if (r)
+	{
+		switch (errno)
+		{
+			case AGAIN:
+			case EINTR:
+				LIMITED_RETRY()
+			default:
+				Port_NoteError(p, kc_fcntl);
+				return(1);
+			break;
+		}
+	}
+
+	return(0);
+}
+
+#if F_TRACE(latches)
+	#define pbin(d,x) \
+		fprintf(stderr, "%s%d%d%d%d   %d%d%d%d\n", d, \
+			(x & 1<<7) ? 1 : 0, (x & 1<<6) ? 1 : 0, (x & 1<<5) ? 1 : 0, (x & 1<<4) ? 1 : 0, \
+			(x & 1<<3) ? 1 : 0, (x & 1<<2) ? 1 : 0, (x & 1<<1) ? 1 : 0, (x & 1) ? 1 : 0 \
+		);
+#else
+	#define pbin(d,x)
+#endif
+
+/**
+	// Method to "close" a port.
+	// Manages the reference counts and the effect of the close.
+**/
+void
+port_unlatch(Port p, int8_t times)
+{
+	const uint8_t lo = (1|2|4|8);
+	const uint8_t hi = lo << 4;
+	unsigned int attempts = 0;
+
+	/* Counts for sending channels are stored at 1 << 4, reading at 0 << 0 */
+	if (times == 0)
+	{
+		/* Skip shutdown process. */
+		#if F_TRACE(latches)
+			errpf("NUKE LATCHES!\n");
+		#endif
+		p->latches = 0;
+	}
+	else
+	{
+		uint8_t current;
+		int direction;
+
+		pbin("BEF: ", p->latches)
+
+		if (times < 0)
+		{
+			current = (p->latches >> 4);
+
+			if (current == 0)
+			{
+				switch (p->cause)
+				{
+					case kc_leak:
+					case kc_shatter:
+						return;
+					break;
+
+					default:
+						PyErr_WarnFormat(PyExc_ResourceWarning, 0,
+							"port was already unlatched");
+						#if F_TRACE(assert_latched)
+							assert(1);
+						#endif
+						return;
+					break;
+				}
+			}
+
+			pbin(" -1: ", current)
+
+			current -= (uint8_t) (-times);
+			direction = SHUT_WR;
+			p->latches = (current << 4) | (p->latches & lo);
+		}
+		else
+		{
+			current = (p->latches & lo);
+
+			pbin(" +1: ", current);
+
+			if (current == 0)
+			{
+				switch (p->cause)
+				{
+					case kc_leak:
+					case kc_shatter:
+						return;
+					break;
+
+					default:
+						PyErr_WarnFormat(PyExc_ResourceWarning, 0,
+							"port was already unlatched");
+						#if F_TRACE(assert_latched)
+							assert(1);
+						#endif
+						return;
+					break;
+				}
+			}
+
+			current -= (uint8_t) times;
+			direction = SHUT_RD;
+			p->latches = (current) | (p->latches & hi);
+		}
+
+		pbin("AFT: ", p->latches);
+
+		if (current == 0)
+		{
+			switch (p->type)
+			{
+				case kt_socket:
+					switch (p->freight)
+					{
+						case f_ports:
+							/* Only transmitted over sockets. */
+						case f_octets:
+							shutdown(p->point, direction);
+							#if F_TRACE(termination)
+								errpf("SHUTDOWN: %s %d, %s\n",
+									freight_identifier(p->freight),
+									p->point, direction == SHUT_WR ? "writes" : "reads");
+							#endif
+							errno = 0;
+							/* XXX: emit warning */
+						break;
+						default:
+						break;
+					}
+				break;
+
+				default:
+					/* No action. */
+				break;
+			}
+		}
+	}
+
+	if (p->latches != 0)
+	{
+		/*
+			// Still latched or invalid.
+		*/
+		return;
+	}
+	else
+	{
+		RETRY_STATE_INIT;
+		int r;
+
+		RETRY_SYSCALL:
+		ERRNO_RECEPTACLE(-1, &r, close, p->point);
+
+		if (r < 0)
+		{
+			switch (errno)
+			{
+				case EINTR:
+					LIMITED_RETRY()
+				break;
+
+				case EPIPE: /* XXX: Apparently, linux throws this. Assume EIO? */
+				case EIO:
+				default:
+					/* XXX: Throw warning. */
+					errno = 0;
+				break;
+			}
+		}
+	}
+
+	#if F_TRACE(termination)
+		errpf("CLOSE: %s %d\n", freight_identifier(p->freight), p->point);
+	#endif
+}
+
+/* port i/o routines */
+io_status_t
+port_input_octets(Port p, uint32_t *consumed, char *buf, uint32_t size)
+{
+	RETRY_STATE_INIT;
+	ssize_t r;
+	size_t isize;
+
+	continuation:
+	isize = MIN(SIZE_T_MAX, ((size_t) size));
+
+	RETRY_SYSCALL:
+	ERRNO_RECEPTACLE(-1, &r, read, p->point, buf, isize);
+
+	if (r >= 0)
+	{
+		*consumed += (uint32_t) r;
+		size -= (uint32_t) r;
+
+		/*
+			// Stream until EWOULDBLOCK (EAGAIN).
+		*/
+		if (size > 0)
+		{
+			/*
+				// For some edge level trigger implementations, it's important
+				// that we exhaust our buffer or trigger EWOULDBLOCK. If EWOULDBLOCK
+				// is not triggered with epoll solutions, we won't see another event.
+			*/
+			if (r)
+			{
+				/*
+					// Adjust buffer pointer.
+				*/
+				buf = buf + r;
+				goto continuation;
+			}
+			else
+			{
+				/* Zero read. */
+				return(io_terminate);
+			}
+		}
+	}
+	else
+	{
+		switch (errno)
+		{
+			case EINTR:
+				UNLIMITED_RETRY()
+			break;
+
+			case ENOTCONN:
+			case AGAIN:
+				/*
+					// POSIX read(2)'s will throw EAGAIN on EOF of O_NONBLOCK fd's to REGULAR FILES.
+					// Darwin doesn't do this and appears to ignore O_NONBLOCK on regular files.
+				*/
+				errno = 0;
+				return(io_stop);
+			break;
+
+			case ENOBUFS:
+			case ENOMEM:
+				/* Possible transient error? */
+				LIMITED_RETRY()
+			case ETIMEDOUT:
+				/* There may be some platform inconsistencies involving this errno... */
+			default:
+				/* fatal */
+				Port_NoteError(p, kc_read);
+				return(io_terminate);
+			break;
+		}
+	}
+
+	return(io_flow);
+}
+
+io_status_t
+port_output_octets(Port p, uint32_t *consumed, char *buf, uint32_t size)
+{
+	RETRY_STATE_INIT;
+	ssize_t r = 0;
+	size_t isize = 0;
+
+	continuation:
+
+	/*
+		// If the buffer is larger than our maximum write size, write the SIGNED_MAX,
+		// but continue after subtraction in order to transfer to the entire buffer.
+	*/
+	isize = (size_t) MIN(SIZE_T_MAX, size);
+
+	RETRY_SYSCALL:
+	ERRNO_RECEPTACLE(-1, &r, write, p->point, buf, isize);
+
+	if (r >= 0)
+	{
+		uint32_t xfer = (uint32_t) r;
+
+		*consumed += xfer;
+		size -= xfer;
+		buf += (intptr_t) r;
+
+		/*
+			// For some edge level trigger implementations, it's important
+			// that we exhaust our buffer or trigger EWOULDBLOCK. If EWOULDBLOCK
+			// is not triggered with epoll solutions, we won't see another event.
+		*/
+		if (size > 0)
+			goto continuation;
+	}
+	else
+	{
+		switch (errno)
+		{
+			case EINTR:
+				UNLIMITED_RETRY()
+			break;
+
+			case ENOTCONN:
+			case AGAIN:
+				/*
+					// POSIX read(2)'s will throw EAGAIN on EOF of O_NONBLOCK fd's to REGULAR FILES.
+					// Darwin doesn't do this and appears to ignore O_NONBLOCK on regular files.
+				*/
+				errno = 0;
+				return(io_stop);
+			break;
+
+			case ENOBUFS:
+			case ENOMEM:
+				/*
+					// Possible transient error?
+				*/
+				LIMITED_RETRY()
+			case ETIMEDOUT:
+				/*
+					// There may be some platform inconsistencies involving this errno...
+				*/
+			default:
+				/* fatal */
+				Port_NoteError(p, kc_write);
+				return(io_terminate);
+			break;
+		}
+	}
+
+	return(io_flow);
+}
+
+io_status_t
+port_input_datagrams(Port p, uint32_t *consumed, struct Datagram *dg, uint32_t quantity)
+{
+	RETRY_STATE_INIT;
+	int r;
+	struct Datagram *current = dg;
+	void *buf;
+	size_t buflen;
+	if_addr_ref_t addr;
+	socklen_t *addrlen;
+
+	continuation:
+	if (!DatagramIsValid(current, quantity))
+	{
+		/*
+			// Truncate the invalid remainder.
+		*/
+		*consumed = (((intptr_t) current) - ((intptr_t) dg)) + quantity;
+		return(io_flow);
+	}
+
+	buf = DatagramGetData(current);
+	buflen = DatagramGetSpace(current);
+	addr = DatagramGetAddress(current);
+	addrlen = &(DatagramGetAddressLength(current));
+
+	RETRY_SYSCALL:
+	ERRNO_RECEPTACLE(-1, &r, recvfrom, p->point, buf, buflen, 0, addr, &addrlen);
+
+	if (r >= 0)
+	{
+		struct Datagram *next;
+
+		DatagramSetSize(current, r);
+		next = DatagramNext(current);
+
+		quantity -= (((intptr_t) next) - ((intptr_t) current));
+		current = next;
+
+		if (quantity > 0)
+			goto continuation;
+	}
+	else
+	{
+		switch (errno)
+		{
+			case EINTR:
+				UNLIMITED_RETRY()
+			case AGAIN:
+				*consumed = ((intptr_t ) current) - ((intptr_t ) dg);
+				return(io_stop);
+			break;
+
+			case ENOMEM:
+				LIMITED_RETRY()
+			default:
+				Port_NoteError(p, kc_recvfrom);
+				*consumed = ((intptr_t ) current) - ((intptr_t ) dg);
+				return(io_terminate);
+			break;
+		}
+	}
+
+	*consumed = (((intptr_t) current) - ((intptr_t) dg)) + quantity;
+	return(io_flow);
+}
+
+io_status_t
+port_output_datagrams(Port p, uint32_t *consumed, struct Datagram *dg, uint32_t quantity)
+{
+	RETRY_STATE_INIT;
+	ssize_t r;
+	struct Datagram *current = dg;
+
+	void *buf;
+	size_t buflen;
+	if_addr_ref_t addr;
+	socklen_t addrlen;
+
+	continuation:
+	if (!DatagramIsValid(current, quantity))
+	{
+		/*
+			// Truncate the invalid remainder.
+		*/
+		*consumed = (((intptr_t) current) - ((intptr_t) dg)) + quantity;
+		return(io_flow);
+	}
+
+	buf = DatagramGetData(current);
+	buflen = DatagramGetSpace(current);
+	addr = DatagramGetAddress(current);
+	addrlen = DatagramGetAddressLength(current);
+
+	RETRY_SYSCALL:
+	ERRNO_RECEPTACLE(-1, &r, sendto, p->point, buf, buflen, 0, addr, addrlen);
+
+	if (r >= 0)
+	{
+		struct Datagram *next;
+
+		next = DatagramNext(current);
+
+		quantity -= ((intptr_t) next) - ((intptr_t) current);
+		current = next;
+
+		if (quantity > 0)
+			goto continuation;
+	}
+	else
+	{
+		switch (errno)
+		{
+			case EINTR:
+				UNLIMITED_RETRY()
+			case AGAIN:
+				*consumed = ((intptr_t ) current) - ((intptr_t ) dg);
+				return(io_stop);
+			break;
+
+			case ENOMEM:
+				LIMITED_RETRY()
+			default:
+				Port_NoteError(p, kc_sendto);
+				*consumed = ((intptr_t ) current) - ((intptr_t ) dg);
+				return(io_terminate);
+			break;
+		}
+	}
+
+	*consumed = (((intptr_t) current) - ((intptr_t) dg)) + quantity;
+	return(io_flow);
+}
+
+/**
+	// Sequence of Port operations (portS)
+
+	// These functions respresent a series of operations of that
+	// need to be successful in order for the port to function properly.
+	// If one step errors out, jump to the exit. The port_* interface will
+	// note the error on the port.
+**/
+int
+ports_identify_socket(Port p)
+{
+	if (port_identify_type(p))
+		goto exit;
+
+	if (p->type != kt_socket)
+	{
+		errno = EBADF;
+		Port_NoteError(p, kc_identify);
+		goto exit;
+	}
+
+	if (port_nosigpipe(p))
+		goto exit;
+
+	if (port_noblocking(p))
+		goto exit;
+
+	port_init_socket(p);
+
+	return(0);
+
+	exit:
+	return(1);
+}
+
+int
+ports_identify_input(Port p)
+{
+	char buf[1] = {0,};
+	uint32_t consumed = 0;
+
+	if (port_identify_type(p))
+		goto exit;
+
+	if (port_noblocking(p))
+		goto exit;
+
+	if (port_input_octets(p, &consumed, buf, 0) == io_terminate)
+		goto exit;
+
+	return(0);
+
+	exit:
+	return(1);
+}
+
+int
+ports_identify_output(Port p)
+{
+	char buf[1] = {0,};
+	uint32_t consumed = 0;
+
+	if (port_identify_type(p))
+		goto exit;
+
+	if (port_nosigpipe(p))
+		goto exit;
+
+	if (port_noblocking(p))
+		goto exit;
+
+	if (port_output_octets(p, &consumed, buf, 0) == io_terminate)
+		goto exit;
+
+	return(0);
+
+	exit:
+	return(1);
+}
