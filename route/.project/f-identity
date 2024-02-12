@@ -1,0 +1,2 @@
+route http://fault.io/python/route factors/polynomial-1
+fault.io <http://fault.io/critical>
