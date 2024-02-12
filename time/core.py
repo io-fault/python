@@ -1,0 +1,693 @@
+"""
+# Defines the time Context that constructs unit types and manages their
+# relationships to other unit types.
+"""
+import collections
+import fractions
+import functools
+import operator
+import builtins
+
+from typing import Type, Sequence
+from . import abstract
+
+# Definite being a finite position.
+# Indefinite referring to the infinite (eternals).
+# Subjective referring to months whose consistency is based on the year.
+kinds = (
+	'definite',
+	'indefinite',
+	'subjective',
+)
+
+# Used to convert system times.
+unix_epoch_delta = (((((2000-1970) * 365) + 7) * (24*60*60)) + (24*60*60))
+
+class Exception(builtins.Exception):
+	"""
+	# Generic time exception.
+	"""
+
+class TransformException(Exception):
+	"""
+	# An attempt to transform units failed.
+	"""
+	unit_input = None
+	unit_output = None
+	context = None
+
+	def __init__(self, *args, context = None, inverse = None):
+		self.unit_input, self.unit_output = args
+		self.context = context
+		self.inverse = inverse
+
+class Inconceivable(TransformException):
+	"""
+	# An attempt to represent a unit in like-terms was not possible
+	# given the current implementation.
+
+	# Usually raised when a finite term attempts to convert an indefinite term or an
+	# ambiguous term.
+	"""
+
+class FormatError(Exception):
+	pass
+
+class ParseError(FormatError):
+	"""
+	# The exception raised when a string representation of the datetime could not be parsed.
+	"""
+	def __init__(self, source, format = None):
+		self.format = format
+		self.source = source
+
+	def __str__(self):
+		return "[{0}] {1}".format(self.format, self.source)
+
+class StructureError(FormatError):
+	"""
+	# The exception raised when the structure of a parsed format could not be
+	# transformed.
+	"""
+	def __init__(self, source, struct, format = None):
+		self.format = format
+		self.struct = struct
+		self.source = source
+
+	def __str__(self):
+		return "[{0}] ".format(self.format) + self.source + \
+			"\n-> " + str(self.struct)
+
+class IntegrityError(FormatError):
+	"""
+	# The exception raised when a parsed point in time is not consistent.
+
+	# Notably, in the RFC format, there are portions specifying intersecting
+	# parts of a timestamp. (The day of week field is arguably superfluous.)
+	"""
+	def __init__(self, source, struct, tuple, format = None):
+		self.format = format
+		self.tuple = tuple
+		self.struct = struct
+		self.source = source
+
+	def __str__(self):
+		return "[{0}] ".format(self.format) + self.source + \
+			"\n-> " + str(self.struct) + \
+			"\n-> " + str(self.tuple) + "\n-> " + str(self.pit)
+
+class Unit(int):
+	"""
+	# The base class for *finite* &.abstract.Measure and &.abstract.Point
+	# subclasses across all &Context instances.
+	"""
+	__slots__ = ()
+
+	@classmethod
+	def construct(Class,
+			units, parts, start = 0,
+			op = operator.add,
+			Queue = collections.deque, int = int
+		):
+		d = Queue() # for opening containers
+		popleft = d.popleft
+		append = d.append
+		prepend = d.appendleft
+
+		terms = {}
+		# Keyword processing. First, combine like terms.
+		append(parts.items())
+
+		context = Class.context
+		containers = context.containers
+		convert = context.convert
+		getterm = context.terms.get
+		kinds = context.kinds
+
+		target_unit = Class.unit
+		target_term = getterm(target_unit)
+		total = start
+
+		# containers can return containers, so the loop needs
+		# to continue until no containers are returned.
+		while d:
+			parts = popleft()
+			for unit, value in parts:
+				# a given unit is an expression of a "term".
+				# years are an expression of months
+				# seconds are an expression of days
+				term = getterm(unit)
+
+				if term is None:
+					# not a term, assume that it's a container.
+					prepend(containers[unit][1](Class, value)) # open container unit
+				elif term == target_term:
+					# simple conversion is needed for like-term units.
+					total = op(total, convert(unit, target_unit, value))
+				else:
+					# not a like term. sum up all the unlike terms for later conversion.
+					terms[term] = terms.get(term, 0) + convert(unit, term, value)
+
+		# Add units to total if like terms.
+		# Otherwise, prepare terms for conversion.
+		for x in units:
+			term = getterm(x.unit)
+			if term == target_term:
+				total = op(total, convert(x.unit, target_unit, (int(x) + x.datum)))
+			else:
+				terms[term] = terms.get(term, 0) + convert(x.unit, term, int(x))
+
+		# All like terms have been combined (op(x,y)). The target term (Class.term) is
+		# stored in total and it's time to apply unlike terms using the context's
+		# bridges.
+		for term, value in terms.items():
+			if kinds[term] == 'indefinite':
+				# indefinites are a special case that don't need to consider subjectivity.
+				total = op(total, convert(term, target_unit, value))
+				continue
+
+			# first convert the existing total to the unlike-term units.
+			# this gives context for the term's value.
+			ctx = convert(target_unit, term, total)
+
+			# maintain the difference (conversion remainder)
+			dif = total - convert(term, target_unit, ctx)
+
+			# apply the like term value to the ctx
+			local = op(ctx, value)
+
+			# convert both back to the target unit and
+			# apply the difference to the actual total
+			total = convert(term, target_unit, local) + dif
+		return Class(int(total) - Class.datum)
+
+	@classmethod
+	def of(Class, *units, **parts):
+		return Class.construct(units, parts)
+
+	def update(self, part = None, replacement = None, of = None, align = 0):
+		# adjust self by the difference of the new value and the selection.
+		return self.construct((self,), {
+			part: replacement - self.select(part, of = of, align = align)
+		})
+
+	def truncate(self, unit, int = int):
+		term = self.context.terms[unit]
+		if term == self.liketerm:
+			# not need for datum-ized context
+			c = self.context.convert(self.unit, unit, self)
+			return self.__class__(self.context.convert(unit, self.unit, c.numerator // c.denominator))
+		else:
+			c = self.context.convert(self.unit, unit, self + self.datum)
+
+		return self.construct((), {unit: c.numerator // c.denominator})
+
+	def select(self, part, of = None, align = 0):
+		if part in self.context.containers:
+			# container type? no need for conversions. hook handles it
+			return self.context.containers[part][0](self, of)
+		elif of is None:
+			# no of-whole? just convert and return
+			r = self.context.convert(self.unit, part, self + self.datum)
+			ir = int(r)
+			return ir if ir == r else r.numerator // r.denominator
+
+		convert = self.context.convert
+		# A few significant factors in selection.
+		this_unit = self.unit
+		# What is the term of the part and of-whole?
+		part_term = self.context.terms[part]
+		of_term = self.context.terms[of]
+
+		if of_term == self.liketerm:
+			# The requested part is of the same term as the instance.
+			# A simple modulus does the trick.
+			boundary = convert(of, this_unit, 1)
+			selection = self % boundary
+		else:
+			# the of_term is not a liketerm, convert self to the of_term.
+			total = self + self.datum
+			unlike_selection = convert(this_unit, of, total)
+
+			if part_term == of_term:
+				# the part term is the same as the of_term,
+				# so get the base selection.
+				boundary = convert(of, part, 1)
+				selection = convert(of, part, unlike_selection) % boundary
+				this_unit = part
+			else:
+				boundary = convert(of, this_unit, unlike_selection)
+				selection = total - boundary
+
+		if align:
+			# after getting the selection
+			offset = convert(part, this_unit, 1) * align
+			selection = (selection + offset) % boundary
+
+		return int(selection * self.context.compose(this_unit, part))
+
+class Measure(Unit):
+	__slots__ = ()
+
+	@property
+	def start(self):
+		return self.__class__(0)
+
+	@property
+	def stop(self):
+		return self
+
+	def __neg__(self):
+		return self.__class__(super().__neg__())
+
+	def __abs__(self):
+		return self.__class__(super().__abs__())
+
+	def __str__(self):
+		return str(self.select(self.unit))
+
+	def __repr__(self, format = "{2}{0}.of({1})".format):
+		# XXX: this is clearly stupid slow
+		if self < 0:
+			sign = '-'
+			sub = -self
+		else:
+			sign = ''
+			sub = self
+		seq = self.context.measure_repr[self.liketerm]
+		prev = None
+		fields = []
+		for x in seq:
+			y = sub.select(x, prev)
+			prev = x
+			if y:
+				sub = sub.elapse(**{x: -y})
+				fields.append('{0}={1!s}'.format(x,y))
+		return format(
+			self.__name__,
+			', '.join(fields),
+			sign
+		)
+
+	def __contains__(self, t):
+		return 0 <= t < self
+
+	def elapse(self, *args, **parts):
+		return self.of(self, *args, **parts)
+	adjust = elapse
+
+	def increase(self, *units, **parts):
+		return self.construct(units, parts, start = self)
+
+	def decrease(self, *units, **parts):
+		return self.construct(units, parts, start = self, op = operator.sub)
+
+class Point(Unit):
+	__slots__ = ()
+
+	@property
+	def start(self):
+		return self
+
+	@property
+	def stop(self):
+		return self.__class__(self + self.magnitude)
+
+	def __contains__(self, t):
+		c = self.context.convert(t.unit, self.unit, t)
+		return (self.numerator // self.denominator) == (c.numerator // c.denominator)
+
+	def __str__(self):
+		# Python Classes are interfaces to units and terms defined in a context.
+		# This Python method is intended to be implemented by a container.
+		return self.select('__str__')
+
+	def __repr__(self, format = "{0}.of(iso={1})".format):
+		return format(self.__name__, repr(self.select('iso')))
+
+	def rollback(self, *units, **parts):
+		return self.construct(units, parts, start = self + self.datum, op = operator.sub)
+
+	def elapse(self, *units, **parts):
+		return self.construct(units, parts, start = self + self.datum)
+
+	def measure(self, pit):
+		return self.Measure(pit - self)
+
+	def leads(self, pit):
+		if pit.unit == self.unit:
+			lpit = pit
+		else:
+			try:
+				lpit = self.construct((pit,), {})
+			except Inconceivable as ice:
+				if ice.inverse:
+					c = self.context.convert(self.unit, pit.unit, self)
+					local = pit.__class__(c)
+					return pit.proceeds(local) or pit == local
+				raise
+		return self < lpit
+	precedes = leads
+
+	def follows(self, pit):
+		if pit.unit == self.unit:
+			lpit = pit
+		else:
+			try:
+				lpit = self.construct((pit,), {})
+			except Inconceivable as ice:
+				if ice.inverse:
+					c = self.context.convert(self.unit, pit.unit, self)
+					local = pit.__class__(c)
+					return pit.precedes(local) or pit == local
+				raise
+		return self > lpit
+	proceeds = follows
+
+class Context(object):
+	"""
+	# A container for time units and transformations.
+	"""
+	def __init__(self, Unit = Unit, Measure = Measure, Point = Point):
+		# opaque transformations
+		self.Unit = Unit
+		self.Measure = Measure
+		self.Point = Point
+		self.datums = {}
+		self.terms = {} # grouping of like-terms
+		self.bridges = {} # conversions between unlike-terms {(from, to): convert.__call__}
+		self.ratios = {} # specifies ratios between like-terms (sometimes fractions)
+		self.containers = {} # "terms" containing sets of terms.
+		self.measures = {} # scalar types {term: type}
+		self.measure_repr = {} # term -> unit sequence to build out Scalar repr()
+		self.points = {} # PointInTime types {unit: type}
+		self.names = {} # unit names
+		self.constants = {} # constant values used by the context. storage area
+		self.kinds = {} # the kind of term
+
+	def declare(self, id, datum, kind = 'definite'):
+		"""
+		# Declare a fundamental unit for use in a context.
+
+		# All defined, &Context.define, units are defined in terms of a declared unit.
+		"""
+		if not id.isidentifier():
+			raise ValueError("unit names must be valid identifiers")
+
+		self.ratios[id] = {id : fractions.Fraction(1,1)} # unit-to-unit is 1-to-1
+		self.terms[id] = id
+		self.measures[id] = {}
+		self.points[id] = {}
+		self.datums[id] = datum
+		self.kinds[id] = kind
+
+	def define(self, id, term, exponent, base = 10):
+		"""
+		# Defines a Unit in terms of another unit.
+		"""
+		if not id.isidentifier():
+			raise ValueError("unit names must be valid identifiers")
+
+		termu = self.terms[term]
+		self.terms[id] = termu
+		self.ratios[termu][id] = self.ratios[termu][term] * (base ** exponent)
+
+	def bridge(self, from_unit, to_unit, transformer):
+		"""
+		# Assign a "bridge" between two units.
+
+		# In the case where a unit cannot not be resolved from its definitions,
+		# bridges can be used to perform the conversion.
+		"""
+		self.bridges[(from_unit,to_unit)] = transformer
+
+	def container(self, id, pack, unpack):
+		if not id.isidentifier():
+			raise ValueError("container names must be valid identifiers")
+		self.containers[id] = (pack, unpack)
+
+	def constant(self, id, value):
+		self.constants[id] = value
+
+	@functools.lru_cache()
+	def compose(self, from_unit, to_unit, int = int):
+		"""
+		# Compose two ratios into another so that the &from_unit can be converted
+		# into the &to_unit.
+
+		# Ratio compositions are LRU cached.
+		"""
+		ratios = self.ratios[self.terms[from_unit]]
+		r = ratios[from_unit] / ratios[to_unit]
+
+		# If the integer version is equal, use it instead of the Fraction.
+		ir = int(r)
+		if ir == r:
+			return ir
+		else:
+			return r
+
+	def convert(self, from_unit, to_unit, value, ICE = Inconceivable):
+		"""
+		# Convert the &value into &to_unit from the &from_unit.
+		"""
+		if from_unit in self.containers:
+			# Containers have their own conversion implementation.
+			# Basically, it's a method of a particular type stored in the Context.
+			pkg = self.containers[from_unit][1](value)
+			return sum([
+				self.convert(part, to_unit, value)
+				for part, value in pkg
+			])
+		else:
+			# otherwise, a simple ratio or a bridge to a ratio
+			from_term = self.terms[from_unit]
+			to_term = self.terms[to_unit]
+
+			if from_term == to_term:
+				# like terms, multiple by the composed ratio
+				return value * self.compose(from_unit, to_unit)
+			else:
+				# unlike terms require a bridge in order to convert.
+				# convert to bridge type, bridge, then from bridge type.
+				br = self.bridges.get((from_term, to_term))
+				if br is None:
+					raise ICE(from_term, to_term, inverse = (to_term, from_term) in self.bridges)
+
+				bu = value * self.compose(from_unit, from_term)
+				return br(bu) * self.compose(to_term, to_unit)
+
+	def register_point_class(self, Point, default = False):
+		# Associate with related unit.
+		self.points[Point.liketerm][Point.unit] = Point
+		if default:
+			self.points[Point.liketerm][None] = Point
+
+	def register_measure_class(self, Measure, default = False):
+		# Associate with related unit.
+		self.measures[Measure.liketerm][Measure.unit] = Measure
+		if default:
+			self.measures[Measure.liketerm][None] = Measure
+
+	def new_measure_class(self, id, kind = 'definite', qname = None, default = False):
+		Measure = self.measure_factory(id, qname, kind = kind)
+		self.register_measure_class(Measure, default = default)
+		return Measure
+
+	def new_point_class(self, Measure, kind = 'definite', qname = None, default = False):
+		Point = self.point_factory(Measure, qname, kind = kind)
+		self.register_point_class(Measure, default = default)
+		return Point
+
+	def datum_for_point(self, to_unit):
+		r = self.convert(
+			self.terms[to_unit], to_unit,
+			self.datums[self.terms[to_unit]]
+		)
+		ir = r.numerator // r.denominator
+		if ir == r:
+			return ir
+		return r
+
+	def point_from_unit(self, unit):
+		P = self.points[self.terms[unit]]
+		if unit in P:
+			return P[unit]
+		return P[None]
+
+	def measure_from_unit(self, unit):
+		M = self.measures[self.terms[unit]]
+		if unit in M:
+			return M[unit]
+		return M[None]
+
+	def represent(self, term, unitseq):
+		self.measure_repr[term] = unitseq
+
+	def point_factory(self, Measure, qname, *,
+			kind = 'definite', Class = Point, point_magnitude = 1
+		) -> Type[abstract.Point]:
+		"""
+		# Construct a Point class from the given scalar.
+		"""
+		unit_kind = kind
+
+		path = qname.rsplit('.', 1)
+		d = dict(
+			__slots__ = (),
+			__module__ = path[0],
+			__name__ = path[1],
+			unit = Measure.unit,
+			kind = unit_kind,
+			name = Measure.name,
+			datum = self.datum_for_point(Measure.unit),
+			# vector properties
+			magnitude = point_magnitude, # Vector is: Point -> Point+magnitude
+			context = self,
+			liketerm = self.terms[Measure.unit],
+			Measure = Measure,
+		)
+
+		Point = type(path[1], (Class,), d) # Use type constructor in order to support pickling.
+		Point.__doc__ = '&.abstract.Point'
+
+		abstract.Point.register(Point)
+		return Point
+
+	def measure_factory(self, id, qname, *,
+			kind = 'definite', Class = Measure, name = None, address = None
+		) -> Type[abstract.Measure]:
+		"""
+		# Construct a measure with the designated unit identifier and class.
+		"""
+		proper_name = name or id
+		unit_kind = kind
+
+		path = qname.rsplit('.', 1)
+
+		d = dict(
+			__slots__ = (),
+			__module__ = path[0],
+			__name__ = path[1],
+			unit = id,
+			kind = unit_kind,
+			name = proper_name,
+			datum = 0,
+			context = self,
+			liketerm = self.terms[id],
+		)
+
+		Measure = type(path[1], (Class,), d) # Use type constructor in order to support pickling.
+		Measure.__doc__ = '&.abstract.Measure'
+
+		abstract.Measure.register(Measure)
+		return Measure
+
+def standard_context(qname) -> tuple[Context, Sequence[abstract.Measure], Sequence[abstract.Point]]:
+	"""
+	# Construct the standard time context from the local modules.
+
+	# Normally called by &.types during import to initialize the primary data types.
+	"""
+	from . import earth
+	from . import metric
+	from . import week
+	from . import eternal
+	from . import gregorian
+	from . import format
+
+	context = Context()
+
+	# Most practical time units are actually related to a day.
+	# Declare the datum for day based PiTs
+	context.declare('day', 5 * ((((365*4) + 1) * 100) - 3) + 1, kind = 'definite')
+
+	# Likewise, Month PiTs are relative to Y2K, but have a different datum.
+	context.declare('month', 2000*12, kind = 'subjective')
+	# NOTE: The month offset and day offset are *not* equal.
+	#       Day offsets are relative to the beginning of the first week
+	#       in Y2K in order to aid week updates.
+
+	eternal.context(context, qname)
+	earth.context(context)
+	week.context(context)
+	metric.context(context)
+	gregorian.context(context)
+
+	format.context(context) # 'iso' and 'rfc' containers
+	context.container('__str__', *context.containers['iso'])
+
+	context.represent('day', [
+		'petasecond',
+		'annum',
+		'week',
+		'day',
+		'hour',
+		'minute',
+		'second',
+		'millisecond',
+		'microsecond',
+		'nanosecond',
+	])
+
+	context.represent('month', [
+		'millennium',
+		'century',
+		'decade',
+		'year',
+		'month',
+	])
+
+	measures = (
+		context.new_measure_class(
+			'nanosecond', qname = (qname + '.Measure'), default = True),
+		context.new_measure_class(
+			'day', qname = qname + '.Days'),
+
+		# gregorian month terms
+		context.new_measure_class(
+			'month',
+			kind = 'subjective',
+			qname = qname + '.Months', default = True),
+	)
+
+	points = (
+		context.new_point_class(
+			measures[0], qname = qname + '.Timestamp', default = True),
+		context.new_point_class(
+			measures[1], qname = qname + '.Date'),
+	)
+
+	unix_delta = (
+		points[0].datum - points[0].of(date=(1970,1,1)).measure(
+			points[0].of(date=(2000,1,2))
+		).select(points[0].unit)
+	)
+
+	# XXX: pretty much assuming the desired/possible precision of `x` here..
+	def unpack_unix(typ, x, delta = unix_delta):
+		return ('nanosecond', int(x * 1000000000) + delta),
+
+	def pack_unix(pit, arg, delta = unix_delta):
+		return (pit.select(pit.unit) - delta) / 1000000
+
+	context.container('unix', pack_unix, unpack_unix)
+	context.constant('unix', unix_delta)
+
+	# Remove the set of modules unlikely to be used after this point.
+	try:
+		import sys
+		infomodules = (
+			earth,
+			metric,
+			week,
+			eternal,
+			gregorian,
+		)
+		for x in infomodules:
+			del sys.modules[x.__name__]
+	except Exception as err:
+		# XXX: Raise warning about unload failure.
+		pass
+
+	return (context, measures, points)
