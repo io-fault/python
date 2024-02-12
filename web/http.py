@@ -1,0 +1,747 @@
+"""
+# Client and server common IETF HTTP tools for &..kernel based applications.
+
+# [ Properties ]
+# /HeaderSequence/
+	# Type annotation for the header sequence used by &Structures instances.
+"""
+import typing
+import collections
+import itertools
+import functools
+
+from ..context import tools
+from ..context.tools import cachedproperty, cachedcalls
+from ..time import types as timetypes
+from ..system import memory
+
+from ..internet import http as protocol
+from ..internet import media
+from ..internet import ri
+
+from ..kernel import core
+from ..kernel import flows
+
+HeaderSequence = typing.Sequence[typing.Tuple[bytes, bytes]]
+
+def ranges(length, range_header, decode_number=int):
+	"""
+	# Generator producing the integer ranges specified by the given Range header.
+
+	# [ Parameters ]
+	# /length/
+		# The (http/header)`Content-Length` of the entity body being referenced.
+	# /range_header/
+		# The (http/header)`Range` to be converted to slices.
+	"""
+	if range_header is None:
+		yield (0, length)
+		return
+
+	for x in range_header.split():
+		if x.startswith(b'bytes='):
+			break
+	else:
+		yield (0, length)
+		return
+
+	label, ranges = x.split(b'=')
+	for x in ranges.split(b','):
+		start, stop = x.split(b'-')
+		if not start:
+			# empty start range
+			if not stop:
+				yield (0, length)
+			else:
+				# Convert to slice.
+				stop = decode_number(stop)
+				yield (length - stop, length)
+		else:
+			if not stop:
+				stop = length
+			else:
+				stop = decode_number(stop) + 1
+
+			yield (decode_number(start), stop)
+
+class Structures(object):
+	"""
+	# Manages a sequence of HTTP headers and cached access to specific ones.
+
+	# Primarily used to extract information from received response (client) or request (server).
+	"""
+
+	method = None
+	uri = None
+	pathstring = None
+	querystring = None
+
+	status = None
+	phrase = None
+
+	_uri_struct = None
+	_uri_parts = None
+
+	def __init__(self, headers:HeaderSequence, *local:bytes):
+		"""
+		# Create a cache for a sequence of headers directly stored.
+
+		# [ Parameters ]
+		# /headers/
+			# The sequence of pairs designating the storage area to use.
+		# /local/
+			# Additional headers that should have cached access.
+		"""
+		self._cache = {k.lower():None for k in local}
+		self.has = self._cache.__contains__
+		self.cookies = []
+		self.headers = headers
+
+	def set_request(self, method:bytes, uri:bytes):
+		"""
+		# Configure the structure as representing a request received by a server.
+		"""
+		self.method = method.decode('utf-8', errors='surrogateescape')
+		uri = self.uri = uri.decode('utf-8', errors='surrogateescape')
+
+		uri = uri.split("?", 1)
+		self.pathstring = uri[0]
+		if uri[1:]:
+			self.querystring = uri[1]
+
+		return self
+
+	def set_status(self, status:bytes, phrase:bytes):
+		"""
+		# Configure the structure as representing a response received by a client.
+		"""
+		self.status = int(status)
+		self.phrase = phrase.decode('utf-8', errors='surrogateescape')
+
+		return self
+
+	@property
+	def redirected(self) -> bool:
+		"""
+		# Whether the response is a redirect.
+		"""
+		return 300 <= self.status < 400
+
+	@cachedproperty
+	def cache(self):
+		self._init_headers(self.headers)
+		return self._cache
+
+	def __str__(self):
+		return '\n'.join([
+			': '.join([x.decode('ascii'), y.decode('ascii')])
+			for x, y in self.headers
+		])
+
+	def _init_headers(self, headers):
+		"""
+		# Set the headers to be cached and structured for use by an application.
+		"""
+
+		ch = self.cached_headers
+		c = self._cache
+		for k, v in headers:
+			k = k.lower()
+
+			if k in c:
+				c[k] = v
+			elif k in {b'set-cookie', b'cookie'}:
+				self.cookies.append(v)
+			elif k in ch:
+				# Used to support cached headers local to an instance.
+				c[k] = v
+
+		return self
+
+	@cachedproperty
+	def _uri_parts(self):
+		return ri.Parts(
+			'authority', 'http',
+			self.host,
+			self.pathstring, self.querystring, None)
+
+	@cachedproperty
+	def _uri_struct(self):
+		return ri.structure(self._uri_parts)
+
+	@property
+	def path(self) -> typing.Sequence[str]:
+		"""
+		# The sequence of path items in pathstring.
+		"""
+		return self._uri_struct['path']
+
+	@property
+	def query(self) -> typing.Optional[dict]:
+		"""
+		# The query parameters of the URI.
+		"""
+		return self._uri_struct.get('query')
+
+	@property
+	def upgrade(self) -> bool:
+		"""
+		# Whether or not the request looking to perform protocol substitution.
+		"""
+		return self.connection == b'upgrade'
+
+	@property
+	def content(self) -> bool:
+		"""
+		# Whether the headers indicate an associated body.
+		"""
+		cl = self.cache.get(b'content-length')
+		if cl is not None:
+			return True
+
+		return self.cache.get(b'transfer-encoding') == b'chunked'
+
+	@property
+	def length(self) -> typing.Optional[int]:
+		"""
+		# The length of the content; positive if exact, &None if no content, and -1 if arbitrary.
+		# For HTTP, arbitrary triggers chunked transfer encoding.
+		"""
+
+		cl = self.cache.get(b'content-length')
+		if cl is not None:
+			return int(cl.decode('ascii'))
+
+		te = self.cache.get(b'transfer-encoding')
+		if te is not None and te.lower().strip() == b'chunked':
+			return -1
+
+		return None
+
+	def byte_ranges(self, length):
+		"""
+		# The byte ranges of the request.
+		"""
+
+		range_str = self.cache.get(b'range')
+		return ranges(length, range_str)
+
+	@cachedproperty
+	def upgrade_insecure(self):
+		"""
+		# The (http/header-id)`Upgrade-Insecure-Requests` header as a boolean.
+		# &None if not the header was not present, &True if the header value was
+		# (octets)`1` and &False if (octets)`0`.
+		"""
+
+		x = self.cache.get(b'upgrade-insecure-requests')
+		if x is None:
+			return None
+		elif x == b'1':
+			return True
+		elif x == b'0':
+			return False
+		else:
+			raise ValueError("Upgrade-Insecure-Requests not valid")
+
+	cached_headers = set(
+		x.lower() for x in [
+			b'Connection',
+			b'Upgrade',
+			b'Host',
+			b'Upgrade-Insecure-Requests',
+			b'Range',
+			b'Expect',
+
+			b'Transfer-Encoding',
+			b'Transfer-Extension',
+
+			b'TE',
+			b'Trailer',
+
+			b'Date',
+			b'Last-Modified',
+			b'Retry-After',
+
+			b'Server',
+			b'User-Agent',
+			b'From',
+			b'P3P',
+
+			b'Accept',
+			b'Accept-Encoding',
+			b'Accept-Language',
+			b'Accept-Ranges',
+			b'Accept-Charset',
+
+			b'Content-Type',
+			b'Content-Language',
+			b'Content-Length',
+			b'Content-Range',
+			b'Content-Location',
+			b'Content-Encoding',
+
+			b'Cache-Control',
+			b'ETag',
+			b'Expires',
+			b'If-Match',
+			b'If-Modified-Since',
+			b'If-None-Match',
+			b'If-Range',
+			b'If-Unmodified-Since',
+
+			b'Authorization',
+			b'WWW-Authenticate',
+			b'Proxy-Authenticate',
+			b'Proxy-Authorization',
+
+			b'Location',
+			b'Max-Forwards',
+
+			b'Via',
+			b'Vary',
+
+			b'Forwarded',
+			b'X-Forwarded-For',
+
+			b':Method',
+			b':URI',
+		]
+	)
+
+	@property
+	def connection(self) -> bytes:
+		"""
+		# Return the connection header stripped and lowered or `b''` if no header present.
+		"""
+		return self.cache.get(b'connection', b'').strip().lower()
+
+	@staticmethod
+	@cachedcalls(32)
+	def media_range_cache(range_data, parse_range=media.Range.from_bytes):
+		"""
+		# Cached access to a media range header.
+		"""
+
+		if range_data is not None:
+			return parse_range(range_data)
+		else:
+			return media.any_range # HTTP default.
+
+	@cachedproperty
+	def media_range(self):
+		"""
+		# Structured form of the Accept header.
+		"""
+
+		accept = self.cache.get(b'accept')
+		return self.media_range_cache(accept)
+
+	@cachedproperty
+	def media_type(self) -> media.Type:
+		"""
+		# The structured media type extracted from the (http/header-id)`Content-Type` header.
+		"""
+
+		return media.type_from_bytes(self.headers[b'content-type'])
+
+	@cachedproperty
+	def date(self, parse=(lambda x: timetypes.Timestamp.of(rfc=x))) -> timetypes.Timestamp:
+		"""
+		# Date header timestamp.
+		"""
+
+		if not b'date' in self.headers:
+			return None
+
+		ts = self.headers[b'date'].decode('utf-8')
+		return parse(ts)
+
+	@property
+	def host(self) -> str:
+		"""
+		# Decoded host header.
+		"""
+		return self.cache.get(b'host', b'').decode('idna')
+
+	@property
+	def encoding(self) -> str:
+		"""
+		# Character encoding of entity content. &None if not applicable.
+		"""
+		pass
+
+	@property
+	def final(self) -> bool:
+		"""
+		# Whether this is suppoed to be the last transaction in the connection.
+		"""
+
+		cxn = self.cache.get(b'connection')
+		return cxn == b'close' or not cxn
+
+def _join_send_wire(event, channel_id, transfer_events):
+	assert event == flows.fe_transfer
+	return [(-3, transfer_events)]
+
+def _join_send_content(event, channel_id, transfer_events):
+	assert event == flows.fe_transfer
+	return [(2, x) for x in transfer_events]
+
+def _join_send_chunk(event, channel_id, transfer_events):
+	assert event == flows.fe_transfer
+	return [(3, x) for x in transfer_events]
+
+def _join_send_eom(event, channel_id, terminal, EOM=protocol.EOM):
+	assert event == flows.fe_terminate
+	return (EOM,)
+
+def _join_initiate_response(
+		shared, commands, sequence,
+		event, channel_id, init,
+		fc_transfer=flows.fe_transfer,
+	):
+	assert event == flows.fe_initiate
+
+	if init is None:
+		commands[fc_transfer] = _join_send_wire
+		return ()
+	else:
+		rline, headers, content_length = sequence(shared['version'], init)
+		if content_length is None:
+			commands[fc_transfer] = _join_send_chunk
+		else:
+			commands[fc_transfer] = _join_send_content
+
+	return [
+		(0, rline),
+		(1, headers),
+		(1, ()),
+	]
+
+def _join_initiate_request(
+		shared, commands, sequence,
+		event, channel_id, init,
+		fc_transfer=flows.fe_transfer,
+	):
+	assert event == flows.fe_initiate
+
+	if init is None:
+		commands[fc_transfer] = _join_send_wire
+		return ()
+	else:
+		rline, headers, content_length = sequence(shared['version'], init)
+		if rline[0] == b'HEAD':
+			shared[('response-has-body', channel_id)] = False
+
+		if content_length is None:
+			commands[fc_transfer] = _join_send_chunk
+		else:
+			commands[fc_transfer] = _join_send_content
+
+	return [
+		(0, rline),
+		(1, headers),
+		(1, ()),
+	]
+
+def join(
+		shared,
+		sequence,
+		fc_initiate=flows.fe_initiate,
+		fc_terminate=flows.fe_terminate,
+		fc_transfer=flows.fe_transfer,
+		partial=functools.partial,
+	):
+	"""
+	# Join flow events into a proper HTTP stream.
+	"""
+
+	serializer = protocol.assembly()
+	serialize = serializer.send
+	commands = {}
+	transfer = ()
+
+	if shared['disposition'] == 'client':
+		ini = partial(_join_initiate_request, shared, commands, sequence)
+	else:
+		ini = partial(_join_initiate_response, shared, commands, sequence)
+
+	commands.update({
+		fc_initiate: ini, # Reference Cycle
+		fc_terminate: _join_send_eom,
+		fc_transfer: _join_send_chunk,
+	})
+	transformer = commands.__getitem__
+
+	try:
+		while True:
+			events = (yield transfer)
+			transfer = []
+			for event in events:
+				transfer += serialize(
+					transformer(event[0])(*event)
+				)
+	finally:
+		# GeneratorExit
+		commands.clear()
+
+def _fork_response_sync(state):
+	"""
+	# Generator that can be used to communicate whether or not
+	# the response will have a body. Used with client disposition.
+	"""
+	for i in itertools.count(1):
+		yield i, state.pop(('response-has-body', i), True)
+
+def fork(
+		shared, allocate, close, overflow,
+		rline=protocol.ev_rline,
+		headers=protocol.ev_headers,
+		trailers=protocol.ev_trailers,
+		content=protocol.ev_content,
+		chunk=protocol.ev_chunk,
+		violation=protocol.ev_violation,
+		bypass=protocol.ev_bypass,
+		EOH=protocol.EOH,
+		EOM=protocol.EOM,
+		iter=iter, map=map, len=len,
+		chain=itertools.chain.from_iterable,
+		fc_initiate=flows.fe_initiate,
+		fc_terminate=flows.fe_terminate,
+		fc_transfer=flows.fe_transfer,
+	):
+	"""
+	# Split an HTTP stream into flow events for use by &flows.Division.
+	"""
+
+	disposition = shared['disposition']
+
+	if disposition == 'client':
+		rs = _fork_response_sync(shared)
+		tokenizer = protocol.disassembly(
+			disposition='client',
+			allocation=rs
+		)
+	else:
+		tokenizer = protocol.disassembly()
+
+	tokens = tokenizer.send
+
+	close_state = False # header Connection: close
+	events = iter(())
+	flow_events = []
+	internal_overflow = []
+
+	def http_protocol_violation(data):
+		raise Exception(data)
+
+	http_xact_id = 0
+
+	while not close_state:
+
+		http_xact_id += 1
+		lrline = []
+		lheaders = []
+		local_state = {
+			rline: lrline.extend,
+			headers: lheaders.extend,
+			violation: http_protocol_violation,
+			bypass: internal_overflow.extend,
+		}
+
+		headers_received = False
+		while not headers_received:
+			for x in events:
+				local_state[x[0]](x[1])
+				if x == EOH:
+					headers_received = True
+					break
+			else:
+				# need more for headers
+				events = []
+				y = events.extend
+				for x in map(tokens, ((yield flow_events))):
+					y(x)
+				del y
+				flow_events = []
+				events = iter(events)
+
+		# got request or status line and headers for this request
+		assert len(lrline) == 3
+
+		initiate, rversion = allocate((lrline, lheaders))
+
+		flow_events.append((fc_initiate, http_xact_id, initiate))
+		##
+		# local_state is used as a catch all
+		# if strictness is desired, it should be implemented here.
+
+		body = []
+		trailer_sequence = []
+		local_state = {
+			# handle both chunking and content types
+			content: body.append,
+			chunk: body.append,
+			# extension: handle chunk extension events.
+			trailers: trailer_sequence.extend,
+			violation: http_protocol_violation,
+			bypass: internal_overflow.extend,
+		}
+
+		try:
+			body_complete = False
+			while not body_complete:
+				for x in events:
+					if x == EOM:
+						body_complete = True
+						break
+
+					# not an eof event, so extend state and process as needed
+					local_state[x[0]](x[1])
+
+					if trailer_sequence:
+						pass
+					else:
+						if body:
+							# send the body to the connected Flow
+							# the Distributing instance watches for
+							# obstructions on the receiver and sends them
+							# upstream, so no buffering need to occur here.
+							flow_events.append((fc_transfer, http_xact_id, body))
+
+							# empty body sequence and reconfigure its callback
+							body = []
+							local_state[content] = local_state[chunk] = body.append
+
+				else:
+					# need more for EOM
+					events = []
+					y = events.extend
+					for x in map(tokens, ((yield flow_events))):
+						y(x)
+					flow_events = []
+					events = iter(events)
+				# for x in events
+			# while not body_complete
+		except GeneratorExit:
+			raise
+		else:
+			flow_events.append((fc_terminate, http_xact_id, None))
+
+	# Close state. Signal end.
+	close()
+	# Store overflow for protocol switches.
+	internal_overflow.append(b'')
+	for x in internal_overflow:
+		overflow(x)
+	del internal_overflow[:]
+
+	while True:
+		bypassing = map(tokens, ((yield flow_events)))
+		flow_events = []
+		for x in bypassing:
+			assert x[0] == bypass
+			if x[1]:
+				overflow(x[1])
+
+class TXProtocol(flows.Protocol):
+	"""
+	# Protocol class sending HTTP messages.
+	"""
+
+	@property
+	def http_version(self):
+		return self.p_shared['version']
+
+	@staticmethod
+	def initiate_server_request(protocol:bytes, parameter):
+		"""
+		# Used by clients to select the proper initiation to send.
+		"""
+		method, path, headers, length = parameter
+		return ((method, path, protocol), headers, length)
+
+	@staticmethod
+	def initiate_client_response(protocol:bytes, parameter):
+		"""
+		# Used by servers to select the proper initiation to send.
+		"""
+		code, description, headers, length = parameter
+		return ((protocol, code, description), headers, length)
+
+	def __init__(self, state, initiate):
+		self.p_shared = state
+		self.p_local = join(state, initiate)
+		self.p_transfer = self.p_local.send
+		self.p_transfer(None)
+
+class RXProtocol(flows.Protocol):
+	"""
+	# Protocol class receiving HTTP messages.
+	"""
+
+	@property
+	def http_version(self):
+		return self.p_shared['version']
+
+	@staticmethod
+	def allocate_client_request(parameter):
+		"""
+		# For use by server receiving the client request.
+		"""
+		(method, path, version), headers = parameter
+		return (method, path, headers), version
+
+	@staticmethod
+	def allocate_server_response(parameter):
+		"""
+		# For use by clients receiving the server response.
+		"""
+		(version, code, description), headers = parameter
+		return (code, description, headers), version
+
+	def p_close(self):
+		pass
+
+	def p_correlate(self, send):
+		self.p_send = send
+		send.p_receive = weakref.ref(self)
+
+	def p_overflowing(self):
+		self.start_termination()
+		self.p_overflow = []
+		return self.p_overflow.append
+
+	def __init__(self, state, allocate):
+		self.p_shared = state
+		self.p_local = fork(state, allocate, self.p_close, self.p_overflowing) # XXX: weakmethod
+		self.p_transfer = self.p_local.send
+		self.p_transfer(None)
+
+def allocate_client_protocol(version:bytes=b'HTTP/1.1'):
+	state = {
+		'version': version,
+		'disposition': 'client',
+	}
+	pi = RXProtocol(state, RXProtocol.allocate_server_response)
+	po = TXProtocol(state, TXProtocol.initiate_server_request)
+	index = ('http', None)
+	return (index, (pi, po))
+
+def allocate_server_protocol(version:bytes=b'HTTP/1.1'):
+	state = {
+		'version': version,
+		'disposition': 'server',
+	}
+	pi = RXProtocol(state, RXProtocol.allocate_client_request)
+	po = TXProtocol(state, TXProtocol.initiate_client_response)
+	index = ('http', None)
+	return (index, (pi, po))
+
+allocate_client_protocol_v1 = allocate_client_protocol
+allocate_server_protocol_v1 = allocate_server_protocol
+
+if False:
+	allocate_client_protocol_v2 = None
+	allocate_server_protocol_v2 = None
