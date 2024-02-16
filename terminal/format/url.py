@@ -62,5 +62,6 @@ if __name__ == '__main__':
 			)
 		)
 		sys.stderr.buffer.write(
-			b''.join(screen.render(ph)) + b'\n'
+			b''.join(screen.render(ph, rp)) + \
+			screen.reset_text() + b'\n'
 		)
