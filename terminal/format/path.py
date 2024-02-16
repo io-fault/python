@@ -97,6 +97,10 @@ def f_route_absolute(route, *, warning=False):
 	root = route@'/'
 	return f_route_path(root, route.container) + f_route_identifier(route, warning=warning)
 
+def f_route_absolute_colors(route, *, warning=False):
+	for typ, value in f_route_absolute(route, warning=warning):
+		yield (value, route_colors[typ])
+
 if __name__ == '__main__':
 	import sys, itertools
 	from ...system import files as sysfiles
