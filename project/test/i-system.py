@@ -142,6 +142,20 @@ def test_Product_select(test):
 	test/proto2 == proto
 	test/id == t_project_id + '/alt-1'
 
+def test_Product_image(test):
+	"""
+	# - &module.Product.image
+	"""
+
+	td, pd = product_a(test)
+	v = module.types.Variants('SYS', 'ARCH', 'FORM')
+	pj = module.types.factor@'ctx.first-context'
+	fp = module.types.factor@'factor'
+
+	root = str(pd.route)
+	path = '/.images/SYS-ARCH/ctx/first-context/factor.i'
+	test/str(pd.image(v, pj, fp)) == (root + path)
+
 def test_Project_no_corpus_part(test):
 	"""
 	# - &module.Project._iid_corpus_name_pair

@@ -126,6 +126,7 @@ class Product(object):
 
 	project_identity_segment = Segment.from_sequence(['.project', 'f-identity'])
 	default_meta_directory = Segment.from_sequence(['.product'])
+	default_images_directory = Segment.from_sequence(['.images'])
 
 	@classmethod
 	def import_protocol(Class, identifier:str) -> types.FactorIsolationProtocol:
@@ -194,6 +195,20 @@ class Product(object):
 
 	def __eq__(self, operand):
 		return self.route == operand.route
+
+	def image(self, variants:types.Variants, project:types.FactorPath, factor:types.FactorPath, suffix='.i'):
+		"""
+		# Identify the location of the factor's image for the given &variants.
+		"""
+
+		path = self.route // self.default_images_directory
+		path /= (variants.system + '-' + variants.architecture)
+
+		path //= project
+		path = path.delimit()
+		path //= factor
+
+		return path.suffix(suffix)
 
 	def identifier_by_factor(self, factor:types.FactorPath) -> typing.Tuple[str, types.FactorIsolationProtocol]:
 		"""
@@ -474,8 +489,8 @@ class Project(object):
 		except Exception:
 			return b''
 
-	def image(self, variants, fp:types.FactorPath, suffix='i'):
-		return self.protocol.image(self.route, variants, fp, suffix=suffix)
+	def image(self, variants, fp:types.FactorPath, suffix='.i'):
+		return self.product.image(variants, self.factor, fp, suffix=suffix)
 
 	def select(self, factor:types.FactorPath):
 		"""
@@ -643,9 +658,9 @@ class Context(object):
 
 		return (pd, pj, fp)
 
-	def image(self, variants, fp, suffix='i'):
+	def image(self, variants, fp, suffix='.i'):
 		pd, pj, lfp = self.split(fp)
-		return pj.image(variants, lfp, suffix=suffix)
+		return pd.image(variants, pj.factor, lfp, suffix=suffix)
 
 	def refer(self, factorpath:str, *, context:types.FactorPath=types.factor):
 		"""

@@ -56,7 +56,7 @@ def load_context(route, type:str, name='pki', intention='optimal'):
 		raise Exception("security context did not have a kprotocol %s project" %(type,))
 
 	var = lsf.types.Variants(sys, arch)
-	dllpath = pj.image(var, lsf.types.factor@"extensions"/name)
+	dllpath = ctx.image(var, pj.factor@"extensions"/name)
 	loader = importlib.machinery.ExtensionFileLoader(name, str(dllpath))
 	return loader.load_module()
 

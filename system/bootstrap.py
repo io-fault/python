@@ -40,7 +40,7 @@ def package_import(bytecode, path, root, pkg):
 	name = prefix + pkg
 	fdir = join(path, root, pkg)
 	src = join(fdir, '__init__.py')
-	return name, fdir, src, bytecode(fdir, '__init__')
+	return name, fdir, src, bytecode(path, name + '.__init__')
 
 def module_import(bytecode, path, root, mod):
 	prefix = root + '.'
@@ -48,7 +48,7 @@ def module_import(bytecode, path, root, mod):
 	pj, factor = mod.split('.')
 	fdir = join(path, root, pj)
 	src = join(fdir, factor + '.py')
-	return name, prefix + pj, src, bytecode(fdir, factor)
+	return name, prefix + pj, src, bytecode(path, name)
 
 def load_code(name, bc, src):
 	"""
@@ -135,7 +135,7 @@ def finish(factors, finder, modules, Rename=(lambda x: x)):
 	factors.__file__ = factors.__spec__.origin
 
 def integrate(faultpath, faultname, faultform,
-		integrals, system, python, arch, form,
+		images, system, python, arch, form,
 		*products,
 		modules=sys.modules
 	):
@@ -143,8 +143,8 @@ def integrate(faultpath, faultname, faultform,
 	# Integrate the factor environment into Python's import system.
 	"""
 
-	def bytecode(srcdir, name, sia=system + '-' + python, form=form, suffix='.i'):
-		return join(srcdir, integrals, sia, form, name + suffix)
+	def bytecode(fault, name, sia=system + '-' + python, form=form, suffix='.i'):
+		return join(fault, images, sia, *name.split('.')) + suffix
 
 	*requirements, factors = install(modules, bytecode, faultpath, faultname)
 	finder = factors.setup(form=form, paths=[faultpath], platform=(system, python, arch))

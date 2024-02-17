@@ -5,24 +5,7 @@ import importlib.machinery
 
 from . import files
 from ..project import system as lsf
-
-def compose_image_path(variants, default='void', groups=[["system", "architecture"], ["form"], ["name"]]):
-	"""
-	# Create a variant path according to the given &groups and &variants.
-	"""
-	segments = []
-
-	for g in groups[:-1]:
-		fields = ([(variants.get(x) or default) for x in g])
-		segment = '-'.join(fields)
-		segments.append(segment)
-
-	# Name must be '.' separated.
-	fields = ([(variants.get(x) or default) for x in groups[-1]])
-	segment = '.'.join(fields)
-	segments.append(segment)
-
-	return segments
+from ..route.types import Segment
 
 class IntegralFinder(object):
 	"""
@@ -83,47 +66,35 @@ class IntegralFinder(object):
 			raise NotImplementedError("factor modules may not be directly updated using the loader")
 
 	def __init__(self,
-			groups,
 			python_bytecode_variants,
-			extension_variants,
-			form='optimal',
-			image_container_name='__f-int__',
+			extension_variants, *,
+			image_suffix='.i',
+			image_container_name='.images',
 		):
 		"""
 		# Initialize a finder instance for use with the given variants.
 		"""
 		self.context = lsf.Context()
 		self.index = dict()
-		self.groups = groups
-		self.form = form
 		self.image_container_name = image_container_name
+		self.image_suffix = image_suffix
 
 		self.python_bytecode_variants = python_bytecode_variants
-		self.extension_variants = extension_variants
-
-		# These (following) properties are not the direct parameters of &IntegralFinder
-		# as it is desired that the configuration of the finder to be introspectable.
-		# There is some potential for selecting a usable finder out of meta_path
-		# using the above fields. The below fields are the cache used by &find_spec.
-
-		self._ext = self._init_segment(groups, extension_variants)
-		self._pbc = self._init_segment(groups, python_bytecode_variants)
-
-	@staticmethod
-	def _init_segment(groups, variants):
-		from ..route.types import Segment
-		v = dict(variants)
-		v['name'] = "{0}"
-
-		# polynomial-1
-		segments = (compose_image_path(v, groups=groups))
-		final = segments[-1] + '.i'
-		del segments[-1]
-
-		leading = Segment.from_sequence(segments)
-		assert "{0}" in final # &groups must have 'name' in the final path identifier.
-
-		return leading, final, final.format
+		self._pbv = Segment.from_sequence([
+			image_container_name,
+			'-'.join((
+				python_bytecode_variants['system'],
+				python_bytecode_variants['architecture'],
+			))
+		])
+		self.system_extension_variants = extension_variants
+		self._sev = Segment.from_sequence([
+			image_container_name,
+			'-'.join((
+				extension_variants['system'],
+				extension_variants['architecture'],
+			))
+		])
 
 	def connect(self, route:files.Path):
 		"""
@@ -208,11 +179,11 @@ class IntegralFinder(object):
 			return None
 
 		Loader = self.Loader
-		route = pd.route + name.split('.')
+		nameparts = name.split('.')
+		route = pd.route + nameparts
 		ftype = route.fs_type()
 		parent = route.container
 
-		final = route.identifier
 		pkg = False
 
 		if ftype == 'void':
@@ -227,14 +198,13 @@ class IntegralFinder(object):
 			else:
 				xpath = route.segment(cur)
 				exts = cur/'extensions'
-				ints = parent/self.image_container_name
-				rroute = exts//ints.segment(cur)
 				extfactor = exts//xpath
 
 				if extfactor.fs_type() != 'void':
 					# .extension entry is present
-					leading, filename, fformat = self._ext
-					extpath = str(rroute//leading/fformat(final, self.form))
+					ir = (pd.route//self._sev)
+					ir //= extfactor.segment(pd.route)
+					extpath = str(ir.suffix(self.image_suffix))
 
 					l = self.ExtensionFileLoader(name, extpath)
 					spec = self.ModuleSpec(name, l, origin=extpath, is_package=False)
@@ -245,14 +215,12 @@ class IntegralFinder(object):
 			pkg = True
 			pysrc = route / '__init__.py'
 			module__path__ = str(route)
-			final = '__init__'
-			idir = route / self.image_container_name
+			nameparts.append('__init__')
 			origin = str(pysrc)
 			if pysrc.fs_type() == 'void':
 				Loader = self.Loader.from_nothing
 		else:
 			# Regular Python module or nothing.
-			idir = parent / self.image_container_name
 			for x in self.suffixes:
 				pysrc = route.suffix_filename(x)
 				if pysrc.fs_type() == 'data':
@@ -265,8 +233,9 @@ class IntegralFinder(object):
 			origin = str(pysrc)
 
 		# Bytecode for {factor}/__init__.py or {factor}.py
-		leading, filename, fformat = self._pbc
-		cached = idir//leading/fformat(final, self.form)
+		cached = (pd.route//self._pbv)
+		cached += nameparts
+		cached = cached.suffix(self.image_suffix)
 
 		l = Loader(str(cached), name, str(pysrc))
 		spec = self.ModuleSpec(name, l, origin=origin, is_package=pkg)
@@ -278,7 +247,7 @@ class IntegralFinder(object):
 		return spec
 
 	@classmethod
-	def create(Class, system, python, host, form):
+	def create(Class, system, python, host, form='void'):
 		"""
 		# Construct a standard loader selecting images with the given &form.
 		"""
@@ -295,9 +264,7 @@ class IntegralFinder(object):
 			'form': form
 		}
 
-		g = [['system','architecture'],['form'],['name']]
-
-		return Class(g, bc, ext, form=form)
+		return Class(bc, ext)
 
 def setup(form='optimal', paths=(), platform=None):
 	"""
