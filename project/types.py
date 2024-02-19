@@ -43,7 +43,7 @@ class Variants(object):
 
 	system:(str)
 	architecture:(str)
-	form:(str) = 'optimal'
+	form:(str) = 'executable'
 
 	def __repr__(self):
 		triple = ''.join([self.system, "-", self.architecture, "/", self.form])

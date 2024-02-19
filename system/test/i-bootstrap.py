@@ -13,14 +13,14 @@ def test_import_constructions(test):
 	# Constraint and sanity checks.
 	root = 'F'
 	path = '/'
-	bytecode = (lambda d, module: 'bytecode:' + d + '/' + module + '.pb')
+	bytecode = (lambda d, module: 'bytecode:' + d + module)
 
 	package_record = bootstrap.package_import(bytecode, path, root, 'project')
 	test/package_record == (
 		'F.project',
 		'/F/project',
 		'/F/project/__init__.py',
-		'bytecode:/F/project/__init__.pb',
+		'bytecode:/F.project.__init__',
 	)
 
 	module_record = bootstrap.module_import(bytecode, path, root, 'project.factor')
@@ -28,7 +28,7 @@ def test_import_constructions(test):
 		'F.project.factor',
 		'F.project',
 		'/F/project/factor.py',
-		'bytecode:/F/project/factor.pb',
+		'bytecode:/F.project.factor',
 	)
 
 def test_load_code(test):
@@ -87,9 +87,10 @@ def test_integration(test):
 
 	M = {}
 	bfactors = bootstrap.integrate(
-		str(faultpath), ctx, 'optimal', '__f-int__',
-		sys, pyimp, host, 'optimal',
+		str(faultpath), ctx, 'executable', '__f-int__',
+		sys, pyimp, host, 'executable',
 		str(p1), str(p2),
 		modules=M
 	)
-	test/len(M) == (len(bootstrap.pkglist) + len(bootstrap.modlist))
+	# +1 for fault.__init__.
+	test/len(M) == (len(bootstrap.pkglist) + len(bootstrap.modlist) + 1)

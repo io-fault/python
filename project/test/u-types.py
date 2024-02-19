@@ -15,7 +15,7 @@ def test_Variants(test):
 	v = module.Variants('s', 'a')
 	test/'s' == v.system
 	test/'a' == v.architecture
-	test/'optimal' == v.form
+	test/'executable' == v.form
 
 def test_Format(test):
 	"""

@@ -247,7 +247,7 @@ class IntegralFinder(object):
 		return spec
 
 	@classmethod
-	def create(Class, system, python, host, form='void'):
+	def create(Class, system, python, host, form='executable'):
 		"""
 		# Construct a standard loader selecting images with the given &form.
 		"""
@@ -266,7 +266,7 @@ class IntegralFinder(object):
 
 		return Class(bc, ext)
 
-def setup(form='optimal', paths=(), platform=None):
+def setup(form='executable', paths=(), platform=None):
 	"""
 	# Create and install a configured &IntegralFinder.
 

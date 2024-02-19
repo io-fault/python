@@ -117,7 +117,6 @@ def system(inv):
 	v = factors.lsf.types.Variants(
 		system=sa['system'],
 		architecture=sa['architecture'],
-		form='optimal',
 	)
 	factors.context.load()
 	factors.context.configure()
