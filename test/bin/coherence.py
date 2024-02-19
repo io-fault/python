@@ -221,35 +221,12 @@ class Harness(engine.Harness):
 			pdb.post_mortem(tb or test.fate.__traceback__)
 		return report
 
-def intercept(product, project, intention):
-	# Finder for test's target intention.
-
-	class ProjectFinder(factors.IntegralFinder):
-		def find_spec(self, name, path, target=None):
-			spec = None
-			if name[:self.project_length] in self.project_set:
-				spec = super().find_spec(name, path, target=target)
-			if spec is None:
-				return None
-
-			if hasattr(spec.loader, '_bytecode'):
-				image = spec.loader._bytecode
-			else:
-				image = spec.loader.path
-
-			if not os.path.exists(image):
-				# Exception is desired here as it is likely *not* desired to run
-				# tests using the source loader's bytecode.
-				raise ImportError("intention specific image not available for test")
-
-			return spec
-
-	# Mirror the default finder's configuration.
-	sfif = ProjectFinder.create(
+def intercept(product, project):
+	# Use an independent finder for the test subjects.
+	sfif = factors.IntegralFinder.create(
 		factors.finder.python_bytecode_variants['system'],
 		factors.finder.python_bytecode_variants['architecture'],
-		factors.finder.extension_variants['architecture'],
-		intention
+		factors.finder.system_extension_variants['architecture'],
 	)
 	sfif.connect(files.Path.from_absolute(product))
 	sfif.project_set = {project, project + '.'}
@@ -288,7 +265,7 @@ def trapped_report(source):
 def main(inv:process.Invocation) -> process.Exit:
 	sys.excepthook = python.hook
 	inv.imports([
-		'FRAMECHANNEL', 'INTENTION', 'PROJECT', 'PRODUCT',
+		'FRAMECHANNEL', 'PROJECT', 'PRODUCT',
 		'METRICS_CAPTURE',
 		'METRICS_IDENTITY', 'DISPATCH_IDENTITY', 'PROCESS_IDENTITY',
 	])
@@ -299,7 +276,6 @@ def main(inv:process.Invocation) -> process.Exit:
 	xid = '/'.join((project, rfpath))
 
 	channel = inv.environ.get('FRAMECHANNEL') or None
-	intention = inv.environ.get('INTENTION') or 'optimal'
 	product = inv.environ.get('PRODUCT') or ''
 	pid = inv.environ.get('PROCESS_IDENTITY', None)
 
@@ -325,7 +301,7 @@ def main(inv:process.Invocation) -> process.Exit:
 		factors.finder.context.load()
 		for x in pd.connections:
 			factors.finder.connect(x)
-		intercept(product, project, intention)
+		intercept(product, project)
 
 	log = Log.stdout(channel=channel)
 	log.declare()
