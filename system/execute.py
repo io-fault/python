@@ -113,7 +113,7 @@ def system(inv):
 	import os
 	from . import factors
 	fp = factors.lsf.types.factor@xargv[0]
-	sa = factors.finder.extension_variants
+	sa = factors.finder.system_extension_variants
 	v = factors.lsf.types.Variants(
 		system=sa['system'],
 		architecture=sa['architecture'],
