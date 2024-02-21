@@ -201,7 +201,10 @@ class Product(object):
 		# Identify the location of the factor's image for the given &variants.
 		"""
 
-		path = self.route // self.default_images_directory
+		if variants.form != 'executable':
+			path = self.route / ('.' + variants.form)
+		else:
+			path = self.route // self.default_images_directory
 		path /= (variants.system + '-' + variants.architecture)
 
 		path //= project
