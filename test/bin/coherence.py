@@ -312,7 +312,7 @@ def main(inv:process.Invocation) -> process.Exit:
 	# When configured in the target module, write the test reports.
 	rtrap = getattr(tm, '__metrics_trap__', None)
 	if rtrap is not None:
-		rpath = (files.root@rtrap).container/'.fault-test-fates'
+		rpath = (files.root@rtrap)/'test'/'.fault-test-fates'
 	else:
 		rpath = None
 
