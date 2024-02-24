@@ -263,7 +263,6 @@ class Theme(object):
 	"""
 	# The rendering methods and parameters used by a &Status.
 	"""
-	from ..terminal import palette
 
 	Formatter = tuple[str, str]
 
