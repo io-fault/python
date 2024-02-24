@@ -314,7 +314,7 @@ class Theme(object):
 		self.stylesets = {}
 		self.rendermethod = {}
 
-	def configure(self, colors):
+	def configure(self):
 		self.stylesets.update({
 			# Time is expected to be common among all themes.
 			'plain': 'default',
@@ -814,13 +814,13 @@ def r_title(value):
 		t += '[' + ']['.join(dimensions) + ']'
 	return [('plain', t)]
 
-def form(module, colors=Theme.palette.colors):
+def form(module):
 	"""
 	# Construct a &Layout and &Theme from the provided order and formatting structures.
 	"""
 
 	l = Layout(module.order)
-	t = Theme().configure(colors)
+	t = Theme().configure()
 	t.implement('duration', Theme.r_duration)
 	t.implement('title', r_title)
 
