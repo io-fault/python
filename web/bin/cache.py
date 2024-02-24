@@ -69,27 +69,13 @@ class Download(kcore.Context):
 		self.start_termination()
 		self.critical(self._force_quit)
 
-	def dl_pprint(self, screen, source):
-		rp = screen.terminal_type.normal_render_parameters
-
-		phrase = screen.Phrase.from_words(
-			itertools.chain.from_iterable(
-				rp.apply(textcolor=color).form(s)
-				for s, color in source
-			)
-		)
-		self.dl_display.buffer.write(b''.join(screen.render(phrase)) + screen.reset_text())
-
 	def dl_response_collected(self):
 		if self.dl_redirected:
 			return
 		self.dl_status()
 
-		from ...terminal.format import path
-		from ...terminal import matrix
-		screen = matrix.Screen()
-		self.dl_display.write('\n\rResponse collected; data stored in ')
-		self.dl_pprint(screen, path.f_route_absolute_colors(self.dl_output or self.dl_resource_name))
+		path = self.dl_output or self.dl_resource_name
+		self.dl_display.write('\n\rResponse collected; data stored in ' + str(path))
 		self.dl_display.write('\n')
 
 		self.executable.exe_status = 0
@@ -231,16 +217,12 @@ class Download(kcore.Context):
 	def dl_dispatch(self, struct, endpoint):
 		req = self.dl_request(struct)
 
-		from ...terminal.format.url import f_struct
-		from ...terminal import matrix
-		screen = matrix.Screen()
-
 		if 'port' in struct:
 			endpoint = endpoint.replace(port=int(struct['port']))
 
 		struct['address'] = str(endpoint.address)
 		struct['port'] = str(int(endpoint.port))
-		self.dl_pprint(screen, f_struct(struct))
+		self.dl_display.write(ri.serialize(struct))
 		self.dl_display.write('\n')
 		self.dl_display.buffer.flush()
 
