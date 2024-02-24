@@ -215,7 +215,7 @@ def dispatch(meta, log,
 
 					# Send final snapshot to log.
 					ftype = closetypes.get((opened, pdelta.status == 0), '<-')
-					xf = monitor.frame(ftype, status['identifier'])
+					xf = monitor.frame(control, ftype, status['identifier'])
 					log.emit(xf)
 					log.flush()
 

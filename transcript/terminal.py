@@ -8,7 +8,6 @@ import itertools
 import collections
 
 from ..context import tools
-from ..terminal import matrix
 from ..status import frames
 
 def duration_repr(seconds) -> typing.Tuple[float, str]:
@@ -27,6 +26,185 @@ def duration_repr(seconds) -> typing.Tuple[float, str]:
 
 	days = hours / 24
 	return (days, 'd')
+
+class Phrase(list):
+	__slots__ = ()
+
+	def cellcount(self):
+		return sum(len(x[1]) for x in self)
+
+class Legacy(object):
+	"""
+	# Abstraction for legacy ANSI/DEC escapes.
+	"""
+
+	_escape = b'\x1b'
+	_csi_open = _escape + b'['
+	_pm_open = _csi_open + b'?'
+	_pm_save = _pm_open + b'6;1049s'
+	_pm_restore = _pm_open + b'6;1049r'
+	_pm_origin_set = _pm_open + b'6h'
+	_pm_origin_reset = _pm_open + b'6l'
+	_pm_screen_set = _pm_open + b'1049h'
+	_pm_screen_reset = _pm_open + b'1049l'
+	_pm_show_cursor = _pm_open + b'25h'
+	_pm_hide_cursor = _pm_open + b'25l'
+	_restore_cursor = _escape + b'8'
+	_store_cursor = _escape + b'7'
+	_nl = _csi_open + b'1B'
+	_reset_sgr = _csi_open + b'0;39;49;59m'
+
+	_styles = {
+		'default': b'39',
+		'black': b'30',
+		'red': b'31',
+		'green': b'32',
+		'yellow': b'33',
+		'blue': b'34',
+		'magenta': b'35',
+		'cyan': b'36',
+		'white': b'37',
+
+		'orange': b'38;5;208',
+		'violet': b'38;5;135',
+		'teal': b'38;5;23',
+		'purple': b'38;5;93',
+		'dark': b'38;5;236',
+		'gray': b'38;5;241',
+	}
+	_reset_text = _csi_open + _styles['default'] + b'm'
+
+	@classmethod
+	def _join(Class, *i:int, _sep=';'):
+		return _sep.join(map(str, i)).encode('ascii')
+
+	def __init__(self, encoding='utf-8'):
+		self.encoding = encoding
+		self.dimensions = (0, 0)
+		self._lines = 0
+		self._width = 0
+		self._height = 0
+		self._offset = -1
+		self._seek = b''
+
+	def set_cursor_visible(self, visible):
+		"""
+		# Adjust cursor visibility.
+		"""
+
+		if visible:
+			return self._pm_show_cursor
+		else:
+			return self._pm_hide_cursor
+
+	def set_scrolling_region(self, top:int, bottom:int):
+		"""
+		# Confine the scrolling region to the given rows.
+		"""
+
+		return self._csi_open + self._join(top+1, bottom+1) + b'r'
+
+	def reset_scrolling_region(self):
+		"""
+		# Release confinements on scrolling region.
+		"""
+
+		return self._csi_open + b'r'
+
+	def open_scrolling_region(self, top:int, bottom:int):
+		"""
+		# Set the scrolling region, enter it, and seek the bottom.
+		# Subsequent &exit_scrolling_region and &enter_scrolling_region
+		# should be use to maintain the SR's state.
+		"""
+
+		sr = self.set_scrolling_region(top, bottom)
+		return self._store_cursor + sr + self._pm_origin_set + self._restore_cursor
+
+	def close_scrolling_region(self):
+		"""
+		# Save the screen buffer, reset the scrolling region, and restore the buffer.
+		# This preserves the screen's state after the transition.
+		"""
+
+		return self._store_cursor + self._pm_screen_set + \
+			self.reset_scrolling_region() + \
+			self._pm_screen_reset + self.enter_scrolling_region()
+
+	def enter_scrolling_region(self):
+		"""
+		# Enter scrolling region; normal terminal output; restores cursor location.
+		"""
+
+		return \
+			self._pm_origin_set + \
+			self._restore_cursor
+
+	def exit_scrolling_region(self):
+		"""
+		# Exit scrolling region; allow out of region printing; saves cursor location.
+		"""
+
+		return \
+			self._store_cursor + \
+			self._pm_origin_reset
+
+	def clear(self):
+		"""
+		# Clear the staionary area according to its configured width and default text properties.
+		"""
+
+		clearline = self._csi_open + self._join(self._width) + b'X'
+		return self._seek + (self._height * (clearline + self._nl))
+
+	def erase(self, area):
+		"""
+		# Erase the given area.
+		"""
+
+		clearline = self._csi_open + self._join(area[3]) + b'X'
+		return self.seek(area, 0, 0) + clearline
+
+	def seek(self, monitor, top_offset, left_offset) -> bytes:
+		"""
+		# Primitive relative seek; Context cursor position is *not* updated.
+		"""
+
+		top = monitor[0]
+		left = monitor[1]
+		return self._csi_open + self._join(top + top_offset + 1, left + left_offset + 1) + b'H'
+
+	def style(self, name:str, text:str):
+		"""
+		# Style the given &text as &name.
+
+		# Text color will be reset to the default.
+		"""
+
+		return self._csi_open + self._styles[name] + b'm' + text.encode(self.encoding) + self._reset_text
+
+	def render(self, phrase):
+		"""
+		# Translate the color names to SGR codes.
+		"""
+
+		for color, text in phrase:
+			yield self.style(color, text)
+
+	def configure(self, height, width, lines):
+		"""
+		# Update the dimensions of the screen.
+		"""
+
+		self.dimensions = (height, width)
+		self._width = width
+		self._height = lines
+		self._offset = height - lines
+		self._seek = self._csi_open + self._join(self._offset+1, 1) + b'H'
+
+	@property
+	def position(self):
+		return (self._offset, 0)
 
 class Layout(object):
 	"""
@@ -87,7 +265,7 @@ class Theme(object):
 	"""
 	from ..terminal import palette
 
-	Formatter = typing.Tuple[str, str]
+	Formatter = tuple[str, str]
 
 	def default_render_method(self, key, field):
 		"""
@@ -121,12 +299,11 @@ class Theme(object):
 			(precision+'-timeunit', precision),
 		]
 
-	def define(self, name, *args, using='plain', **kw):
+	def define(self, name, style):
 		"""
-		# Define a set of render parameters within the theme.
-		# Parameters aside from &name are passed to &matrix.Context.RenderParameters.apply.
+		# Define the &style to use with the given &name.
 		"""
-		self.stylesets[name] = self.stylesets[using].apply(*args, **kw)
+		self.stylesets[name] = style
 
 	def implement(self, type, render):
 		"""
@@ -134,51 +311,43 @@ class Theme(object):
 		"""
 		self.rendermethod[type] = render
 
-	def __init__(self, default:matrix.Context.RenderParameters):
-		self.rendertraits = default
+	def __init__(self):
 		self.stylesets = {}
 		self.rendermethod = {}
 
 	def configure(self, colors):
-		plain = self.rendertraits.apply()
-		rctl = plain.apply
 		self.stylesets.update({
 			# Time is expected to be common among all themes.
-			'plain': plain,
-			'bold': rctl('bold'),
-			's-timeunit': rctl(textcolor=colors['blue']),
-			'm-timeunit': rctl(textcolor=colors['yellow']),
-			'h-timeunit': rctl(textcolor=colors['orange']),
-			'd-timeunit': rctl(textcolor=colors['red']),
-			'Label': rctl(textcolor=colors['foreground-adjacent']),
-			'Label-Emphasis': rctl('bold', textcolor=colors['foreground-adjacent']),
+			'plain': 'default',
+			's-timeunit': 'blue',
+			'm-timeunit': 'yellow',
+			'h-timeunit': 'orange',
+			'd-timeunit': 'red',
+			'Label': 'gray',
+			'Label-Emphasis': 'white',
 		})
 		return self
 
 	def style(self, celltexts:typing.Sequence[Formatter]):
 		"""
-		# Emit words formatted according to their associated style set for forming
-		# a &matrix.Context.Phrase instance.
+		# Emit words formatted according to their associated style set.
 		"""
+
 		idx = self.stylesets
 		for style_idx, text in celltexts:
-			yield idx[style_idx].form(text)
+			yield (idx[style_idx], text)
 
-		yield idx['plain'].form('')
-
-	def render(self, type, field, Phrase=matrix.Context.Phrase.from_words, partial=tools.partial):
+	def render(self, type, field, *, partial=tools.partial):
 		"""
 		# Render the given &field according to the configured &type' render method.
 		"""
+
 		r_method = self.rendermethod.get(type) or partial(self.default_render_method, type)
-		return Phrase(*self.style(r_method(field)))
+		return Phrase(self.style(r_method(field)))
 
 class Status(object):
 	"""
 	# Allocated area for status display of a set of changing fields.
-
-	# Structure holding the target &matrix.Context with the rendering
-	# function and an associated state snapshot.
 	"""
 
 	view_state_loop = {
@@ -193,10 +362,10 @@ class Status(object):
 		'rate_overall': '^',
 	}
 
-	def __init__(self, theme:Theme, layout:Layout, context:matrix.Context):
+	def __init__(self, theme:Theme, layout:Layout, position):
 		self.theme = theme # Style sets and value rendering methods.
 		self.layout = layout # Field Ordering and Width
-		self.context = context # fault.terminal drawing context.
+		self.context = position # Screen Context
 		self.metrics = None
 		self.view = {} # Field view identifying value filtering (rate vs total).
 
@@ -282,18 +451,21 @@ class Status(object):
 		"""
 		# Attach a constant phrase to the beginning of the monitor.
 		"""
-		self._prefix = matrix.Context.Phrase.from_words(*words)
+
+		self._prefix = Phrase(words)
 
 	def suffix(self, *words):
 		"""
 		# Attach a constant phrase to the end of the monitor.
 		"""
-		self._suffix = matrix.Context.Phrase.from_words(*words)
+
+		self._suffix = Phrase(words)
 
 	def title(self, title, *dimensions):
 		"""
 		# Assign the monitor's title and dimension identifiers.
 		"""
+
 		self._title = (title, dimensions)
 
 	def window_period(self):
@@ -388,7 +560,7 @@ class Status(object):
 
 			yield utype, label, value, position + offset, (cells - ncells)
 
-	def phrase(self, filter=(lambda x: False)) -> matrix.Context.Phrase:
+	def phrase(self, filter=(lambda x: False)):
 		"""
 		# The monitor's image as a single phrase instance.
 		"""
@@ -403,44 +575,43 @@ class Status(object):
 
 		return tools.interlace(values, lseps, labels, fseps)
 
-	def snapshot(self, encoding='utf-8') -> bytes:
+	def snapshot(self, *, Chain=itertools.chain.from_iterable):
 		"""
 		# A bytes form of the &Status.phrase. (The image without cursor movement)
 		"""
-		l = list(self.phrase(filter=(lambda x: x in {0,0.0,"0"})))
-		cells = sum(x.cellcount() for x in l)
-		rph = map(self.context.render, l)
-		return cells, b''.join(itertools.chain.from_iterable(rph)).decode('utf-8')
+
+		return Chain(self.phrase(filter=(lambda x: x in {0,0.0,"0"})))
 
 	def profile(self):
 		"""
 		# Construct a triple containing the start and stop time and the final metrics.
 		"""
+
 		return (self.metrics[0][0], self.metrics[-1][0], self.metrics[-1][1])
 
 	def synopsis(self, context=None, vmap={'rate_window':'rate_overall'}):
 		"""
 		# Construct a status frame synopsis using the monitor's configuration and metrics.
 		"""
+
 		sv = dict(self.view)
 		try:
 			for k, v in list(self.view.items()):
 				self.view[k] = vmap.get(v, v)
 
-			cells, mss = self.snapshot()
-
 			if context is None:
-				ctx = self._title[0] + ': '
+				ph = Phrase([('default', self._title[0] + ': ')])
 			elif context:
-				ctx = context + ': '
+				ph = Phrase([('default', context + ': ')])
 			else:
-				ctx = ''
+				ph = Phrase()
 
-			return ctx + mss + self.context.reset_text().decode('utf-8')
+			ph.extend(self.snapshot())
+			return ph
 		finally:
 			self.view = sv
 
-	def frame(self, type, identifier, channel=None):
+	def frame(self, control, type, identifier, channel=None):
 		"""
 		# Construct a transaction frame for reporting the status.
 		# Used after the completion of the dispatcher.
@@ -454,43 +625,34 @@ class Status(object):
 		if identifier:
 			ext['@transaction'] = [identifier]
 
-		return frames.compose(type, self.synopsis(identifier), channel, ext)
+		msg = control.render_status_text(self, identifier)
+		return frames.compose(type, msg, channel, ext)
 
 class Monitor(object):
 	"""
 	# Terminal display management for monitoring changes in &Status instances.
 	"""
 
-	def __init__(self, device, screen, context):
-		self.device = device
+	def render_status_text(self, monitor, identifier) -> str:
+		"""
+		# Construct the string representation of the given &monitor' status.
+		"""
+
+		return b''.join(self.screen.render(monitor.synopsis(identifier))).decode(self.screen.encoding)
+
+	def __init__(self, screen, fileno):
 		self.screen = screen
-		self.context = context
-
 		self._buffer = []
-		self._io = io.FileIO(device.fileno(), closefd=False, mode='w')
+		self._fileno = fileno
+		self._io = io.FileIO(fileno, closefd=False, mode='w')
 		self._write = self._io.write
-
-	def allocate(self, point, width=None, height=1) -> matrix.Context:
-		"""
-		# Create a &matrix.Context instance relative to the &Monitor' status context.
-		"""
-		rctx = self.context
-		if width is None:
-			width = rctx.width
-		if height is None:
-			height = rctx.height
-
-		top, left = point
-		actx = self.context.__class__(rctx.terminal_type)
-		actx.context_set_position((rctx.point[0]+top, rctx.point[1]+left))
-		actx.context_set_dimensions((width, height))
-		return actx
 
 	def install(self, monitor):
 		"""
 		# Erase, reframe, and update the given monitor..
 		"""
-		self.erase(monitor)
+
+		self._buffer.append(self.screen.erase(monitor.context))
 		self.frame(monitor)
 		self.update(monitor, monitor.render())
 
@@ -500,34 +662,22 @@ class Monitor(object):
 
 		# Operation is buffered and must be flushed to be displayed.
 		"""
+
 		context = monitor.context
+		buf = self._buffer
 
 		if monitor._prefix:
 			offset = offset + monitor._prefix.cellcount() + 2
-
-			i = itertools.chain.from_iterable([
-				(context.seek((0, 0)),),
-				context.render(monitor._prefix),
-			])
-			self._buffer.append(b''.join(i))
-			self._buffer.append(monitor.context.reset_text())
+			buf.append(self.screen.seek(context, 0, 0))
+			buf.extend(self.screen.render(monitor._prefix))
 
 		ph = monitor.theme.render('title', monitor._title)
-		i = itertools.chain.from_iterable([
-			(context.seek((offset, 0)),),
-			context.render(ph),
-			(b':',),
-		])
-		self._buffer.append(b''.join(i))
-
-		self._buffer.append(monitor.context.reset_text())
+		buf.append(self.screen.seek(context, 0, offset))
+		buf.extend(self.screen.render(ph))
+		buf.append(b':')
 
 		if monitor._suffix:
-			i = itertools.chain.from_iterable([
-				context.render(monitor._suffix),
-			])
-			self._buffer.append(b''.join(i))
-			self._buffer.append(monitor.context.reset_text())
+			buf.extend(self.screen.render(monitor._suffix))
 
 	def update(self, monitor, fields, offset=0):
 		"""
@@ -535,21 +685,21 @@ class Monitor(object):
 
 		# Operation is buffered and must be flushed to be displayed.
 		"""
+
 		context = monitor.context
+		SR = self.screen.render
 		R = monitor.theme.render
 		chain = itertools.chain.from_iterable
 
 		for utype, label, ph, position, pad in fields:
 			lsep = R('Label-Separator', monitor.unit_type_separators[utype])
 			i = chain([
-				(context.seek((position+offset, 0)), b' ' * pad),
-				context.render(ph),
-				context.render(lsep),
-				context.render(label) if label else (),
+				(self.screen.seek(context, 0, position + offset), b' ' * pad),
+				SR(ph),
+				SR(lsep),
+				SR(label) if label else (),
 			])
 			self._buffer.append(b''.join(i))
-
-		self._buffer.append(context.reset_text())
 
 	def flush(self):
 		"""
@@ -571,20 +721,12 @@ class Monitor(object):
 		else:
 			del self._buffer[:l]
 
-	def erase(self, monitor):
-		"""
-		# Clear the area used by the monitor's context.
-
-		# Operation is buffered and must flushed to be effective.
-		"""
-		self._buffer.append(monitor.context.clear())
-
 	def clear(self):
 		"""
-		# Clear the entire configured area for status.
-		# Used when transitioning monitor configurations.
+		# Clear the entire status regions.
 		"""
-		self._buffer.append(self.context.clear())
+
+		self._buffer.append(self.screen.clear())
 
 	def configure(self, lines:int):
 		"""
@@ -595,59 +737,27 @@ class Monitor(object):
 		# The window size is refreshed from the device; monitors should
 		# also be reallocated so that their Context positions can be adjusted.
 		"""
+
 		if not lines:
 			raise ValueError("line allocation must be non-zero")
 
-		ctx = self.context
-		scr = self.screen
-		hv = self.device.get_window_dimensions()
-		scr.context_set_dimensions(hv)
+		from termios import tcgetwinsize
+		height, width = tcgetwinsize(self._fileno)
+		self.screen.configure(height, width, lines)
 
-		if lines > 0:
-			t = 0
-			v = hv[1] - lines
-
-			ctx.context_set_position((0, v))
-			ctx.context_set_dimensions((hv[0], lines))
-			init = (b'\n' * lines) + scr.seek_vertical_relative(-lines)
-		else:
-			# Allocate top.
-			t = -lines
-			v = hv[1]
-
-			ctx.context_set_position((0, 0))
-			ctx.context_set_dimensions((hv[0], -lines))
-			init = scr.store_cursor_location() + ctx.clear() + scr.restore_cursor_location()
-
-		init += scr.open_scrolling_region(t, v-1)
+		init = b'\n' * lines + self.screen._csi_open + self.screen._join(lines) + b'A'
+		init += self.screen.open_scrolling_region(0, (height-lines)-1)
+		self._buffer.append(self.screen.clear())
 		self._write(init)
 		return self
 
-def setup(atrestore=b'', type='prepared',
-		destruct=True,
-		Context=matrix.Context,
-	) -> Monitor:
-	"""
-	# Initialize the terminal for use with a scrolling region.
+	def _save(self):
+		import atexit
+		self._io.write(self.screen._pm_save)
+		atexit.register(self._restore)
 
-	# The given &lines determines the horizontal area allocation to
-	# manage at the bottom or top of the screen. If negative,
-	# the top of the screen will be allocated. Allocating both is
-	# not supported by this interface as &Monitor only manages one
-	# &matrix.Context.
-	"""
-	import atexit
-	from ..terminal import control
-	screen = matrix.Screen()
-
-	device, tty_prep, tty_rest = control.setup(type,
-		atrestore=screen.close_scrolling_region()+atrestore,
-		destruct=destruct,
-	)
-	tty_prep()
-	atexit.register(tty_rest)
-
-	return Monitor(device, screen, Context(screen.terminal_type))
+	def _restore(self):
+		self._io.write(self.screen.close_scrolling_region() + self.screen._pm_restore)
 
 _metric_units = [
 	('', '', 0),
@@ -698,6 +808,7 @@ def r_title(value):
 	"""
 	# Render method for monitor titles.
 	"""
+
 	category, dimensions = value
 	t = str(category)
 	if dimensions:
@@ -708,25 +819,50 @@ def form(module, colors=Theme.palette.colors):
 	"""
 	# Construct a &Layout and &Theme from the provided order and formatting structures.
 	"""
+
 	l = Layout(module.order)
-	t = Theme(matrix.Type.normal_render_parameters).configure(colors)
+	t = Theme().configure(colors)
 	t.implement('duration', Theme.r_duration)
 	t.implement('title', r_title)
 
-	t.define('Label-Separator', textcolor=colors['background-adjacent'])
-	t.define('duration', textcolor=colors['white'])
-	t.define('unit-label', textcolor=colors['gray'])
-	t.define('data-rate-receive', textcolor=colors['terminal-default'])
-	t.define('data-rate-transmit', textcolor=colors['terminal-default'])
-	t.define('data-rate', textcolor=colors['gray'])
+	t.define('Label-Separator', 'dark')
+	t.define('duration', 'white')
+	t.define('unit-label', 'gray')
+	t.define('data-rate-receive', 'default')
+	t.define('data-rate-transmit', 'default')
+	t.define('data-rate', 'gray')
 
 	for (k, path, width), (keycode, label, color, fn) in zip(module.order, module.formats):
 		if fn is not None:
 			t.implement(k, fn)
-		t.define(k, textcolor=colors[color])
+		t.define(k, color)
 		l.label(k, label or None)
 
 	return t, l, getattr(module, 'types', {})
+
+def identify_device(path='/dev/tty'):
+	"""
+	# Use the first three file descriptors to determine the
+	# path to the tty device. If no path can be identified,
+	# return the given &path which defaults to `/dev/tty`.
+	"""
+
+	for i in range(3):
+		try:
+			path = os.ttyname(i)
+		except:
+			continue
+		else:
+			break
+
+	return path
+
+def setup(device='/dev/tty'):
+	screen = Legacy()
+	fileno = os.open(device, os.O_RDWR)
+	m = Monitor(screen, fileno)
+	m._save()
+	return m
 
 def aggregate(control:Monitor, module, lanes=1, width=80):
 	"""
@@ -736,12 +872,14 @@ def aggregate(control:Monitor, module, lanes=1, width=80):
 	# Returns a sequence of &Status instances for the dimensions
 	# and a single Status for the aggregation.
 	"""
+
+	top, left = control.screen.position
 	t, l, types = form(module)
 	lanes_seq = [
-		Status(t, l, control.allocate((0, i), width=width))
+		Status(t, l, (top + i, left, 1, width))
 		for i in range(lanes)
 	]
-	m = Status(t, l, control.allocate((0, lanes), width=width))
+	m = Status(t, l, (top + lanes, left, 1, width))
 
 	for k, v in types.items():
 		m.set_field_read_type(k, v)
