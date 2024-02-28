@@ -1,1 +1,3 @@
+i-http://fault.io/system/machines.python/include
+i-http://fault.io/system/machines.python/c-interfaces
 http://fault.io/integration/machines/include
