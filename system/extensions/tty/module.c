@@ -18,6 +18,7 @@ static PyObj
 fs_device(PyObj self)
 {
 	int fd = -1;
+	char *name;
 
 	if (isatty(STDERR_FILENO))
 		fd = STDERR_FILENO;
@@ -34,7 +35,11 @@ fs_device(PyObj self)
 		return(PyErr_SetFromErrno(PyExc_OSError));
 	}
 
-	return(PyUnicode_FromString(ttyname(fd)));
+	name = ttyname(fd);
+	if (name == NULL)
+		return(PyErr_SetFromErrno(PyExc_OSError));
+
+	return(PyUnicode_FromString(name));
 }
 
 static PyObj
