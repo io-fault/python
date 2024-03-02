@@ -1,7 +1,7 @@
 """
 # Analyze implementation specific features of &.core.PartitionedSequence and other &.core functions.
 """
-from .. import core as module
+from ...route import core as module
 
 def test_Route_iterpoints(test):
 	root = module.PartitionedSequence(None, ())

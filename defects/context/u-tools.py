@@ -1,5 +1,5 @@
 import dataclasses
-from .. import tools as module
+from ...context import tools as module
 
 def test_struct(test):
 	"""

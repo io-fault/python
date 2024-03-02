@@ -1,6 +1,6 @@
 import os
 from . import common
-from ... import io
+from ....system import io
 
 # two pipe()'s
 def test_unidirectional(test):

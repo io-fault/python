@@ -1,5 +1,5 @@
-from .. import kills
-from .. import flows
+from ...kernel import kills
+from ...kernel import flows
 from . import library as testlib
 
 def test_fault(test):

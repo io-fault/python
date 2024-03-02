@@ -1,7 +1,7 @@
 """
 # Analyze the query module.
 """
-from .. import query as module
+from ...route import query as module
 
 def test_iselement(test):
 	"""

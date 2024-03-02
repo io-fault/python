@@ -1,7 +1,7 @@
 """
 # Validate protocol implementations.
 """
-from .. import kprotocol as module
+from ...security import kprotocol as module
 
 class TLS:
 	closed = False

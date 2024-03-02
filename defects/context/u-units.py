@@ -1,4 +1,4 @@
-from .. import units as module
+from ...context import units as module
 
 def test_bytes_metric(test):
 	n, o, l = module.metric(999)

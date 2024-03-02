@@ -1,7 +1,7 @@
 """
 # Keyword Language Class Parser and Profile tests.
 """
-from .. import keywords as module
+from ...syntax import keywords as module
 
 def mkcsubset(Type):
 	# C++ subset used by tests.

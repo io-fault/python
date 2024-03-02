@@ -1,6 +1,6 @@
 import sys
-from .. import python
-from .. import types
+from ...status import python
+from ...status import types
 
 def stack_1(error=None):
 	if error is None:

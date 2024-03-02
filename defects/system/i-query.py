@@ -1,7 +1,7 @@
 """
 # Limited tests as the information retrieved is expected to vary.
 """
-from .. import query as module
+from ...system import query as module
 
 def test_paths(test):
 	"""

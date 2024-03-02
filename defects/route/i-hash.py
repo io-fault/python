@@ -1,4 +1,4 @@
-from .. import hash as module
+from ...route import hash as module
 from ...system import files
 
 def test_Index_structure(test):

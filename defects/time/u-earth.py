@@ -2,8 +2,8 @@
 # Check earth based units (days).
 """
 import itertools
-from .. import earth
-from .. import types
+from ...time import earth
+from ...time import types
 
 from_units_data = [
 	types.Date.Measure(-1),

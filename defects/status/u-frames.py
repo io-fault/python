@@ -1,7 +1,7 @@
 """
 # Check serialization and parsing of frames.
 """
-from .. import frames as module
+from ...status import frames as module
 
 def io(frame) -> module.types.Frame:
 	return module.structure(module.sequence(frame))
@@ -51,7 +51,7 @@ def test_frame_structured(test):
 	"""
 	# - &module
 	"""
-	from .. import types
+	from ...status import types
 
 	msg = types.Frame((
 		None,
@@ -77,7 +77,7 @@ def test_frame_data_extension(test):
 	"""
 	# - &module
 	"""
-	from .. import types
+	from ...status import types
 
 	msg = types.Frame((
 		None,
@@ -108,7 +108,7 @@ def test_frame_channel_only(test):
 	"""
 	# - &module
 	"""
-	from .. import types
+	from ...status import types
 
 	msg = types.Frame((
 		'test-channel',

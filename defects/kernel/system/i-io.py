@@ -1,6 +1,6 @@
 import os
 import _thread
-from ... import system
+from ....kernel import system
 
 class EMatrix(system.Matrix):
 	def _err(self, *args):

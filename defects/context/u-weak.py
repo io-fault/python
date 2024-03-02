@@ -1,4 +1,4 @@
-from .. import weak as module
+from ...context import weak as module
 
 class Referenced(object):
 	def method(self, *args, **kw):

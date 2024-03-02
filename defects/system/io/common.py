@@ -8,9 +8,9 @@ import threading
 import contextlib
 import os
 import socket
-from ... import io
-from ... import network
-from ... import kernel
+from ....system import io
+from ....system import network
+from ....system import kernel
 
 def allocpipe(A):
 	r, w = os.pipe()

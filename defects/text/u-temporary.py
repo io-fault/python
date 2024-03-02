@@ -1,5 +1,5 @@
 import sys
-from ..io import structure_chapter_text
+from ...text.io import structure_chapter_text
 
 txt = """
 [Section 1]

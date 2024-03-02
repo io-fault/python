@@ -1,4 +1,4 @@
-from .. import snapshot as module
+from ...vector import snapshot as module
 
 def test_parse_empty(test):
 	"""

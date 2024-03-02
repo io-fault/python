@@ -1,7 +1,7 @@
 """
 # Sanity checks regarding presence.
 """
-from .. import constants as module
+from ...time import constants as module
 
 def test_indefinites(test):
 	test/module.never > module.always

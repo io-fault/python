@@ -1,4 +1,4 @@
-from .. import core
+from ...kernel import core
 
 def test_Condition(test):
 	Type = core.Condition

@@ -2,7 +2,7 @@
 # Check the implementation of import routes.
 """
 import sys
-from .. import python as module
+from ...system import python as module
 
 def test_Import(test):
 	# ..bit strange when dealing with nested project packages

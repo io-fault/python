@@ -1,5 +1,5 @@
 import functools
-from .. import core as module
+from ...test import core as module
 
 def test_Test_fail(test):
 	def test_function(local):

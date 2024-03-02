@@ -1,8 +1,8 @@
 import os
 import signal
 
-from .. import process as module
-from .. import thread
+from ...system import process as module
+from ...system import thread
 
 class Trapped(Exception):
 	"""

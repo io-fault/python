@@ -1,4 +1,4 @@
-from .. import memory as library
+from ...system import memory as library
 
 def test_Segments(test):
 	import mmap

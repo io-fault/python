@@ -4,7 +4,7 @@ import importlib.util
 import typing
 import itertools
 
-from ... import flows as library
+from ....kernel import flows as library
 from .. import library as testlib
 
 def test_Terminal(test):

@@ -2,7 +2,7 @@
 # Validate Serialization
 """
 
-from .. import xml as library
+from ...internet import xml as library
 
 def test_escapes(test):
 	escape = lambda x: list(library.escape_element_string(x))[0]

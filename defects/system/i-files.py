@@ -5,7 +5,7 @@ import sys
 import functools
 import os.path
 
-from .. import files as module
+from ...system import files as module
 lib = module
 from ...time.system import utc as time
 

@@ -2,8 +2,8 @@
 # Check the &library.Relay, &library.Receiver, and &library.Inlet types.
 """
 from .. import library as testlib
-from ... import flows as library
-from ... import io
+from ....kernel import flows as library
+from ....kernel import io
 
 def test_Receiver(test):
 	ctx, S = testlib.sector()

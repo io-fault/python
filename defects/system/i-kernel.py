@@ -1,7 +1,7 @@
 import os
 
-from .. import files
-from .. import kernel as module
+from ...system import files
+from ...system import kernel as module
 from .tools import perform_cat
 
 def test_Invocation(test):

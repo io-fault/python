@@ -2,7 +2,7 @@
 # Majority of tests here revolve around parameters. The other classes in &types
 # are mostly simple dataclasses only needing constructor and property sanity checks.
 """
-from .. import types
+from ...status import types
 
 def test_EStruct_constructors_v1(test):
 	"""

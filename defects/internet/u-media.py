@@ -1,4 +1,4 @@
-from .. import media as library
+from ...internet import media as library
 
 def test_module_protocol(test):
 	'Type' in test/dir(library)

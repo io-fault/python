@@ -1,5 +1,5 @@
 import sys
-from .. import tty as module
+from ...system import tty as module
 
 def test_fs_device(test):
 	"""

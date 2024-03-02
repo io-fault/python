@@ -1,4 +1,4 @@
-from .. import format as module
+from ...text import format as module
 
 def test_Parser_emphasis(test):
 	"""

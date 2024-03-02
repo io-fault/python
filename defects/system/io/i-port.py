@@ -6,7 +6,7 @@
 # However, cases analyzed here that appear similar often have one-off cases
 # that make it rather annoying to generalize.
 """
-from ... import io
+from ....system import io
 
 def test_port(test):
 	f = io.Port(

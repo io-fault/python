@@ -2,8 +2,8 @@
 # Check bootstrapping operations.
 """
 import types
-from .. import files
-from .. import bootstrap
+from ...system import files
+from ...system import bootstrap
 
 def test_import_constructions(test):
 	"""

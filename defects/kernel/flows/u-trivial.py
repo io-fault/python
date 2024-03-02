@@ -6,7 +6,7 @@ import functools
 import typing
 import itertools
 
-from ... import flows
+from ....kernel import flows
 from .. import library as testlib
 
 def test_Transformation(test):

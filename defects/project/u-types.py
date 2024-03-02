@@ -1,7 +1,7 @@
 """
 # Analyze core data types.
 """
-from .. import types as module
+from ...project import types as module
 
 def test_Variants(test):
 	"""

@@ -1,6 +1,6 @@
 from . import common
-from ... import io
-from ... import network
+from ....system import io
+from ....system import network
 
 service_alloc = network.Endpoint.from_ip4(('127.0.0.1', 0), 'udp', 'datagrams')
 def mksrv():

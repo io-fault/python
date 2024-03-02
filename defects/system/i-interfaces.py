@@ -1,8 +1,8 @@
 """
 # Validate interface configuration and service allocations.
 """
-from .. import files
-from .. import interfaces as module
+from ...system import files
+from ...system import interfaces as module
 Endpoint = module.Endpoint
 F = module.if_structure
 f = module.if_sequence

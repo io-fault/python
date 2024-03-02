@@ -3,12 +3,12 @@
 
 # polynomial-1 materialization checks.
 """
-from .. import factory as module
-from .. import types
+from ...project import factory as module
+from ...project import types
 from ...system import files
 from ...route.types import Segment
 
-from ..system import structure_project_declaration
+from ...project.system import structure_project_declaration
 
 s_information = types.Information(
 	identifier = 'http://sample.fault.io/corpus/project',

@@ -1,4 +1,4 @@
-from .. import string as module
+from ...context import string as module
 
 def test_normal(test):
 	test/module.normal("Nothing happens") == "Nothing happens"

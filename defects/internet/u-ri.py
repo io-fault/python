@@ -1,4 +1,4 @@
-from .. import ri as module
+from ...internet import ri as module
 
 def cmbx(t):
 	"""

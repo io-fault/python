@@ -1,7 +1,7 @@
 """
 # Check utility functions present in &.__init__.
 """
-from .. import rewrite as module
+from ...route import rewrite as module
 
 def test_rewrite_relative(test):
 	"""

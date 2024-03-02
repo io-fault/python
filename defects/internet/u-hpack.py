@@ -1,4 +1,4 @@
-from .. import hpack as module
+from ...internet import hpack as module
 
 samples = [
     b'www.example.com',

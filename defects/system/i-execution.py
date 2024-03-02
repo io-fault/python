@@ -1,5 +1,5 @@
-from .. import files
-from .. import execution as module
+from ...system import files
+from ...system import execution as module
 from .tools import perform_cat
 
 def test_PInvocation(test):

@@ -1,7 +1,7 @@
 import sys
 import os
 import errno
-from ... import io
+from ....system import io
 
 def nomem(x):
 	raise MemoryError(x)
@@ -133,7 +133,7 @@ def test_acquire_retry_fail(test):
 def test_datagrams_io_retry(test):
 	test.skip(not '__ERRNO_RECEPTACLE__' in dir(io))
 	# Should *not* trigger the limit with EINTR
-	from ... import network
+	from ....system import network
 	J = io.Array()
 	try:
 		g1 = io.__ERRNO_RECEPTACLE__['port_input_datagrams'] = error(8)
@@ -178,7 +178,7 @@ def test_datagrams_io_retry(test):
 			pass
 
 def test_datagrams_io_nomem_retry(test):
-	from ... import network
+	from ....system import network
 	test.skip(not '__ERRNO_RECEPTACLE__' in dir(io))
 	# Should *not* trigger the limit with EINTR
 	J = io.Array()
@@ -228,7 +228,7 @@ def test_datagrams_io_again(test):
 	"""
 	# Trigger EAGAIN on datagrams output.
 	"""
-	from ... import network
+	from ....system import network
 	test.skip(not '__ERRNO_RECEPTACLE__' in dir(io))
 	J = io.Array()
 	try:

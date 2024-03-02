@@ -1,6 +1,6 @@
 import os
 import os.path
-from .. import tzif
+from ...time import tzif
 
 def test_loadall(test, _join = os.path.join, bytes = bytes, bool = bool, int = int):
 	# load all the TZif files in the tzdir(/usr/share/zoneinfo).

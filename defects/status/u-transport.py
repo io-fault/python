@@ -1,4 +1,4 @@
-from .. import transport as module
+from ...status import transport as module
 
 def test_isolate_empty(test):
 	test/list(module.isolate("")) == []

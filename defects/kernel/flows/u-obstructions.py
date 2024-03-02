@@ -1,7 +1,7 @@
 """
 # Validate the operation of obstructing flows.
 """
-from ... import flows
+from ....kernel import flows
 
 def test_Flow_operation(test):
 	# base class transformers emit what they're given to process

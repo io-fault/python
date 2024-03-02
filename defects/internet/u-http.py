@@ -1,4 +1,4 @@
-from .. import http as module
+from ...internet import http as module
 
 # Sanity
 def test_module_protocol(test):

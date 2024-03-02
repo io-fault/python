@@ -1,4 +1,4 @@
-from .. import network as module
+from ...system import network as module
 
 def test_endpoint_new(test):
 	with test/TypeError as exc:

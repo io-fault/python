@@ -2,8 +2,8 @@
 # Product directory interface checks.
 """
 from ...system import files
-from .. import system as module
-from ..types import factor, FactorIsolationProtocol, Information, Reference
+from ...project import system as module
+from ...project.types import factor, FactorIsolationProtocol, Information, Reference
 
 t_project_id = 'http://ni.fault.io/test/project'
 
@@ -131,7 +131,7 @@ def test_Product_select(test):
 	# - &module.Product.factor_by_identifier
 	"""
 	td, pd = product_a(test)
-	from .. import polynomial
+	from ...project import polynomial
 
 	pd.update()
 	fp, proto = pd.factor_by_identifier(t_project_id + '/alt-1')

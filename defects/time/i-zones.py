@@ -1,6 +1,6 @@
-from .. import types
-from .. import views
-from .. import system
+from ...time import types
+from ...time import views
+from ...time import system
 
 zone = (lambda x: views.Zone.open(system._unix, x))
 

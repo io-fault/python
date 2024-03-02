@@ -3,7 +3,7 @@
 """
 
 def test_module_protocol(test):
-	from ... import io
+	from ....system import io
 
 	"Port" in test/dir(io)
 
@@ -15,7 +15,7 @@ def test_module_protocol(test):
 	test.issubclass(io.Array, io.Channel)
 
 def test_no_subtyping(test):
-	from ... import io
+	from ....system import io
 
 	types = (
 		io.Array,

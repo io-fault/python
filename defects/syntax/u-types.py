@@ -3,7 +3,7 @@
 """
 import sys
 import pickle
-from .. import types as module
+from ...syntax import types as module
 
 def test_Address_arithmetic(test):
 	a = module.Address((1,0))

@@ -1,4 +1,4 @@
-from .. import types as module
+from ...range import types as module
 
 def test_combine(test):
 	Type = module.IRange

@@ -1,7 +1,7 @@
 """
 unit executable test
 """
-from .. import library as iolib
+from ...kernel import io as iolib
 
 #@export
 def xexport(sector):

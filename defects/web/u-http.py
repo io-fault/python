@@ -2,12 +2,12 @@
 # Check integrations of internet.http and kernel.http
 """
 import itertools
-from .. import http as library
+from ...web import http as library
 
 from ...kernel import flows
 from ...kernel import core as kcore
 from ...kernel import io as kio
-from ...kernel.test import library as testlib
+from ..kernel import library as testlib
 
 default_headers = [
 	(b'Host', b'test.fault.io'),

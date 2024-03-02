@@ -1,6 +1,6 @@
 import os
 import time
-from .. import kernel as module
+from ...system import kernel as module
 
 class Violation(Exception):
 	pass

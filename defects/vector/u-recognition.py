@@ -3,7 +3,7 @@
 """
 import functools
 
-from ..recognition import merge, legacy, UsageViolation
+from ...vector.recognition import merge, legacy, UsageViolation
 
 def test_merge_operations(test):
 	"""

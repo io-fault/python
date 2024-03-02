@@ -7,7 +7,7 @@ import errno
 import time
 import tempfile
 
-from ... import io
+from ....system import io
 from . import common
 
 def test_anonymous_endpoints_socketpair(test):

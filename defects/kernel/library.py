@@ -2,7 +2,7 @@
 # Support for running tests without full system/executable contexts.
 """
 import collections
-from .. import core
+from ...kernel import core
 
 class ExitController(object):
 	"""

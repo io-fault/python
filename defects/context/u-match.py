@@ -1,4 +1,4 @@
-from .. import match as module
+from ...context import match as module
 
 sample = [
 	'http://fault.io/src/',

@@ -5,8 +5,8 @@ import itertools
 
 from ...system import files
 
-from .. import types
-from .. import polynomial as module
+from ...project import types
+from ...project import polynomial as module
 
 python_factor_typref = types.Reference(
 	'http://if.fault.io/factors',

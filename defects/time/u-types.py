@@ -1,5 +1,5 @@
 import fractions
-from .. import types as module
+from ...time import types as module
 
 def test_classes(test):
 	pointtypes = [module.Timestamp, module.Date]
@@ -312,7 +312,7 @@ def test_Months_elapse(test):
 	test/ts.rollback(m) == module.Timestamp.of(date=(2000,1,1))
 
 def test_indefinite_comparisons(test):
-	from ..constants import never, whenever, always
+	from ...time.constants import never, whenever, always
 
 	test/True == never.follows(always)
 	test/True == never.follows(whenever)
@@ -324,7 +324,7 @@ def test_indefinite_comparisons(test):
 	test/True == whenever.precedes(never)
 
 def test_indefinite_definite_comparisons(test):
-	from ..constants import never, whenever, always
+	from ...time.constants import never, whenever, always
 
 	ts = module.Timestamp.of(iso="2000-01-01T00:00:00")
 	test/True == never.follows(ts)

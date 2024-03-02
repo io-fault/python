@@ -1,5 +1,5 @@
-from .. import host as library
-from .. import ri
+from ...internet import host as library
+from ...internet import ri
 
 def test_endpoint(test):
 	ep = library.realize(ri.parse("https://fault.io"))

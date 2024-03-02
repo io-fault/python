@@ -3,9 +3,9 @@ import functools
 import typing
 import itertools
 
-from .. import dispatch as module
-from .. import core
-from .. import flows
+from ...kernel import dispatch as module
+from ...kernel import core
+from ...kernel import flows
 from . import library as testlib
 
 def test_Call(test):

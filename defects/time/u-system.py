@@ -1,5 +1,5 @@
-from .. import system as module
-from .. import types
+from ...time import system as module
+from ...time import types
 
 def test_utc(test):
 	"""

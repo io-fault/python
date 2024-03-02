@@ -1,5 +1,5 @@
-from .. import core
-from .. import format as module
+from ...time import core
+from ...time import format as module
 
 samples = [
 	('no_seconds', (

@@ -1,7 +1,7 @@
 import os
-from ... import kernel
-from ... import network
-from ... import io
+from ....system import kernel
+from ....system import network
+from ....system import io
 from . import common
 
 def fork_and_circulate(test, am, channels):

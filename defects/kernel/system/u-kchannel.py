@@ -4,7 +4,7 @@ import importlib.util
 import typing
 import itertools
 
-from ... import system
+from ....kernel import system
 from .. import library as testlib
 
 def test_KInput(test):

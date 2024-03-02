@@ -7,9 +7,9 @@ import typing
 import itertools
 
 from . import library as testlib
-from .. import flows
-from .. import core
-from .. import io as module
+from ...kernel import flows
+from ...kernel import core
+from ...kernel import io as module
 
 def test_Transfer_io_flow(test):
 	ctx, S = testlib.sector()

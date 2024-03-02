@@ -1,5 +1,5 @@
 import itertools
-from .. import gregorian
+from ...time import gregorian
 
 def test_year_is_leap(test):
 	# hand picked years

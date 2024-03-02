@@ -1,5 +1,5 @@
 import sys
-from .. import text as module
+from ...system import text as module
 
 module.setlocale()
 

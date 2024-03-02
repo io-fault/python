@@ -1,5 +1,5 @@
 import fractions
-from .. import types as module
+from ...time import types as module
 
 def test_month_spectrum(test):
 	start = module.Timestamp.of(year=1600, month=0, day=0)

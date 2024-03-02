@@ -6,7 +6,7 @@ import errno
 import sys
 from . import common
 
-from ... import io
+from ....system import io
 
 def test_array_already_acquired(test):
 	try:
