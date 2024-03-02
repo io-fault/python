@@ -1,9 +1,5 @@
-"""
-unit executable test
-"""
 from ...kernel import io as iolib
 
-#@export
 def xexport(sector):
 	pass
 
@@ -17,11 +13,7 @@ def client_handler(sector, input, output):
 		handler = resolve_handler(reqeust)
 		sector.dispatch(handler, request, input, p.connect)
 
-# addressable?
-#@boot
 def coroutine(sector):
-	"executed on actuate"
-
 	with sector.xact() as xact:
 		p = xact.pipeline(...)
 
@@ -35,10 +27,6 @@ def coroutine(sector):
 	yield flow.events()
 
 class Interface(iolib.Interface):
-	"""
-	Library interface for managing HTTP client connections.
-	"""
-
 	def connect(self, sector_xact, address, port, layer, input, output):
 		with self.xact() as xact:
 			i, o = xact.connect(address, port)
