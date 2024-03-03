@@ -10,17 +10,17 @@ import types
 import importlib
 import resource
 
-from ...system import corefile
-from ...system import process
-from ...system import files
-from ...system import factors
-from ...status import python
-from ...time.system import elapsed
-from ...transcript import metrics
-from ...transcript.io import Log
+from ..system import corefile
+from ..system import process
+from ..system import files
+from ..system import factors
+from ..status import python
+from ..time.system import elapsed
+from ..transcript import metrics
+from ..transcript.io import Log
 
-from .. import engine
-from .. import core
+from . import engine
+from . import types
 
 status_identifiers = {
 	'skip': 'skipped',
@@ -105,7 +105,7 @@ class Harness(engine.Harness):
 			if os.WCOREDUMP(status):
 				faten = 'core'
 				report['fate'] = 'core'
-				test.fate = core.Fate('process core dump', subtype='core')
+				test.fate = types.Fate('process core dump', subtype='core')
 				self._handle_core(corefile.location(pid))
 			elif not os.WIFEXITED(status):
 				import signal

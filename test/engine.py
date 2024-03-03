@@ -2,7 +2,7 @@
 # Harness implementation and support functions.
 """
 import itertools
-from . import core
+from . import types
 
 def get_test_index(tester, int=int, set=set, AttributeError=AttributeError):
 	"""
@@ -83,7 +83,7 @@ class Harness(object):
 	# Execute a sequence of tests.
 	"""
 
-	Test = core.Test
+	Test = types.Test
 	collect = staticmethod(gather)
 
 	@classmethod
@@ -137,7 +137,7 @@ def execute(module):
 
 	for id in gather(module):
 		func = getattr(module, id)
-		test = core.Test(id, func)
+		test = types.Test(id, func)
 		with test.exits:
 			test.seal()
 		if test.fate.impact < 0:
