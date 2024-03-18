@@ -12,7 +12,7 @@ def add_product_path(root, param):
 
 def connect_product_environ(root, param):
 	import os
-	pd_path = os.environ['F_PRODUCT']
+	pd_path = os.environ['PRODUCT']
 	root['product-paths'].insert(0, pd_path)
 	assert param == '' # -d does not take inline parameters
 
@@ -177,9 +177,15 @@ def console(inv):
 	return inv.exit(0)
 
 def main(inv:process.Invocation) -> process.Exit:
+	inv.imports(['SYSTEMCONTEXT', 'PRODUCT', 'FACTOR', 'FACTORIMAGE'])
 	count, config = parse(inv.argv)
 
-	module_path = inv.argv[count] # No module specified?
+	if inv.environ['FACTOR'] is not None:
+		module_path = inv.environ['FACTOR']
+	else:
+		module_path = inv.argv[count] # No module specified?
+		count += 1
+
 	if module_path.startswith('.'):
 		symbol = module_path[1:]
 		module_path = __name__
@@ -188,7 +194,7 @@ def main(inv:process.Invocation) -> process.Exit:
 
 	module = apply(config, module_path, symbol)
 
-	del inv.argv[0:count+1]
+	del inv.argv[0:count]
 	inv.parameters['system'].setdefault('environment', {})
 
 	process.Fork.substitute(getattr(module, symbol), inv)
