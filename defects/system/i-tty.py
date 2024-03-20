@@ -13,6 +13,6 @@ def test_fs_device(test):
 		# If there's no tty on stdio, this is success.
 		pass
 	else:
-		from .. import files
+		from ...system import files
 		test.isinstance(p, str)
 		test/(files.root@p).fs_type() == 'device'

@@ -48,11 +48,12 @@ def test_Import_from_attributes(test):
 
 def test_Import_tree(test):
 	from .. import __name__ as project
+	local_module = module.Import.from_fullname(__name__)
 	pkg = module.Import.from_fullname(project)
 	pkgs, mods = map(set, pkg.tree())
 
-	test/((pkg/'test') in pkgs) == True
-	test/((pkg/'execution') in mods) == True
+	test/((pkg/'system') in pkgs) == True
+	test/(local_module in mods) == True
 
 def test_Import_get_last_modified(test):
 	# This is essentally the implementation; the method is mere convenience.

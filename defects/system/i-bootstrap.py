@@ -77,11 +77,11 @@ def test_integration(test):
 
 	rename = (lambda x: x.capitalize())
 	ctx, sysproject, *path = __name__.split('.')
-	from .. import __file__ as pkgfile
+	from ...system import __file__ as pkgfile
 	pkgfile = files.Path.from_absolute(pkgfile)
 	faultpath = (pkgfile ** 3)
 
-	from .. import identity
+	from ...system import identity
 	sys, pyimp = identity.python_execution_context()
 	sys, host = identity.root_execution_context()
 
