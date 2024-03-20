@@ -50,7 +50,7 @@ def parse(arguments):
 	i = 0
 	for i, x in zip(range(len(arguments)), arguments):
 		flag = x[:2]
-		if flag not in handlers:
+		if flag not in handlers or flag == '--':
 			break
 		op = handlers[flag]
 
