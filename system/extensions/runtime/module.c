@@ -87,7 +87,9 @@ trace(PyObj self, PyObj args)
 				ts->c_profileobj = NULL;
 
 				#if (PY_MAJOR_VERSION == 3) && (PY_MINOR_VERSION >= 10)
-					ts->cframe->use_tracing = 1;
+					#if (PY_MINOR_VERSION < 12)
+						ts->cframe->use_tracing = 1;
+					#endif
 				#else
 					ts->use_tracing = 1;
 				#endif
