@@ -367,9 +367,9 @@ ev_get_source(Event ev, void *closure)
 
 STATIC(PyGetSetDef)
 ev_getset[] = {
-	{"type", ev_get_type, NULL, NULL},
-	{"source", ev_get_source, NULL, NULL},
-	{"port", ev_get_port, NULL, NULL},
+	{"type", (getter)ev_get_type, NULL, NULL},
+	{"source", (getter)ev_get_source, NULL, NULL},
+	{"port", (getter)ev_get_port, NULL, NULL},
 
 	{NULL,},
 };
@@ -551,12 +551,12 @@ EventType = {
 	.tp_flags =
 		Py_TPFLAGS_DEFAULT|
 		Py_TPFLAGS_HAVE_GC,
-	.tp_clear = ev_clear,
+	.tp_clear = (inquiry)ev_clear,
 	.tp_traverse = ev_traverse,
 	.tp_methods = ev_methods,
 	.tp_getset = ev_getset,
-	.tp_hash = ev_hash,
-	.tp_richcompare = ev_richcompare,
+	.tp_hash = (hashfunc)ev_hash,
+	.tp_richcompare = (richcmpfunc)ev_richcompare,
 	.tp_new = ev_new,
-	.tp_dealloc = ev_dealloc,
+	.tp_dealloc = (destructor)ev_dealloc,
 };

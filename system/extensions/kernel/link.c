@@ -27,7 +27,7 @@ ln_methods[] = {
 STATIC(PyGetSetDef)
 ln_getset[] = {
 	#define LF(FLAG) \
-		{#FLAG, ln_get_##FLAG, NULL, NULL},
+		{#FLAG, (getter)ln_get_##FLAG, NULL, NULL},
 
 		LINK_FLAG_LIST()
 	#undef LF
@@ -135,7 +135,7 @@ LinkType = {
 	.tp_name = FACTOR_PATH("Link"),
 	.tp_basicsize = sizeof(struct Link),
 	.tp_itemsize = 0,
-	.tp_call = ln_call,
+	.tp_call = (ternaryfunc)ln_call,
 	.tp_flags =
 		Py_TPFLAGS_BASETYPE|
 		Py_TPFLAGS_DEFAULT|
@@ -145,13 +145,13 @@ LinkType = {
 	.tp_methods = ln_methods,
 	.tp_getset = ln_getset,
 
-	.tp_hash = ln_hash,
-	.tp_richcompare = ln_richcompare,
+	.tp_hash = (hashfunc)ln_hash,
+	.tp_richcompare = (richcmpfunc)ln_richcompare,
 
-	.tp_clear = ln_clear,
+	.tp_clear = (inquiry)ln_clear,
 	.tp_traverse = ln_traverse,
 	.tp_new = ln_new,
-	.tp_dealloc = ln_dealloc,
+	.tp_dealloc = (destructor)ln_dealloc,
 };
 
 CONCEAL(PyObj)
