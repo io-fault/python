@@ -607,7 +607,7 @@ def stream_listening_connection(test, version, address):
 		while kpv[0] == -1:
 			kernel.accept_ports(ls, kpv)
 			ic += 1
-			if ic > 128:
+			if ic > 256:
 				raise Exception("accept limit reached")
 		return kpv
 
