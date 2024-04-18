@@ -6,7 +6,6 @@ import copy
 
 from ...system import files
 from ...system import process
-from ...system import execution
 
 from ...project import system as lsf
 from ...project import factory
@@ -101,18 +100,10 @@ def init_project(product, orientation, interfaces, libraries):
 	factory.instantiate(p, route)
 
 def main(inv:process.Invocation) -> process.Exit:
-	target, adapter, implementation, orientation, intpath, pdctl, interfaces, *libs = inv.args
+	target, adapter, implementation, orientation, interfaces, *libs = inv.args
 
 	route = files.Path.from_path(target) / 'if'
 	init_project(route/adapter, orientation, interfaces, libs)
 
 	pd = init_product(route/adapter, [orientation])
-	cxn = pd.connections_index_route
-	cxn.fs_init(intpath.encode('utf-8'))
-
-	if pdctl:
-		ki = [pdctl, '-L1', '-D', str(route/adapter), 'integrate', '-t', orientation]
-		with open('/dev/null', 'rb') as f:
-			pid = execution.KInvocation(pdctl, ki).spawn({f.fileno():0, 1:1, 2:2}.items())
-
-	return inv.exit(os.WEXITSTATUS(os.wait()[1]))
+	return inv.exit(0)
