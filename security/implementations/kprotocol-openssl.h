@@ -276,7 +276,7 @@ ialpn(PyObj ob, unsigned char **aprotocols, unsigned int *alength)
 	if (oldbuf == NULL)
 	{
 		PyErr_SetString(PyExc_MemoryError, "could not allocate buffer for application protocol list");
-		return(NULL);
+		return(-1);
 	}
 
 	/*
