@@ -536,6 +536,39 @@ def test_Parser_delimit_literal_unnested_alternate(test):
 	parser = module.Parser.from_profile(subc)
 	delimit_nested_inconsistent_alteration(test, parser, 'literal')
 
+def test_Parser_process_line(test):
+	"""
+	# - &module.Parser.process_line
+
+	# Sanity check. Essentially, duplicate of &test_Parser_process_lines.
+	"""
+
+	subc = mkcsubset(module.Profile)
+	parser = module.Parser.from_profile(subc)
+
+	first = list(parser.process_line("/* Broken"))
+	second = list(parser.process_line(" * Context */"))
+	dt = first + second
+
+	expect = [
+		('switch', 'inclusion', ""),
+		('switch', 'exclusion', ""),
+		('exclusion', 'start', "/*"),
+		('space', 'lead', " "),
+		('identifier', 'event', "Broken"),
+
+		('switch', 'inclusion', ""),
+		('space', 'follow', " "),
+		('fragment', 'event', "*"),
+		('space', 'lead', " "),
+		('identifier', 'event', "Context"),
+		('space', 'follow', " "),
+		('exclusion', 'stop', "*/"),
+		# It's already at ground state, so this switch does not occur:
+		# ('switch', 'inclusion', ""),
+	]
+	test/dt == expect
+
 def test_Parser_process_lines(test):
 	"""
 	# - &module.Parser.process_lines

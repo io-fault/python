@@ -279,6 +279,13 @@ class Parser(object):
 		self._classify_op = classify_op
 		self._opcache = functools.lru_cache(opcachesize)(lambda x: list(classify_op(x)))
 
+	def process_line(self, line:str, eol='\n') -> typing.Iterable[Tokens]:
+		"""
+		# Process a single line of syntax into tokens.
+		"""
+
+		return self.delimit([('inclusion', None)], self.tokenize(line), eol=eol)
+
 	def process_lines(self, lines:typing.Iterable[str], eol='\n') -> typing.Iterable[typing.Iterable[Tokens]]:
 		"""
 		# Process lines using context resets;
@@ -288,6 +295,8 @@ class Parser(object):
 		# that are expected to restate line context, have inaccurate profiles, or are incomplete.
 
 		# The produced iterators may be ran out of order as no parsing state is shared across lines.
+
+		# Essentially, `map(Parser.process_line, line_iter)`.
 		"""
 
 		tok = self.tokenize
@@ -319,6 +328,7 @@ class Parser(object):
 		"""
 		# Allocate context stack for use with &delimit.
 		"""
+
 		return [('inclusion', None)]
 
 	def delimit(self, context, tokens:Tokens, eol='\n', restate=True) -> Tokens:
@@ -406,7 +416,7 @@ class Parser(object):
 		# Tokenize a string of syntax according to the profile.
 
 		# Direct use of this is not recommended as boundaries are not signalled.
-		# &process_lines or &process_document should be used.
+		# &process_line, &process_lines, or &process_document should be used.
 		# The raw tokens, however, are usable in contexts where boundary information is
 		# not desired or is not accurate enough for an application's use.
 		"""
