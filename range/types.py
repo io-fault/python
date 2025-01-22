@@ -741,11 +741,10 @@ class Mapping(object):
 		cur = self
 		while cur is not None:
 			for isect in cur.k_index.intersecting(key):
-				if key not in isect:
-					return
-				cur = cur.v_index[isect]
-				yield isect, cur
-				break
+				if isect in cur.v_index:
+					cur = cur.v_index[isect]
+					yield isect, cur
+					break
 			else:
 				cur = None
 
