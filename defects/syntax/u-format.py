@@ -3,6 +3,37 @@
 """
 from ...syntax import format as module
 
+def test_Fields_operations(test):
+	"""
+	# - &module.Fields
+	"""
+
+	f = module.Fields(',', (lambda x, y: (('T', v.strip()) for v in y.split(x))))
+	f.separation == ','
+
+	src = 'first, second , third ' # Spaces intended.
+	types = ['T'] * 3
+	values = ['first', 'second', 'third']
+	test/list(f.structure([src])) == [list(zip(types, values))]
+	test/next(f.sequence(f.structure([src]))) == 'firstsecondthird'
+
+def test_Fields_partial(test):
+	"""
+	# - &module.Fields.partial
+	"""
+
+	def fsplit(sep, ln, k=''):
+		for v in ln.split(sep):
+			yield ('T', k+v.strip())
+
+	f = module.Fields(',', fsplit)
+	cf = f.partial()
+	types = 'TTT'
+	test/list(cf("1,2,3")) == list(zip(types, ["1", "2", "3"]))
+
+	cf = f.partial(k='p-')
+	test/list(cf("1,2,3")) == list(zip(types, ["p-1", "p-2", "p-3"]))
+
 def test_Lines_defaults(test):
 	"""
 	# - &module.Lines

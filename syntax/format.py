@@ -2,10 +2,57 @@
 # Line and character format interpretation and serialization.
 """
 from collections.abc import Sequence, Iterable
-from typing import Callable
+from typing import Callable, TypeAlias
 
 from ..context.tools import partial
 from ..context.tools import struct
+
+@struct()
+class Fields(object):
+	"""
+	# Format configuration for separating the fields in a line of syntax.
+
+	# Essentially, a structured &partial instance that provides an interface
+	# consistent with other &.format data structures. &separation intends
+	# to be used to identify the configuration that &isolate uses in order
+	# separate the fields of a string. In many cases, &separation should be
+	# the instance of a class and &isolate should be an unbound method that
+	# performs the desired functionality.
+
+	# [ Elements ]
+	# /separation/
+		# The primary context or means for performing field isolation.
+		# Often, a pattern or configuration.
+	# /isolate/
+		# The field producing function that is given &separation as
+		# its first argument and line content as the second.
+	"""
+
+	separation: object
+	isolate: Callable[[object, str], Iterable[tuple[str,str]]]
+
+	def partial(self, *argv, **kw):
+		"""
+		# Construct a direct call to &isolate with &separation
+		# and the given arguments bound to the call.
+		"""
+
+		return partial(self.isolate, self.separation, *argv, **kw)
+
+	def structure(self, lines:Iterable[object]) -> Iterable[Sequence[tuple[str,str]]]:
+		"""
+		# Perform &isolate against the given &lines.
+		"""
+
+		return map(list, map(self.partial(), lines))
+
+	def sequence(self, fields:Iterable[tuple[str,str]], *, index=-1) -> Iterable[str]:
+		"""
+		# Reconstruct the original lines from the given field vectors.
+		"""
+
+		for fv in fields:
+			yield ''.join(x[index] for x in fv)
 
 @struct()
 class Lines(object):
