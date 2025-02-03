@@ -74,7 +74,9 @@ class Lines(object):
 
 	def structure(self, itext:Iterable[str]) -> Iterable[tuple[int, str]]:
 		"""
-		# Structure the given iterator of strings as an iterator of line sequences.
+		# Structure the given iterator of strings as an iterator of lines.
+
+		# Excludes a final empty line.
 		"""
 
 		# Special case this here in order to allow structuring without
@@ -85,20 +87,26 @@ class Lines(object):
 		else:
 			level = self.level
 
+		it = iter(itext)
 		leading = ''
-		remainder = None
-		for textbuf in itext:
-			remainder, lines = self._splitpartial(self.termination, textbuf, leading)
+		remainder = ''
+		splitp = self._splitpartial
+
+		# Again, but lines have been seen.
+		for textbuf in it:
+			remainder, lines = splitp(self.termination, textbuf, leading)
 			yield from map(level, lines)
 			leading = remainder
-		else:
-			if remainder is not None:
-				yield level(remainder)
+
+		if remainder:
+			yield level(remainder)
 
 	def sequence(self, ilines:Iterable[tuple[int, str]]) -> Iterable[str]:
 		"""
 		# Reconstruct the original lines from an iterable of indentation level
 		# and line content pairs.
+
+		# Includes a final empty line.
 		"""
 
 		for il, lc in ilines:

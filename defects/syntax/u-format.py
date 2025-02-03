@@ -71,6 +71,21 @@ def test_Lines_structure(test):
 	"""
 
 	t = module.Lines()
+
+	# Empty iterable, empty line sequence.
+	test/list(t.structure([])) == []
+	test/list(t.structure([""])) == []
+	test/list(t.structure(["", ""])) == []
+
+	# Single line; no termination.
+	test/list(t.structure(["text"])) == [(0, "text")]
+	test/list(t.structure(["text\n"])) == [(0, "text")]
+	test/list(t.structure(["t", "ext"])) == [(0, "text")]
+	test/list(t.structure(["te", "xt"])) == [(0, "text")]
+	test/list(t.structure(["tex", "t"])) == [(0, "text")]
+	test/list(t.structure(["t", "e", "x", "t"])) == [(0, "text")]
+	test/list(t.structure(["te", "", "", "xt"])) == [(0, "text")]
+
 	sample = "first\nsecond\n\tthird\n\tfourth"
 	test/list(t.structure([sample])) == [
 		(0, "first"),
@@ -90,7 +105,7 @@ def progression(test, ft, limit):
 
 	for fs in range(1, 8):
 		fragments = [sample[i:i+fs] for i in range(0, len(sample), fs)]
-		test/list(ft.structure(fragments)) == expect + [(0, '')]
+		test/list(ft.structure(fragments)) == expect
 
 def test_Lines_progression_spaces(test):
 	"""
