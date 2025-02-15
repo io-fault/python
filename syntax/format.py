@@ -90,6 +90,17 @@ class Lines(object):
 
 		return remainder, lines
 
+	def measure_partial_termination(self, line:str) -> int:
+		"""
+		# Identify the number of characters at the end of the &line that
+		# intersect with &termination.
+		"""
+
+		for i in range(len(self.termination) - 1, 0, -1):
+			if line[-i:] == self.termination[:i]:
+				return i
+		return 0
+
 	def measure_indentation(self, line:str) -> int:
 		"""
 		# Identify the indentation level of the given &line by counting the

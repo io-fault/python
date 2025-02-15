@@ -43,6 +43,24 @@ def test_Lines_defaults(test):
 	test/t.termination == "\n"
 	test/t.indentation == "\t"
 
+def test_partial_termination(test):
+	"""
+	# - &module.Lines.measure_partial_termination
+	"""
+
+	t = module.Lines("\r\n")
+	test/t.measure_partial_termination("sol") == 0
+	test/t.measure_partial_termination("sol\r") == 1
+
+	# Full matches aren't checked.
+	test/t.measure_partial_termination("sol\r\n") == 0
+
+	# Check unusual boundary.
+	t = module.Lines("\x00\x01\x02")
+	test/t.measure_partial_termination("sol\x00") == 1
+	test/t.measure_partial_termination("sol\x00\x01") == 2
+	test/t.measure_partial_termination("sol\x01\x02") == 0
+
 def test_Lines_splitpartial(test):
 	"""
 	# - &module.Lines._splitpartial
