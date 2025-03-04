@@ -1,5 +1,6 @@
-import typing
-import types
+from collections.abc import Hashable
+from typing import Callable
+from types import MethodType
 
 class MethodNotFound(Exception):
 	"""
@@ -50,7 +51,7 @@ class object(metaclass=Type):
 	__comethods__ = None
 
 	@classmethod
-	def __colookup__(Class, *key:typing.Hashable) -> typing.Callable:
+	def __colookup__(Class, *key:Hashable) -> Callable:
 		try:
 			return Class.__comethods__[key]
 		except KeyError:
@@ -58,10 +59,10 @@ class object(metaclass=Type):
 
 		raise MethodNotFound(key)
 
-	def __cobind__(self, *key:typing.Hashable, Method=types.MethodType) -> types.MethodType:
+	def __cobind__(self, *key:Hashable, Method=MethodType) -> MethodType:
 		return Method(self.__colookup__(*key), self)
 
-	def comethod(self, *key:typing.Hashable) -> types.MethodType:
+	def comethod(self, *key:Hashable) -> MethodType:
 		"""
 		# Select the method associated with the given &key.
 		"""
