@@ -19,6 +19,20 @@
 #include <fault/python/environ.h>
 #include <fault/python/injection.h>
 
+/**
+	// Python 3.13 introduced PyLong_AsNativeBytes; use if available.
+*/
+#ifdef Py_ASNATIVEBYTES_NATIVE_ENDIAN
+	#define interpret_native_integer(OB, OUT, SIZE) \
+		PyLong_AsNativeBytes( \
+			(PyLongObject *) OB, OUT, SIZE, \
+			Py_ASNATIVEBYTES_NATIVE_ENDIAN \
+		)
+#else
+	#define interpret_native_integer(OB, OUT, SIZE) \
+		_PyLong_AsByteArray((PyLongObject *) OB, OUT, SIZE, 0, 0)
+#endif
+
 #include <endpoint.h>
 
 extern PyTypeObject EndpointType;
@@ -208,13 +222,13 @@ inet6_from_pyint(void *out, PyObj ob)
 		PyObj lo = PyNumber_Long(ob);
 		if (lo)
 		{
-			r = _PyLong_AsByteArray((PyLongObject *) lo, out, 128 / 8, 0, 0);
+			r = interpret_native_integer(lo, out, 128 / 8);
 			Py_DECREF(lo);
 		}
 	}
 	else
 	{
-		r = _PyLong_AsByteArray((PyLongObject *) ob, out, 128 / 8, 0, 0);
+		r = interpret_native_integer(ob, out, 128 / 8);
 	}
 
 	return(r);
@@ -233,13 +247,13 @@ inet4_from_pyint(void *out, PyObj ob)
 		PyObj lo = PyNumber_Long(ob);
 		if (lo)
 		{
-			r = _PyLong_AsByteArray((PyLongObject *) lo, out, 32 / 8, 0, 0);
+			r = interpret_native_integer(lo, out, 32 / 8);
 			Py_DECREF(lo);
 		}
 	}
 	else
 	{
-		r = _PyLong_AsByteArray((PyLongObject *) ob, out, 32 / 8, 0, 0);
+		r = interpret_native_integer(ob, out, 32 / 8);
 	}
 
 	return(r);
