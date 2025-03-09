@@ -145,56 +145,6 @@ ktype_string(ktype_t kt)
 	}
 }
 
-static int
-inet6_from_pyint(void *out, PyObj ob)
-{
-	int r = -1;
-
-	if (ob == Py_None)
-		return(INADDR_ANY);
-
-	if (Py_TYPE(ob) != &PyLong_Type)
-	{
-		PyObj lo = PyNumber_Long(ob);
-		if (lo)
-		{
-			r = _PyLong_AsByteArray((PyLongObject *) lo, out, 128 / 8, 0, 0);
-			Py_DECREF(lo);
-		}
-	}
-	else
-	{
-		r = _PyLong_AsByteArray((PyLongObject *) ob, out, 128 / 8, 0, 0);
-	}
-
-	return(r);
-}
-
-static int
-inet4_from_pyint(void *out, PyObj ob)
-{
-	int r = -1;
-
-	if (ob == Py_None)
-		return(INADDR_ANY);
-
-	if (Py_TYPE(ob) != &PyLong_Type)
-	{
-		PyObj lo = PyNumber_Long(ob);
-		if (lo)
-		{
-			r = _PyLong_AsByteArray((PyLongObject *) lo, out, 32 / 8, 0, 0);
-			Py_DECREF(lo);
-		}
-	}
-	else
-	{
-		r = _PyLong_AsByteArray((PyLongObject *) ob, out, 32 / 8, 0, 0);
-	}
-
-	return(r);
-}
-
 #if ! FV_OPTIMAL() || F_TRACE()
 	static void pchannel(Channel);
 	static void pkevent(kevent_t *);
