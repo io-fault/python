@@ -293,10 +293,10 @@ class Path(Selector[str]):
 	Violation = RequirementViolation
 
 	_path_separator = os.path.sep
-	_fs_access = functools.partial(
+	_fs_access = staticmethod(functools.partial(
 		os.access,
 		effective_ids=(os.access in os.supports_effective_ids)
-	)
+	))
 	_fs_access_map = {
 		'r': os.R_OK,
 		'w': os.W_OK,
