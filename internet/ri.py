@@ -375,7 +375,7 @@ def split_netloc(netloc, *, fieldproc=decode_percent_escapes):
 			if netloc.endswith(']'):
 				# Address qualified.
 				addr_start = netloc.find('[', pos)
-				host = netloc[:addr_start]
+				host = netloc[pos:addr_start]
 				address = netloc[addr_start+1:-1]
 			else:
 				# No closing address.

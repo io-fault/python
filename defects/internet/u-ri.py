@@ -570,3 +570,15 @@ def test_address_extension(test):
 
 	nl = module.split_netloc("[::1]")
 	test/nl[2:5] == ('', "::1", None)
+
+	nl = module.split_netloc("usr@host[text]")
+	test/nl == ('usr', None, 'host', 'text', None)
+
+	nl = module.split_netloc(":pwd@host[text]")
+	test/nl == ('', 'pwd', 'host', 'text', None)
+
+	nl = module.split_netloc("usr:pwd@host[text]")
+	test/nl == ('usr', 'pwd', 'host', 'text', None)
+
+	nl = module.split_netloc("usr:pwd@host[text]:port")
+	test/nl == ('usr', 'pwd', 'host', 'text', 'port')
