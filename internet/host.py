@@ -214,7 +214,7 @@ def realize(struct:dict, scheme=None, host=None, port=None) -> typing.Union[Refe
 	"""
 	# Construct an &Endpoint or &Reference from &struct.
 
-	#!/pl/python
+	#!syntax/python
 		# Usual case:
 		from fault.internet import ri
 		target = host.realize(ri.parse(url))

@@ -550,3 +550,23 @@ def test_strict(test):
 	escaped = tuple(x.translate(module._percent_translations) for x in [path, query, setting])
 
 	test/module.serialize(ri) == (strtmp % escaped)
+
+def test_address_extension(test):
+	"""
+	# - &module.split_netloc
+	# - &module.structure
+
+	# Validate the address extension.
+	"""
+
+	nl = module.split_netloc("host[address]:port")
+	test/nl[2:5] == ("host", "address", "port")
+
+	nl = module.split_netloc("[::1]:port")
+	test/nl[2:5] == ('', "::1", "port")
+
+	nl = module.split_netloc("[::1]")
+	test/nl[2:5] == ('', "::1", None)
+
+	nl = module.split_netloc("[::1]")
+	test/nl[2:5] == ('', "::1", None)

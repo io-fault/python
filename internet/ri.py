@@ -300,6 +300,7 @@ def remap_ipv4_address(string):
 	"""
 	# Recognize IPv4 hosts as addresses.
 	"""
+
 	if not string[:1].isdigit() or not string[-1:].isdigit():
 		# Fast path. Regular host.
 		return (string, None)
@@ -308,11 +309,13 @@ def remap_ipv4_address(string):
 		for x in string.split('.'):
 			xi = int(x)
 			if xi > 255 or xi < 0:
+				# Out of range for IPv4.
 				return (string, None)
 	except ValueError:
+		# Field was not an integer.
 		return (string, None)
 
-	# IPv4 address.
+	# IPv4 address, no host.
 	return (None, string)
 
 def split_netloc(netloc, *, fieldproc=decode_percent_escapes):
@@ -371,7 +374,7 @@ def split_netloc(netloc, *, fieldproc=decode_percent_escapes):
 			# No port or IPv6 host address.
 			if netloc.endswith(']'):
 				# Address qualified.
-				addr_start = netloc.find(pos, '[')
+				addr_start = netloc.find('[', pos)
 				host = netloc[:addr_start]
 				address = netloc[addr_start+1:-1]
 			else:
