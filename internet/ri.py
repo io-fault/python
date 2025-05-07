@@ -398,7 +398,7 @@ def split_netloc(netloc, *, fieldproc=decode_percent_escapes):
 				else:
 					address = fieldproc(netloc[addr_start+1:addr_end])
 					next_pos = netloc.find(':', addr_end)
-					if next_pos == '-1':
+					if next_pos == -1:
 						port = None
 					else:
 						# ':' beyond ']'

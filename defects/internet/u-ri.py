@@ -582,3 +582,9 @@ def test_address_extension(test):
 
 	nl = module.split_netloc("usr:pwd@host[text]:port")
 	test/nl == ('usr', 'pwd', 'host', 'text', 'port')
+
+	nl = module.split_netloc("usr:pwd@host[addr:subport]:port")
+	test/nl == ('usr', 'pwd', 'host', 'addr:subport', 'port')
+
+	nl = module.split_netloc("usr:pwd@host[addr:subport]")
+	test/nl == ('usr', 'pwd', 'host', 'addr:subport', None)
