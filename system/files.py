@@ -588,7 +588,7 @@ class Path(Selector[str]):
 		"""
 
 		try:
-			s = stat(self.fullpath.rstrip('/'))
+			s = stat(self.fullpath.rstrip('/') or '/')
 		except FileNotFoundError:
 			return 'void'
 

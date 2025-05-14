@@ -1017,3 +1017,8 @@ def test_Path_fs_require_accessibility(test):
 
 	#! Allow traversal through data file.
 	test/(df/'subfile').fs_require('*?') == (df/'subfile')
+
+def test_root_instance(test):
+	# root is a potential corner case, so give it special attention.
+	test/module.root.fs_type() == 'directory'
+	test/(+(module.root)).fs_type() == 'directory'
