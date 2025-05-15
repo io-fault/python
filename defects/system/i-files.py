@@ -1022,3 +1022,23 @@ def test_root_instance(test):
 	# root is a potential corner case, so give it special attention.
 	test/module.root.fs_type() == 'directory'
 	test/(+(module.root)).fs_type() == 'directory'
+
+def test_Path_fs_path_string(test):
+	"""
+	# - &module.Path.fs_path_string
+
+	# Validate path normalization by making sure partitions
+	# are properly eliminated.
+	"""
+
+	test/module.root.fs_path_string() == '/'
+
+	a = module.root/'a'
+	test/a.fs_path_string() == '/a'
+	b = a/'b'
+	test/b.fs_path_string() == '/a/b'
+	c = b.delimit()/'c'
+	test/c.fs_path_string() == '/a/b/c'
+
+	test/(module.root@'//test//parted//path//').fs_path_string() == '/test/parted/path'
+	test/(module.root@'////////').fs_path_string() == '/'

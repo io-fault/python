@@ -292,7 +292,7 @@ class Path(Selector[str]):
 	context: Optional['Path']
 	Violation = RequirementViolation
 
-	_path_separator = os.path.sep
+	_root_path = _path_separator = os.path.sep
 	_fs_access = staticmethod(functools.partial(
 		os.access,
 		effective_ids=(os.access in os.supports_effective_ids)
@@ -466,9 +466,6 @@ class Path(Selector[str]):
 	def __str__(self):
 		return self.fullpath
 
-	def __fspath__(self) -> str:
-		return self.fullpath
-
 	@property
 	def fullpath(self) -> str:
 		"""
@@ -567,6 +564,32 @@ class Path(Selector[str]):
 			ctx = root
 
 		return self.__class__(ctx, tuple(rpoints))
+
+	def fs_path_string(self) -> str:
+		"""
+		# Construct a normalized string representing the path to the file.
+
+		# Relative resolution must still be explicitly performed, but empty
+		# path entries delimiting partitions are eliminated.
+		"""
+
+		path = self
+		path_seq = []
+
+		# Invert points sequence.
+		while path.context is not None:
+			path_seq.append(path.points)
+			path = path.context
+		else:
+			path_seq.append(path.points)
+
+		# Join non-empty points in the path.
+		return self._root_path + self._path_separator.join(
+			self._path_separator.join(x for x in parts if x)
+			for parts in reversed(path_seq)
+			if any(parts)
+		)
+	__fspath__ = fs_path_string
 
 	def fs_status(self, *, stat=os.stat) -> Status:
 		return Status((stat(self.fullpath), self.identifier))
