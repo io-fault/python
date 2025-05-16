@@ -578,16 +578,17 @@ class Path(Selector[str]):
 
 		# Invert points sequence.
 		while path.context is not None:
-			path_seq.append(path.points)
+			if any(path.points):
+				path_seq.append(path.points)
 			path = path.context
 		else:
-			path_seq.append(path.points)
+			if any(path.points):
+				path_seq.append(path.points)
 
 		# Join non-empty points in the path.
 		return self._root_path + self._path_separator.join(
 			self._path_separator.join(x for x in parts if x)
 			for parts in reversed(path_seq)
-			if any(parts)
 		)
 	__fspath__ = fs_path_string
 
