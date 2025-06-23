@@ -98,12 +98,13 @@ def dispatch(meta, log,
 		kill=os.killpg, range=range, next=next
 	):
 	"""
-	# Execute a sequence of system commands while displaying their status
+	# Execute system commands while displaying their status
 	# according to the transaction messages they emit to standard out.
 
-	# Commands are executed simultaneously so long as a monitor is available to display
-	# their status.
+	# &monitors corresponds to the processing lanes of the operation, but
+	# the configured allocations in &control may limit what is displayed.
 	"""
+
 	closetypes = {
 		(False, True): '<>',
 		(False, False): '><',
@@ -114,11 +115,12 @@ def dispatch(meta, log,
 
 	total_messages = 0
 	message_count = 0
-	ioa = io.FrameArray(timeout=frequency)
 
+	# Status monitors are allocated for each lane, but only some are visible.
+	visible = control.count
 	available = collections.deque(range(len(monitors)))
+
 	statusd = {}
-	processing = True
 	last = time.elapsed()
 	summary.reset(last, zero)
 	for m in monitors:
@@ -126,10 +128,13 @@ def dispatch(meta, log,
 	mtotal = zero
 
 	summary.title(title, '/'.join(map(str, queue.status())))
-	control.install(summary)
+	if visible >= 0:
+		control.install(summary)
 
+	ioa = io.FrameArray(timeout=frequency)
 	try:
 		ioa.__enter__()
+		processing = True
 		while processing:
 			if available:
 				# Open processing lanes take from queue.
@@ -155,7 +160,8 @@ def dispatch(meta, log,
 
 					monitor.title(next_channel[1], *next_channel[2])
 					ioa.connect(lid, next_channel[0])
-					control.install(monitor)
+					if lid < visible:
+						control.install(monitor)
 
 					if opened:
 						log.emit(_open_frame(status))
@@ -186,7 +192,8 @@ def dispatch(meta, log,
 
 									monitor.title(next_channel[1], *next_channel[2])
 									ioa.connect(xlid, next_channel[0])
-									control.install(monitor)
+									if lid < visible:
+										control.install(monitor)
 
 									if opened:
 										log.emit(_open_frame(status))
@@ -197,7 +204,8 @@ def dispatch(meta, log,
 
 			# Located before possible waits in &ioa.__iter__,
 			# but not directly after to allow seamless transitions.
-			control.flush()
+			if visible > -1:
+				control.flush()
 
 			# Calculate change in time for Metrics.commit.
 			next_time = time.elapsed()
@@ -224,8 +232,11 @@ def dispatch(meta, log,
 
 					if next_channel is not None:
 						ioa.connect(lid, next_channel[0])
+
 						monitor.title(next_channel[1], *next_channel[2])
-						control.install(monitor)
+						if lid < visible:
+							control.install(monitor)
+
 						if opened:
 							log.emit(_open_frame(status))
 						continue
@@ -236,7 +247,8 @@ def dispatch(meta, log,
 
 					qs = queue.status()
 					summary.title(title, '/'.join(map(str, (qs[0]-len(statusd), qs[1]))))
-					control.install(summary)
+					if visible > -1:
+						control.install(summary)
 					status.clear()
 					continue
 
@@ -296,14 +308,16 @@ def dispatch(meta, log,
 			last = next_time
 
 			# Update duration and any other altered fields.
-			for m in monitors:
+			for vlid, m in enumerate(monitors):
 				m.elapse(next_time)
-				control.update(m, m.render())
+				if vlid < visible:
+					control.update(m, m.render())
 
 			summary.update(next_time, mtotal)
 			qs = queue.status()
 			summary.title(title, '/'.join(map(str, (qs[0]-len(statusd), qs[1]))))
-			control.update(summary, summary.render())
+			if visible > -1:
+				control.update(summary, summary.render())
 		else:
 			pass
 	except BrokenPipeError:

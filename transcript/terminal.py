@@ -641,6 +641,7 @@ class Monitor(object):
 
 	def __init__(self, screen, fileno):
 		self.screen = screen
+		self.count = 0
 		self._buffer = []
 		self._fileno = fileno
 		self._io = io.FileIO(fileno, closefd=False, mode='w')
@@ -648,7 +649,7 @@ class Monitor(object):
 
 	def install(self, monitor):
 		"""
-		# Erase, reframe, and update the given monitor..
+		# Erase, reframe, and update the given monitor.
 		"""
 
 		self._buffer.append(self.screen.erase(monitor.context))
@@ -739,6 +740,7 @@ class Monitor(object):
 
 		if not lines:
 			raise ValueError("line allocation must be non-zero")
+		self.count = lines
 
 		from termios import tcgetwinsize
 		height, width = tcgetwinsize(self._fileno)
