@@ -10,18 +10,34 @@ def test_Update(test):
 	test/r.position == 0
 	test/r.insertion == ""
 	test/r.deletion == ""
+	test/list(r.usage()) != []
 
 def test_Lines(test):
 	r = module.Lines(0, [], [])
 	test/r.element == 0
 	test/r.insertion == []
 	test/r.deletion == []
+	test/list(r.usage()) != []
+
+def test_Cursor(test):
+	r = module.Cursor(0, -1, -2, -3)
+	test/r.element == 0
+	test/r.lines == -1
+	test/r.codepoint_offset == -2
+	test/r.codepoints == -3
+	test/list(r.usage()) != []
+
+def test_Checkpoint(test):
+	r = module.Checkpoint(7)
+	test/r.when == 7
+	test/list(r.usage()) != []
 
 def test_Log_init(test):
 	l = module.Log()
 	test/len(l.records) == 0
 	test/l.count == 0
 	test/l.committed == 0
+	test/list(l.usage()) != []
 
 def sample1():
 	ds = []

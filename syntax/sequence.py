@@ -348,6 +348,16 @@ class Segments(object):
 		self._length -= (stop - start)
 		assert self._length >= 0
 
+	def usage(self):
+		"""
+		# Identify the primary memory using objects.
+		"""
+
+		yield self
+		yield self.sequences
+		yield from self.sequences
+		yield from iter(self)
+
 class Immutable(object):
 	"""
 	# Segments compatible sequence that disregards manipulations to provide, cooperative,
@@ -358,6 +368,11 @@ class Immutable(object):
 
 	def __init__(self, items:Iterable[object]):
 		self._constant = list(items)
+
+	def usage(self):
+		yield self
+		yield self._constant
+		yield from self._constant
 
 	def select(self, start, stop, *, islice=itertools.islice):
 		return self._constant[start:stop]

@@ -1,7 +1,6 @@
 """
 # Element change logs for managing deltas, undo, and redo.
 """
-import sys
 import itertools
 from typing import Protocol
 from fault.context.tools import struct
@@ -53,6 +52,13 @@ class Record(Protocol):
 		# The change in the elements' length that occurred.
 		# Length of insertions minus length of deletions.
 		"""
+
+	def usage(self):
+		"""
+		# Memory usage of the record. The given &count will
+		# measure an object's size if it hasn't already been seen.
+		"""
+		return ()
 
 	def size(self, encoding):
 		"""
@@ -110,6 +116,9 @@ class Checkpoint(Record):
 	insertion = None
 	deletion = None
 
+	def usage(self):
+		return (self, self.when)
+
 	def invert(self):
 		return self
 
@@ -162,6 +171,9 @@ class Update(Record):
 	@property
 	def span(self):
 		return (self.element, 1)
+
+	def usage(self):
+		return (self, self.element, self.position, self.insertion, self.deletion)
 
 	def size(self, encoding):
 		return (
@@ -309,6 +321,15 @@ class Lines(Record):
 	def span(self, *, len=len, max=max):
 		return (self.element, max(len(self.insertion), len(self.deletion)))
 
+	def usage(self):
+		yield from (self, self.element)
+
+		yield self.insertion
+		yield from self.insertion
+
+		yield self.deletion
+		yield from self.deletion
+
 	def size(self, encoding, *, sum=sum, map=map, len=len):
 		return (
 			+ sum(map(len, (x.encode(encoding) for x in self.insertion)))
@@ -383,6 +404,9 @@ class Cursor(Record):
 	@property
 	def span(self, *, len=len, max=max):
 		return (self.element, max(len(self.insertion), len(self.deletion)))
+
+	def usage(self):
+		return (self, self.element, self.lines, self.codepoint_offset, self.codepoints)
 
 	def size(self, encoding, *, sum=sum, map=map, len=len):
 		return 0
@@ -468,23 +492,16 @@ class Log(object):
 
 		return sum(r.size(encoding) for r in self.records)
 
-	def usage(self, *, getsizeof=sys.getsizeof):
-		"""
-		# Calculate the approximate memory usage of the log.
-		"""
+	def usage(self):
+		yield from (self, self.count, self.committed, self.collapsed)
 
-		return sum(itertools.chain(
-			(
-				getsizeof(self),
-				getsizeof(self.count),
-				getsizeof(self.committed),
-				getsizeof(self.collapsed),
-				getsizeof(self.records),
-				getsizeof(self.future),
-			),
-			map(getsizeof, self.records),
-			map(getsizeof, self.future),
-		))
+		yield self.records
+		for r in self.records:
+			yield from r.usage()
+
+		yield self.future
+		for r in self.future:
+			yield from r.usage()
 
 	def snapshot(self):
 		"""
