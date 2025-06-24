@@ -53,6 +53,66 @@ def test_Log_redo(test):
 		d.apply(ds)
 	test/ds == ["replace", "init", "suffix"]
 
+def test_Log_truncate(test):
+	"""
+	# - &module.Log.truncate
+
+	# Validate negative interpretations, uncommitted retention, and full truncation.
+	"""
+
+	ds, l = sample1()
+	test/l.count == 1
+	test/l.committed == 1
+	l.truncate()
+	test/l.count == 0
+	test/l.committed == 0
+
+	# Ignore uncommitted
+	l.write(module.Lines(1, ["uncommitted"], []))
+	test/ds == ["init"]
+	test/l.count == 1
+	test/l.committed == 0
+	l.truncate()
+	test/l.count == 1
+	test/l.committed == 0
+	# And again with negative offset.
+	l.truncate(-2)
+	test/l.count == 1
+	test/l.committed == 0
+
+	# Apply and test truncates.
+	l.apply(ds)
+	l.commit()
+	test/ds[-1] == "uncommitted"
+	test/l.count == 1
+	l.truncate(-1)
+	test/l.count == 1
+	l.truncate(1)
+	test/l.count == 0
+
+	for i in range(24):
+		l.write(module.Lines(0, [str(i)], []))
+	test/l.count == 24
+	test/l.committed == 0
+	# Refuse to truncate uncommitted.
+	l.truncate()
+	l.truncate(12)
+	l.truncate(24)
+	test/l.count == 24
+	test/l.committed == 0
+	l.apply(ds)
+	l.commit()
+	test/l.count == l.committed
+
+	l.truncate(6)
+	test/l.count == (24 - 6)
+	test/l.count == l.committed
+
+	# Deleting to the 10'th record.
+	l.truncate(-8)
+	test/l.count == ((24 - 6) - 10)
+	test/l.count == l.committed
+
 def test_Log_checkpoint(test):
 	ds, l = sample1()
 	l.checkpoint()

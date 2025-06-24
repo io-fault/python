@@ -441,12 +441,25 @@ class Log(object):
 		self.collapsed = 0
 		self.future = []
 
-	def truncate(self):
-		self.count = 0
-		self.committed = 0
-		self.collapsed = 0
-		del self.records[:]
+	def truncate(self, count=None):
+		nrecords = len(self.records)
+		if count is None:
+			count = len(self.records)
+		elif count < 0:
+			count = max(0, nrecords + count)
+
+		if count > self.committed:
+			# Restrict count to the committed records.
+			count = self.committed
+
+		del self.records[:count]
+		self.count = len(self.records)
+		drecords = nrecords - self.count
+		self.committed -= drecords
+
+		# Unconditionally reset future and collapse count.
 		del self.future[:]
+		self.collapsed = 0
 
 	def size(self, encoding):
 		"""
@@ -475,7 +488,7 @@ class Log(object):
 
 	def snapshot(self):
 		"""
-		# Construct a version identifier that can be used to identify changes.
+		# Construct a reference to the current version.
 		"""
 
 		return (self.committed, self.collapsed, -len(self.future) or None)
