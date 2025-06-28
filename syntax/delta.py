@@ -465,6 +465,14 @@ class Log(object):
 		self.collapsed = 0
 		self.future = []
 
+	def revert(self, target):
+		"""
+		# Retract all committed changes on &target.
+		"""
+
+		for r in reversed(self.records[:self.committed]):
+			r.retract(target)
+
 	def truncate(self, count=None):
 		nrecords = len(self.records)
 		if count is None:
