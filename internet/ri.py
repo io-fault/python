@@ -574,6 +574,7 @@ def context_tokens(
 			'relative': '//',
 			'authority': '://',
 			'absolute': ':',
+			'amorphous': '',
 			'none': '',
 			None: '',
 		}
