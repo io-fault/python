@@ -6,15 +6,14 @@ import functools
 import os.path
 
 from ...system import files as module
-lib = module
 from ...time.system import utc as time
 
 @functools.singledispatch
-def d_setup(x:bytes, path:lib.Path):
+def d_setup(x:bytes, path:module.Path):
 	path.fs_init(x)
 
 @d_setup.register
-def _(x:dict, path:lib.Path):
+def _(x:dict, path:module.Path):
 	for k, v in x.items():
 		d_setup(v, path/k)
 
@@ -40,17 +39,17 @@ def test_constants(test):
 
 def test_Path(test):
 	dir = os.path.dirname(os.path.realpath(__file__))
-	r = lib.Path.from_absolute(os.path.realpath(__file__))
+	r = module.Path.from_absolute(os.path.realpath(__file__))
 	test/r.fullpath == os.path.realpath(__file__)
 
 	rd = r.container
 	test/rd.fullpath == dir
 
 	test/(rd/'foo').fullpath == os.path.join(dir, 'foo')
-	test/lib.Path.from_absolute('/foo/bar.tar.gz').extension == 'gz'
+	test/module.Path.from_absolute('/foo/bar.tar.gz').extension == 'gz'
 
 def test_Path_filename(test):
-	p = lib.Path.from_absolute('/no/such/path')
+	p = module.Path.from_absolute('/no/such/path')
 
 	f = p/'data.tar.xz'
 	test/p.filename == 'path'
@@ -58,28 +57,28 @@ def test_Path_filename(test):
 	test/f.extension == 'xz'
 
 def test_Path_repr(test):
-	end = lib.Path.from_absolute('/test')
+	end = module.Path.from_absolute('/test')
 	test/repr(end).__contains__('/test') == True
 
-	nx = lib.Path.from_absolute_parts('/usr/lib', 'python3.5m/site-packages', 'somemod.py')
+	nx = module.Path.from_absolute_parts('/usr/lib', 'python3.5m/site-packages', 'somemod.py')
 	rstr = repr(nx)
 	test/rstr.__contains__('/somemod.py') == True
 	test/rstr.__contains__('/usr/') == True
 
 def test_Path_string_cache(test):
-	r = lib.Path.from_absolute('/')
+	r = module.Path.from_absolute('/')
 
-	p1 = lib.Path.from_absolute('/test/string/path')
-	test/lib.path_string_cache(p1) == 'test/string/path'
+	p1 = module.Path.from_absolute('/test/string/path')
+	test/module.path_string_cache(p1) == 'test/string/path'
 
 	p2 = r@"test//string//path"
-	test/lib.path_string_cache(p2) == 'test/string/path'
-	test/lib.path_string_cache(p2 ** 1) == 'test/string'
-	test/lib.path_string_cache(p2 ** 2) == 'test'
-	test/lib.path_string_cache(p2 ** 3) == ''
+	test/module.path_string_cache(p2) == 'test/string/path'
+	test/module.path_string_cache(p2 ** 1) == 'test/string'
+	test/module.path_string_cache(p2 ** 2) == 'test'
+	test/module.path_string_cache(p2 ** 3) == ''
 
 def test_Path_from_partitioned_string(test):
-	p = lib.Path.from_partitioned_string("/root//prefix/stem//local/target")
+	p = module.Path.from_partitioned_string("/root//prefix/stem//local/target")
 	parts = p.partitions()
 	test/parts == [
 		('root',),
@@ -88,12 +87,12 @@ def test_Path_from_partitioned_string(test):
 	]
 
 def test_Path_bytespath(test):
-	p = lib.Path.from_absolute('/test/path')
+	p = module.Path.from_absolute('/test/path')
 	test/p.bytespath == b'/test/path'
 
 def test_Path_temporary(test):
 	path = None
-	with lib.Path.fs_tmpdir() as t:
+	with module.Path.fs_tmpdir() as t:
 		path = t.fullpath
 		test/os.path.exists(path) == True
 		test/t.fs_type() == 'directory'
@@ -103,10 +102,10 @@ def test_Path_temporary(test):
 
 def test_Path_list(test):
 	"""
-	# - &lib.Path.fs_list
+	# - &module.Path.fs_list
 	"""
 
-	t = test.exits.enter_context(lib.Path.fs_tmpdir())
+	t = test.exits.enter_context(module.Path.fs_tmpdir())
 	test/t.fs_list() == ([],[])
 	expect = ([t/str(i) for i in range(24, 32)], [t/str(i) for i in range(16)])
 
@@ -130,11 +129,11 @@ def test_Path_list(test):
 
 def test_Path_iterfiles(test):
 	"""
-	# - &lib.Path.fs_iterfiles
+	# - &module.Path.fs_iterfiles
 	"""
 	K = (lambda x: int(x.identifier))
 
-	t = test.exits.enter_context(lib.Path.fs_tmpdir())
+	t = test.exits.enter_context(module.Path.fs_tmpdir())
 	test/list(t.fs_iterfiles()) == []
 
 	expect_files = [t/str(i) for i in range(16)]
@@ -172,11 +171,11 @@ def test_Path_iterfiles(test):
 
 def test_Path_index(test):
 	"""
-	# - &lib.Path.fs_index
-	# - &lib.Path.fs_list
+	# - &module.Path.fs_index
+	# - &module.Path.fs_list
 	"""
 
-	t = test.exits.enter_context(lib.Path.fs_tmpdir())
+	t = test.exits.enter_context(module.Path.fs_tmpdir())
 	f = t / 'file'
 	f.fs_init()
 	test/f.fs_list() == ([],[]) # OSError
@@ -198,11 +197,11 @@ def test_Path_index(test):
 
 def test_Path_snapshot(test):
 	"""
-	# - &lib.Path.fs_snapshot
+	# - &module.Path.fs_snapshot
 	"""
 	sk = (lambda x: x[2]['identifier'])
 
-	t = test.exits.enter_context(lib.Path.fs_tmpdir())
+	t = test.exits.enter_context(module.Path.fs_tmpdir())
 	f = (t / 'file').fs_init()
 	report = t.fs_snapshot()
 	expect = [
@@ -222,9 +221,9 @@ def test_Path_snapshot(test):
 
 def test_Path_real(test):
 	"""
-	# - &lib.Path.fs_real
+	# - &module.Path.fs_real
 	"""
-	t = test.exits.enter_context(lib.Path.fs_tmpdir())
+	t = test.exits.enter_context(module.Path.fs_tmpdir())
 	f = t/'doesnotexist'
 
 	r = f.fs_real()
@@ -239,7 +238,7 @@ def test_Path_real(test):
 
 def test_Path_replace(test):
 	# Regular file replacement.
-	t = test.exits.enter_context(lib.Path.fs_tmpdir())
+	t = test.exits.enter_context(module.Path.fs_tmpdir())
 	src = t / 'srcfile'
 	with src.fs_open('wb') as f:
 		f.write(b'sources')
@@ -269,11 +268,11 @@ def test_Path_replace(test):
 
 def test_Path_init(test):
 	"""
-	# Test &lib.Path.fs_init checking that the parent directories are
+	# Test &module.Path.fs_init checking that the parent directories are
 	# properly created regardless of the selected type.
 	"""
 
-	t = test.exits.enter_context(lib.Path.fs_tmpdir())
+	t = test.exits.enter_context(module.Path.fs_tmpdir())
 	f = t / 'parent-2' / 'filename'
 
 	f2 = f.fs_init(b'content')
@@ -287,11 +286,11 @@ def test_Path_init(test):
 
 def test_Path_mkdir(test):
 	"""
-	# Test &lib.Path.fs_mkdir checking that the parent directories are
+	# Test &module.Path.fs_mkdir checking that the parent directories are
 	# properly created regardless of the selected type.
 	"""
 
-	t = test.exits.enter_context(lib.Path.fs_tmpdir())
+	t = test.exits.enter_context(module.Path.fs_tmpdir())
 	d = t / 'parent-2' / 'directory'
 
 	d2 = d.fs_mkdir()
@@ -305,10 +304,10 @@ def test_Path_mkdir(test):
 
 def test_Path_type_void(test):
 	"""
-	# - &lib.Path.fs_type
+	# - &module.Path.fs_type
 	"""
 
-	t = test.exits.enter_context(lib.Path.fs_tmpdir())
+	t = test.exits.enter_context(module.Path.fs_tmpdir())
 	l = t / 'deadlink.txt'
 	d = t / 'directory'
 	f = t / 'data-file.txt'
@@ -328,14 +327,14 @@ def test_Path_type_void(test):
 	test/v3.fs_type() == 'void'
 
 def test_Path_extension(test):
-	f = lib.Path.from_path('test')
+	f = module.Path.from_path('test')
 	test/f.extension == None
 
-	f = lib.Path.from_path('test.xyz')
+	f = module.Path.from_path('test.xyz')
 	test/f.extension == 'xyz'
 
 def test_Path_size(test):
-	r = lib.Path.from_path(__file__)
+	r = module.Path.from_path(__file__)
 
 	d = r.container / 'test-size-info'
 
@@ -354,7 +353,7 @@ def test_Path_get_last_modified(test):
 	"""
 	import time
 
-	d = test.exits.enter_context(lib.Path.fs_tmpdir())
+	d = test.exits.enter_context(module.Path.fs_tmpdir())
 	r = d / 'last_modified_testfile'
 	with r.fs_open('w') as f:
 		f.write('data\n')
@@ -380,7 +379,7 @@ def test_Path_set_last_modified(test):
 	# System check.
 	"""
 
-	d = test.exits.enter_context(lib.Path.fs_tmpdir())
+	d = test.exits.enter_context(module.Path.fs_tmpdir())
 	r = d / 'last_modified_testfile'
 	with r.fs_open('w') as f:
 		f.write('data\n')
@@ -398,10 +397,10 @@ def test_Path_set_last_modified(test):
 
 def test_Path_get_text_content(test):
 	"""
-	# Validate &lib.Path.get_text_content.
+	# Validate &module.Path.get_text_content.
 	"""
 
-	d = test.exits.enter_context(lib.Path.fs_tmpdir())
+	d = test.exits.enter_context(module.Path.fs_tmpdir())
 	r = d / 'tf'
 	with r.fs_open('w', encoding='utf-8') as f:
 		f.write("data\n")
@@ -410,10 +409,10 @@ def test_Path_get_text_content(test):
 
 def test_Path_set_text_content(test):
 	"""
-	# Validate &lib.Path.set_text_content.
+	# Validate &module.Path.set_text_content.
 	"""
 
-	d = test.exits.enter_context(lib.Path.fs_tmpdir())
+	d = test.exits.enter_context(module.Path.fs_tmpdir())
 	r = d / 'tf'
 	test/r.set_text_content("data\n")
 	with r.fs_open(encoding='utf-8') as f:
@@ -421,10 +420,10 @@ def test_Path_set_text_content(test):
 
 def test_Path_since(test):
 	"""
-	# &lib.Path.fs_since
+	# &module.Path.fs_since
 	"""
 
-	root = test.exits.enter_context(lib.Path.fs_tmpdir())
+	root = test.exits.enter_context(module.Path.fs_tmpdir())
 	f1 = root / 'file1'
 	f2 = root / 'file2'
 	f3 = root / 'file3'
@@ -447,54 +446,54 @@ def test_Path_construct(test):
 	# Test the various classmethods that construct file instances.
 	"""
 
-	test/str(lib.Path.from_absolute('/')) == '/'
+	test/str(module.Path.from_absolute('/')) == '/'
 
-	context = lib.Path.from_absolute('/no/such/directory')
+	context = module.Path.from_absolute('/no/such/directory')
 
-	test/str(lib.Path.from_relative(context, 'file')) == '/no/such/directory/file'
-	test/str(lib.Path.from_relative(context, './file')) == '/no/such/directory/file'
+	test/str(module.Path.from_relative(context, 'file')) == '/no/such/directory/file'
+	test/str(module.Path.from_relative(context, './file')) == '/no/such/directory/file'
 
-	test/str(lib.Path.from_relative(context, '../file')) == '/no/such/file'
-	test/str(lib.Path.from_relative(context, '../../file')) == '/no/file'
+	test/str(module.Path.from_relative(context, '../file')) == '/no/such/file'
+	test/str(module.Path.from_relative(context, '../../file')) == '/no/file'
 
 	# Same directory
-	test/str(lib.Path.from_relative(context, '../.././././file')) == '/no/file'
+	test/str(module.Path.from_relative(context, '../.././././file')) == '/no/file'
 
 	# parent references that find the limit.
-	test/str(lib.Path.from_relative(context, '../../..')) == '/'
-	test/str(lib.Path.from_relative(context, '../../../..')) == '/'
+	test/str(module.Path.from_relative(context, '../../..')) == '/'
+	test/str(module.Path.from_relative(context, '../../../..')) == '/'
 
 	# Smoke test .from_path; two branches that use prior tested methods.
-	test/str(lib.Path.from_path('./file')) == os.getcwd() + '/file'
-	test/str(lib.Path.from_path('file')) == os.getcwd() + '/file'
-	test/str(lib.Path.from_path('/file')) == '/file'
+	test/str(module.Path.from_path('./file')) == os.getcwd() + '/file'
+	test/str(module.Path.from_path('file')) == os.getcwd() + '/file'
+	test/str(module.Path.from_path('/file')) == '/file'
 
 def test_Path_relative_resolution(test):
 	"""
-	# - &lib.Path.__pos__
+	# - &module.Path.__pos__
 	"""
 
 	# Constrainted at root.
-	outside = (lib.root@"././..")
-	test/str(outside) != str(lib.root)
-	test/str(+outside) == str(lib.root)
+	outside = (module.root@"././..")
+	test/str(outside) != str(module.root)
+	test/str(+outside) == str(module.root)
 
 	# Parent with superfluous trailing slash.
-	leading = (lib.root@"path/to/leading/./trimmed/../")
-	test/leading != lib.root@"path/to/leading"
-	test/(+leading) == lib.root@"path/to/leading"
+	leading = (module.root@"path/to/leading/./trimmed/../")
+	test/leading != module.root@"path/to/leading"
+	test/(+leading) == module.root@"path/to/leading"
 
 	# Self references only.
-	selves = (lib.root@"path/././././")
-	test/selves != lib.root@"path"
-	test/(+selves) == lib.root@"path"
+	selves = (module.root@"path/././././")
+	test/selves != module.root@"path"
+	test/(+selves) == module.root@"path"
 
 def test_Path_basename_manipulations(test):
 	"""
-	# - &lib.Path.prefix_filename
-	# - &lib.Path.suffix_filename
+	# - &module.Path.prefix_filename
+	# - &module.Path.suffix_filename
 	"""
-	t = test.exits.enter_context(lib.Path.fs_tmpdir())
+	t = test.exits.enter_context(module.Path.fs_tmpdir())
 	f = t/'doesnotexist'
 	f_archive = f.suffix_filename('.tar.gz')
 	test/f_archive.fullpath.endswith('.tar.gz') == True
@@ -503,12 +502,12 @@ def test_Path_basename_manipulations(test):
 
 def test_Path_join(test):
 	"""
-	# - &lib.Path.join
+	# - &module.Path.join
 	"""
-	test/lib.root.join() == '/'
-	test/lib.root.join('file') == '/file'
+	test/module.root.join() == '/'
+	test/module.root.join('file') == '/file'
 
-	f = lib.Path.from_absolute('/var/empty')
+	f = module.Path.from_absolute('/var/empty')
 
 	test/f.join('datafile') == "/var/empty/datafile"
 	test/f.join('subdir', 'datafile') == "/var/empty/subdir/datafile"
@@ -518,22 +517,22 @@ def test_Path_join(test):
 
 def test_Path_properties(test):
 	# executable
-	sysexe = lib.Path.from_absolute(sys.executable)
+	sysexe = module.Path.from_absolute(sys.executable)
 	test/sysexe.fs_status().executable == True
 	test/sysexe.fs_type() == 'data'
 
-	module = lib.Path.from_absolute(__file__)
-	test/module.fs_status().executable == False
-	test/module.fs_type() == 'data'
+	module_path = module.Path.from_absolute(__file__)
+	test/module_path.fs_status().executable == False
+	test/module_path.fs_type() == 'data'
 
-	moddir = module.container
+	moddir = module_path.container
 	test/moddir.fs_type() == 'directory'
 
 def test_Path_open(test):
 	"""
-	# - &lib.File.fs_open
+	# - &module.File.fs_open
 	"""
-	d = test.exits.enter_context(lib.Path.fs_tmpdir())
+	d = test.exits.enter_context(module.Path.fs_tmpdir())
 
 	r = d/'test'
 	with r.fs_open('wb') as f:
@@ -555,9 +554,9 @@ def test_Path_open(test):
 
 def test_Path_open_exception(test):
 	"""
-	# - &lib.File.fs_open
+	# - &module.File.fs_open
 	"""
-	d = test.exits.enter_context(lib.Path.fs_tmpdir())
+	d = test.exits.enter_context(module.Path.fs_tmpdir())
 
 	r = d/'test'
 	try:
@@ -570,10 +569,10 @@ def test_Path_open_exception(test):
 
 def test_Path_void(test):
 	"""
-	# - &lib.Path.fs_void
+	# - &module.Path.fs_void
 	"""
 
-	d = test.exits.enter_context(lib.Path.fs_tmpdir())
+	d = test.exits.enter_context(module.Path.fs_tmpdir())
 	sd = d / 'subdir'
 	sf = sd / 'subfile'
 	sf.fs_init()
@@ -593,7 +592,7 @@ def test_Path_void(test):
 	test/sf.fs_type() == 'void'
 
 def link_checks(test, create_link):
-	t = test.exits.enter_context(lib.Path.fs_tmpdir())
+	t = test.exits.enter_context(module.Path.fs_tmpdir())
 
 	target = t / 'file'
 	target.fs_init(b'test file')
@@ -627,25 +626,25 @@ def link_checks(test, create_link):
 
 def test_Path_relative_links(test):
 	"""
-	# &lib.Path.fs_link_relative
+	# &module.Path.fs_link_relative
 	"""
-	link_checks(test, lib.Path.fs_link_relative)
+	link_checks(test, module.Path.fs_link_relative)
 
 def test_Path_absolute_links(test):
 	"""
-	# &lib.Path.fs_link_absolute
+	# &module.Path.fs_link_absolute
 	"""
-	link_checks(test, lib.Path.fs_link_absolute)
+	link_checks(test, module.Path.fs_link_absolute)
 
 def test_Path_recursive_since(test):
 	"""
-	# &lib.Path.fs_since with recursive directories.
+	# &module.Path.fs_since with recursive directories.
 	"""
 	import itertools
 	ago10mins = time().rollback(minute=10)
 	thirty = time().rollback(minute=30)
 
-	t = test.exits.enter_context(lib.Path.fs_tmpdir())
+	t = test.exits.enter_context(module.Path.fs_tmpdir())
 	d = t / 'dir' / 'subdir'
 	f = d / 'file'
 	f.fs_init()
@@ -664,9 +663,9 @@ def test_Path_recursive_since(test):
 
 def test_Path_follow_links(test):
 	"""
-	# - &lib.Path.fs_follow_links
+	# - &module.Path.fs_follow_links
 	"""
-	td = test.exits.enter_context(lib.Path.fs_tmpdir())
+	td = test.exits.enter_context(module.Path.fs_tmpdir())
 
 	t = (td/'target.s')
 	t.fs_init()
@@ -687,10 +686,10 @@ def test_Path_follow_links(test):
 
 def test_Path_io(test):
 	"""
-	# - &lib.Path.fs_load
-	# - &lib.Path.fs_store
+	# - &module.Path.fs_load
+	# - &module.Path.fs_store
 	"""
-	td = test.exits.enter_context(lib.Path.fs_tmpdir())
+	td = test.exits.enter_context(module.Path.fs_tmpdir())
 
 	f = td/'test-file'
 	f.fs_init(b'')
@@ -708,19 +707,19 @@ def test_Path_io(test):
 
 def test_Path_python_protocol(test):
 	"""
-	# - &lib.Path.__fspath__
+	# - &module.Path.__fspath__
 	"""
-	t = test.exits.enter_context(lib.Path.fs_tmpdir()) / 'data-file'
+	t = test.exits.enter_context(module.Path.fs_tmpdir()) / 'data-file'
 	t.fs_store(b'file-content')
 	with open(t, 'rb') as f:
 		test/b'file-content' == f.read()
 
 def test_Path_snapshot_sanity(test):
 	"""
-	# - &lib.Path.fs_snapshot
+	# - &module.Path.fs_snapshot
 	"""
 
-	td = test.exits.enter_context(lib.Path.fs_tmpdir())
+	td = test.exits.enter_context(module.Path.fs_tmpdir())
 	d_setup({
 		'subdir': {
 			'name-1': b'-' * 256,
@@ -741,10 +740,10 @@ def test_Path_snapshot_sanity(test):
 
 def test_Path_snapshot_limit(test):
 	"""
-	# - &lib.Path.fs_snapshot
+	# - &module.Path.fs_snapshot
 	"""
 
-	td = test.exits.enter_context(lib.Path.fs_tmpdir())
+	td = test.exits.enter_context(module.Path.fs_tmpdir())
 	d_setup({
 		'subdir': {
 			'name-1': b'-' * 256,
@@ -767,10 +766,10 @@ def test_Path_snapshot_limit(test):
 
 def test_Path_snapshot_depth(test):
 	"""
-	# - &lib.Path.fs_snapshot
+	# - &module.Path.fs_snapshot
 	"""
 
-	td = test.exits.enter_context(lib.Path.fs_tmpdir())
+	td = test.exits.enter_context(module.Path.fs_tmpdir())
 	d_setup({
 		'subdir': {
 			'name-1': b'-' * 256,
@@ -822,9 +821,9 @@ def test_Path_snapshot_depth(test):
 
 def test_Path_fs_alloc(test):
 	"""
-	# - &lib.Path.fs_alloc
+	# - &module.Path.fs_alloc
 	"""
-	td = test.exits.enter_context(lib.Path.fs_tmpdir())
+	td = test.exits.enter_context(module.Path.fs_tmpdir())
 	f = td + [str(i) for i in range(10)]
 
 	f.fs_alloc()
@@ -848,19 +847,19 @@ def test_Path_fs_alloc(test):
 
 def test_Path_fs_require_void(test):
 	"""
-	# - &lib.Path.fs_require
-	# - &lib.RequirementViolation
+	# - &module.Path.fs_require
+	# - &module.RequirementViolation
 
 	# Validate that missing file cases are handled.
 	"""
 	os.umask(0o022)
-	td = test.exits.enter_context(lib.Path.fs_tmpdir())
+	td = test.exits.enter_context(module.Path.fs_tmpdir())
 	fnf = td/'no-such-file'
 
 	#! Default expects file to be available.
 	try:
 		(fnf).fs_require()
-	except lib.RequirementViolation as rv:
+	except module.RequirementViolation as rv:
 		test/rv.r_violation == 'void'
 		test/rv.r_type == None
 		test/rv.r_properties == ''
@@ -871,7 +870,7 @@ def test_Path_fs_require_void(test):
 	#! Type is irrelevant, file must be present.
 	try:
 		(fnf).fs_require(type='socket')
-	except lib.RequirementViolation as rv:
+	except module.RequirementViolation as rv:
 		test/rv.r_violation == 'void'
 		test/rv.r_type == 'socket'
 		test/rv.r_properties == ''
@@ -892,13 +891,13 @@ def test_Path_fs_require_void(test):
 
 def test_Path_fs_require_type(test):
 	"""
-	# - &lib.Path.fs_require
-	# - &lib.RequirementViolation
+	# - &module.Path.fs_require
+	# - &module.RequirementViolation
 
 	# Validate that fs_require checks the type.
 	"""
 	os.umask(0o022)
-	td = test.exits.enter_context(lib.Path.fs_tmpdir())
+	td = test.exits.enter_context(module.Path.fs_tmpdir())
 	df = (td/'data-files')
 	df.fs_store(b'nothing')
 
@@ -913,7 +912,7 @@ def test_Path_fs_require_type(test):
 	#! Type mismatch.
 	try:
 		test/df.fs_require(type='directory') == df
-	except lib.RequirementViolation as rv:
+	except module.RequirementViolation as rv:
 		test/rv.r_violation == 'type'
 		test/rv.r_type == 'directory'
 		test/rv.r_properties == ''
@@ -924,13 +923,13 @@ def test_Path_fs_require_type(test):
 
 def test_Path_fs_require_permissions(test):
 	"""
-	# - &lib.Path.fs_require
-	# - &lib.RequirementViolation
+	# - &module.Path.fs_require
+	# - &module.RequirementViolation
 
 	# Validate that fs_require checks the properties.
 	"""
 	os.umask(0o022)
-	td = test.exits.enter_context(lib.Path.fs_tmpdir())
+	td = test.exits.enter_context(module.Path.fs_tmpdir())
 	df = (td/'data-files')
 	df.fs_store(b'nothing')
 
@@ -941,7 +940,7 @@ def test_Path_fs_require_permissions(test):
 	#! Prohibited case with type.
 	try:
 		df.fs_require('x', type='data')
-	except lib.RequirementViolation as rv:
+	except module.RequirementViolation as rv:
 		test/rv.r_violation == 'prohibited'
 		test/rv.fs_path == df
 		test/rv.fs_type == df.fs_type()
@@ -951,13 +950,13 @@ def test_Path_fs_require_permissions(test):
 
 def test_Path_fs_require_directory_control(test):
 	"""
-	# - &lib.Path.fs_require
-	# - &lib.RequirementViolation
+	# - &module.Path.fs_require
+	# - &module.RequirementViolation
 
 	# Validate that fs_require allows for optional directory.
 	"""
 	os.umask(0o022)
-	td = test.exits.enter_context(lib.Path.fs_tmpdir())
+	td = test.exits.enter_context(module.Path.fs_tmpdir())
 	df = (td/'data-files')
 	df.fs_store(b'nothing')
 	dirf = (td/'directory').fs_mkdir()
@@ -969,7 +968,7 @@ def test_Path_fs_require_directory_control(test):
 	#! Directory not allowed.
 	try:
 		dirf.fs_require('*r')
-	except lib.RequirementViolation as rv:
+	except module.RequirementViolation as rv:
 		# Unqualified (type) requirement restricts directories.
 		test/rv.r_violation == 'directory'
 		test/rv.r_properties == 'r'
@@ -981,7 +980,7 @@ def test_Path_fs_require_directory_control(test):
 	#! Directory required (leading slash).
 	try:
 		df.fs_require('/r')
-	except lib.RequirementViolation as rv:
+	except module.RequirementViolation as rv:
 		# Unqualified (type) requirement restricts directories.
 		test/rv.r_violation == 'type'
 		test/rv.r_properties == 'r'
@@ -992,22 +991,22 @@ def test_Path_fs_require_directory_control(test):
 
 def test_Path_fs_require_accessibility(test):
 	"""
-	# - &lib.Path.fs_require
-	# - &lib.RequirementViolation
+	# - &module.Path.fs_require
+	# - &module.RequirementViolation
 
 	# Validate that the implied accessibility constraint is
 	# communicated when paths traverse through regular files or
 	# directories without the necessary permissions.
 	"""
 	os.umask(0o022)
-	td = test.exits.enter_context(lib.Path.fs_tmpdir())
+	td = test.exits.enter_context(module.Path.fs_tmpdir())
 	df = (td/'data-file')
 	df.fs_store(b'nothing')
 
 	#! Traverse through data file.
 	try:
 		(df/'subfile').fs_require()
-	except lib.RequirementViolation as rv:
+	except module.RequirementViolation as rv:
 		# Path traversed through a regular file.
 		test/rv.r_violation == 'inaccessible'
 		test/rv.fs_type == 'unknown'
