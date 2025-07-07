@@ -26,9 +26,9 @@ try:
 	reflect(dataclasses.dataclass(slots=True))
 except TypeError:
 	# Pre-3.10
-	struct = partial(dataclasses.dataclass, eq=True, frozen=True)
+	record = struct = partial(dataclasses.dataclass, eq=True, frozen=True)
 else:
-	struct = partial(dataclasses.dataclass, slots=True, eq=True, frozen=True)
+	record = struct = partial(dataclasses.dataclass, slots=True, eq=True, frozen=True)
 
 @cachedcalls(16)
 def constant(obj, partial=partial):
