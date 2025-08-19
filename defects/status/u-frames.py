@@ -106,7 +106,10 @@ def test_frame_data_extension(test):
 
 def test_frame_channel_only(test):
 	"""
-	# - &module
+	# - &module._pack
+	# - &module._unpack
+	# - &module.sequence
+	# - &module.structure
 	"""
 	from ...status import types
 
@@ -122,15 +125,23 @@ def test_frame_channel_only(test):
 		None,
 	))
 
+	# Test channel only expectations.
 	s = module.sequence(msg)
 	out_msg = module.structure(s)
 	test/out_msg.f_channel == 'test-channel'
+	test/out_msg.f_extension == None
 
-	'test-channel' in test/s
+	# Test the sequenced composition as well.
 	test/s[:4] == "[!# "
-	signal = ''.join(module._tty_extension_signal)
-	suffix = module._tty_open_extension + "" + module._tty_exit_extension
-	test/s.endswith(" render envelope message (test-channel%s%s)]\n" %(signal, suffix,)) == True
+	test/(" render envelope message (test-channel" in s) == True
+
+	empty_ext = "".join([
+		module._ttyn_open_url, module._ttyn_close_url,
+		"", # empty signal and size
+		module._ttyn_reset_url,
+		module._ttyn_signature,
+	])
+	test/s.endswith(" (test-channel" + empty_ext + ")]\n") == True
 
 def test_message_directed_areas(test):
 	"""
@@ -158,15 +169,3 @@ def test_declaration_constructor(test):
 	"""
 	std = module.declaration()
 	test/std == module.tty_notation_1_message
-
-	# Check compression override and format default.
-	lzma = module.declaration(compression='lzma')
-	siom = io(lzma)
-	test/siom.f_channel == None
-	'base64/lzma' in test/siom.f_image
-
-	# Check format override and compression default.
-	lzma = module.declaration(format='hex')
-	siom = io(lzma)
-	test/siom.f_channel == None
-	test/siom.f_image.split()[-1] == 'hex/deflate'

@@ -4,7 +4,8 @@
 # This module provides conceptual definitions for Status Frame events (&types.EStruct) and
 # I/O operations supporting the transmission of those events.
 
-# Status Frames are &types.Frame instances that can be serialized into and parsed from a data stream.
+# Status Frames are &types.Frame instances that can be serialized into and parsed from a
+# data stream.
 
 # [ Usage ]
 
@@ -28,20 +29,17 @@
 # [ Properties ]
 
 # /protocol/
-	# String identifying the status frames protocols.
-
-# /ttyn1_minimum_overhead/
-	# Informative minimum size regarding tty-notation-1 status frames.
+	# String identifying the status frames (event) protocol.
 """
 import typing
 import functools
 import base64
-import zlib
 
 from . import transport
 from . import types
 
-protocol = 'http://if.fault.io/status/frames'
+protocol = 'http://fault.io/protocol/status/frames'
+ttyn_data_url = b'data:text/plain;charset=utf-8;base64,'
 
 def compose(ftype:str, synopsis:str,
 		channel:str=None, extension=None,
@@ -56,24 +54,23 @@ def compose(ftype:str, synopsis:str,
 
 def _frame_pack_extension(data,
 		b64e=base64.b64encode,
-		deflate=zlib.compress,
 		sequence=transport.sequence,
 	) -> bytes:
-	return b64e(deflate(sequence(data).encode('utf-8')))
+	return ttyn_data_url + b64e(sequence(data).encode('utf-8'))
 
 def _frame_unpack_extension(data:str,
 		b64d=base64.b64decode,
-		inflate=zlib.decompress,
 		structure=transport.structure,
 	) -> object:
-	return structure(inflate(b64d(data)).decode('utf-8'))
+	url_type, ext = data.split(';base64,', 1)
+	return structure(b64d(ext).decode('utf-8'))
 
 # Protocol identity for &types.Frame instances.
-protocol = "http://if.fault.io/status/frames"
+protocol = "http://fault.io/protocol/status/frames"
 
 # Two-Character EStruct.identifier.
 type_codes = {
-	# [!? PROTOCOL: http://if.fault.io/status/frames tty-notation-1 base64/deflate]
+	# [!? PROTOCOL: http://fault.io/protocol/status/frames tty-notation-1]
 	"!?": 'message-protocol',
 	"!&": 'reference',
 
@@ -159,33 +156,22 @@ def type_identifier_string(typcode:int) -> str:
 	"""
 	return ''.join(map(chr, ((typcode >> 16) & 0xFFFF, typcode & 0xFFFF)))
 
-# Contrived OSC. While OSC's didnt't follow CSI's format, it has been seen in the wild.
-# So the CSI parameter format is used to carve out a namespace for this purpose.
-# First parameter is the command identifier.
-# Second parameter is padding to discourage keyboard modifier identification if ever parsed.
-# Third parameter is an internal channel identifier.
+# OSC declaring a frame placed before the closing ")]" or "]".
+# The inconsistent placement is intended to avoid surprises when
+# attempting to match strings with frame boundaries.
+_ttyn_signature = "\x1b]\x03\x1b\\"
 
-# OSC (internal channel 2 for data extension)
-_tty_open_extension = "\x1b]8;1;2-x"
-# ETX followed with ST
-_tty_exit_extension = "\x03\x1b\\"
-
-# Highlight data presence indicator.
-_tty_extension_signal = ("\x1b[32;2m", "\x1b[39;22m") # Green.
-
-# Extension Signal SGR not included as it's only present if data is attached.
-# This is the minimum size for frames including a header and data extension.
-ttyn1_minimum_overhead = \
-	len(_tty_open_extension) + \
-	len(_tty_exit_extension) + \
-	len("[-- ]\n")
+# Escapes to pack a "data:" link on the extension size with coloring.
+_ttyn_open_url = "\x1b[34;2m" "\x1b]8;;"
+_ttyn_close_url = "\x1b\\"
+_ttyn_reset_url = "\x1b]8;;" "\x1b\\" "\x1b[39;22m"
 
 _frame_open = "[{ts} "
 _frame_exit = "]\n"
 _loaded_frame_start = _frame_open + "{image}"
-_loaded_frame_partition = " ({channel}{wrap[0]}{signal}{size}{wrap[1]}{hidden}"
-_loaded_frame_stop = "{reveal})]\n"
-_empty_frame_stop = "{hidden}{reveal}]\n"
+_loaded_frame_partition = " ({channel}{open}"
+_loaded_frame_stop = "{finish}{signal}{size}{close}" + _ttyn_signature + ")]\n"
+_empty_frame_stop = _ttyn_signature + "]\n"
 
 def _pack(
 		frame:types.Frame, channel=None,
@@ -218,16 +204,16 @@ def _pack(
 			signal = "+"
 			size = str(len(load))
 
-		partd = _fmt_lframe_part(
+		start = _fmt_lframe_start(ts=ts, image=image) + _fmt_lframe_part(
 			channel=channel,
+			open=_ttyn_open_url,
+		)
+		end = _fmt_lframe_stop(
 			signal=signal,
 			size=size,
-			hidden=_tty_open_extension,
-			wrap=_tty_extension_signal
+			finish=_ttyn_close_url,
+			close=_ttyn_reset_url,
 		)
-
-		start = _fmt_lframe_start(ts=ts, image=image) + partd
-		end = _fmt_lframe_stop(reveal=_tty_exit_extension)
 	else:
 		# Neither extension or channel.
 		load = b""
@@ -235,7 +221,7 @@ def _pack(
 
 		if image.endswith(')'):
 			# Escape close.
-			end = _fmt_eframe_stop(hidden=_tty_open_extension, reveal=_tty_exit_extension)
+			end = _fmt_eframe_stop()
 		else:
 			end = _frame_exit
 
@@ -256,11 +242,9 @@ def sequence(frame:types.Frame, channel=None) -> str:
 	return s1 + s2.decode('ascii') + s3
 
 def _unpack(line:str, offset:int, limit:int,
-		_enter_data_len=len(_tty_open_extension),
-		_exit_extension_len=len(_tty_exit_extension),
-		_ext_offset=-(len(_tty_exit_extension)+2),
-		_ext_indicator=_tty_exit_extension,
-		_ext_signal=_tty_extension_signal[0]+'+',
+		_frame_indicator=_ttyn_signature,
+		_indicator_offset=-(len(_ttyn_signature)+2),
+		_indicator_length=len(_ttyn_signature),
 		_create_message=types.Frame,
 		_create_estruct=types.EStruct.from_fields_v1,
 		_get_type_symbol=type_codes.get,
@@ -270,10 +254,10 @@ def _unpack(line:str, offset:int, limit:int,
 	"""
 
 	if line[-1:] == '\n':
-		_ext_offset -= 1
+		_indicator_offset -= 1
 	if line[-3:-2] != ')':
-		# No channel.
-		_ext_offset += 1
+		# No channel or extension.
+		_indicator_offset += 1
 
 	typarea = line.find(' ', offset)
 	idstr = line[offset:typarea]
@@ -285,10 +269,15 @@ def _unpack(line:str, offset:int, limit:int,
 	loadsignal = None
 
 	# Extract structured fields.
-	if line[_ext_offset:_ext_offset+_exit_extension_len] == _ext_indicator:
-		prefix, ext_data = line.rsplit(_tty_open_extension, 1)
-		# Trim the data extension exit.
-		ext_data = ext_data[:_ext_offset]
+	if line[_indicator_offset:_indicator_offset+_indicator_length] == _frame_indicator:
+		try:
+			prefix, ext_data, tail = line.rsplit('\x1b]8;;', 2)
+		except ValueError:
+			ext_data = ''
+			prefix = line
+		else:
+			# Trim the data extension exit.
+			ext_data = ext_data[:ext_data.find(_ttyn_close_url)]
 
 		try:
 			image, channel_area = prefix.rsplit('(', 1)
@@ -299,7 +288,7 @@ def _unpack(line:str, offset:int, limit:int,
 		image = image[offset:]
 
 		try:
-			channel, loadsignal = channel_area.split(_ext_signal, 1)
+			channel, loadsignal = channel_area.split('\x1b', 1)
 			channel = channel.strip('()')
 		except:
 			if ext_data:
@@ -348,8 +337,7 @@ def structure(line:str) -> types.Frame:
 	"""
 	return _unpack(line, 1, len(line)-2)
 
-def declaration(channel=None, extension=None,
-		format='base64', compression='deflate', Frame=types.Frame):
+def declaration(channel=None, extension=None, Frame=types.Frame):
 	"""
 	# Construct a custom protocol declaration message.
 	"""
@@ -361,7 +349,6 @@ def declaration(channel=None, extension=None,
 			abstract=' '.join([
 				'PROTOCOL:', protocol,
 				'tty-notation-1',
-				'/'.join((format, compression)),
 			]),
 			identifier="!?",
 			code=type_integer_code("!?"),
