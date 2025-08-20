@@ -90,40 +90,27 @@ type_codes = {
 	"!%": 'message-administrative',
 	"!>": 'message-entity',
 
-	# Resource Content Manipulation
-	"+=": 'resource-inserted-units', # append
-	"-=": 'resource-deleted-units', # partial truncation
-
-	# SCM Operation Reports
-	"Δ=": 'resource-delta',
-	"<=": 'resource-reverted',
-	"==": 'resource-committed',
+	# Resource Content Manipulations
+	"+=": 'elements-inserted', # Added
+	"-=": 'elements-deleted', # Removed
+	"Δ=": 'elements-delta', # Compound Change
+	"<=": 'elements-reverted',
+	"==": 'elements-committed',
 
 	# Resource Container Manipulations
 	"+.": 'resource-initialized',
-	"%.": 'resource-truncated',
 	"-.": 'resource-deleted',
-
+	"±.": 'resource-relocated',
 	"*.": 'resource-replicated',
 	"&.": 'resource-referenced',
-	"..": 'resource-relocated',
-	"Δ@": 'resource-property-delta',
-
-	">|": 'resource-rewritten',
-	".|": 'resource-relocated-substitution',
-	"*|": 'resource-replicated-substitution',
-	"&|": 'resource-referenced-substitution',
-
-	"*&": 'resource-hardlinked',
-	"*+": 'resource-replicated-merge',
+	"=.": 'resource-rewritten',
+	"Δ.": 'resource-delta', # Property/metadata changes.
 
 	# Archive I/O
 	"^*": 'archive-extraction-replicated',
-	"^|": 'archive-extraction-replicated-substitution',
 	"^+": 'archive-extraction-replicated-merge',
 
 	"√*": 'archive-delta-replicated-into',
-	"√|": 'archive-delta-replicated-substitution-into',
 	"√+": 'archive-delta-merged-into',
 	"√-": 'archive-delta-deleted',
 	"√&": 'archive-delta-referenced',
@@ -131,8 +118,6 @@ type_codes = {
 	# Transfer Snapshots.
 	"↑.": 'resource-transmitted',
 	"↓.": 'resource-received',
-	"↑|": 'resource-transmitted-substitution',
-	"↓|": 'resource-received-substitution',
 
 	# Transfer Progress Information.
 	"↑:": 'data-transmitted',
