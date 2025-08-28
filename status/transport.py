@@ -6,6 +6,7 @@ def prepare(value, separator='\n', Type=str, Convert=str):
 	"""
 	# Convert a value into a form suitable for sequencing.
 	"""
+
 	if isinstance(value, (int, float)):
 		return Convert(value).split(separator)
 	elif isinstance(value, Type):
@@ -46,16 +47,17 @@ def identify(iseq, separator=': '):
 	"""
 	# Identify the slots and content of a transmission processed by &isolate.
 	"""
+
 	for s in iseq:
 		if not s:
 			continue
 
 		try:
-			field, initial = s[0].split(separator)
+			field, initial = s[0].split(separator, 1)
 			s[0] = initial
 		except ValueError:
-			# No space == empty sequence.
-			field, initial = s[0].split(separator[:1])
+			# No space, no initial content.
+			field, initial = s[0].split(separator[:1], 1)
 			assert initial == ""
 			del s[:1]
 
