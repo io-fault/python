@@ -80,10 +80,10 @@ def select(tests, start, stop, limit=None, /, islice=itertools.islice):
 
 class Harness(object):
 	"""
-	# Execute a sequence of tests.
+	# Execute a collection of tests.
 	"""
 
-	Test = types.Test
+	TestType = types.Test
 	collect = staticmethod(gather)
 
 	@classmethod
@@ -92,7 +92,7 @@ class Harness(object):
 		for triple in slices:
 			test_ids = select(test_ids, *triple)
 
-		tests = [Class.Test(name, getattr(module, name)) for name in test_ids]
+		tests = [Class.TestType(name, getattr(module, name)) for name in test_ids]
 		return Class(identity or module.__name__, module, tests)
 
 	@property
@@ -100,12 +100,14 @@ class Harness(object):
 		"""
 		# Number of tests that have been prepared for execution.
 		"""
+
 		return len(self.tests)
 
 	def __init__(self, identity, container, tests):
 		"""
 		# Initialize the members of the Harness.
 		"""
+
 		self.identity = identity
 		self.container = container
 		self.tests = tests
@@ -114,16 +116,18 @@ class Harness(object):
 		"""
 		# Dispatch the given &Test to resolve its fate.
 		"""
-		with test.exits:
-			test.seal()
 
-	def reveal(self):
+		with test.exits:
+			test.execute_tests()
+
+	def execute_tests(self):
 		"""
-		# Reveal the fate of the given tests.
+		# Perform the collected tests.
 		"""
+
 		if '__test__' in self.container.__dict__:
-			t = self.Test('__test__', self.container.__test__)
-			t.seal()
+			t = self.TestType('__test__', self.container.__test__)
+			t.execute_tests()
 			del t
 
 		for test in self.tests:
@@ -139,6 +143,6 @@ def execute(module):
 		func = getattr(module, id)
 		test = types.Test(id, func)
 		with test.exits:
-			test.seal()
-		if test.fate.impact < 0:
-			raise test.fate
+			test.execute_tests()
+		if test.failure:
+			raise test.exception

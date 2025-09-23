@@ -3,40 +3,56 @@ from ...test import types as module
 
 def test_Test_fail(test):
 	def test_function(local):
-		local.fail("foo")
+		local.fail("explicit-fail")
+
 	t = module.Test(None, test_function)
-	t.seal()
-	test.isinstance(t.fate, module.Fate)
-	test/t.fate.subtype == 'fail'
-	test/"foo" == t.fate.content
+	try:
+		test_function(t)
+	except module.Conclude as err:
+		e = err
 
-def test_Test_error(test):
-	def t(test):
-		raise TypeError("foo")
-	t = module.Test(None, t)
-	t.seal()
-	test.isinstance(t.fate, module.Fate)
-	test/t.fate.subtype == 'fail'
-
-def raise_parameter(excvalue):
-	raise excvalue
+	test.isinstance(e, module.Conclude)
+	test/e.message == "explicit-fail"
+	test/e.conclusion == module.TestConclusion.failed
+	test/e.failure == module.FailureType.explicit
 
 def test_Test_skip(test):
-	def f(it):
-		it.skip("test")
-	t = module.Test(None, f)
-	t.seal()
-	test.isinstance(t.fate, module.Fate)
-	test/t.fate.subtype == 'skip'
-	test/"test" == t.fate.content
+	def test_function(local):
+		local.skip("explicit-skip")
 
-def test_Contention(test, partial = functools.partial):
+	t = module.Test(None, test_function)
+	try:
+		test_function(t)
+	except module.Conclude as err:
+		e = err
+
+	test.isinstance(e, module.Conclude)
+	test/e.conclusion == module.TestConclusion.skipped
+	test/e.failure == module.FailureType.none
+
+def test_Test_absurdity(test):
+	def test_function(local):
+		local/1 == 0
+
+	t = module.Test(None, test_function)
+	try:
+		test_function(t)
+	except module.Absurdity as err:
+		e = err
+
+	test.isinstance(e, module.Absurdity)
+
+def test_Contention_protocol(test):
 	t = module.Test(None, None)
 	# protocol
-	test.isinstance((t/1), module.Contention)
-	test/(t/1).test == t
-	test/(t/1).object == 1
+	class O:
+		pass
+	i = O()
+	test.isinstance((t/i), module.Contention)
+	test/(t/i)._operand % i
 
+def test_Contention_absurdity(test, partial=functools.partial):
+	t = module.Test(None, None)
 	test/module.Absurdity ^ partial((t / 1).__ne__, 1)
 	test/module.Absurdity ^ partial((t / 1).__eq__, 2)
 	test/module.Absurdity ^ partial((t / 2).__lt__, 1)
@@ -44,57 +60,94 @@ def test_Contention(test, partial = functools.partial):
 	test/module.Absurdity ^ partial((t / 1).__ge__, 2)
 	test/module.Absurdity ^ partial((t / 3).__le__, 2)
 	test/module.Absurdity ^ partial((t / []).__contains__, 2)
+	test/module.Absurdity ^ partial((t / []).__lshift__, 2)
 
 	test/module.Absurdity ^ partial(t.isinstance, 2, str)
 	test/module.Absurdity ^ partial(t.issubclass, int, str)
 
-	try:
-		with t/ValueError as r:
-			raise OSError("foo")
-	except module.Absurdity as exc:
-		test.isinstance(exc.__context__, OSError)
-		test.isinstance(r(), OSError)
-	else:
-		test.fail("subject did not catch unexpected")
+	# Check that absurdity is raised when no exception is raised
+	test/module.Absurdity ^ partial((t / Exception).__xor__, (lambda: None))
 
-	try:
-		with t/ValueError as r:
-			raise ValueError("foo")
-		test.isinstance(r(), ValueError)
-	except:
-		test.fail("exception raised when none was expected")
-
-	try:
-		with t/ValueError as r:
-			pass
-		test.fail("did not raise")
-	except module.Absurdity as exc:
-		test/r() == None
-		pass # passed
-	except:
-		test.fail("Fail exception was expected")
-
-	class Foo(Exception):
+	class LError(Exception):
 		def __init__(self, x):
 			self.data = x
 
-	def raise_Foo():
-		raise Foo(1)
+	def raise_LError():
+		raise LError(1)
 
-	x = t/Exception ^ raise_Foo
-	# return was the trapped exception
-	t/x.data == 1
-	test/module.Absurdity ^ partial((t / Exception).__xor__, (lambda: None))
+	# Test contended trap returns the exception.
+	x = (t/Exception ^ raise_LError)
+	test.isinstance(x, LError)
+	test/x.data == 1
 
-	# any exceptions are failures
+def test_Contention_invert_absurdity(test, partial=functools.partial):
+	t = module.Test(None, None)
+	test/module.Absurdity ^ partial((t.invert/1).__ne__, 0)
+	test/module.Absurdity ^ partial((t.invert/1).__eq__, 1)
+	test/module.Absurdity ^ partial((t.invert/1).__lt__, 2)
+	test/module.Absurdity ^ partial((t.invert/2).__gt__, 1)
+	test/module.Absurdity ^ partial((t.invert/2).__ge__, 1)
+	test/module.Absurdity ^ partial((t.invert/2).__le__, 3)
+	test/module.Absurdity ^ partial((t.invert/[2]).__contains__, 2)
+	test/module.Absurdity ^ partial((t.invert/[2]).__lshift__, 2)
+
+	test/module.Absurdity ^ partial(t.invert.isinstance, 2, int)
+	test/module.Absurdity ^ partial(t.invert.issubclass, str, str)
+
+	def nothing_raised():
+		pass
+
+	x = (t.invert/Exception ^ nothing_raised)
+
+def test_Contention_contextmanager(test):
+	t = module.Test(None, None)
+
+	class LError(Exception):
+		pass
+
+	# Absurdity not raised from unexpected exception case.
+	try:
+		with t/ValueError as r:
+			raise LError(None)
+	except module.Absurdity as exc:
+		test.isinstance(exc.__context__, LError)
+		test.isinstance(r(), LError)
+	except:
+		test.fail("absurdity was not raised by contention")
+	else:
+		test.fail("absurdity was not raised by contention")
+
+	# Expected exception not trapped.
+	try:
+		with t/ValueError as r:
+			raise ValueError("foo")
+	except:
+		test.fail("exception raised when none was expected")
+	else:
+		test.isinstance(r(), ValueError)
+
+	# ValueError expected, but no exception raised case.
+	try:
+		with t/ValueError as r:
+			pass
+	except module.Absurdity as exc:
+		# None meaning no exception trapped at all.
+		test/r() == None
+	except:
+		test.fail("Fail exception was expected")
+	else:
+		test.fail("Absurdity not raised")
+
+def test_Contention_comparisons(test):
+	t = module.Test(None, None)
 	t/1 != 2
 	t/1 == 1
 	t/1 >= 1
 	t/1 >= 0
 	t/1 <= 2
 	t/1 <= 1
-	1 in (t/[1])
-	0 in (t//[1])
+	t/1 > 0
+	t/0 < 1
 
 	# reverse
 	1 != 2/t
@@ -103,6 +156,8 @@ def test_Contention(test, partial = functools.partial):
 	1 >= 0/t
 	1 <= 2/t
 	1 <= 1/t
+	1 > 0/t
+	0 < 1/t
 
 	# perverse
 	1/t != 2
@@ -112,16 +167,20 @@ def test_Contention(test, partial = functools.partial):
 	1/t <= 2
 	1/t <= 1
 
-	class A(object):
-		pass
-	class B(A):
-		pass
+def test_Contention_containment(test):
+	t = module.Test(None, None)
+	1 in (t/[1])
+	0 in (t.invert/[1])
+	t/[1] << 1
 
-	t.issubclass(B, A)
-	t.isinstance(B(), B)
-	t.isinstance(B(), A)
+	try:
+		t/[0] << 1
+	except module.Absurdity:
+		pass
+	else:
+		test.fail("absurdity not raised by __lshift__ contention")
 
-def test_issubclass(test):
+def test_Controls_issubclass(test):
 	class A(object):
 		pass
 
@@ -137,7 +196,7 @@ def test_issubclass(test):
 	test/t.issubclass(C, A) == None
 	test/module.Absurdity ^ (lambda: t.issubclass(C, B))
 
-def test_isinstance(test):
+def test_Controls_isinstance(test):
 	class A(object):
 		pass
 
@@ -159,6 +218,7 @@ def test_itertimer_values(test):
 	"""
 	# - &module.Test.itertimer
 	"""
+
 	t = module.Test(None, None)
 	iv = list(t.itertimer(count=100))
 	test/iv == list(range(1, len(iv)+1))
@@ -167,6 +227,7 @@ def test_itertimer_count_limit(test):
 	"""
 	# - &module.Test.itertimer
 	"""
+
 	t = module.Test(None, None)
 	for i in t.itertimer(count=10):
 		pass
@@ -176,6 +237,7 @@ def test_itertimer_time_limit(test):
 	"""
 	# - &module.Test.itertimer
 	"""
+
 	t = module.Test(None, None)
 	for i in t.itertimer(time=0):
 		pass
@@ -187,6 +249,7 @@ def test_function_timer(test):
 
 	# Validate function timer variant.
 	"""
+
 	count = 0
 	def invoke():
 		nonlocal count
@@ -204,6 +267,7 @@ def test_itertimer_Clock(test):
 
 	# Validate clock influence.
 	"""
+
 	ns = 1000000000
 	time_index = ()
 
