@@ -156,14 +156,13 @@ def test_of_relative(test):
 def test_date_contains(test):
 	d = module.Date.of(year=2000,month=6,day=4)
 	p = module.Timestamp.of(year=2000,month=6,day=3,hour=3,minute=23,second=1)
-	p in test//d
-	d in test//p
+	test/d << p
+	test.invert/p << d
 
 	# like day now
 	d = module.Date.of(year=2000,month=6,day=3)
-	p in test/d
-
-	d in test//p
+	test/d << p
+	test.invert/p << d
 
 def test_part_datetime(test):
 	# Presuming the datum in this test.
