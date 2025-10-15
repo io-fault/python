@@ -39,24 +39,20 @@ interrupt_wait(Scheduler ks)
 		case 0: /* Not waiting */
 		case 2: /* Initial state */
 			return(0);
+		case -1: /* Already interrupted */
+			return(1);
 		break;
 	}
 
 	/**
 		// Ignore interrupt if it's not waiting or has already been interrupted.
 	*/
-	if (ks->ks_waiting > 0)
-	{
-		if (kernelq_interrupt(Scheduler_GetKernelQueue(ks)) < 0)
-			return(-1);
+	ks->ks_waiting = -1;
+	if (kernelq_interrupt(Scheduler_GetKernelQueue(ks)) < 0)
+		return(-1);
 
-		/* Interrupt issued. */
-		ks->ks_waiting = -1;
-		return(2);
-	}
-
-	/* Less than zero; already interrupted. */
-	return(1);
+	/* Interrupt issued. */
+	return(2);
 }
 
 /**
@@ -65,16 +61,26 @@ interrupt_wait(Scheduler ks)
 STATIC(PyObj)
 ks_enqueue(Scheduler ks, PyObj callable)
 {
+	PyObj rob;
 	TaskQueue tq = Scheduler_GetTaskQueue(ks);
+
+	Py_BEGIN_CRITICAL_SECTION(ks);
+	{
+		if (taskq_enqueue(tq, callable) < 0)
+			rob = NULL;
+		else
+		{
+			Py_INCREF(callable);
+			rob = Py_None;
+			Py_INCREF(rob);
+		}
+	}
+	Py_END_CRITICAL_SECTION();
 
 	if (interrupt_wait(ks) < 0)
 		return(NULL);
 
-	if (taskq_enqueue(tq, callable) < 0)
-		return(NULL);
-
-	Py_INCREF(callable);
-	Py_RETURN_NONE;
+	return(rob);
 }
 
 /**
@@ -87,17 +93,27 @@ ks_execute(PyObj self)
 	TaskQueue tq = Scheduler_GetTaskQueue(ks);
 	Link exctrap = (Link) Scheduler_GetExceptionTrap(ks);
 	PyObj errctl = exctrap != NULL ? exctrap->ln_task : NULL;
-	int total = 0, status = 0;
+	int i, total = 0, status = 0;
 
-	status = taskq_execute(tq, errctl, exctrap);
-	if (status < 0)
-		return(NULL);
-	total += status;
+	for (i = 0; i < 3; ++i)
+	{
+		status = taskq_execute(tq, errctl, exctrap);
+		if (status < 0)
+			return(NULL);
+		total += status;
 
-	status = taskq_execute(tq, errctl, exctrap);
-	if (status < 0)
-		return(NULL);
-	total += status;
+		Py_BEGIN_CRITICAL_SECTION(self);
+		{
+			status = taskq_cycle(tq);
+		}
+		Py_END_CRITICAL_SECTION();
+
+		// Memory allocation error from taskq_continue.
+		if (status)
+			return(NULL);
+		else if (!TQ_XQUEUE_HAS_TASKS(tq))
+			break;
+	}
 
 	Py_RETURN_INTEGER(total);
 }
@@ -294,6 +310,7 @@ ks_dispatch(PyObj self, PyObj args, PyObj kw)
 STATIC(PyObj)
 ks_cancel(PyObj self, PyObj ref)
 {
+	PyObj rob = NULL;
 	Scheduler ks = (Scheduler) self;
 	Link ln = NULL;
 	Event ev = NULL;
@@ -339,10 +356,12 @@ ks_cancel(PyObj self, PyObj ref)
 
 		default:
 		{
-			return(kernelq_cancel(Scheduler_GetKernelQueue(ks), ev));
+			rob = kernelq_cancel(Scheduler_GetKernelQueue(ks), ev);
 		}
 		break;
 	}
+
+	return(rob);
 }
 
 /**
@@ -371,13 +390,14 @@ STATIC(PyObj)
 ks_wait(PyObj self, PyObj args)
 {
 	Scheduler ks = (Scheduler) self;
-	KernelQueue kq = Scheduler_GetKernelQueue(ks);
+	KernelQueue kq;
 	int count = 0, error = 0;
 	long secs = 16, ns = 0;
 
 	if (!PyArg_ParseTuple(args, "|l", &secs))
 		return(NULL);
 
+	kq = Scheduler_GetKernelQueue(ks);
 	if (kq->kq_root != -1)
 	{
 		if (TQ_HAS_TASKS(Scheduler_GetTaskQueue(ks)))

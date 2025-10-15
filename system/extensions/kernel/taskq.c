@@ -188,6 +188,19 @@ taskq_continue(TaskQueue tq)
 	return(0);
 }
 
+CONCEAL(int)
+taskq_cycle(TaskQueue tq)
+{
+	if (TQ_LQUEUE_HAS_TASKS(tq))
+		return(taskq_continue(tq));
+
+	/* loading queue is empty; create empty executing queue */
+	tq->q_executing = TASKQ_ALLOCATE(0);
+	tq->q_executing->t_allocated = 0;
+	tq->q_executing->t_next = NULL;
+	return(0);
+}
+
 /**
 	// Execute the tasks in the &TaskQueue.q_executing,
 	// and rotate &TaskQueue.q_loading for the next cycle.
@@ -231,22 +244,6 @@ taskq_execute(TaskQueue tq, PyObj errctl, PyObj errctx)
 		exec = next;
 	}
 	while (exec != NULL);
-
-	if (TQ_LQUEUE_HAS_TASKS(tq))
-	{
-		if (taskq_continue(tq) == -1)
-		{
-			/* re-init executing somehow? force instance dropped? */
-			return(-(total+1));
-		}
-	}
-	else
-	{
-		/* loading queue is empty; create empty executing queue */
-		tq->q_executing = TASKQ_ALLOCATE(0);
-		tq->q_executing->t_allocated = 0;
-		tq->q_executing->t_next = NULL;
-	}
 
 	return(total);
 }
