@@ -142,9 +142,27 @@ def test_Product_select(test):
 	test/proto2 == proto
 	test/id == t_project_id + '/alt-1'
 
-def test_Product_image(test):
+def test_Product_image_default(test):
 	"""
 	# - &module.Product.image
+
+	# Validate the expected default image location.
+	"""
+
+	td, pd = product_a(test)
+	v = module.types.Variants('SYS', 'ARCH')
+	pj = module.types.factor@'ctx.first-context'
+	fp = module.types.factor@'factor'
+
+	root = str(pd.route)
+	path = '/.images/SYS-ARCH/ctx/first-context/factor.i'
+	test/str(pd.image(v, pj, fp)) == (root + path)
+
+def test_Product_image_form(test):
+	"""
+	# - &module.Product.image
+
+	# Validate the expected form adjusted location.
 	"""
 
 	td, pd = product_a(test)
@@ -153,7 +171,7 @@ def test_Product_image(test):
 	fp = module.types.factor@'factor'
 
 	root = str(pd.route)
-	path = '/.images/SYS-ARCH/ctx/first-context/factor.i'
+	path = '/.FORM/SYS-ARCH/ctx/first-context/factor.i'
 	test/str(pd.image(v, pj, fp)) == (root + path)
 
 def test_Project_no_corpus_part(test):
@@ -232,41 +250,6 @@ def test_Project_refer_relative(test):
 	test/pj.refer('.test') == Ref(target, F@'test')
 	test/pj.refer('.test', context=F@'subfactor.path') == Ref(target, F@'subfactor.test')
 	test/pj.refer('..test', context=F@'subfactor.path') == Ref(target, F@'test')
-
-def test_Project_image_polynomial(test):
-	"""
-	# - &module.Project.image
-	"""
-	td, pd = product_a(test)
-	pd.update()
-	id = t_project_id + '/alt-1'
-	fp, proto = pd.factor_by_identifier(id)
-	pj = module.Project(pd, id, fp, proto({}))
-
-	# No form.
-	variants = {
-		'system': 'nosys',
-		'architecture': 'noarch',
-	}
-
-	test_int = pj.image(variants, factor@'test')
-	test/test_int.absolute[-4:] == ('alt-1', '__f-int__', 'nosys-noarch', 'test.i')
-
-	subtest_int = pj.image(variants, factor@'path.subtest')
-	test/subtest_int.absolute[-4:] == ('path', '__f-int__', 'nosys-noarch', 'subtest.i')
-
-	# With form.
-	variants = {
-		'system': 'nosys',
-		'architecture': 'noarch',
-		'form': 'debug'
-	}
-
-	test_int = pj.image(variants, factor@'test')
-	test/test_int.absolute[-5:] == ('alt-1', '__f-int__', 'nosys-noarch', 'debug', 'test.i')
-
-	subtest_int = pj.image(variants, factor@'path.subtest')
-	test/subtest_int.absolute[-5:] == ('path', '__f-int__', 'nosys-noarch', 'debug', 'subtest.i')
 
 def test_Project_extensions(test):
 	"""

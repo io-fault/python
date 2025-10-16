@@ -37,8 +37,12 @@ class Variants(object):
 		# Often, derived from (system/command)`uname`.
 	# /form/
 		# Identifier for the specialization of the image.
-		# Commonly used for providing an allocation for build intentions, and
-		# version specific images.
+
+		# Defaults to `'executable'`; the most likely intent of an image.
+
+		# This is has no semantic relation to factor types; it is provided
+		# to allow parallel storage of data that serves a purpose other than
+		# supporting the execution of a project's functionality.
 	"""
 
 	system:(str)
