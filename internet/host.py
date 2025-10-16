@@ -220,7 +220,10 @@ def realize(struct:dict, scheme=None, host=None, port=None) -> typing.Union[Refe
 		target = host.realize(ri.parse(url))
 	"""
 
-	host = struct['host']
+	host = struct.get('host')
+	if not host:
+		host = struct['address'] # No network location in resource indicator?
+
 	port = struct.get('port', port)
 	scheme = struct.get('scheme', scheme)
 
@@ -233,7 +236,6 @@ def realize(struct:dict, scheme=None, host=None, port=None) -> typing.Union[Refe
 		# either domain or ip6
 		if ':' in host:
 			# ipv6
-			host = host[1:-1]
 			if port is None:
 				port = common_services[scheme]
 			endpoint = Endpoint.create_ip6(host, port)
