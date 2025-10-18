@@ -33,8 +33,8 @@ def test_Index(test):
 	# Check serialization
 	l = list(idx.sequence())
 	possibilities = [
-		[b'2\n', b'1\n\tkey1\n2\n\tkey2\n'],
-		[b'2\n', b'2\n\tkey2\n1\n\tkey1\n'],
+		[b'2\n', b'1\n\tkey1\n', b'2\n\tkey2\n'],
+		[b'2\n', b'2\n\tkey2\n', b'1\n\tkey1\n'],
 	]
 	test/possibilities << l
 
