@@ -150,16 +150,16 @@ class Import(Selector):
 
 		return (self.spec() is not None)
 
-	def is_container(self, find_loader=pkgutil.find_loader):
+	def is_container(self):
 		"""
 		# Interrogate the module's loader as to whether or not it's a "package module".
 		"""
 
-		if self.spec() is None:
+		spec = self.spec()
+		if spec is None:
 			return False
 
-		fn = self.fullname
-		return find_loader(fn).is_package(fn)
+		return spec.loader.is_package(fn)
 	is_package = is_container
 
 	def real(self):
