@@ -424,12 +424,16 @@ class Test(object):
 		raise Conclude(TestConclusion.failed, FailureType.explicit, message)
 
 	def _timeout(self, *args):
-		raise Fail("test exceeded real time duration limit", FailureType.limit)
+		raise Conclude(
+			TestConclusion.failed,
+			FailureType.limit,
+			"test exceeded real time duration limit"
+		)
 
 	# gc collect() interface. no-op if nothing
 	try:
 		from gc import collect
-		def garbage(self, minimum = None, collect = collect, **kw):
+		def garbage(self, minimum=None, *, collect=collect):
 			"""
 			# Request collection with the expectation of a minimum unreachable.
 
@@ -440,10 +444,14 @@ class Test(object):
 			if minimum is not None and (
 				unreachable < minimum
 			):
-				raise test.Fail("missed garbage collection expectation")
+				raise Conclude(
+					TestConclusion.failed,
+					FailureType.absurdity,
+					"missed garbage collection expectation"
+				)
 		del collect
 	except ImportError:
-		def garbage(self, *args, **kw):
+		def garbage(self, minimum=None):
 			"""
 			# Garbage collection not available.
 			"""
