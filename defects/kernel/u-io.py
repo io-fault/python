@@ -81,7 +81,8 @@ def test_Transport_tp_connect(test):
 		(flows.fe_terminate, 1, None),
 	]
 	c = flows.Collection.list()
-	io = ('initial', None), (flows.Iteration([ev]), c)
+	it = flows.Iteration([ev])
+	io = ('initial', None), (it, c)
 
 	xact = core.Transaction.create(module.Transport.from_endpoint(io))
 	S.dispatch(xact)
@@ -101,8 +102,11 @@ def test_Transport_tp_connect(test):
 	i = xact.xact_context.tp_input.xact_context
 
 	test/c.c_storage == []
-	ctx(2)
+	ctx(1)
 	test/i.terminating == True
+	ctx(1)
+	test/i.terminated == True
+	test/i.terminating == False
 
 	ctx(1)
 	test/c.c_storage == [ev]
@@ -111,22 +115,21 @@ def test_Transport_tp_connect(test):
 
 	test/o.terminating == False
 	test/xact.terminated == False
-	if 0:
-		# Divisions currently communicate receive termination cause i_close.
-		# If that is no longer the case, the following contentions should be made.
-		test/inv.terminated == False
-		test/xact.xact_context.terminated == False
 
-		# Terminate output.
-		inv.i_catenate.f_terminate()
-		test/o.terminating == True
+	test/inv.terminated == False
+	test/xact.xact_context.terminated == False
 
+	# Terminate output.
+	inv.i_catenate.f_terminate()
+	test/o.terminating == True
 	ctx(1)
+	test/o.terminating == False
 	test/o.terminated == True
 
+	test/inv.terminated == False
+	test/xact.terminated == False
 	ctx(1)
 	test/inv.terminated == True
 	test/xact.xact_context.terminated == True
-
 	ctx(1)
 	test/xact.terminated == True
