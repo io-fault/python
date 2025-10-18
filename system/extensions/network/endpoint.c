@@ -441,7 +441,7 @@ local_str(char *dst, size_t dstsize, local_addr_t *addr)
 	int i, pos;
 
 	strncpy(dst, local_addr_field(addr), dstsize);
-	dst[dstsize] = '\0';
+	dst[dstsize-1] = '\0';
 
 	/* find the final slash */
 	pos = strlen(dst);
@@ -733,7 +733,7 @@ endpoint_get_address_type(PyObj self, void *_)
 static PyObj
 endpoint_get_address(PyObj self, void *_)
 {
-	char addrstr[1024];
+	char addrstr[2048];
 	Endpoint E = (Endpoint) self;
 
 	get_address(Endpoint_GetAddress(E), addrstr, sizeof(addrstr));
