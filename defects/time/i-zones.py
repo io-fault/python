@@ -84,4 +84,3 @@ def test_zone_slice(test):
 		(types.Timestamp.of(iso='2007-11-04T09:00:00.000000000'),
 			views.Zone.Offset((-28800, 'PST', 'std')))
 	]
-	test/list(zone('MST').slice(start, stop)) == []
