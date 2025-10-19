@@ -39,9 +39,7 @@ def test_Segments(test):
 	s = next(iseg)
 	test/seg.weaks << s
 	del seg, iseg
-	# should not be closed
 	test/closed == []
-	# XXX: check referrers
 	del s
 	test/closed << cur
 
@@ -54,7 +52,6 @@ def test_Segments(test):
 	s = list(iseg)
 	test/set(seg.weaks) == set(s)
 	del seg, iseg
-	# should not be closed
 	test/closed == []
 	del s
 	test/closed << cur

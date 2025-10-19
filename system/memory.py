@@ -141,48 +141,37 @@ class Segments(object):
 
 	def __del__(self):
 		"""
-		# Manage the final stages of &Segments deallocation by transitioning
-		# to a finalization process where &select methods can no longer occur,
-		# and existing &memoryview's referencing &self, &weaks, are
-		# used to construct a sequence of &weakref.finalize callbacks.
-
-		# Once in the final stage, a count of outstanding &memoryview instances
-		# is tracked and decremented with &decrement until there are no more references
-		# to the &Segments allowing the file descriptor associated with &memory to be closed.
+		# If no weak references are open, close the memory map. Otherwise,
+		# add finalize each view such that the memory map is closed when the last
+		# reference is released.
 		"""
-		# The delete method is used as its
-		# the precise functionality that is needed here.
-		# A two-stage deallocation procedure is used:
 
-		if self.weaks is not None:
-			if len(self.weaks) > 0:
-				# Add references, bringing the Segments refcount back to positive.
-				self.__iter__ = None
-				self.finals = [
-					weakref.finalize(x, self.decrement) for x in self.weaks
-				]
-				self.count = len(self.finals)
-				self.weaks.clear()
-				self.weaks = None
-			else:
-				# no references to the slices, close memory
-				self.weaks.clear()
-				self.weaks = None
-				self.memory.close()
+		if self.weaks is None:
+			return
+
+		if len(self.weaks) > 0:
+			# Add references, bringing the Segments refcount back to positive.
+			self.__iter__ = None
+			self.count = len(self.weaks)
+			for x in self.weaks:
+				weakref.finalize(x, self._decrement)
+			self.weaks.clear()
+			self.weaks = None
 		else:
-			# second del attempt, decrement hit zero.
+			# no references to the slices, close memory
+			self.weaks.clear()
+			self.weaks = None
 			self.memory.close()
 
-	def decrement(self):
+	def _decrement(self):
 		"""
 		# Used internally by &__del__ to manage the deallocation process
 		# when there are outstanding references to the memory mapped region.
 		"""
+
 		self.count -= 1
 		if self.count == 0:
-			# this should trigger del's second stage.
-			del self.finals[:]
-			del self.finals
+			self.memory.close()
 
 	def select(self, start, stop, size, memoryview=memoryview, iter=iter, range=range):
 		"""
