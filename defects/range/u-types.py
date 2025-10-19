@@ -214,30 +214,42 @@ def test_Mapping_depth_indexing(test):
 
 	# Check that inner values set after override initial values.
 	"""
+
 	Type = module.Mapping
 	i = Type(-1)
-	k1 = module.IRange.from_string('100-500')
-	k2 = module.IRange.from_string('300-400')
+	IR = module.IRange.from_string
+	k1 = IR('100-500')
+	k2 = IR('300-400')
 
 	i[k1] = 'first'
-	i[k2] = 'second'
 	test/i[k1] == 'first'
+	i[k2] = 'second'
 	test/i[k2] == 'second'
-	test/i[module.IRange.from_string('110-150')] == 'first'
-	test/i[module.IRange.from_string('450-490')] == 'first'
-	test/i[module.IRange.from_string('330-360')] == 'second'
+
+	test/i[IR('100-299')] == 'first'
+	test/i[IR('110-150')] == 'first'
+	test/i[IR('450-490')] == 'first'
+	test/i[IR('299')] == 'first'
+	test/i[IR('401')] == 'first'
+
+	test/i[IR('330-360')] == 'second'
+	test/i[IR('300')] == 'second'
+	test/i[IR('400')] == 'second'
 
 def test_Mapping_path(test):
 	"""
 	# - &module.Mapping.path
 
-	# Check that range paths are properly nested.
+	# Check the effect of stacked ranges on path.
 	"""
+
 	Type = module.Mapping
 	i = Type(-1)
-	k1 = module.IRange.from_string('100-500')
-	k2 = module.IRange.from_string('300-400')
-	k3 = module.IRange.from_string('350-360')
+	IR = module.IRange.from_string
+
+	k1 = IR('100-500')
+	k2 = IR('300-400')
+	k3 = IR('350-360')
 
 	test/[x[1] for x in i.path(k1)] == []
 
@@ -245,13 +257,13 @@ def test_Mapping_path(test):
 	test/[x[1] for x in i.path(k2)] == ['first']
 
 	i[k2] = 'second'
-	test/[x[1] for x in i.path(k1)] == ['first']
+	test/[x[1] for x in i.path(k1)] == ['first', 'second']
 	test/[x[1] for x in i.path(k2)] == ['first', 'second']
 
 	i[k3] = 'third'
 	test/[x[1] for x in i.path(k3)] == ['first', 'second', 'third']
-	test/[x[1] for x in i.path(k2)] == ['first', 'second']
-	test/[x[1] for x in i.path(k1)] == ['first']
+	test/[x[1] for x in i.path(k2)] == ['first', 'second', 'third']
+	test/[x[1] for x in i.path(k1)] == ['first', 'second', 'third']
 
 def test_Mapping_kv_query(test):
 	"""
@@ -259,11 +271,13 @@ def test_Mapping_kv_query(test):
 	# - &module.Mapping.values
 	# - &module.Mapping.items
 	"""
+
 	Type = module.Mapping
 	i = Type(-1)
-	k1 = module.IRange.from_string('100-500')
-	k2 = module.IRange.from_string('300-400')
-	k3 = module.IRange.from_string('350-360')
+	IR = module.IRange.from_string
+	k1 = IR('100-500')
+	k2 = IR('300-400')
+	k3 = IR('350-360')
 
 	test/list(i.keys()) == []
 	test/list(i.values()) == []
