@@ -99,8 +99,17 @@ measure(wchar_t *wcv, size_t ws, unsigned char ctlen, unsigned char tablen)
 				/*
 					// Calculate difference from the expected emoji size.
 				*/
-				lw = 2 - prev;
+				if (offset == 0)
+					lw = 0;
+				else
+				{
+					if (seq > 0)
+						lw = 2 - max;
+					else
+						lw = 2 - prev;
+				}
 			}
+			break;
 
 			/* Text Variant */
 			case 0xFE0E:
@@ -110,7 +119,10 @@ measure(wchar_t *wcv, size_t ws, unsigned char ctlen, unsigned char tablen)
 
 					// Inaccurate if the former character is not an emoji.
 				*/
-				lw = 1 - prev;
+				if (offset == 0)
+					lw = 0;
+				else
+					lw = 1 - prev;
 			}
 			break;
 
