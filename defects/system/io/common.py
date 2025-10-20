@@ -1,7 +1,5 @@
 """
-# There is a large intersection of the kinds of tests that we do againsts
-# connections managed by a given array. This module contains those and
-# any common test related tools for array shutdown.
+# Common tools and tests employed across fault.defects.system.io tests.
 """
 import pickle
 import threading
@@ -87,7 +85,7 @@ class Delta(tuple):
 			a = channel.acquire
 		return typ((channel, channel.resource, s, x, a))
 
-def snapshot(array, list = list, map = map, construct = Delta.construct):
+def snapshot(array, list=list, map=map, construct=Delta.construct):
 	# list() is invoked here as materialization of the
 	# snapshot is needed in cases where the cycle exits.
 	return list(map(construct, array.transfer()))
@@ -96,7 +94,11 @@ def cycle(array):
 	with array:
 		return snapshot(array)
 
-def loop(deliver, array, cycle = cycle, snapshot = snapshot):
+def loop(deliver, array, cycle=cycle, snapshot=snapshot):
+	"""
+	# Continuously &deliver transfers enqueued into the &array.
+	"""
+
 	while not array.terminated:
 		with array:
 			deliver(snapshot(array))
@@ -110,6 +112,7 @@ class ArrayActionManager(object):
 	# Manages the Array cycle in a separate thread to avoid inline management
 	# of event collection.
 	"""
+
 	def __init__(self):
 		self.array = io.Array()
 		self.cycled = threading.Event() # set everytime a cycle is completed
@@ -121,6 +124,7 @@ class ArrayActionManager(object):
 		"""
 		# Utility function for displaying the contents of a Array.
 		"""
+
 		r = self.array.resource
 		for x in r:
 			print(
@@ -179,7 +183,10 @@ class ArrayActionManager(object):
 			del ct
 
 	def delta(self):
-		'wait for a cycle to occur; use to regulate'
+		"""
+		# Wait for a cycle to occur; use to regulate transfer progress.
+		"""
+
 		self.array.force()
 
 		while True:
@@ -256,6 +263,7 @@ class Endpoint(object):
 	"""
 	# For cases involving send and receives.
 	"""
+
 	def __init__(self, channels, bufsize = 64):
 		self.channels = channels
 		self.read_channel, self.write_channel = channels
@@ -357,6 +365,7 @@ class Objects(object):
 	"""
 	# Endpoint that transfers objects.
 	"""
+
 	def __init__(self, channels):
 		self.channels = channels
 		self.read_channel, self.write_channel = channels
@@ -419,6 +428,7 @@ def child_echo(am, objects):
 	"""
 	# Echos objects received back at the sender.
 	"""
+
 	for x in am.delta():
 		# continually echo the received objects until termination
 		if objects.read_channel.terminated:
@@ -607,7 +617,7 @@ def stream_listening_connection(test, version, address):
 		while kpv[0] == -1:
 			kernel.accept_ports(ls, kpv)
 			ic += 1
-			if ic > 256:
+			if ic > 512:
 				raise Exception("accept limit reached")
 		return kpv
 
@@ -618,8 +628,10 @@ def stream_listening_connection(test, version, address):
 			client_channels = io.alloc_octets(pfd)
 
 			client_channels[0].port.raised()
-			client_channels[0].resize_exoresource(1024 * 32)
-			client_channels[1].resize_exoresource(1024 * 32)
+			# Adjusting the kernel's buffer size isn't critical, but
+			# do so to exercise the code path for all stream types.
+			client_channels[0].resize_exoresource(1024 * 8)
+			client_channels[1].resize_exoresource(1024 * 8)
 			client = Endpoint(client_channels)
 
 			test.isinstance(client_channels[0].port.freight, str)
@@ -663,10 +675,11 @@ def stream_listening_connection(test, version, address):
 			test/client.channels[1].terminated == True
 			test/client.channels[0].exhausted == False
 			test/client.channels[1].exhausted == False
-			for x in am.delta():
-				break
+
+			while client.channels[1].endpoint() != None:
+				for x in am.delta():
+					break
 			test/client.channels[0].endpoint() == None
-			test/client.channels[1].endpoint() == None
 			del client
 
 	test/am.array.terminated == True
