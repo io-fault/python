@@ -61,6 +61,10 @@ class Delta(tuple):
 		return None
 
 	@property
+	def terminated(self):
+		return self[4]
+
+	@property
 	def resource(self):
 		return self[1]
 
@@ -83,7 +87,7 @@ class Delta(tuple):
 		a = None
 		if channel.exhausted:
 			a = channel.acquire
-		return typ((channel, channel.resource, s, x, a))
+		return typ((channel, channel.resource, s, x, channel.terminated, a))
 
 def snapshot(array, list=list, map=map, construct=Delta.construct):
 	# list() is invoked here as materialization of the
@@ -127,11 +131,12 @@ class ArrayActionManager(object):
 
 		r = self.array.resource
 		for x in r:
+			re = x.resource
 			print(
 				'polarity:', x.polarity,
 				'terminated:', x.terminated,
 				'endpoint:', x.endpoint(),
-				'resource', bytes(x.resource) if x.resource else None
+				'resource', bytes(re) if re else None
 			)
 		else:
 			print('eoj')
@@ -140,6 +145,7 @@ class ArrayActionManager(object):
 		self.array.force()
 
 	def cycle(self, activity):
+		self.cycled.clear()
 		for x in activity:
 			# append all events.
 			# for testing, we're primarily interested in
@@ -191,7 +197,6 @@ class ArrayActionManager(object):
 
 		while True:
 			self.cycled.wait()
-			self.cycled.clear()
 			yield
 
 class Events(object):
@@ -221,6 +226,13 @@ class Events(object):
 		for x in self.channels:
 			x.port.raised()
 
+	def vacancies(self):
+		i = 0
+		for x in self.channels:
+			if x.resource is None:
+				i += 1
+		return i
+
 	@property
 	def terminated(self):
 		for x in self.channels:
@@ -228,9 +240,16 @@ class Events(object):
 				return True
 		return False
 
+	def exhausted(self, limit=None):
+		i = 0
+		for x in self.events[:limit]:
+			if x.demand:
+				i += 1
+		return i
+
 	@property
 	def exhaustions(self):
-		return sum([1 if x.demand else 0 for x in self.events])
+		return self.exhausted()
 
 	@property
 	def sockets(self):
@@ -240,16 +259,20 @@ class Events(object):
 				payload += x.transferred
 		return payload
 
-	@property
-	def data(self):
+	def get_data(self, limit=None):
 		payload = bytearray(0)
-		for x in list(self.events):
-			if x.transferred is not None:
-				payload.extend(x.transferred)
+		for x in list(self.events)[:limit]:
+			xfer = x.transferred
+			if xfer is not None:
+				payload.extend(xfer)
 		return payload
 
-	def clear(self):
-		del self.events[:]
+	@property
+	def data(self):
+		return self.get_data()
+
+	def clear(self, limit=None):
+		del self.events[:limit]
 
 	def setup_read(self, quantity):
 		for x in self.channels:
@@ -664,9 +687,16 @@ def stream_listening_connection(test, version, address):
 				test/server.channels[1].terminated == True
 				test/server.channels[0].exhausted == False
 				test/server.channels[1].exhausted == False
-				for i in range(2):
+
+				# Endpoint information is still accessible until the system finishes
+				# the disconnect. Loop until it disappears.
+				ep0, ep1 = [x.endpoint for x in server.channels]
+				active = True
+				while active:
 					for x in am.delta():
 						break
+					active = bool(ep0() is not None or ep1() is not None)
+
 				test/server.channels[0].endpoint() == None
 				test/server.channels[1].endpoint() == None
 				del server
@@ -676,10 +706,16 @@ def stream_listening_connection(test, version, address):
 			test/client.channels[0].exhausted == False
 			test/client.channels[1].exhausted == False
 
-			while client.channels[1].endpoint() != None:
+			# Endpoint information is still accessible until the system finishes
+			# the disconnect. Loop until it disappears.
+			ep0, ep1 = [x.endpoint for x in client.channels]
+			active = True
+			while active:
 				for x in am.delta():
 					break
+				active = bool(ep0() is not None or ep1() is not None)
 			test/client.channels[0].endpoint() == None
+			test/client.channels[1].endpoint() == None
 			del client
 
 	test/am.array.terminated == True

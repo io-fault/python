@@ -6,6 +6,7 @@ import os.path
 import errno
 import time
 import tempfile
+import functools
 
 from ....system import io
 from . import common
@@ -97,6 +98,7 @@ def test_full_buffer_forced_write(test):
 	"""
 	# Test the force method on lose-octets with a full write buffer.
 	"""
+
 	am = common.ArrayActionManager()
 	with am.thread():
 		r, w = map(common.Events, common.allocpipe(am.array))
@@ -329,118 +331,61 @@ def test_ip4(test):
 def test_ip6(test):
 	common.stream_listening_connection(test, 'ip6', ('::1', 0))
 
-def file_test(test, am, path, apath):
-	count = 0
-	wrote_data = []
-	thedata = b'\xF1'*128
-
-	fd = os.open(apath, os.O_APPEND|os.O_WRONLY|os.O_CREAT)
+def read_write(test, am, path, data, copies, first_read=64, read_size=32):
+	fd = os.open(path, os.O_WRONLY|os.O_CREAT)
 	wr = io.alloc_output(fd)
 	wr.port.raised()
 
 	writer = common.Events(wr)
-	writer.setup_write(thedata)
-	test/wr.resource == thedata
+	writer.setup_write(data)
+	test/wr.resource == data
 
-	i = 0
+	i = 1
 	with am.manage(writer):
 		for x in am.delta():
 			test/writer.terminated == False
 			if writer.exhaustions:
 				writer.clear()
 				i += 1
-				if i > 32:
+				if i > copies:
 					writer.terminate()
 					break
-				writer.setup_write(thedata)
+				writer.setup_write(data)
 				am.force()
-	os.chmod(apath, 0o700)
+	os.chmod(path, 0o700)
 
 	# validate expectations
-	expected = (i * thedata)
+	expected = (copies * data)
 	with open(path, 'rb') as f:
 		actual = f.read()
 	test/actual == expected
-	data_size = len(thedata) * i
 
-	# read it back
-	fd = os.open(apath, os.O_RDONLY)
+	# Read it back with io.
+	fd = os.open(path, os.O_RDONLY)
 	rd = io.alloc_input(fd)
 	rd.port.raised() # check exception
 
-	out = []
 	reader = common.Events(rd)
-	reader.setup_read(37)
-	xfer_len = 0
+	reader.setup_read(first_read)
 	with am.manage(reader):
 		for x in am.delta():
+			if reader.vacancies() > 0:
+				reader.setup_read(read_size)
 
-			if reader.events:
-				xfer = reader.data
-				out.append(xfer)
-				xfer_len += len(xfer)
-
-				if reader.exhaustions:
-					reader.clear()
-					reader.setup_read(93)
-					am.force()
-			if reader.terminated or xfer_len >= data_size:
+			if reader.events and reader.events[-1].terminated:
 				reader.raised()
 				break
 
-	test/(bytearray(0).join(out)) == expected
-
-	somedata = b'0' * 256
-
-	fd = os.open(apath, os.O_WRONLY)
-	wr = io.alloc_output(fd)
-	wr.port.raised()
-	writer = common.Events(wr)
-	writer.setup_write(somedata)
-	test/wr.resource == somedata
-	i = 0
-	with am.manage(writer):
-		for x in am.delta():
-			if writer.exhaustions:
-				writer.clear()
-				i += 1
-				if i > 32:
-					writer.terminate()
-					break
-				writer.setup_write(somedata)
-				am.force()
-
-	expected = (i * somedata)
-	with open(path, 'rb') as f:
-		actual = f.read()
-	test/actual == expected
-
-	# read it back
-	data_size = len(expected)
-	xfer_len = 0
-	fd = os.open(apath, os.O_RDONLY)
-	rd = io.alloc_input(fd)
-	out = []
-	reader = common.Events(rd)
-	reader.setup_read(17)
-	with am.manage(reader):
-		for x in am.delta():
-			if reader.events:
-				xfer = reader.data
-				out.append(xfer)
-				xfer_len += len(xfer)
-
-				if reader.exhaustions:
-					reader.clear()
-					reader.setup_read(73)
-					am.force()
-			if reader.terminated or xfer_len >= data_size:
-				reader.raised()
-				break
-	test/(bytearray(0).join(out)) == expected
+	transferred = reader.data
+	test/len(expected) == len(transferred)
+	test/expected == transferred
 
 def test_file(test):
 	am = common.ArrayActionManager()
 	with am.thread(), tempfile.TemporaryDirectory() as d:
 		path = os.path.join(d, "wfile")
-		file_test(test, am, path, path)
+		rw = functools.partial(read_write, test, am, path)
+
+		rw(bytes(range(64)), 8)
+		rw(bytes(range(128)), 16)
+		rw(bytes(range(255, -1, -1)), 32)
