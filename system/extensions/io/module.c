@@ -554,10 +554,12 @@ static int array_fall(Array, int);
 /* Append to the end of the doubly linked list; requires GIL. */
 #define Channel_EnqueueDelta(t) do { \
 	Array J = (Channel_GetArray(t)); \
+	Py_BEGIN_CRITICAL_SECTION((PyObj) J); \
 	if (Channel_GetDelta(t) != 0 && ((Array)(t)) != J) { \
 		CHANNEL_RELOCATE_SEGMENT_BEFORE(J, (t), (t)); \
 		array_fall(J, 0); \
 	} \
+	Py_END_CRITICAL_SECTION(); \
 } while(0)
 
 /**
@@ -1000,39 +1002,41 @@ channel_acquire(PyObj self, PyObj resource)
 		return(NULL);
 	}
 
-	/*
-		// REQUIRES GIL
-	*/
-
-	Channel_ReleaseResource(t);
-	Py_INCREF(resource);
-	Channel_SetResource(t, resource);
-
-	if (PyObject_GetBuffer(resource, Channel_GetResourceView(t), Channel_Receives(t) ? PyBUF_WRITABLE : 0))
+	Py_BEGIN_CRITICAL_SECTION(t);
 	{
-		Channel_SetResource(t, NULL);
-		Py_DECREF(resource);
-		return(NULL);
-	}
+		Channel_ReleaseResource(t);
+		Py_INCREF(resource);
+		Channel_SetResource(t, resource);
 
-	Channel_ClearWindow(t);
+		if (PyObject_GetBuffer(resource, Channel_GetResourceView(t), Channel_Receives(t) ? PyBUF_WRITABLE : 0))
+		{
+			Channel_SetResource(t, NULL);
+			Py_DECREF(resource);
+			self = NULL;
+			goto end;
+		}
+		Py_INCREF(self);
 
-	if (Channel_GetArray(t) != NULL)
-	{
-		Channel_DQualify(t, teq_transfer);
-		Channel_EnqueueDelta(t); /* REQUIRES GIL */
-	}
-	else
-	{
-		/*
-			// Not acquired by a array.
-			// Directly apply the event qualification and
-			// the array will enqueue it when acquired.
-		*/
-		Channel_IQualify(t, teq_transfer);
-	}
+		Channel_ClearWindow(t);
 
-	Py_INCREF(self);
+		if (Channel_GetArray(t) != NULL)
+		{
+			Channel_DQualify(t, teq_transfer);
+			Channel_EnqueueDelta(t);
+		}
+		else
+		{
+			/*
+				// Not acquired by a array.
+				// Directly apply the event qualification and
+				// the array will enqueue it when acquired.
+			*/
+			Channel_IQualify(t, teq_transfer);
+		}
+		end:
+	}
+	Py_END_CRITICAL_SECTION();
+
 	return(self);
 }
 
@@ -1045,9 +1049,9 @@ channel_force(PyObj self)
 
 	if (Channel_Attached(t) && Channel_IQualified(t, teq_transfer))
 	{
-		/* No Array? Do not enqueue, but allow the effect */
-		/* to occur when it is later acquired.               */
-		Channel_EnqueueDelta(t); /* REQUIRES GIL */
+		// No Array? Do not enqueue, but allow the effect
+		// to occur when it is later acquired.
+		Channel_EnqueueDelta(t);
 	}
 
 	Py_RETURN_NONE;
@@ -1109,12 +1113,7 @@ channel_terminate(PyObj self)
 
 	if (!Channel_Attached(t))
 	{
-		/*
-			// Has GIL, not in Traffic.
-			// Array instances cannot acquire Channels without the GIL.
-
-			// Running terminate directly is safe.
-		*/
+		// Run terminate directly when not attached to an Array.
 		if (!Channel_Terminated(t))
 		{
 			Channel_IQualify(t, teq_terminate);
@@ -1131,16 +1130,20 @@ channel_terminate(PyObj self)
 
 			// Has GIL, so place teq_terminate event qualification on the delta.
 		*/
-		Channel_DQualify(t, teq_terminate);
+		Py_BEGIN_CRITICAL_SECTION(t);
+		{
+			Channel_DQualify(t, teq_terminate);
 
-		if ((PyObj) Py_TYPE(t) == arraytype)
-		{
-			array_fall((Array) t, 0);
+			if ((PyObj) Py_TYPE(t) == arraytype)
+			{
+				array_fall((Array) t, 0);
+			}
+			else
+			{
+				Channel_EnqueueDelta(t);
+			}
 		}
-		else
-		{
-			Channel_EnqueueDelta(t); /* REQUIRES GIL */
-		}
+		Py_END_CRITICAL_SECTION();
 	}
 
 	Py_RETURN_NONE;
@@ -2364,15 +2367,18 @@ array_acquire(PyObj self, PyObj ob)
 		}
 
 		/* Control bit signals needs to connect. (kfilter) */
-		Channel_DControl(t, ctl_connect);
+		Py_BEGIN_CRITICAL_SECTION(self);
+		{
+			Channel_DControl(t, ctl_connect);
+			Channel_SetArray(t, J);
+			CHANNEL_ATTACH(t);
+
+			Array_IncrementChannelCount(J);
+		}
+		Py_END_CRITICAL_SECTION();
 
 		Py_INCREF(J); /* Newly acquired channel's reference to Array.     */
 		Py_INCREF(t); /* Array's reference to the newly acquired Channel. */
-
-		Channel_SetArray(t, J);
-		CHANNEL_ATTACH(t);
-
-		Array_IncrementChannelCount(J);
 	}
 	else
 	{
@@ -2563,27 +2569,29 @@ array_transfer_delta(Array J)
 {
 	Channel t;
 
-	/* MUST HAVE GIL */
-
 	/*
-		// Scans the ring behind the Array.
+		// Scans the part of the ring behind the Array.
 		// Process Events are queued up by moving the Channel behind the Array after
 		// applying flags to channel->delta.
 	*/
-	for (t = J->prev; Channel_GetDelta(t) != 0; t = t->prev)
+	Py_BEGIN_CRITICAL_SECTION((PyObj) J);
 	{
-		/*
-			// prepend to the lltransfer list.
-			// The first 't' was the last enqueued.
-		*/
-		Channel_StateMerge(t, Channel_GetDelta(t)); /* Record the internal event quals. */
-		Channel_ClearDelta(t); /* for subsequent use; after gil gets released */
+		for (t = J->prev; Channel_GetDelta(t) != 0; t = t->prev)
+		{
+			/*
+				// prepend to the lltransfer list.
+				// The first 't' was the last enqueued.
+			*/
+			Channel_StateMerge(t, Channel_GetDelta(t)); /* Record the internal event quals. */
+			Channel_ClearDelta(t); /* for subsequent use; after gil gets released */
 
-		/*
-			// Add to event list.
-		*/
-		Array_AddTransfer(J, t);
+			/*
+				// Add to event list.
+			*/
+			Array_AddTransfer(J, t);
+		}
 	}
+	Py_END_CRITICAL_SECTION();
 }
 
 static kevent_t *
@@ -2782,11 +2790,9 @@ array_kevent_transform(Array J)
 		kev = &(kevs[i]);
 		t = (Channel) kev->udata;
 
-		/*
-			// (EVFILT_USER) user signaled for kevent exit?
-		*/
 		if (t == (Channel) J)
 		{
+			// (EVFILT_USER) user signaled for kevent exit.
 			continue;
 		}
 
@@ -2795,9 +2801,8 @@ array_kevent_transform(Array J)
 		if (kev->filter == EVFILT_WRITE && kev->flags & EV_EOF)
 		{
 			/*
-				// Only xterminate when it's an Output channel.
-				// io_terminate will handle termination on Input channels
-				// in order to make sure that all data has been transferred into the process.
+				// Only xterminate here when it's a transmit channel.
+				// io_terminate will handle termination on receive channels.
 			*/
 			Channel_XQualify(t, teq_terminate);
 			Port_SetError(p, kev->fflags, kc_eof);
@@ -2894,28 +2899,38 @@ static void
 _array_terminate(Channel J)
 {
 	Channel t;
-	Channel_IQualify(J, teq_terminate);
 
-	/*
-		// Terminate all the Channels in the Array's ring.
-	*/
-	for (t = J->next; t != J; t = t->next)
+	Py_BEGIN_CRITICAL_SECTION(J);
 	{
+		Channel_IQualify(J, teq_terminate);
+
 		/*
-			// Enqueue is necessary here because ALL channels will
-			// have a terminate action.
+			// Terminate all the Channels in the Array's ring.
 		*/
-		Channel_DQualify(t, teq_terminate);
-	}
+		for (t = J->next; t != J; t = t->next)
+		{
+			/*
+				// Enqueue is necessary here because ALL channels will
+				// have a terminate action.
+			*/
 
-	port_unlatch(Channel_GetPort(J), 0);
+			Py_BEGIN_CRITICAL_SECTION(t);
+			{
+				Channel_DQualify(t, teq_terminate);
+			}
+			Py_END_CRITICAL_SECTION();
+		}
 
-	#ifdef EVMECH_EPOLL
-	{
-		close(((Array) J)->efd);
-		close(((Array) J)->wfd);
+		port_unlatch(Channel_GetPort(J), 0);
+
+		#ifdef EVMECH_EPOLL
+		{
+			close(((Array) J)->efd);
+			close(((Array) J)->wfd);
+		}
+		#endif
 	}
-	#endif
+	Py_END_CRITICAL_SECTION();
 
 	return;
 }
@@ -2953,7 +2968,6 @@ _array_flow(Array J)
 
 	/*
 		// Enqueue changed channels to lltransfer.
-		// *REQUIRES GIL*
 	*/
 	array_transfer_delta(J);
 
@@ -3208,75 +3222,87 @@ _array_flush(Array J)
 {
 	Channel t, next;
 
-	/* REQUIRES GIL */
-
-	t = Channel_GetNextTransfer(J);
-	while (t != (Channel) J)
+	Py_BEGIN_CRITICAL_SECTION((PyObj) J);
 	{
-		next = Channel_GetNextTransfer(t);
-		Channel_SetNextTransfer(t, NULL);
-
-		/*
-			// Unconditionally collapse the window here.
-			// We have the GIL so no concurrent Channel.acquire() calls are in progress.
-			// If the user acquired the resource during the cycle, collapse will merely
-			// set the stop to zero.
-
-			// In cases where no transfer occurred, it's a no-op.
-		*/
-		Channel_CollapseWindow(t);
-
-		if (Channel_HasEvent(t, tev_terminate))
+		t = Channel_GetNextTransfer(J);
+		while (t != (Channel) J)
 		{
-			/*
-				// Release any resources owned by the channel.
-
-				// In the case where the resource was acquired in the cycle,
-				// we're not doing anything with the resource anyways, so get rid of it.
-			*/
-			Channel_ReleaseResource(t);
-			Channel_ReleaseLink(t);
-			port_unlatch(Channel_GetPort(t), Channel_Polarity(t));
-
-			CHANNEL_DETACH(t);
-			Array_DecrementChannelCount(J);
+			next = Channel_GetNextTransfer(t);
+			Channel_SetNextTransfer(t, NULL);
 
 			/*
-				// Emitted termination? Release reference to the channel.
-			*/
-			Py_DECREF(t);
-		}
-		else
-		{
-			/*
-				// If the delta qualification exists, the user channel.acquire()'d during
-				// the cycle, so don't release the new resource.
-			*/
-			int exhausted = !Channel_DQualified(t, teq_transfer)
-				&& !Channel_IQualified(t, teq_transfer);
+				// Unconditionally collapse the window here.
+				// We have the GIL so no concurrent Channel.acquire() calls are in progress.
+				// If the user acquired the resource during the cycle, collapse will merely
+				// set the stop to zero.
 
-			if (exhausted)
+				// In cases where no transfer occurred, it's a no-op.
+			*/
+			Channel_CollapseWindow(t);
+
+			if (Channel_HasEvent(t, tev_terminate))
 			{
 				/*
-					// Exhaust event occurred, but no new resource supplied in cycle.
-					// Release any internal resources.
+					// Release any resources owned by the channel.
 
-					// The user has the option to acquire() a new buffer within and
-					// after a cycle.
+					// In the case where the resource was acquired in the cycle,
+					// we're not doing anything with the resource anyways, so get rid of it.
 				*/
-				Channel_ReleaseResource(t);
+				Py_BEGIN_CRITICAL_SECTION(t);
+				{
+					Channel_ReleaseResource(t);
+					Channel_ReleaseLink(t);
+					port_unlatch(Channel_GetPort(t), Channel_Polarity(t));
+
+					CHANNEL_DETACH(t);
+				}
+				Py_END_CRITICAL_SECTION();
+
+				Array_DecrementChannelCount(J);
+
+				/*
+					// Emitted termination? Release reference to the channel.
+				*/
+				Py_DECREF(t);
 			}
+			else
+			{
+				/*
+					// If the delta qualification exists, the user channel.acquire()'d during
+					// the cycle, so don't release the new resource.
+				*/
+				Py_BEGIN_CRITICAL_SECTION(t);
+				{
+					int exhausted = !Channel_DQualified(t, teq_transfer)
+						&& !Channel_IQualified(t, teq_transfer);
+
+					if (exhausted)
+					{
+						/*
+							// Exhaust event occurred, but no new resource supplied in cycle.
+							// Release any internal resources.
+
+							// The user has the option to acquire() a new buffer within and
+							// after a cycle.
+						*/
+
+						Channel_ReleaseResource(t);
+					}
+				}
+				Py_END_CRITICAL_SECTION();
+			}
+
+			/*
+				// Cycle is over. Clear events.
+			*/
+			Channel_ClearEvents(t);
+
+			t = next;
 		}
 
-		/*
-			// Cycle is over. Clear events.
-		*/
-		Channel_ClearEvents(t);
-
-		t = next;
+		array_finish_cycle(J);
 	}
-
-	array_finish_cycle(J);
+	Py_END_CRITICAL_SECTION();
 }
 
 /**
@@ -3288,42 +3314,40 @@ array_void(PyObj self)
 	Array J = (Array) self;
 	Channel t;
 
-	/* GIL Required */
-
-	if (Array_Cycling(J))
-		array_finish_cycle(J);
-
-	for (t = J->next; t != (Channel) J; t = t->next)
+	Py_BEGIN_CRITICAL_SECTION(self);
 	{
-		Port p = Channel_GetPort(t);
-		/*
+		if (Array_Cycling(J))
+			array_finish_cycle(J);
+
+		for (t = J->next; t != (Channel) J; t = t->next)
+		{
+			Port p = Channel_GetPort(t);
+
 			// Clear any transfer state.
-		*/
-		Channel_IQualify(t, teq_terminate);
-		Channel_SetNextTransfer(t, NULL);
-		port_unlatch(p, 0);
-		p->cause = kc_void;
+			Channel_IQualify(t, teq_terminate);
+			Channel_SetNextTransfer(t, NULL);
+			port_unlatch(p, 0);
+			p->cause = kc_void;
 
-		t->prev->next = NULL;
-		t->prev = NULL;
-		Py_DECREF(t);
-
-		/*
+			t->prev->next = NULL;
+			t->prev = NULL;
+			Py_DECREF(t);
 			// The Array and Port references will be cleared by dealloc.
-		*/
+		}
+		t->next = NULL;
+
+		J->next = (Channel) J;
+		J->prev = (Channel) J;
+		Array_ResetTransferCount(J);
+		Array_ResetChannelCount(J);
+		port_unlatch(Channel_GetPort(J), 0);
+
+		#ifdef EVMECH_EPOLL
+			close(J->efd);
+			close(J->wfd);
+		#endif
 	}
-	t->next = NULL;
-
-	J->next = (Channel) J;
-	J->prev = (Channel) J;
-	Array_ResetTransferCount(J);
-	Array_ResetChannelCount(J);
-	port_unlatch(Channel_GetPort(J), 0);
-
-	#ifdef EVMECH_EPOLL
-		close(J->efd);
-		close(J->wfd);
-	#endif
+	Py_END_CRITICAL_SECTION();
 
 	Py_RETURN_NONE;
 }
@@ -3396,21 +3420,34 @@ array_get_resource(PyObj self, void *_)
 	Array J = (Array) self;
 	Channel t = J->next;
 
-	/*
-		// Requires GIL.
-	*/
-
-	l = PyList_New(Array_GetChannelCount(J));
-	while (t != (Channel) J)
+	Py_BEGIN_CRITICAL_SECTION(self);
 	{
-		PyObj ob = (PyObj) t;
+		int count = Array_GetChannelCount(J);
 
-		Py_INCREF(ob);
-		PyList_SET_ITEM(l, i, ob);
+		l = PyList_New(count);
+		if (l == NULL)
+			goto exit;
 
-		++i;
-		t = t->next;
+		while (t != (Channel) J && i < count)
+		{
+			PyObj ob = (PyObj) t;
+
+			Py_INCREF(ob);
+			PyList_SET_ITEM(l, i, ob);
+
+			++i;
+			t = t->next;
+		}
+
+		while (i < count)
+		{
+			Py_INCREF(Py_None);
+			PyList_SET_ITEM(l, i, Py_None);
+			++i;
+		}
+		exit:
 	}
+	Py_END_CRITICAL_SECTION();
 
 	return(l);
 }

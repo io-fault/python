@@ -1049,14 +1049,15 @@ port_output_datagrams(Port p, uint32_t *consumed, struct Datagram *dg, uint32_t 
 	return(io_flow);
 }
 
-/**
+/*
 	// Sequence of Port operations (portS)
 
 	// These functions respresent a series of operations of that
 	// need to be successful in order for the port to function properly.
-	// If one step errors out, jump to the exit. The port_* interface will
-	// note the error on the port.
-**/
+	// If one step errors out, return non-zero; the failed port_* interface
+	// will note the error on the port for subsequent error handling.
+*/
+
 int
 ports_identify_socket(Port p)
 {
