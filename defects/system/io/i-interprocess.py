@@ -1,13 +1,14 @@
 import os
-from ....system import kernel
-from ....system import network
-from ....system import io
+import sys
+import traceback
 from . import common
 
 def fork_and_circulate(test, am, channels):
 	# fork before am.manage() for ease.
 	pid = os.fork()
 	if pid == 0:
+		exit_status = 0
+		sys.stdout.close()
 		try:
 			objects = common.Objects(channels[2:])
 			am.array.void()
@@ -15,11 +16,10 @@ def fork_and_circulate(test, am, channels):
 				channels[0].port.shatter()
 				common.child_echo(am, objects)
 		except:
-			import traceback
-			traceback.print_exc()
-			os._exit(7)
+			traceback.print_exc(file=sys.stderr)
+			exit_status = 7
 		finally:
-			os._exit(0)
+			os._exit(exit_status)
 	else:
 		parent = common.Objects(channels[:2])
 		echos = [
@@ -59,16 +59,18 @@ def fork_and_circulate(test, am, channels):
 
 def test_bidirectional(test):
 	"""
-	# Check for IPC via bidirectional spawns
+	# Check for IPC via bidirectional kernel ports.
 	"""
+
 	am = common.ArrayActionManager()
 	channels = common.allocsockets(am.array)
 	fork_and_circulate(test, am, channels)
 
 def test_unidirectional(test):
 	"""
-	# Check for IPC via unidirectional spawns
+	# Check for IPC via unidirectional kernel ports.
 	"""
+
 	am = common.ArrayActionManager()
 
 	r, w = common.allocpipe(am.array)
