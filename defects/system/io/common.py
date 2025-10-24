@@ -407,8 +407,9 @@ class Objects(object):
 
 	def _read_event(self, activity):
 		d = activity.demand
-		if activity.transferred is not None:
-			self._read_buf += activity.transferred
+		xfer = activity.transferred
+		if xfer is not None:
+			self._read_buf += xfer
 			try:
 				objs = pickle.loads(self._read_buf)
 				self.received_objects.append(objs)
