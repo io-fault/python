@@ -2987,7 +2987,9 @@ _array_flow(Array J)
 		// code can send signals to Channels as desired.
 	*/
 
-	Py_BEGIN_ALLOW_THREADS
+	#if !defined(Py_GIL_DISABLED)
+		Py_BEGIN_ALLOW_THREADS
+	#endif
 
 	/*
 		// The ring portion of the Channel objects are managed with the GIL.
@@ -3180,7 +3182,9 @@ _array_flow(Array J)
 	if (!Channel_Terminating(J))
 		array_kevent_change(J);
 
-	Py_END_ALLOW_THREADS
+	#if !defined(Py_GIL_DISABLED)
+		Py_END_ALLOW_THREADS
+	#endif
 }
 
 struct ChannelInterface
