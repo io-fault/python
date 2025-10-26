@@ -2824,7 +2824,7 @@ static int
 array_fall(Array J, int force)
 {
 	struct timespec ts = {0,0};
-	kevent_t kev;
+	kevent_t kev = {0,};
 	int out = 0;
 
 	if (!force && J->will_wait == 0)
@@ -2977,9 +2977,7 @@ _array_flow(Array J)
 		// code can send signals to Channels as desired.
 	*/
 
-	#if !defined(Py_GIL_DISABLED)
-		Py_BEGIN_ALLOW_THREADS
-	#endif
+	_PY_THREAD_SUSPEND_
 
 	/*
 		// The ring portion of the Channel objects are managed with the GIL.
@@ -3172,9 +3170,7 @@ _array_flow(Array J)
 	if (!Channel_Terminating(J))
 		array_kevent_change(J);
 
-	#if !defined(Py_GIL_DISABLED)
-		Py_END_ALLOW_THREADS
-	#endif
+	_PY_THREAD_RESUME_
 }
 
 struct ChannelInterface

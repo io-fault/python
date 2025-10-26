@@ -424,11 +424,11 @@ kport_set_cloexec(PyObj mod, PyObj seq)
 		if (limit < 0) \
 			limit = ((kpv.len - (offset * sizeof(kport_t))) / sizeof(kport_t)); \
 		\
-		Py_BEGIN_ALLOW_THREADS \
+		_PY_THREAD_SUSPEND_ \
 		{ \
 			aq = kp_##KPC(kp, kpv.buf + (offset * sizeof(kport_t)), limit); \
 		} \
-		Py_END_ALLOW_THREADS \
+		_PY_THREAD_RESUME_ \
 		PyBuffer_Release(&kpv); \
 		if (aq < 0) \
 		{ \

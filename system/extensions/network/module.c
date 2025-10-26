@@ -327,11 +327,11 @@ nw_bind_endpoint(Endpoint ep)
 	PyObj rob;
 	kport_t kp = -1;
 
-	Py_BEGIN_ALLOW_THREADS
+	_PY_THREAD_SUSPEND_
 	{
 		kp = bind_sequence(ep);
 	}
-	Py_END_ALLOW_THREADS
+	_PY_THREAD_RESUME_
 
 	if (kp < 0)
 	{
@@ -390,11 +390,11 @@ nw_service_endpoint(Endpoint ep, int backlog)
 	PyObj rob;
 	kport_t kp = -1;
 
-	Py_BEGIN_ALLOW_THREADS
+	_PY_THREAD_SUSPEND_
 	{
 		kp = service_sequence(ep, backlog);
 	}
-	Py_END_ALLOW_THREADS
+	_PY_THREAD_RESUME_
 
 	if (kp < 0)
 	{
@@ -478,11 +478,11 @@ nw_connect_endpoint(Endpoint ep)
 	PyObj rob;
 	kport_t kp = -1;
 
-	Py_BEGIN_ALLOW_THREADS
+	_PY_THREAD_SUSPEND_
 	{
 		kp = connect_sequence(ep);
 	}
-	Py_END_ALLOW_THREADS
+	_PY_THREAD_RESUME_
 
 	if (kp < 0)
 	{

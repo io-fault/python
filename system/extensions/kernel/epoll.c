@@ -268,14 +268,14 @@ kernelq_receive(KernelQueue kq, long seconds, long ns)
 	else
 		timeout = -1;
 
-	Py_BEGIN_ALLOW_THREADS
+	_PY_THREAD_SUSPEND_
 	{
 		int nevents = CONFIG_STATIC_KEVENTS - kq->kq_event_position;
 		kevent_t *kq_offset = &(kq->kq_array[kq->kq_event_position]);
 
 		ERRNO_RECEPTACLE(-1, &r, epoll_wait, kq->kq_root, kq_offset, nevents, timeout);
 	}
-	Py_END_ALLOW_THREADS
+	_PY_THREAD_RESUME_
 
 	if (r < 0)
 	{

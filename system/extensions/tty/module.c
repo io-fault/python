@@ -79,9 +79,9 @@ device_get_window_dimensions(PyObj self)
 	struct winsize ws;
 	PyObj rob, h, v;
 
-	Py_BEGIN_ALLOW_THREADS
+	_PY_THREAD_SUSPEND_
 	r = ioctl((int) dev->dev_fd, TIOCGWINSZ, &ws);
-	Py_END_ALLOW_THREADS
+	_PY_THREAD_RESUME_
 
 	if (r)
 		return(PyErr_SetFromErrno(PyExc_OSError));

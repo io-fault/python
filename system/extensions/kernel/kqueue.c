@@ -494,14 +494,14 @@ kernelq_receive(KernelQueue kq, long seconds, long ns)
 	const struct timespec waittime = {seconds, ns};
 	int r = -1;
 
-	Py_BEGIN_ALLOW_THREADS
+	_PY_THREAD_SUSPEND_
 	{
 		int nevents = CONFIG_STATIC_KEVENTS - kq->kq_event_position;
 		kevent_t *kq_offset = &(kq->kq_array[kq->kq_event_position]);
 
 		r = kevent(kq->kq_root, NULL, 0, kq_offset, nevents, &waittime);
 	}
-	Py_END_ALLOW_THREADS
+	_PY_THREAD_RESUME_
 
 	if (r < 0)
 	{

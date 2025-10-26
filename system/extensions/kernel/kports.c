@@ -77,7 +77,7 @@ kp_configure(PyObj self)
 	int first_errno = 0;
 	KPorts kpv = (KPorts) self;
 
-	Py_BEGIN_ALLOW_THREADS
+	_PY_THREAD_SUSPEND_
 	{
 		for (i = 0; i < KPorts_GetLength(kpv); ++i)
 		{
@@ -90,7 +90,7 @@ kp_configure(PyObj self)
 				first_errno = errno;
 		}
 	}
-	Py_END_ALLOW_THREADS
+	_PY_THREAD_RESUME_
 
 	Py_RETURN_INTEGER(first_errno);
 }
