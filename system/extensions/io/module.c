@@ -1130,20 +1130,8 @@ channel_terminate(PyObj self)
 
 			// Has GIL, so place teq_terminate event qualification on the delta.
 		*/
-		Py_BEGIN_CRITICAL_SECTION(t);
-		{
-			Channel_DQualify(t, teq_terminate);
-
-			if ((PyObj) Py_TYPE(t) == arraytype)
-			{
-				array_fall((Array) t, 0);
-			}
-			else
-			{
-				Channel_EnqueueDelta(t);
-			}
-		}
-		Py_END_CRITICAL_SECTION();
+		Channel_DQualify(t, teq_terminate);
+		Channel_EnqueueDelta(t);
 	}
 
 	Py_RETURN_NONE;
@@ -3356,6 +3344,23 @@ array_void(PyObj self)
 	Py_RETURN_NONE;
 }
 
+static PyObj
+array_terminate(PyObj self)
+{
+	Channel t = (Channel) self;
+	Array J = (Array) t;
+
+	Py_BEGIN_CRITICAL_SECTION(self);
+	if (!Channel_Terminating(t))
+	{
+		Channel_DQualify(t, teq_terminate);
+		array_fall((Array) t, 0);
+	}
+	Py_END_CRITICAL_SECTION();
+
+	Py_RETURN_NONE;
+}
+
 /**
 	// Begin a transfer processing cycle.
 */
@@ -3408,6 +3413,7 @@ array_methods[] = {
 	{"sizeof_transfer", (PyCFunction) array_sizeof_transfer, METH_NOARGS, NULL,},
 	{"__enter__", (PyCFunction) array_enter, METH_NOARGS, NULL,},
 	{"__exit__", (PyCFunction) array_exit, METH_VARARGS, NULL,},
+	{"terminate", (PyCFunction) array_terminate, METH_NOARGS, NULL,},
 	{NULL,},
 };
 
