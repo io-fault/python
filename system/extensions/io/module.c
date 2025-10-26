@@ -2936,6 +2936,7 @@ _array_flow(Array J)
 	/*
 		// Check for Array termination.
 	*/
+	Py_BEGIN_CRITICAL_SECTION(J);
 	if (Channel_Terminating(J))
 	{
 		/*
@@ -2953,6 +2954,7 @@ _array_flow(Array J)
 		array_reload(J);
 	}
 	Channel_ClearDelta(J);
+	Py_END_CRITICAL_SECTION();
 
 	/*
 		// Enqueue changed channels to lltransfer.

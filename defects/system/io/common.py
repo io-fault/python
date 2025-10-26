@@ -6,9 +6,11 @@ import threading
 import contextlib
 import os
 import socket
+import time
 from ....system import io
 from ....system import network
 from ....system import kernel
+from ....system import thread
 
 def allocpipe(A):
 	r, w = os.pipe()
@@ -119,8 +121,8 @@ class ArrayActionManager(object):
 
 	def __init__(self):
 		self.array = io.Array()
-		self.cycled = threading.Event() # set everytime a cycle is completed
-		self.cycled.set()
+		self.cycled = thread.amutex()
+		self.cycles = 0
 		self.effects = {}
 		self.deadend = []
 
@@ -145,13 +147,13 @@ class ArrayActionManager(object):
 		self.array.force()
 
 	def cycle(self, activity):
-		self.cycled.clear()
-		for x in activity:
-			# append all events.
-			# for testing, we're primarily interested in
-			# the sequence for a given channel.
-			self.effects.get(x.channel, self.deadend.append)(x)
-		self.cycled.set()
+		with self.cycled:
+			for x in activity:
+				# append all events.
+				# for testing, we're primarily interested in
+				# the sequence for a given channel.
+				self.effects.get(x.channel, self.deadend.append)(x)
+				self.cycles += 1
 
 	def loop(self):
 		loop(self.cycle, self.array)
@@ -164,7 +166,6 @@ class ArrayActionManager(object):
 			yield
 		finally:
 			self.array.terminate()
-			self.array.force()
 			t.join()
 			del self.deadend[:]
 
@@ -194,10 +195,18 @@ class ArrayActionManager(object):
 		"""
 
 		self.array.force()
+		i = 0
 
 		while True:
-			self.cycled.wait()
-			yield
+			if i != self.cycles:
+				with self.cycled:
+					i = self.cycles
+					# Hold the cycle lock while integrating the changes.
+					yield i
+			else:
+				# Avoid using a lock here to simplify termination.
+				time.sleep(0.0001)
+				yield None
 
 class Events(object):
 	"""
@@ -412,10 +421,11 @@ class Objects(object):
 			self._read_buf += xfer
 			try:
 				objs = pickle.loads(self._read_buf)
-				self.received_objects.append(objs)
-				del self._read_buf[:]
 			except:
 				pass
+			else:
+				self.received_objects.append(objs)
+				del self._read_buf[:]
 		if d is not None:
 			d(rallocate(activity.channel, 512))
 
@@ -447,26 +457,6 @@ class Objects(object):
 		self._write_term_check()
 		d = pickle.dumps(obj)
 		self.write_channel.acquire(d)
-
-def child_echo(am, objects):
-	"""
-	# Echos objects received back at the sender.
-	"""
-
-	for x in am.delta():
-		# continually echo the received objects until termination
-		if objects.read_channel.terminated:
-			# expecting to be killed by receiving a None object.
-			objects.read_channel.port.raised()
-		if objects.write_channel.exhausted:
-			if objects.received_objects:
-				ob = objects.received_objects[0]
-				del objects.received_objects[0]
-				# terminate on None
-				if ob is None:
-					break
-				objects.send(ob)
-				am.array.force()
 
 def exchange_nothing(test, am, client, server):
 	pass
