@@ -127,7 +127,7 @@ class Matrix(object):
 		"""
 		# Process the array's transfer and construct a sequence of I/O events.
 
-		# This is executed inside a thread managed by the interchange and *cannot* deliver
+		# This is executed inside a thread managed by the matrix and *cannot* deliver
 		# the events to Transformers. &synchronize_io_events is used to deliver the queue
 		# for processing in the main task queue.
 		"""
@@ -376,7 +376,7 @@ class Matrix(object):
 
 	def terminate(self):
 		"""
-		# Terminate all arrays managed by the interchange.
+		# Terminate all arrays managed by the matrix.
 		"""
 		for x in self.arrays:
 			x.terminate()
