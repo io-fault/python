@@ -107,7 +107,8 @@ class FrameArray(object):
 		try:
 			return self._unpack(line.decode(self.encoding))
 		except Exception as err:
-			pass
+			import traceback
+			traceback.print_exception(err.__class__, err, err.__traceback__)
 
 	def collect(self):
 		with self._ioa.wait(self.timeout):
