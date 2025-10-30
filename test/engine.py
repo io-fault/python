@@ -143,6 +143,6 @@ def execute(module):
 		func = getattr(module, id)
 		test = types.Test(id, func)
 		with test.exits:
-			test.execute_tests()
+			func(test)
 		if test.failure:
 			raise test.exception
