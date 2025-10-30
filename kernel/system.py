@@ -371,7 +371,7 @@ class Matrix(object):
 		# Execute the Array.force method on the set designated
 		# of Array instances designated by &id.
 		"""
-		for x in self.arrays:
+		for x in list(self.arrays):
 			x.force()
 
 	def terminate(self):
