@@ -475,7 +475,8 @@ class PInvocation(tuple):
 			output = pipes[-1][0]
 
 			for i, inv, err in zip(range(n), self, child_errors):
-				pid = inv(((pipes[i][0], 0), (pipes[i+1][1], 1), (err, 2)))
+				fdm = [(pipes[i][0], 0), (pipes[i+1][1], 1), (err, 2)]
+				pid = inv.spawn(fdm)
 				pids.append(pid)
 
 			return Pipeline(input, output, pids, errors)
