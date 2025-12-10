@@ -56,7 +56,12 @@ class Harness(engine.Harness):
 		def manage(harness=self, test=test):
 			with test.exits:
 				return harness.execute(test)
+
+		mid = os.environ['METRICS_IDENTITY']
+		os.environ['METRICS_IDENTITY'] += '/' + test.identifier
 		pid, execute_test = self.concurrently(manage, waitpid=os.wait4)
+		# Fork is raised here by concurrently, so don't set this in finally.
+		os.environ['METRICS_IDENTITY'] = mid
 
 		xact_metrics = metrics.Procedure(
 			work=metrics.Work(1, 0, 0, 0),
@@ -178,7 +183,6 @@ class Harness(engine.Harness):
 		test.traceback = test.exception.__traceback__
 
 	def execute(self, test, count=1):
-		os.environ['METRICS_IDENTITY'] += '/' + test.identifier
 		test.metrics['processing'] = []
 		test.metrics['memory'] = []
 
