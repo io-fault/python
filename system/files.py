@@ -928,38 +928,6 @@ class Path(Selector[str]):
 			link(target, self.fullpath)
 		return self
 
-	def fs_init(self, data:Optional[bytes]=None, *, mkdir=os.mkdir, exists=os.path.exists):
-		"""
-		# Create and initialize a data file at the route using the given &data.
-
-		# If &data is &None, no write operation will occur for pre-existing files.
-		# If &data is not &None, the bytes will be written regardless.
-
-		# Returns the route instance, &self.
-		# Leading directories will be created as needed.
-		"""
-
-		fp = self.fullpath
-		if exists(fp):
-			if data is not None:
-				self.fs_store(data) #* Re-initialize data file.
-			return self
-
-		routes = []
-		for p in ~self.container:
-			if p.fs_type() != 'void':
-				break
-			routes.append(p)
-
-		# Create leading directories.
-		for x in reversed(routes):
-			mkdir(x.fullpath)
-
-		with self.fs_open('xb') as f: #* Save ACL errors, concurrent op created file
-			f.write(data or b'')
-
-		return self
-
 	def fs_alloc(self, *, mkdir=os.mkdir):
 		routes = []
 		for p in ~(self ** 1):
