@@ -10,9 +10,6 @@
 	# The &Path to the file that has no content and will discard writes.
 # /empty/
 	# The &Path to the directory that contains no files.
-# /type_codes/
-	# Single character representations for file types.
-	# Primarily used by &Path.fs_require.
 """
 from collections.abc import Sequence, Iterable
 from typing import Optional, TypeAlias
@@ -31,74 +28,7 @@ import tempfile
 
 from ..context.tools import cachedcalls
 from ..route.types import Selector, Segment
-
-type_codes = {
-	'*': None,
-	'/': 'directory',
-	'.': 'data',
-	'#': 'device',
-	'@': 'socket',
-	'|': 'pipe',
-	'&': 'link',
-	'!': 'void',
-	'?': 'unknown',
-}
-
-class RequirementViolation(Exception):
-	"""
-	# Exception raised by &Path.fs_require when requirements are not met.
-
-	# [ Properties ]
-	# /r_violation/
-		# The subtype declaring the kind of violation that occurred.
-		# /`'void'`/
-			# File did not exist.
-		# /`'inaccessible'`/
-			# Path traversed through a non-directory file,
-			# or had insufficient permissions on the leading path.
-		# /`'type'`/
-			# The &r_type did not match the &fs_type.
-		# /`'directory'`/
-			# The file identified by the path is a directory.
-		# /`'prohibited'`/
-			# The required permissions stated in &r_properties
-			# were not available to the process.
-	# /r_type/
-		# The required type issued to &Path.fs_require.
-	# /r_properties/
-		# The required properties issued to &Path.fs_require.
-	# /fs_type/
-		# The type of the file identified by &fs_path.
-	# /fs_path/
-		# The path to the subject file.
-	"""
-
-	def __init__(self, subject, type, violation, rtype, properties):
-		self.fs_path = subject
-		self.fs_type = type
-
-		self.r_violation = violation
-		self.r_type = rtype
-		self.r_properties = properties
-
-	def __str__(self):
-		rv = self.r_violation
-		path = f"PATH[{self.fs_type}]: {self.fs_path!s}"
-
-		if rv == 'type':
-			desc = f"not a {self.r_type!r} file"
-		elif rv == 'directory':
-			desc = "file is a directory"
-		elif rv == 'void':
-			desc = "file not does not exist"
-		elif rv == 'prohibited':
-			desc = "file does not have the necessary permissions"
-		elif rv == 'inaccessible':
-			desc = "file could not accessed"
-		else:
-			desc = rv
-
-		return f"{desc}\n{path}"
+from ..route.types import RequirementViolation
 
 class Status(tuple):
 	"""
@@ -305,7 +235,7 @@ class Path(Selector[str]):
 		'!': 0,
 	}
 
-	def fs_require(self, properties:str='', *, type=None):
+	def fs_require(self, properties:str='', *, type=None, Violation=RequirementViolation):
 		# The cases involving '/', '!' and '?' properties are slightly odd,
 		# but are intended to cover relatively common cases where the
 		# use of an explicit type alone is insufficient.
@@ -318,21 +248,21 @@ class Path(Selector[str]):
 					return self
 
 				# Implied existence requirement.
-				raise RequirementViolation(self, 'void', 'void', type, properties)
+				raise Violation(self, 'void', 'void', type, properties)
 		except (NotADirectoryError, PermissionError) as fs_error:
 			# Implied accessibility requirement.
 			if '?' in properties:
 				# Dismissed. Similar to accepting 'void' types.
 				return self
 
-			raise RequirementViolation(self, 'unknown', 'inaccessible', type, properties)
+			raise Violation(self, 'unknown', 'inaccessible', type, properties)
 		else:
 			assert filetype != 'void'
 
-			if properties[:1] in type_codes:
+			if properties[:1] in Violation.type_codes:
 				# Override iff properties starts with a type code, and type is None.
 				if type is None:
-					type = type_codes[properties[:1]]
+					type = Violation.type_codes[properties[:1]]
 				else:
 					# Warn when both type and type code are designated?
 					pass
@@ -341,20 +271,20 @@ class Path(Selector[str]):
 			if type is not None:
 				# Specific type is required.
 				if filetype != type:
-					raise RequirementViolation(self, filetype, 'type', type, properties)
+					raise Violation(self, filetype, 'type', type, properties)
 			else:
 				# Check implied directory restriction.
 				if filetype == 'directory' and '/' not in properties:
 					assert type is None
 					# Require a non-directory file by default unless '/' was in &properties.
-					raise RequirementViolation(self, filetype, 'directory', type, properties)
+					raise Violation(self, filetype, 'directory', type, properties)
 
 			if properties:
 				check = 0
 				for x in properties:
 					check |= self._fs_access_map[x]
 				if not self._fs_access(self, check):
-					raise RequirementViolation(self, filetype, 'prohibited', type, properties)
+					raise Violation(self, filetype, 'prohibited', type, properties)
 
 		return self
 
