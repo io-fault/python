@@ -43,13 +43,13 @@ def test_V1_isource(test):
 	td = test.exits.enter_context(files.Path.fs_tmpdir())
 	p = module.V1({})
 
-	vf = (td/'valid.c').fs_init()
+	vf = (td/'valid.c').fs_alloc().fs_store(b'')
 	test/p.isource(vf) == True
 
-	invalid = (td/'filename').fs_init()
+	invalid = (td/'filename').fs_alloc().fs_store(b'')
 	test/p.isource(invalid) == False
 
-	dotfile = (td/'.filename').fs_init()
+	dotfile = (td/'.filename').fs_alloc().fs_store(b'')
 	test/p.isource(dotfile) == False
 
 def test_V1_collect_explicit_sources(test):
@@ -58,8 +58,8 @@ def test_V1_collect_explicit_sources(test):
 	typcache = p.source_format_resolution()
 	unknown = module.unknown_factor_type
 
-	vf = (td/'valid.c').fs_init()
-	sub = (td@"path/to/inner.c").fs_init()
+	vf = (td/'valid.c').fs_alloc().fs_store(b'')
+	sub = (td@"path/to/inner.c").fs_alloc().fs_store(b'')
 
 	ls = list(p.collect_explicit_sources(typcache, td))
 	test/((unknown, vf) in ls) == True
@@ -69,9 +69,9 @@ def test_V1_iterfactors_explicit_known(test):
 	td = test.exits.enter_context(files.Path.fs_tmpdir())
 	p = module.V1({'source-extension-map': extmap})
 
-	vf = (td/'valid.c').fs_init()
-	pt = (td/'project.txt').fs_init()
-	py = (td/'test.py').fs_init()
+	vf = (td/'valid.c').fs_alloc().fs_store(b'')
+	pt = (td/'project.txt').fs_alloc().fs_store(b'')
+	py = (td/'test.py').fs_alloc().fs_store(b'')
 
 	idx = dict(p.iterfactors(types.fpc, td, types.factor))
 	test/len(idx) == 3
@@ -88,9 +88,9 @@ def test_V1_iterfactors_explicit_unknown(test):
 	td = test.exits.enter_context(files.Path.fs_tmpdir())
 	p = module.V1({'source-extension-map': extmap})
 
-	ft = (td/'cf'/'.factor').fs_init(mkfactor(str(exe_typref), set()).encode('utf-8'))
+	ft = (td/'cf'/'.factor').fs_alloc().fs_store(mkfactor(str(exe_typref), set()).encode('utf-8'))
 
-	v = (td/'cf'/'src'/'valid.c').fs_init()
+	v = (td/'cf'/'src'/'valid.c').fs_alloc().fs_store(b'')
 	fs = dict(p.iterfactors(types.fpc, td, types.factor))
 
 	cf = types.FactorPath.from_sequence(['cf'])

@@ -132,7 +132,7 @@ def test_materialize_link(test):
 	# - &module.materialize
 	"""
 	d = test.exits.enter_context(files.Path.fs_tmpdir())
-	src = (d/'source').fs_init(b'source-data')
+	src = (d/'source').fs_alloc().fs_store(b'source-data')
 
 	module.materialize(d, [(S(['test-file-link']), src)])
 	test/(d/'test-file-link').fs_load() == src.fs_load()
@@ -144,7 +144,7 @@ def test_materialize_module(test):
 	"""
 	d = test.exits.enter_context(files.Path.fs_tmpdir())
 
-	src = (d/'source').fs_init(b"source-data")
+	src = (d/'source').fs_alloc().fs_store(b"source-data")
 	module_instance = module.ModuleType('random.path')
 	module_instance.__file__ = str(src)
 

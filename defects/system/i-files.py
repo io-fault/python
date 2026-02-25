@@ -10,7 +10,7 @@ from ...time.system import utc as time
 
 @functools.singledispatch
 def d_setup(x:bytes, path:module.Path):
-	path.fs_init(x)
+	path.fs_alloc().fs_store(x)
 
 @d_setup.register
 def _(x:dict, path:module.Path):
@@ -110,7 +110,7 @@ def test_Path_list(test):
 	expect = ([t/str(i) for i in range(24, 32)], [t/str(i) for i in range(16)])
 
 	for i in range(16):
-		(t/str(i)).fs_init()
+		(t/str(i)).fs_alloc().fs_store(b'')
 
 	dl = t.fs_list()
 	for l in dl:
@@ -144,7 +144,7 @@ def test_Path_iterfiles(test):
 	expect_both.sort(key=K)
 
 	for i in range(16):
-		(t/str(i)).fs_init()
+		(t/str(i)).fs_alloc().fs_store(b'')
 
 	dl = list(t.fs_iterfiles())
 	dl.sort(key=K)
@@ -177,14 +177,14 @@ def test_Path_index(test):
 
 	t = test.exits.enter_context(module.Path.fs_tmpdir())
 	f = t / 'file'
-	f.fs_init()
+	f.fs_alloc().fs_store(b'')
 	test/f.fs_list() == ([],[]) # OSError
 	test/dict(f.fs_index()) == {}
 
 	d = t / 'dir'
 	s = d / 'subdir'
 	l = s / 'file-in-subdir'
-	l.fs_init()
+	l.fs_alloc().fs_store(b'')
 
 	expect = {
 		t: [f],
@@ -202,7 +202,7 @@ def test_Path_snapshot(test):
 	sk = (lambda x: x[2]['identifier'])
 
 	t = test.exits.enter_context(module.Path.fs_tmpdir())
-	f = (t / 'file').fs_init()
+	f = (t / 'file').fs_alloc().fs_store(b'')
 	report = t.fs_snapshot()
 	expect = [
 		('data', [], {'status': os.stat(f.fullpath), 'identifier': f.identifier})
@@ -253,7 +253,7 @@ def test_Path_replace(test):
 
 	src = t / 'srcdir'
 	srcfile = src / 's' / 's'
-	srcfile.fs_init()
+	srcfile.fs_alloc().fs_store(b'')
 	with srcfile.fs_open('wb') as f:
 		f.write(b'subdir_sources')
 
@@ -265,24 +265,6 @@ def test_Path_replace(test):
 	file = dir / 's'
 	with file.fs_open('rb') as f:
 		test/f.read() == b'subdir_sources'
-
-def test_Path_init(test):
-	"""
-	# Test &module.Path.fs_init checking that the parent directories are
-	# properly created regardless of the selected type.
-	"""
-
-	t = test.exits.enter_context(module.Path.fs_tmpdir())
-	f = t / 'parent-2' / 'filename'
-
-	f2 = f.fs_init(b'content')
-	test/f2 == f
-	test/f.fs_type() == 'data'
-	test/f.identifier == 'filename'
-
-	test/f.fs_load() == b'content'
-	test/f.fs_init(b'content-2').fs_load() == b'content-2'
-	test/f.fs_init().fs_load() == b'content-2'
 
 def test_Path_mkdir(test):
 	"""
@@ -312,7 +294,7 @@ def test_Path_type_void(test):
 	d = t / 'directory'
 	f = t / 'data-file.txt'
 	d.fs_mkdir()
-	f.fs_init(b'nothing')
+	f.fs_alloc().fs_store(b'nothing')
 	l.fs_link_relative(d/'no-such-target')
 
 	v1 = d / 'subdirectory'
@@ -430,7 +412,7 @@ def test_Path_since(test):
 
 	files = [f1, f2, f3]
 	for x in files:
-		x.fs_init()
+		x.fs_alloc().fs_store(b'')
 
 	times = [x.get_last_modified() for x in files]
 	times.sort(reverse=True)
@@ -575,7 +557,7 @@ def test_Path_void(test):
 	d = test.exits.enter_context(module.Path.fs_tmpdir())
 	sd = d / 'subdir'
 	sf = sd / 'subfile'
-	sf.fs_init()
+	sf.fs_alloc().fs_store(b'')
 
 	with sf.fs_open('wb') as x:
 		x.write(b'data')
@@ -584,7 +566,7 @@ def test_Path_void(test):
 	test/sf.fs_type() != 'void'
 	sf.fs_void()
 	test/sf.fs_type() == 'void'
-	sf.fs_init()
+	sf.fs_alloc().fs_store(b'')
 	test/sf.fs_type() != 'void'
 
 	sd.fs_void()
@@ -595,7 +577,7 @@ def link_checks(test, create_link):
 	t = test.exits.enter_context(module.Path.fs_tmpdir())
 
 	target = t / 'file'
-	target.fs_init(b'test file')
+	target.fs_alloc().fs_store(b'test file')
 
 	# Relative Mode
 	sym = t / 'symbolic'
@@ -616,9 +598,9 @@ def link_checks(test, create_link):
 	common.fs_mkdir()
 	dst = common / 'from-1' / 'from-2' / 'file'
 	src = common / 'to-1' / 'to-2' / 'to-3' / 'file'
-	src.fs_init(b'source data')
+	src.fs_alloc().fs_store(b'source data')
 
-	dst.fs_init()
+	dst.fs_alloc().fs_store(b'')
 	dst.fs_void()
 	create_link(dst, src)
 	test/list(dst.fs_follow_links())[-1] == src
@@ -647,7 +629,7 @@ def test_Path_recursive_since(test):
 	t = test.exits.enter_context(module.Path.fs_tmpdir())
 	d = t / 'dir' / 'subdir'
 	f = d / 'file'
-	f.fs_init()
+	f.fs_alloc().fs_store(b'')
 
 	for dd, files in t.fs_index():
 		dd.set_last_modified(thirty)
@@ -668,7 +650,7 @@ def test_Path_follow_links(test):
 	td = test.exits.enter_context(module.Path.fs_tmpdir())
 
 	t = (td/'target.s')
-	t.fs_init()
+	t.fs_alloc().fs_store(b'')
 
 	l1 = (td/'link1')
 	l1.fs_link_relative(t)
@@ -692,7 +674,7 @@ def test_Path_io(test):
 	td = test.exits.enter_context(module.Path.fs_tmpdir())
 
 	f = td/'test-file'
-	f.fs_init(b'')
+	f.fs_alloc().fs_store(b'')
 	test/f.fs_type() == 'data'
 
 	f.fs_store(b'bytes-data')

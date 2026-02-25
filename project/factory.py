@@ -259,7 +259,7 @@ def materialize(route, plans, encoding='utf-8', isinstance=isinstance):
 			(target_file).fs_link_relative(data) # Symbolic linke.
 			continue
 
-		(target_file).fs_init(data)
+		(target_file).fs_alloc().fs_store(data)
 
 def instantiate(project:Parameters, route, *dimensions:str):
 	"""

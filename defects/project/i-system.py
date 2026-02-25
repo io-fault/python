@@ -12,7 +12,7 @@ def setup(pd, local_id='', project='project'):
 	pid = (t_project_id + local_id)
 	what = project + ' ' + pid + ' factors/polynomial-1\n'
 	whom = 'fault.io <http://fault.io/critical>\n'
-	(pj@'.project/f-identity').fs_alloc().fs_init((what + whom).encode('utf-8'))
+	(pj@'.project/f-identity').fs_alloc().fs_store((what + whom).encode('utf-8'))
 	return pj
 
 def product_a(test, name='product'):

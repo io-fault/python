@@ -49,9 +49,9 @@ def emit(route, data):
 		path = route + subpath.split('/')
 
 		if isinstance(content, (bytes, bytearray, memoryview)):
-			(path).fs_init(content)
+			(path).fs_alloc().fs_store(content)
 		elif isinstance(content, str):
-			(path).fs_init()
+			(path).fs_alloc().fs_store()
 			(path).set_text_content(content)
 		else:
 			assert isinstance(content, dict)
