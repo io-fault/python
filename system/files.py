@@ -830,17 +830,6 @@ class Path(Selector[str]):
 		with self.fs_open('w', encoding=encoding) as f:
 			f.write(string)
 
-	def meta(self):
-		"""
-		# Return file specific meta data.
-
-		# ! WARNING:
-			# Preliminary API.
-		"""
-
-		st = self.fs_status()
-		return (st.created, st.last_modified, st.st_size)
-
 	def fs_void(self, *, rmtree=shutil.rmtree, remove=os.remove):
 		fp = self.fullpath
 
