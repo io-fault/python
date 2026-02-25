@@ -993,13 +993,6 @@ class Path(Selector[str]):
 
 	@contextlib.contextmanager
 	def fs_open(self, *args, **kw):
-		"""
-		# Open the file pointed to by the route.
-
-		# If the file doesn't exist, create it; if the directories
-		# leading up to the file don't exist, create the directories too.
-		"""
-
 		f = open(self.fullpath, *args, **kw)
 		try:
 			f.__enter__()
