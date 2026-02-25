@@ -111,7 +111,8 @@ class RequirementViolation(Exception):
 	# /fs_path/
 		# The path to the subject file.
 	# /type_codes/
-		# The character codes used by &.abstract.Path.fs_require.
+		# The character codes used by &.abstract.Path.fs_require;
+		# also defined by &.abstract.Types
 	"""
 
 	type_codes = {
