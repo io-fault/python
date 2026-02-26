@@ -201,6 +201,18 @@ class File(Path):
 		raise NotImplementedError
 
 	@abstractmethod
+	def fs_path_string(self) -> str:
+		"""
+		# Construct a normalized string representing the path to the file.
+
+		# Relative resolution must still be explicitly performed, but empty
+		# path entries delimiting partitions are eliminated.
+
+		# &File protocol name suitable for use as `__fspath__` implementation.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
 	def fs_open(self, mode:str, buffering:int=-1, encoding:str=None, errors:str=None, newline=None) -> AbstractContextManager[IO]:
 		"""
 		# Open the file identified by the path, &self.

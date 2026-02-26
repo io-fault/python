@@ -496,13 +496,6 @@ class Path(Selector[str]):
 		return self.__class__(ctx, tuple(rpoints))
 
 	def fs_path_string(self) -> str:
-		"""
-		# Construct a normalized string representing the path to the file.
-
-		# Relative resolution must still be explicitly performed, but empty
-		# path entries delimiting partitions are eliminated.
-		"""
-
 		path = self
 		path_seq = []
 
