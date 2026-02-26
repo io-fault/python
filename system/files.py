@@ -519,21 +519,6 @@ class Path(Selector[str]):
 		return Status((stat(self.fullpath), self.identifier))
 
 	def fs_type(self, *, ifmt=stat.S_IFMT, stat=os.stat, type_map=Status._fs_type_map) -> str:
-		"""
-		# The type of file the route points to. Transforms the result of an &os.stat
-		# call into a string describing the (python/attribute)`st_mode` field.
-
-		# [ Returns ]
-		# - `'directory'`
-		# - `'data'`
-		# - `'pipe'`
-		# - `'socket'`
-		# - `'device'`
-		# - `'void'`
-
-		# If no file is present at the path or a broken link is present, `'void'` will be returned.
-		"""
-
 		try:
 			s = stat(self.fullpath.rstrip('/') or '/')
 		except FileNotFoundError:

@@ -398,6 +398,16 @@ class File(Path):
 		# A string identifying the type of file selected by the &Route.
 		# Often a shorthand for accessing the type from the structure
 		# returned by &fs_status.
+
+		# [ Returns ]
+		# - `'directory'`
+		# - `'data'`
+		# - `'pipe'`
+		# - `'socket'`
+		# - `'device'`
+		# - `'void'`
+
+		# If no file is present at the path or a broken link is present, `'void'` will be returned.
 		"""
 		raise NotImplementedError
 
