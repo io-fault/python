@@ -527,10 +527,6 @@ class Path(Selector[str]):
 		return type_map.get(ifmt(s.st_mode), 'unknown')
 
 	def fs_executable(self, *, get_stat=os.stat, mask=stat.S_IXUSR|stat.S_IXGRP|stat.S_IXOTH) -> bool:
-		"""
-		# Whether the file at the route is considered to be an executable.
-		"""
-
 		mode = get_stat(self.fullpath).st_mode
 		return (mode & mask) != 0
 
