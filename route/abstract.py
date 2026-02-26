@@ -42,7 +42,8 @@
 """
 from abc import abstractmethod
 from collections.abc import Hashable, Iterable, Sequence, Mapping
-from typing import Protocol, TypeAlias, Type
+from typing import Protocol, TypeAlias, Type, IO
+from contextlib import AbstractContextManager
 
 Element: TypeAlias = tuple[str, Sequence['Element'], Mapping]
 
@@ -196,6 +197,18 @@ class File(Path):
 		"""
 		# Exception describing the property violations found
 		# by a call to &fs_require.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_open(self, mode:str, buffering:int=-1, encoding:str=None, errors:str=None, newline=None) -> AbstractContextManager[IO]:
+		"""
+		# Open the file identified by the path, &self.
+
+		# The file is opened when the returned context manager is entered and closed on exit.
+
+		# The parameters match Python's &open builtin without `opener` and `closefd` where
+		# the behavior is always the default.
 		"""
 		raise NotImplementedError
 
