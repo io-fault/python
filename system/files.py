@@ -429,9 +429,6 @@ class Path(Selector[str]):
 
 	@property
 	def filename(self):
-		"""
-		# Filesystem specific alias for &identifier.
-		"""
 		return self.identifier
 
 	@property

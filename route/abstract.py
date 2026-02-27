@@ -202,6 +202,14 @@ class File(Path):
 
 	@property
 	@abstractmethod
+	def filename(self) -> str:
+		"""
+		# Filesystem specific alias for &identifier.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
 	def extension(self) -> str|None:
 		"""
 		# The last dot-extension of the filename.
