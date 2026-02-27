@@ -616,7 +616,7 @@ def test_Path_since(test):
 	test/list(root.fs_since(time())) == []
 
 	m = root.fs_since(time().rollback(minute=1))
-	test/set(x[1] for x in m) == set(files)
+	test/set(m) == set(files)
 
 def test_Path_since_defaults(test):
 	"""
@@ -630,7 +630,7 @@ def test_Path_since_defaults(test):
 	f1.fs_store(b'')
 	f1.set_last_modified(f1.fs_status().last_modified.elapse(second=1))
 
-	test/list(root.fs_since())[0][1] == f1
+	test/list(root.fs_since())[0] == f1
 
 def test_Path_since_before(test):
 	"""
@@ -642,7 +642,7 @@ def test_Path_since_before(test):
 	f1.fs_store(b'')
 
 	test/list(root.fs_since(time().rollback(minute=1), inverse=True)) == []
-	test/list(root.fs_since(time(), inverse=True)) == [(f1.fs_status().last_modified, f1)]
+	test/list(root.fs_since(time(), inverse=True)) == [f1]
 
 def test_Path_recursive_since(test):
 	"""
@@ -667,7 +667,7 @@ def test_Path_recursive_since(test):
 	# create recursion
 	l = d / 'link'
 	l.fs_link_relative(t / 'dir')
-	test/list(t.fs_since(ago10mins.rollback(minute=10)))[0][1] == f
+	test/list(t.fs_since(ago10mins.rollback(minute=10)))[0] == f
 
 def test_Path_follow_links(test):
 	"""

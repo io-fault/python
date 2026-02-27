@@ -723,7 +723,7 @@ class Path(Selector[str]):
 		for x in files:
 			mt = x.fs_status().last_modified
 			if compare(mt):
-				yield (mt, x)
+				yield x
 
 		for x in dirs:
 			yield from x._fs_since_scan(compare, traversed, x)

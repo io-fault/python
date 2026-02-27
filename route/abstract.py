@@ -430,6 +430,20 @@ class File(Path):
 		raise NotImplementedError
 
 	@abstractmethod
+	def fs_since(self, time:Optional[object]=None, inverse:bool=False) -> Iterable[File]:
+		"""
+		# Select data files within the path, &self, whose modification time exceeds &time.
+
+		# [ Parameters ]
+		# /time/
+			# The referennce time. When unspecified as &None, the modification time
+			# of the directory identified by &self is used.
+		# /inverse/
+			# Select files modified before &time when &True.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
 	def fs_snapshot(self) -> Sequence[Element]:
 		"""
 		# Construct an element tree of files from the directory identified by &self.
