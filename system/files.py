@@ -441,22 +441,10 @@ class Path(Selector[str]):
 		return i[p+1:]
 
 	def suffix_filename(self, appended_suffix):
-		"""
-		# Modify the name of the file adding the given suffix.
-
-		# Returns a new &Path Route.
-		"""
-
 		return self * (self.identifier + appended_suffix)
 	suffix = suffix_filename
 
 	def prefix_filename(self, prefix_string):
-		"""
-		# Modify the name of the file adding the given prefix.
-
-		# Returns a new &Path Route.
-		"""
-
 		return self * (prefix_string + self.identifier)
 	prefix = prefix_filename
 

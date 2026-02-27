@@ -79,6 +79,20 @@ class Path(Protocol):
 		raise NotImplementedError
 
 	@abstractmethod
+	def prefix(self, string:str):
+		"""
+		# Construct a new route with the given &prefix added to the beginning of the identifier.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def suffix(self, string:str):
+		"""
+		# Construct a new route with the given &suffix added to the end of the identifier.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
 	def truncate(self, identifier:Hashable) -> Path:
 		"""
 		# Construct a new route consisting of the existing sequence of points up to the *last*
