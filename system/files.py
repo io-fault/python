@@ -739,10 +739,7 @@ class Path(Selector[str]):
 	def fs_modified(self, *, utime=os.utime):
 		return utime(self.fullpath)
 
-	def fs_size(self, *, stat=os.stat) -> int:
-		"""
-		# Return the size of the file as depicted by &os.stat.
-		"""
+	def fs_size(self, *, stat=os.stat):
 		return stat(self.fullpath, follow_symlinks=True).st_size
 
 	def get_last_modified(self) -> int:

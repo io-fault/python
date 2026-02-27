@@ -457,6 +457,15 @@ class File(Path):
 		raise NotImplementedError
 
 	@abstractmethod
+	def fs_size(self) -> int:
+		"""
+		# Return the size, count of bytes, of the file's content.
+
+		# - `file.fs_size() == file.fs_status().size`
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
 	def fs_executable(self) -> bool:
 		"""
 		# Whether or not the regular file is executable.
