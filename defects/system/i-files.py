@@ -77,15 +77,6 @@ def test_Path_string_cache(test):
 	test/module.path_string_cache(p2 ** 2) == 'test'
 	test/module.path_string_cache(p2 ** 3) == ''
 
-def test_Path_from_partitioned_string(test):
-	p = module.Path.from_partitioned_string("/root//prefix/stem//local/target")
-	parts = p.partitions()
-	test/parts == [
-		('root',),
-		('prefix', 'stem',),
-		('local', 'target',),
-	]
-
 def test_Path_bytespath(test):
 	p = module.Path.from_absolute('/test/path')
 	test/p.bytespath == b'/test/path'

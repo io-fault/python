@@ -346,14 +346,6 @@ class Path(Selector[str]):
 	def _partition_string(path:str) -> Iterable[Sequence[str]]:
 		return (x.strip('/').split('/') for x in path.split("//"))
 
-	@classmethod
-	def from_partitioned_string(Class, path:str):
-		"""
-		# Construct an absolute path while interpreting consecutive separators
-		# as distinct partitions.
-		"""
-		return Class.from_partitions(Class._partition_string(path))
-
 	def __matmul__(self, path:str):
 		parts = self._partition_string(path)
 		if path[:1] == "/":
