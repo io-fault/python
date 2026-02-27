@@ -307,9 +307,6 @@ class File(Path):
 		"""
 		# Relocate the directory contents in &discarded into &self, and
 		# destroy the segment of directories between &self and &discarded.
-
-		# [ Returns ]
-		# &self
 		"""
 		raise NotImplementedError
 
