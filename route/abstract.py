@@ -191,6 +191,13 @@ class File(Path):
 	# File system APIs for supporting common access functions.
 	"""
 
+	@abstractmethod
+	def __pos__(self): -> File:
+		"""
+		# Resolve any relative path components, `.` and `..`, in &self.
+		"""
+		raise NotImplementedError
+
 	@property
 	@abstractmethod
 	def extension(self) -> str|None:
