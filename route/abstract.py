@@ -323,6 +323,16 @@ class File(Path):
 		raise NotImplementedError
 
 	@abstractmethod
+	def fs_follow_links(self) -> Iterable[File]:
+		"""
+		# Follow the symbolic links back to the final non-link file.
+
+		# The followed paths are not further resolved. Any links leading
+		# to links or the final file will remain in the yielded paths.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
 	def fs_link_relative(self, path):
 		"""
 		# Create or update a *symbolic* link at &self pointing to &path, the target file.
