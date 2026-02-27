@@ -233,7 +233,7 @@ class File(Path):
 		raise NotImplementedError
 
 	@abstractmethod
-	def __pos__(self): -> File:
+	def __pos__(self) -> File:
 		"""
 		# Resolve any relative path components, `.` and `..`, in &self.
 		"""
