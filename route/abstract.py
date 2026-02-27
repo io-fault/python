@@ -212,6 +212,16 @@ class File(Path):
 		"""
 		raise NotImplementedError
 
+	@classmethod
+	@abstractmethod
+	def fs_tmpdir(Class) -> AbstractContextManager[File]:
+		"""
+		# Constuct a context manager that creates a temporary directory when entered.
+
+		# On exit, the directory and its contents are destroyed.
+		"""
+		raise NotImplementedError
+
 	@abstractmethod
 	def fs_open(self, mode:str, buffering:int=-1, encoding:str=None, errors:str=None, newline=None) -> AbstractContextManager[IO]:
 		"""

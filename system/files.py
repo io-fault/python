@@ -364,17 +364,6 @@ class Path(Selector[str]):
 	@classmethod
 	@contextlib.contextmanager
 	def fs_tmpdir(Class, *, TemporaryDirectory=tempfile.mkdtemp):
-		"""
-		# Create a temporary directory at a new route using a context manager.
-
-		# A &Path to the temporary directory is returned on entrance,
-		# and that same path is destroyed on exit.
-
-		# [ Engineering ]
-		# The use of specific temporary files is avoided as they have inconsistent
-		# behavior on some platforms.
-		"""
-
 		d = TemporaryDirectory()
 		try:
 			r = Class.from_absolute(d).delimit()
