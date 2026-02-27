@@ -400,29 +400,6 @@ def test_Path_set_text_content(test):
 	with r.fs_open(encoding='utf-8') as f:
 		test/f.read() == "data\n"
 
-def test_Path_since(test):
-	"""
-	# &module.Path.fs_since
-	"""
-
-	root = test.exits.enter_context(module.Path.fs_tmpdir())
-	f1 = root / 'file1'
-	f2 = root / 'file2'
-	f3 = root / 'file3'
-
-	files = [f1, f2, f3]
-	for x in files:
-		x.fs_alloc().fs_store(b'')
-
-	times = [x.get_last_modified() for x in files]
-	times.sort(reverse=True)
-	y = times[0]
-
-	test/list(root.fs_since(time())) == []
-
-	m = root.fs_since(time().rollback(minute=1))
-	test/set(x[1] for x in m) == set(files)
-
 def test_Path_construct(test):
 	"""
 	# Test the various classmethods that construct file instances.
@@ -618,11 +595,60 @@ def test_Path_absolute_links(test):
 	"""
 	link_checks(test, module.Path.fs_link_absolute)
 
+def test_Path_since(test):
+	"""
+	# &module.Path.fs_since
+	"""
+
+	root = test.exits.enter_context(module.Path.fs_tmpdir())
+	f1 = root / 'file1'
+	f2 = root / 'file2'
+	f3 = root / 'file3'
+
+	files = [f1, f2, f3]
+	for x in files:
+		x.fs_alloc().fs_store(b'')
+
+	times = [x.get_last_modified() for x in files]
+	times.sort(reverse=True)
+	y = times[0]
+
+	test/list(root.fs_since(time())) == []
+
+	m = root.fs_since(time().rollback(minute=1))
+	test/set(x[1] for x in m) == set(files)
+
+def test_Path_since_defaults(test):
+	"""
+	# &module.Path.fs_since
+	"""
+
+	root = test.exits.enter_context(module.Path.fs_tmpdir())
+	rmodified = root.fs_status().last_modified
+
+	f1 = (root/'file1')
+	f1.fs_store(b'')
+	f1.set_last_modified(f1.fs_status().last_modified.elapse(second=1))
+
+	test/list(root.fs_since())[0][1] == f1
+
+def test_Path_since_before(test):
+	"""
+	# &module.Path.fs_since
+	"""
+
+	root = test.exits.enter_context(module.Path.fs_tmpdir())
+	f1 = root / 'file1'
+	f1.fs_store(b'')
+
+	test/list(root.fs_since(time().rollback(minute=1), inverse=True)) == []
+	test/list(root.fs_since(time(), inverse=True)) == [(f1.fs_status().last_modified, f1)]
+
 def test_Path_recursive_since(test):
 	"""
 	# &module.Path.fs_since with recursive directories.
 	"""
-	import itertools
+
 	ago10mins = time().rollback(minute=10)
 	thirty = time().rollback(minute=30)
 

@@ -711,42 +711,33 @@ class Path(Selector[str]):
 
 		return elements
 
-	def fs_since(self, since:int,
-			traversed=None,
-		) -> Iterable[tuple[int, Selector]]:
-		"""
-		# Identify the set of files that have been modified
-		# since the given point in time.
-
-		# The resulting iterable does not include directories.
-
-		# [ Parameters ]
-
-		# /since/
-			# The point in time after which files and directories will be identified
-			# as being modified and returned inside the result set.
-		"""
-
-		# Traversed holds real absolute paths.
-		if not traversed:
-			traversed = set()
-			traversed.add(os.path.realpath(str(self)))
+	@staticmethod
+	def _fs_since_scan(compare, traversed, directory):
+		rpath = os.path.realpath(str(directory))
+		if rpath in traversed:
+			return
 		else:
-			rpath = os.path.realpath(str(self))
-			if rpath in traversed:
-				return
-			else:
-				traversed.add(rpath)
+			traversed.add(rpath)
 
-		dirs, files = self.fs_list()
-
+		dirs, files = directory.fs_list()
 		for x in files:
 			mt = x.fs_status().last_modified
-			if mt.follows(since):
+			if compare(mt):
 				yield (mt, x)
 
 		for x in dirs:
-			yield from x.fs_since(since, traversed=traversed)
+			yield from x._fs_since_scan(compare, traversed, x)
+
+	def fs_since(self, time:int=None, inverse=False):
+		if time is None:
+			time = self.fs_status().last_modified
+
+		if inverse:
+			tcmp = time.__gt__
+		else:
+			tcmp = time.__lt__
+
+		yield from self._fs_since_scan(tcmp, set(), self)
 
 	def fs_real(self, exists=os.path.exists):
 		for x in ~self:
