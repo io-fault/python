@@ -191,10 +191,12 @@ class File(Path):
 	# File system APIs for supporting common access functions.
 	"""
 
+	@property
 	@abstractmethod
-	def __pos__(self): -> File:
+	def Violation(self) -> Type[Exception]:
 		"""
-		# Resolve any relative path components, `.` and `..`, in &self.
+		# Exception describing the property violations found
+		# by a call to &fs_require.
 		"""
 		raise NotImplementedError
 
@@ -208,12 +210,10 @@ class File(Path):
 		"""
 		raise NotImplementedError
 
-	@property
 	@abstractmethod
-	def Violation(self) -> Type[Exception]:
+	def __pos__(self): -> File:
 		"""
-		# Exception describing the property violations found
-		# by a call to &fs_require.
+		# Resolve any relative path components, `.` and `..`, in &self.
 		"""
 		raise NotImplementedError
 
