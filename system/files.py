@@ -737,9 +737,6 @@ class Path(Selector[str]):
 		return exists(self.fullpath)
 
 	def fs_modified(self, *, utime=os.utime):
-		"""
-		# Update the modification time of the file identified by &self.
-		"""
 		return utime(self.fullpath)
 
 	def fs_size(self, *, stat=os.stat) -> int:

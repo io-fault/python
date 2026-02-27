@@ -489,6 +489,16 @@ class File(Path):
 		raise NotImplementedError
 
 	@abstractmethod
+	def fs_modified(self):
+		"""
+		# Update the modification time of the file identified by &self.
+
+		# The new modification time should reflect the real clock's status on the system
+		# managing the file.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
 	def fs_snapshot(self) -> Sequence[Element]:
 		"""
 		# Construct an element tree of files from the directory identified by &self.
