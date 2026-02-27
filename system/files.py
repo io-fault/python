@@ -436,11 +436,6 @@ class Path(Selector[str]):
 
 	@property
 	def extension(self):
-		"""
-		# Return the last dot-extension of the filename.
-		# &None if the filename has no `.` characters at all.
-		"""
-
 		i = self.identifier
 		p = i.rfind('.')
 		if p == -1:

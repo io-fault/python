@@ -193,6 +193,16 @@ class File(Path):
 
 	@property
 	@abstractmethod
+	def extension(self) -> str|None:
+		"""
+		# The last dot-extension of the filename.
+
+		# &None if the filename has no `.` characters at all.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
 	def Violation(self) -> Type[Exception]:
 		"""
 		# Exception describing the property violations found
@@ -440,7 +450,7 @@ class File(Path):
 		raise NotImplementedError
 
 	@abstractmethod
-	def fs_since(self, time:Optional[object]=None, inverse:bool=False) -> Iterable[File]:
+	def fs_since(self, time:object|None=None, inverse:bool=False) -> Iterable[File]:
 		"""
 		# Select data files within the path, &self, whose modification time exceeds &time.
 
