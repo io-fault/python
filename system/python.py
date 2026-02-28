@@ -281,7 +281,7 @@ class Import(Selector):
 			pkgsq.extend(sp)
 		return pkgs, mods
 
-	def file(self, from_path=files.Path.from_path, getattr=getattr):
+	def file(self, from_path=files.root.__matmul__, getattr=getattr):
 		"""
 		# Get the &files.Path instance pointing to the module's file.
 		"""

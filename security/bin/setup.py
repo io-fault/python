@@ -11,5 +11,4 @@ def init(route):
 
 def main(inv:process.Invocation) -> process.Exit:
 	path, = inv.args # target path to initialize
-	route = files.Path.from_path(path)
-	init(route)
+	init(inv.fs_pwd@path)

@@ -409,7 +409,7 @@ class Files(Partition):
 	def part_dispatched(self, argv):
 		from ..system import files
 		from . import system
-		self.fs_routes = [files.Path.from_path(x) for x in argv]
+		self.fs_routes = [files.root@x for x in argv]
 		self.fs_handler = system.select_filesystem_resource
 
 	def part_select(self, ctl):

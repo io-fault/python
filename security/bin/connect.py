@@ -102,7 +102,7 @@ def init_project(product, orientation, interfaces, libraries):
 def main(inv:process.Invocation) -> process.Exit:
 	target, adapter, implementation, orientation, interfaces, *libs = inv.args
 
-	route = files.Path.from_path(target) / 'if'
+	route = (inv.fs_pwd@target/'if')
 	init_project(route/adapter, orientation, interfaces, libs)
 
 	pd = init_product(route/adapter, [orientation])
