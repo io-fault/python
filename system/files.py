@@ -213,10 +213,6 @@ class Path(Selector[str]):
 	"""
 	# - &..route.abstract.Path
 	# - &..route.abstract.File
-
-	# Path implementation providing file system controls.
-	# &.files.root is provided for convenience, and &.process.fs_pwd is
-	# available for getting the working directory of the process.
 	"""
 	__slots__ = ('context', 'points',)
 	context: Optional['Path']
@@ -360,10 +356,6 @@ class Path(Selector[str]):
 
 	@property
 	def fullpath(self) -> str:
-		"""
-		# Returns the full filesystem path designated by the route.
-		"""
-
 		l = ['']
 		if self.context is not None:
 			l.append(path_string_cache(self.context))
@@ -373,22 +365,9 @@ class Path(Selector[str]):
 
 	@property
 	def bytespath(self, encoding=sys.getfilesystemencoding()) -> bytes:
-		"""
-		# Returns the full filesystem path designated by the route as a &bytes object
-		# returned by encoding the &fullpath in &sys.getfilesystemencoding with
-		# `'surrogateescape'` as the error mode.
-		"""
-
 		return self.fullpath.encode(encoding, "surrogateescape")
 
 	def join(self, *parts:str) -> str:
-		"""
-		# Construct a string path using &self as the prefix and appending the path
-		# fragments from &parts.
-
-		# Segment instances should be given with an asterisk applied to the argument.
-		"""
-
 		if self.context is not None:
 			ctxstr = self.context.fullpath
 		else:
@@ -663,12 +642,6 @@ class Path(Selector[str]):
 		return root
 
 	def exists(self, exists=os.path.exists) -> bool:
-		"""
-		# Query the filesystem and return whether or not the file exists.
-
-		# A Route to a symbolic link *will* return &False if the target does not exist.
-		"""
-
 		return exists(self.fullpath)
 
 	def fs_modified(self, *, utime=os.utime):
@@ -678,30 +651,16 @@ class Path(Selector[str]):
 		return stat(self.fullpath, follow_symlinks=True).st_size
 
 	def get_last_modified(self) -> int:
-		"""
-		# Return the modification time of the file.
-		"""
-
 		return self.fs_status().last_modified
 
 	def set_last_modified(self, time, utime=os.utime):
-		"""
-		# Set the modification time of the file identified by the &Route.
-		"""
-
 		return utime(self.__str__(), (-1, time.select('unix')/1000))
 
 	def get_text_content(self, encoding:str='utf-8') -> str:
-		"""
-		# Retrieve the entire contents of the file as a &str.
-		"""
 		with self.fs_open('rt', encoding=encoding) as f:
 			return f.read()
 
 	def set_text_content(self, string:str, encoding:str='utf-8') -> None:
-		"""
-		# Modify the regular file identified by &self to contain the given &string.
-		"""
 		with self.fs_open('w', encoding=encoding) as f:
 			f.write(string)
 
