@@ -39,17 +39,17 @@ def test_constants(test):
 
 def test_Path(test):
 	dir = os.path.dirname(os.path.realpath(__file__))
-	r = module.Path.from_absolute(os.path.realpath(__file__))
+	r = (module.root@os.path.realpath(__file__))
 	test/r.fullpath == os.path.realpath(__file__)
 
 	rd = r.container
 	test/rd.fullpath == dir
 
 	test/(rd/'foo').fullpath == os.path.join(dir, 'foo')
-	test/module.Path.from_absolute('/foo/bar.tar.gz').extension == 'gz'
+	test/(module.root@'/foo/bar.tar.gz').extension == 'gz'
 
 def test_Path_filename(test):
-	p = module.Path.from_absolute('/no/such/path')
+	p = (module.root@'/no/such/path')
 
 	f = p/'data.tar.xz'
 	test/p.filename == 'path'
@@ -57,18 +57,18 @@ def test_Path_filename(test):
 	test/f.extension == 'xz'
 
 def test_Path_repr(test):
-	end = module.Path.from_absolute('/test')
+	end = (module.root@'/test')
 	test/repr(end).__contains__('/test') == True
 
-	nx = module.Path.from_absolute_parts('/usr/lib', 'python3.5m/site-packages', 'somemod.py')
+	nx = (module.root@'/usr/lib//python3.5m/site-packages//somemod.py')
 	rstr = repr(nx)
 	test/rstr.__contains__('/somemod.py') == True
 	test/rstr.__contains__('/usr/') == True
 
 def test_Path_string_cache(test):
-	r = module.Path.from_absolute('/')
+	r = (module.root@'/')
 
-	p1 = module.Path.from_absolute('/test/string/path')
+	p1 = (module.root@'/test/string/path')
 	test/module.path_string_cache(p1) == 'test/string/path'
 
 	p2 = r@"test//string//path"
@@ -78,7 +78,7 @@ def test_Path_string_cache(test):
 	test/module.path_string_cache(p2 ** 3) == ''
 
 def test_Path_bytespath(test):
-	p = module.Path.from_absolute('/test/path')
+	p = (module.root@'/test/path')
 	test/p.bytespath == b'/test/path'
 
 def test_Path_temporary(test):
@@ -430,7 +430,7 @@ def test_Path_join(test):
 	test/module.root.join() == '/'
 	test/module.root.join('file') == '/file'
 
-	f = module.Path.from_absolute('/var/empty')
+	f = (module.root@'/var/empty')
 
 	test/f.join('datafile') == "/var/empty/datafile"
 	test/f.join('subdir', 'datafile') == "/var/empty/subdir/datafile"
@@ -440,11 +440,11 @@ def test_Path_join(test):
 
 def test_Path_properties(test):
 	# executable
-	sysexe = module.Path.from_absolute(sys.executable)
+	sysexe = (module.root@sys.executable)
 	test/sysexe.fs_status().executable == True
 	test/sysexe.fs_type() == 'data'
 
-	module_path = module.Path.from_absolute(__file__)
+	module_path = (module.root@__file__)
 	test/module_path.fs_status().executable == False
 	test/module_path.fs_type() == 'data'
 
