@@ -290,17 +290,6 @@ class Path(Selector[str]):
 
 	@classmethod
 	def from_path(Class, path:str, *, getcwd=os.getcwd):
-		"""
-		# Construct a &Path instance from the given absolute or relative path
-		# provided for &string; if a relative path is specified, it will
-		# be relative to the current working directory as identified by
-		# &os.getcwd.
-
-		# This is usually the most appropriate way to instantiate a &Path route
-		# from user input. The exception being cases where the current working
-		# directory is *not* the relevant context.
-		"""
-
 		if path and path[0] == '/':
 			return Class.from_absolute(path)
 		else:
@@ -308,14 +297,6 @@ class Path(Selector[str]):
 
 	@classmethod
 	def from_relative(Class, context, path:str, *, chain=itertools.chain):
-		"""
-		# Return a new Route pointing to the file referenced by &path;
-		# where path is a path relative to the &context &Path instance.
-
-		# This function does *not* refer to the current working directory
-		# returned by &os.getcwd; if this is desired, &from_path is the
-		# appropriate constructor to use.
-		"""
 		s = Class._path_separator
 
 		points = Class._relative_resolution(chain(

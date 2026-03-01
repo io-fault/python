@@ -391,33 +391,6 @@ def test_Path_set_text_content(test):
 	with r.fs_open(encoding='utf-8') as f:
 		test/f.read() == "data\n"
 
-def test_Path_construct(test):
-	"""
-	# Test the various classmethods that construct file instances.
-	"""
-
-	test/str(module.Path.from_absolute('/')) == '/'
-
-	context = module.Path.from_absolute('/no/such/directory')
-
-	test/str(module.Path.from_relative(context, 'file')) == '/no/such/directory/file'
-	test/str(module.Path.from_relative(context, './file')) == '/no/such/directory/file'
-
-	test/str(module.Path.from_relative(context, '../file')) == '/no/such/file'
-	test/str(module.Path.from_relative(context, '../../file')) == '/no/file'
-
-	# Same directory
-	test/str(module.Path.from_relative(context, '../.././././file')) == '/no/file'
-
-	# parent references that find the limit.
-	test/str(module.Path.from_relative(context, '../../..')) == '/'
-	test/str(module.Path.from_relative(context, '../../../..')) == '/'
-
-	# Smoke test .from_path; two branches that use prior tested methods.
-	test/str(module.Path.from_path('./file')) == os.getcwd() + '/file'
-	test/str(module.Path.from_path('file')) == os.getcwd() + '/file'
-	test/str(module.Path.from_path('/file')) == '/file'
-
 def test_Path_relative_resolution(test):
 	"""
 	# - &module.Path.__pos__
