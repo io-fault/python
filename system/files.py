@@ -483,13 +483,6 @@ class Path(Selector[str]):
 		yield r
 
 	def fs_iterfiles(self, /, type=None, *, scandir=os.scandir):
-		"""
-		# Generate &Path instances identifying the files held by the directory, &self.
-		# By default, all file types are included, but if the &type parameter is given,
-		# only files of that type are returned.
-
-		# If &self is not a directory or cannot be searched, an empty iterator is returned.
-		"""
 		try:
 			dl = scandir(self.fullpath)
 		except OSError:
@@ -515,13 +508,6 @@ class Path(Selector[str]):
 						yield r
 
 	def fs_list(self, type='data', *, scandir=os.scandir):
-		"""
-		# Retrieve the list of files contained by the directory referred to by &self.
-		# Returns a pair, the sequence of directories and the sequence of data files.
-
-		# Sockets, pipes, devices, and other non-data files are not retained in the list.
-		"""
-
 		try:
 			dl = scandir(self.fullpath)
 		except OSError:
@@ -545,12 +531,6 @@ class Path(Selector[str]):
 		return (dirs, files)
 
 	def fs_index(self, type='data', *, Queue=collections.deque):
-		"""
-		# Generate pairs of directories associated with their files.
-
-		# Sockets, pipes, devices, broken links, and other non-data files are not retained in the lists.
-		"""
-
 		dirs, files = self.delimit().fs_list(type=type)
 		if not dirs and not files:
 			return
