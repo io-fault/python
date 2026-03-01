@@ -10,7 +10,7 @@ from ..context import tools
 from . import files
 
 # Keep the parsed forms cached.
-_path = tools.cachedcalls(16)(tools.compose(operator.methodcaller('delimit'), files.Path.from_absolute))
+_path = tools.cachedcalls(16)(tools.compose(operator.methodcaller('delimit'), files.root.__matmul__))
 _dirs = tools.cachedcalls(2)(operator.methodcaller('split', os.pathsep))
 
 def paths(environment:str='PATH') -> files.Path:
@@ -111,7 +111,7 @@ def platform(system:str=None, environment:str='F_EXECUTION'):
 
 	pfe = os.environ.get(environment, '').strip()
 	if pfe:
-		paths = [files.Path.from_absolute(x) for x in pfe.split(os.pathsep)]
+		paths = [(files.root@x) for x in pfe.split(os.pathsep)]
 	else:
 		h = (home()/'.host')
 		if h.fs_type() == 'directory':

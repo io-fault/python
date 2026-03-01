@@ -681,7 +681,7 @@ if __name__ == '__main__':
 	from .polynomial import V1
 	poly = V1({})
 	print(sys.argv)
-	for x in map(files.Path.from_absolute, sys.argv[1:]):
+	for x in map(files.root.__matmul__, sys.argv[1:]):
 		info = poly.information(x)
 		info.contact = info.contact.strip('<>')
 		dotproject = sequence_project_declaration('factors/polynomial-1', info)

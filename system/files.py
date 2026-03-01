@@ -358,7 +358,7 @@ class Path(Selector[str]):
 	def fs_tmpdir(Class, *, TemporaryDirectory=tempfile.mkdtemp):
 		d = TemporaryDirectory()
 		try:
-			r = Class.from_absolute(d).delimit()
+			r = (root@d).delimit()
 			yield r
 		finally:
 			assert str(r) == d
@@ -497,14 +497,8 @@ class Path(Selector[str]):
 
 		while islink(str(r)):
 			yield r
-
 			target = readlink(str(r))
-
-			if target[:1] == '/':
-				r = Class.from_absolute(target)
-			else:
-				r = Class.from_relative(r.container, target)
-
+			r = +(r.container@target)
 		yield r
 
 	def fs_iterfiles(self, /, type=None, *, scandir=os.scandir):

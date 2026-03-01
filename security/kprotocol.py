@@ -16,7 +16,7 @@ def get_application_context(application='http'):
 	from ..system import files
 
 	if 'SECURITY' in os.environ:
-		return files.Path.from_absolute(os.environ['SECURITY'])
+		return (files.root@os.environ['SECURITY'])
 
 	return (query.home() / '.pki' / application)
 

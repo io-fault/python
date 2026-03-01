@@ -803,7 +803,7 @@ def fs_pwd() -> files.Path:
 	# The returned path is not maintained within any cache so repeat calls
 	# will create a new instance.
 	"""
-	return files.Path.from_absolute(os.environ.get('PWD') or os.getcwd())
+	return files.root@(os.environ.get('PWD') or os.getcwd())
 
 def fs_chdir(directory) -> files.Path:
 	"""

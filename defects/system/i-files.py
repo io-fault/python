@@ -300,14 +300,14 @@ def test_Path_type_void(test):
 	test/v3.fs_type() == 'void'
 
 def test_Path_extension(test):
-	f = module.Path.from_path('test')
+	f = (module.root@'test')
 	test/f.extension == None
 
-	f = module.Path.from_path('test.xyz')
+	f = (module.root@'test.xyz')
 	test/f.extension == 'xyz'
 
 def test_Path_size(test):
-	r = module.Path.from_path(__file__)
+	r = (module.root@__file__)
 
 	d = r.container / 'test-size-info'
 
@@ -564,8 +564,8 @@ def link_checks(test, create_link):
 
 	common = t / 'dir' / 'subdir'
 	common.fs_mkdir()
-	dst = common / 'from-1' / 'from-2' / 'file'
-	src = common / 'to-1' / 'to-2' / 'to-3' / 'file'
+	dst = +(common / 'from-1' / 'from-2' / 'file')
+	src = +(common / 'to-1' / 'to-2' / 'to-3' / 'file')
 	src.fs_alloc().fs_store(b'source data')
 
 	dst.fs_alloc().fs_store(b'')
@@ -677,11 +677,12 @@ def test_Path_follow_links(test):
 
 	l3 = (td/'link3')
 	l3.fs_link_relative(l2)
+	n = (lambda x: list(map(t.__class__.fs_path_string, x)))
 
-	test/list(map(str, l3.fs_follow_links())) == list(map(str, [l3, l2, l1, t]))
-	test/list(map(str, l2.fs_follow_links())) == list(map(str, [l2, l1, t]))
-	test/list(map(str, l1.fs_follow_links())) == list(map(str, [l1, t]))
-	test/list(map(str, t.fs_follow_links())) == list(map(str, [t]))
+	test/n(l3.fs_follow_links()) == n([l3, l2, l1, t])
+	test/n(l2.fs_follow_links()) == n([l2, l1, t])
+	test/n(l1.fs_follow_links()) == n([l1, t])
+	test/n(t.fs_follow_links()) == n([t])
 
 def test_Path_io(test):
 	"""

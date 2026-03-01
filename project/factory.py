@@ -253,7 +253,7 @@ def materialize(route, plans, encoding='utf-8', isinstance=isinstance):
 		elif isinstance(data, bytes):
 			pass
 		elif isinstance(data, ModuleType):
-			data = files.Path.from_absolute(data.__file__).fs_load()
+			data = (files.root@data.__file__).fs_load()
 		else:
 			# Presume filesystem reference.
 			(target_file).fs_link_relative(data) # Symbolic linke.
