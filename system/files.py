@@ -26,11 +26,12 @@ import functools
 import shutil
 import tempfile
 
-from ..context.tools import cachedcalls
+from ..context import tools
 from ..route.types import Selector, Segment
 from ..route.types import RequirementViolation
 
-class Status(tuple):
+@tools.struct()
+class Status(object):
 	"""
 	# File status interface providing symbolic names for the data packed in
 	# the system's status record, &system.
@@ -39,7 +40,9 @@ class Status(tuple):
 	# Experimental. Helps isolate delayed imports.
 	# Likely undesired noise if a stat-cache is employed by &Path.
 	"""
-	__slots__ = ()
+
+	system: os.stat_result
+	filename: str
 
 	_fs_type_map = {
 		stat.S_IFIFO: 'pipe',
@@ -75,27 +78,8 @@ class Status(tuple):
 		return getgrgid
 
 	@classmethod
-	def from_route(Class, route):
-		return Class((os.stat(route), route.identifier))
-
-	@property
-	def system(self):
-		"""
-		# The status record produced by the system (&os.stat).
-		"""
-		return self[0]
-
-	@property
-	def filename(self) -> str:
-		"""
-		# The name of the file.
-		"""
-		return self[1]
-
-	def __add__(self, operand):
-		# Protect from unexpected addition.
-		# tuple() + Status(...) is still possible.
-		return NotImplemented
+	def from_path(Class, path):
+		return Class(os.stat(path), path.identifier)
 
 	@property
 	def size(self) -> int:
@@ -200,7 +184,7 @@ class Status(tuple):
 		"""
 		return (self.system.st_mode & mask) != 0 and self.type == 'directory'
 
-@cachedcalls(32)
+@tools.cachedcalls(32)
 def path_string_cache(path):
 	if path.context is not None:
 		prefix = path_string_cache(path.context)
@@ -437,7 +421,7 @@ class Path(Selector[str]):
 	__fspath__ = fs_path_string
 
 	def fs_status(self, *, stat=os.stat) -> Status:
-		return Status((stat(self.fullpath), self.identifier))
+		return Status(stat(self.fullpath), self.identifier)
 
 	def fs_type(self, *, ifmt=stat.S_IFMT, stat=os.stat, type_map=Status._fs_type_map) -> str:
 		try:
