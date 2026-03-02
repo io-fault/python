@@ -375,17 +375,6 @@ class File(Path):
 		raise NotImplementedError
 
 	@abstractmethod
-	def fs_select(self, properties:str='*') -> Iterable[File]:
-		"""
-		# Select the set of files contained within the directory identified by &self
-		# that match the required &properties.
-
-		# The &properties string consists of characters described by
-		# &[File System Property Codes].
-		"""
-		raise NotImplementedError
-
-	@abstractmethod
 	def fs_real(self) -> File:
 		"""
 		# Identify the portion of the route that actually exists on the filesystem.
@@ -409,28 +398,6 @@ class File(Path):
 	def fs_status(self):
 		"""
 		# Construct a data structure representing the latest status of the file.
-		"""
-		raise NotImplementedError
-
-	@abstractmethod
-	def fs_update(self, *,
-			name=None, size=None,
-			created=None, modified=None,
-		):
-		"""
-		# Update the status properties of the file identified by &self.
-		# If no arguments are supplied, not changes will be performed.
-
-		# [ Parameters ]
-		# /name/
-			# Change the identifier used to select the file relative to
-			# its parent directory.
-		# /size/
-			# Adjust the size of the file, truncating or zero-padding as needed.
-		# /modified/
-			# The time that the file was said to be modified.
-		# /created/
-			# The time that the file was said to be created.
 		"""
 		raise NotImplementedError
 
