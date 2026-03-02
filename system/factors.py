@@ -222,7 +222,7 @@ class IntegralFinder(object):
 		else:
 			# Regular Python module or nothing.
 			for x in self.suffixes:
-				pysrc = route.suffix_filename(x)
+				pysrc = route.suffix(x)
 				if pysrc.fs_type() == 'data':
 					break
 			else:

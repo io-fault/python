@@ -83,6 +83,12 @@ class Selector(core.PartitionedSequence[core.Identifier]):
 
 	_relative_resolution = staticmethod(rewrite.relative)
 
+	def suffix(self, delta):
+		return self * (self.identifier + delta)
+
+	def prefix(self, delta):
+		return self * (delta + self.identifier)
+
 class RequirementViolation(Exception):
 	"""
 	# Exception raised by &.abstract.Path.fs_require when requirements are not met.

@@ -376,13 +376,8 @@ class Path(Selector[str]):
 
 		return i[p+1:]
 
-	def suffix_filename(self, appended_suffix):
-		return self * (self.identifier + appended_suffix)
-	suffix = suffix_filename
-
-	def prefix_filename(self, prefix_string):
-		return self * (prefix_string + self.identifier)
-	prefix = prefix_filename
+	prefix_filename = Selector.prefix
+	suffix_filename = Selector.suffix
 
 	def __pos__(self, *, _chain=itertools.chain):
 		context = self.context.absolute if self.context else []

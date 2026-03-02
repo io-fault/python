@@ -413,14 +413,14 @@ def test_Path_relative_resolution(test):
 
 def test_Path_basename_manipulations(test):
 	"""
-	# - &module.Path.prefix_filename
-	# - &module.Path.suffix_filename
+	# - &module.Path.prefix
+	# - &module.Path.suffix
 	"""
 	t = test.exits.enter_context(module.Path.fs_tmpdir())
 	f = t/'doesnotexist'
-	f_archive = f.suffix_filename('.tar.gz')
+	f_archive = f.suffix('.tar.gz')
 	test/f_archive.fullpath.endswith('.tar.gz') == True
-	f_test_archive = f.prefix_filename('test_')
+	f_test_archive = f.prefix('test_')
 	test/f_test_archive.identifier.startswith('test_') == True
 
 def test_Path_join(test):
