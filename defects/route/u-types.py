@@ -2,6 +2,7 @@
 # Check the sequence manipulations provided by the base classes.
 """
 from ...route import types as module
+from ...route import abstract as protocol
 
 def test_inconsistent_type_equality(test):
 	# routes are rather abstract, but we dont want Routes for a given

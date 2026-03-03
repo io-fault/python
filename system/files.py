@@ -140,13 +140,17 @@ def path_string_cache(path):
 	else:
 		return '/'.join(path.points)
 
+# Compatibility.
+if sys.version_info.major == 3 and sys.version_info.minor < 14:
+	Path = Selector
+
 class Path(Selector[str]):
 	"""
 	# - &..route.abstract.Path
 	# - &..route.abstract.File
 	"""
 	__slots__ = ('context', 'points',)
-	context: Optional['Path']
+	context: Optional[Path]
 	Violation = RequirementViolation
 
 	_root_path = _path_separator = os.path.sep

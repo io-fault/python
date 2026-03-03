@@ -47,6 +47,14 @@ from contextlib import AbstractContextManager
 
 Element: TypeAlias = tuple[str, Sequence['Element'], Mapping]
 
+# Compatibility
+import sys
+if sys.version_info.major == 3 and sys.version_info.minor < 14:
+	Path = object
+	File = object
+	FileStatus = object
+del sys
+
 @Hashable.register
 class Path(Protocol):
 	"""
