@@ -33,14 +33,8 @@ from ..route.types import RequirementViolation
 @tools.struct()
 class Status(object):
 	"""
-	# File status interface providing symbolic names for the data packed in
-	# the system's status record, &system.
-
-	# [ Engineering ]
-	# Experimental. Helps isolate delayed imports.
-	# Likely undesired noise if a stat-cache is employed by &Path.
+	# - &..route.abstract.File.Status
 	"""
-
 	system: os.stat_result
 	filename: str
 
@@ -82,68 +76,31 @@ class Status(object):
 		return Class(os.stat(path), path.identifier)
 
 	@property
-	def size(self) -> int:
-		"""
-		# Number of bytes contained by the file.
-		"""
+	def size(self):
 		return self.system.st_size
 
 	@property
-	def type(self, ifmt=stat.S_IFMT) -> str:
-		"""
-		# /`'void'`/
-			# A broken link or nonexistent file.
-		# /`'directory'`/
-			# A file containing other files.
-		# /`'data'`/
-			# A regular file containing bytes.
-		# /`'pipe'`/
-			# A named pipe; also known as a FIFO.
-		# /`'socket'`/
-			# A unix domain socket.
-		# /`'device'`/
-			# A character or block device file.
-		# /`'link'`/
-			# Status record of a link to a file.
-		"""
+	def type(self, ifmt=stat.S_IFMT):
 		return self._fs_type_map.get(ifmt(self.system.st_mode), 'unknown')
 
 	@property
-	def subtype(self, *, ifmt=stat.S_IFMT) -> Optional[str]:
-		"""
-		# For POSIX-type systems, designates the kind of (id)`device`:
-		# (id)`block` or (id)`character`.
-
-		# &None for status instances whose &type is not (id)`device`.
-		"""
+	def subtype(self, *, ifmt=stat.S_IFMT):
 		return self._fs_subtype_map.get(ifmt(self.system.st_mode))
 
 	@property
 	def created(self):
-		"""
-		# Time of creation; UTC. Not available on all systems.
-		"""
 		return self._interpret_time(self.system.st_birthtime)
 
 	@property
 	def last_modified(self):
-		"""
-		# Time of last modification; UTC.
-		"""
 		return self._interpret_time(self.system.st_mtime)
 
 	@property
 	def last_accessed(self):
-		"""
-		# Time of last access; UTC.
-		"""
 		return self._interpret_time(self.system.st_atime)
 
 	@property
 	def meta_last_modified(self):
-		"""
-		# Time of last status change; UTC.
-		"""
 		return self._interpret_time(self.system.st_ctime)
 
 	@property
@@ -167,21 +124,11 @@ class Status(object):
 		return (self.system.st_mode & stat.S_ISVTX)
 
 	@property
-	def executable(self, mask=stat.S_IXUSR|stat.S_IXGRP|stat.S_IXOTH) -> bool:
-		"""
-		# Whether the data file is considered executable by anyone.
-
-		# Extended attributes are not checked.
-		"""
+	def executable(self, mask=stat.S_IXUSR|stat.S_IXGRP|stat.S_IXOTH):
 		return (self.system.st_mode & mask) != 0 and self.type == 'data'
 
 	@property
-	def searchable(self, mask=stat.S_IXUSR|stat.S_IXGRP|stat.S_IXOTH) -> bool:
-		"""
-		# Whether the directory file is considered searchable by anyone.
-
-		# Extended attributes are not checked.
-		"""
+	def searchable(self, mask=stat.S_IXUSR|stat.S_IXGRP|stat.S_IXOTH):
 		return (self.system.st_mode & mask) != 0 and self.type == 'directory'
 
 @tools.cachedcalls(32)

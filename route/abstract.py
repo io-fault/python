@@ -202,10 +202,125 @@ class Path(Protocol):
 		"""
 		raise NotImplementedError
 
+class Status(Protocol):
+	"""
+	# Data class holding common file status fields.
+	"""
+
+	@property
+	@abstractmethod
+	def system(self) -> object:
+		"""
+		# System specific data structure holding the status data.
+		# Usually &os.stat_result.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def size(self) -> int:
+		"""
+		# Count of bytes contained by the file.
+
+		#!syntax/python
+			assert (route.fs_size() == route.fs_status().size)
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def type(self) -> str:
+		"""
+		# String symbol identifying the type of file.
+
+		# /`'void'`/
+			# A broken link or nonexistent file.
+		# /`'directory'`/
+			# A file containing other files.
+		# /`'data'`/
+			# A regular file containing bytes.
+		# /`'link'`/
+			# Status record of a link to a file.
+		# /`'pipe'`/
+			# A named pipe; also known as a FIFO. (POSIX)
+		# /`'socket'`/
+			# A unix domain socket. (POSIX)
+		# /`'device'`/
+			# A character or block device file. (POSIX)
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def subtype(self) -> str|None:
+		"""
+		# For POSIX-type systems, designates the kind of (id)`device`:
+		# (id)`block` or (id)`character`.
+
+		# &None for status instances whose &type is not (id)`device`.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def executable(self) -> bool:
+		"""
+		# Whether the data file is considered executable by anyone.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def searchable(self) -> bool:
+		"""
+		# Whether the directory file is considered searchable by anyone.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def created(self):
+		"""
+		# Time of creation; UTC. Not available on all systems.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def last_modified(self):
+		"""
+		# Time of last modification; UTC.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def last_accessed(self):
+		"""
+		# Time of last access; UTC.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def meta_last_modified(self):
+		"""
+		# Time of last status change; UTC.
+		"""
+		raise NotImplementedError
+
 class File(Path):
 	"""
 	# File system APIs for supporting common access functions.
 	"""
+
+	@property
+	@abstractmethod
+	def Status(self) -> Type[FileStatus]:
+		"""
+		# The status data structure used by the Path.
+		"""
+		raise NotImplementedError
 
 	@property
 	@abstractmethod
