@@ -57,7 +57,9 @@ class Path(Protocol):
 	@abstractmethod
 	def container(self) -> Path:
 		"""
-		# The route containing the final identifier in &self.
+		# The route containing the resource identified by &self.
+
+		# For file systems, this is the parent directory.
 		"""
 		raise NotImplementedError
 
@@ -65,7 +67,7 @@ class Path(Protocol):
 	@abstractmethod
 	def absolute(self) -> list[Hashable]:
 		"""
-		# The absolute sequence of identifiers.
+		# The absolute sequence of identifiers that make up the path.
 		"""
 		raise NotImplementedError
 
@@ -73,7 +75,7 @@ class Path(Protocol):
 	@abstractmethod
 	def identifier(self) -> Hashable:
 		"""
-		# The object identifying the resource relative to its immediate container.
+		# The identification of the resource relative to its immediate &container.
 		# The last point in the route.
 		"""
 		raise NotImplementedError
@@ -136,7 +138,7 @@ class Path(Protocol):
 	def __matmul__(self, path_expression:str) -> Path:
 		"""
 		# Composite extension.
-		# Construct a new route by extending &self with the points expressed in &path.
+		# Construct a new route by extending &self with the points expressed in &path_expression.
 
 		# [ Parameters ]
 		# /path_expression/
@@ -170,7 +172,7 @@ class Path(Protocol):
 	def __truediv__(self, point:Hashable) -> Path:
 		"""
 		# Single extension.
-		# Construct a new route by extending &self with the sole &point.
+		# Construct a new route by extending &self with a single &point.
 
 		#!python
 			assert (route / identifier) == (route + [identifier])
