@@ -520,7 +520,7 @@ class File(Path):
 		raise NotImplementedError
 
 	@abstractmethod
-	def fs_status(self):
+	def fs_status(self) -> Status:
 		"""
 		# Construct a data structure representing the latest status of the file.
 		"""
