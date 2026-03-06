@@ -38,6 +38,7 @@ class Status(object):
 	system: os.stat_result
 	filename: str
 
+	unit = 'bytes'
 	_fs_type_map = {
 		stat.S_IFIFO: 'pipe',
 		stat.S_IFLNK: 'link',

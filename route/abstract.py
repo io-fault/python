@@ -217,6 +217,17 @@ class Status(Protocol):
 
 	@property
 	@abstractmethod
+	def unit(self) -> str:
+		"""
+		# The unit that &size is measured with.
+
+		# Presumed to be `'bytes'` for file systems, but may not be a concrete
+		# measure of information storage for some systems.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
 	def system(self) -> object:
 		"""
 		# System specific data structure holding the status data.
@@ -228,7 +239,7 @@ class Status(Protocol):
 	@abstractmethod
 	def size(self) -> int:
 		"""
-		# Count of bytes contained by the file.
+		# Count of &unit contained by the file.
 
 		#!syntax/python
 			assert (route.fs_size() == route.fs_status().size)
