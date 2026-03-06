@@ -33,7 +33,7 @@ from ..route.types import RequirementViolation
 @tools.struct()
 class Status(object):
 	"""
-	# - &..route.abstract.File.Status
+	# - &..route.abstract.Status
 	"""
 	system: os.stat_result
 	filename: str
