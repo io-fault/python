@@ -212,11 +212,11 @@ class Queue(object):
 if __name__ == '__main__':
 	# Print dependency order of the projects within the product paths supplied as argv.
 	import sys
-	from ..system import files
+	from ..system import files, process
 	from . import system as lsf
 
 	ctx = lsf.Context()
-	for x in map(files.Path.from_path, sys.argv[1:]):
+	for x in map(process.fs_pwd().__matmul__, sys.argv[1:]):
 		ctx.connect(x)
 	ctx.load()
 

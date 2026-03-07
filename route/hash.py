@@ -287,7 +287,7 @@ class Directory(object):
 
 		r = self.path + self.addressing(key)
 		ir = r / self.index_name
-		ir.fs_init()
+		ir.fs_alloc().fs_store(b'')
 
 		# update the index
 		idx = self._index(ir)

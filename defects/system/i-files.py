@@ -1,5 +1,5 @@
 """
-# Check the implementation of filesystem routes.
+# Check the implementation of file system routes.
 """
 import sys
 import functools
@@ -10,7 +10,7 @@ from ...time.system import utc as time
 
 @functools.singledispatch
 def d_setup(x:bytes, path:module.Path):
-	path.fs_init(x)
+	path.fs_alloc().fs_store(x)
 
 @d_setup.register
 def _(x:dict, path:module.Path):
@@ -39,17 +39,17 @@ def test_constants(test):
 
 def test_Path(test):
 	dir = os.path.dirname(os.path.realpath(__file__))
-	r = module.Path.from_absolute(os.path.realpath(__file__))
+	r = (module.root@os.path.realpath(__file__))
 	test/r.fullpath == os.path.realpath(__file__)
 
 	rd = r.container
 	test/rd.fullpath == dir
 
 	test/(rd/'foo').fullpath == os.path.join(dir, 'foo')
-	test/module.Path.from_absolute('/foo/bar.tar.gz').extension == 'gz'
+	test/(module.root@'/foo/bar.tar.gz').extension == 'gz'
 
 def test_Path_filename(test):
-	p = module.Path.from_absolute('/no/such/path')
+	p = (module.root@'/no/such/path')
 
 	f = p/'data.tar.xz'
 	test/p.filename == 'path'
@@ -57,18 +57,18 @@ def test_Path_filename(test):
 	test/f.extension == 'xz'
 
 def test_Path_repr(test):
-	end = module.Path.from_absolute('/test')
+	end = (module.root@'/test')
 	test/repr(end).__contains__('/test') == True
 
-	nx = module.Path.from_absolute_parts('/usr/lib', 'python3.5m/site-packages', 'somemod.py')
+	nx = (module.root@'/usr/lib//python3.5m/site-packages//somemod.py')
 	rstr = repr(nx)
 	test/rstr.__contains__('/somemod.py') == True
 	test/rstr.__contains__('/usr/') == True
 
 def test_Path_string_cache(test):
-	r = module.Path.from_absolute('/')
+	r = (module.root@'/')
 
-	p1 = module.Path.from_absolute('/test/string/path')
+	p1 = (module.root@'/test/string/path')
 	test/module.path_string_cache(p1) == 'test/string/path'
 
 	p2 = r@"test//string//path"
@@ -77,17 +77,8 @@ def test_Path_string_cache(test):
 	test/module.path_string_cache(p2 ** 2) == 'test'
 	test/module.path_string_cache(p2 ** 3) == ''
 
-def test_Path_from_partitioned_string(test):
-	p = module.Path.from_partitioned_string("/root//prefix/stem//local/target")
-	parts = p.partitions()
-	test/parts == [
-		('root',),
-		('prefix', 'stem',),
-		('local', 'target',),
-	]
-
 def test_Path_bytespath(test):
-	p = module.Path.from_absolute('/test/path')
+	p = (module.root@'/test/path')
 	test/p.bytespath == b'/test/path'
 
 def test_Path_temporary(test):
@@ -110,7 +101,7 @@ def test_Path_list(test):
 	expect = ([t/str(i) for i in range(24, 32)], [t/str(i) for i in range(16)])
 
 	for i in range(16):
-		(t/str(i)).fs_init()
+		(t/str(i)).fs_alloc().fs_store(b'')
 
 	dl = t.fs_list()
 	for l in dl:
@@ -144,7 +135,7 @@ def test_Path_iterfiles(test):
 	expect_both.sort(key=K)
 
 	for i in range(16):
-		(t/str(i)).fs_init()
+		(t/str(i)).fs_alloc().fs_store(b'')
 
 	dl = list(t.fs_iterfiles())
 	dl.sort(key=K)
@@ -177,14 +168,14 @@ def test_Path_index(test):
 
 	t = test.exits.enter_context(module.Path.fs_tmpdir())
 	f = t / 'file'
-	f.fs_init()
+	f.fs_alloc().fs_store(b'')
 	test/f.fs_list() == ([],[]) # OSError
 	test/dict(f.fs_index()) == {}
 
 	d = t / 'dir'
 	s = d / 'subdir'
 	l = s / 'file-in-subdir'
-	l.fs_init()
+	l.fs_alloc().fs_store(b'')
 
 	expect = {
 		t: [f],
@@ -202,7 +193,7 @@ def test_Path_snapshot(test):
 	sk = (lambda x: x[2]['identifier'])
 
 	t = test.exits.enter_context(module.Path.fs_tmpdir())
-	f = (t / 'file').fs_init()
+	f = (t / 'file').fs_alloc().fs_store(b'')
 	report = t.fs_snapshot()
 	expect = [
 		('data', [], {'status': os.stat(f.fullpath), 'identifier': f.identifier})
@@ -253,7 +244,7 @@ def test_Path_replace(test):
 
 	src = t / 'srcdir'
 	srcfile = src / 's' / 's'
-	srcfile.fs_init()
+	srcfile.fs_alloc().fs_store(b'')
 	with srcfile.fs_open('wb') as f:
 		f.write(b'subdir_sources')
 
@@ -265,24 +256,6 @@ def test_Path_replace(test):
 	file = dir / 's'
 	with file.fs_open('rb') as f:
 		test/f.read() == b'subdir_sources'
-
-def test_Path_init(test):
-	"""
-	# Test &module.Path.fs_init checking that the parent directories are
-	# properly created regardless of the selected type.
-	"""
-
-	t = test.exits.enter_context(module.Path.fs_tmpdir())
-	f = t / 'parent-2' / 'filename'
-
-	f2 = f.fs_init(b'content')
-	test/f2 == f
-	test/f.fs_type() == 'data'
-	test/f.identifier == 'filename'
-
-	test/f.fs_load() == b'content'
-	test/f.fs_init(b'content-2').fs_load() == b'content-2'
-	test/f.fs_init().fs_load() == b'content-2'
 
 def test_Path_mkdir(test):
 	"""
@@ -312,7 +285,7 @@ def test_Path_type_void(test):
 	d = t / 'directory'
 	f = t / 'data-file.txt'
 	d.fs_mkdir()
-	f.fs_init(b'nothing')
+	f.fs_alloc().fs_store(b'nothing')
 	l.fs_link_relative(d/'no-such-target')
 
 	v1 = d / 'subdirectory'
@@ -327,14 +300,14 @@ def test_Path_type_void(test):
 	test/v3.fs_type() == 'void'
 
 def test_Path_extension(test):
-	f = module.Path.from_path('test')
+	f = (module.root@'test')
 	test/f.extension == None
 
-	f = module.Path.from_path('test.xyz')
+	f = (module.root@'test.xyz')
 	test/f.extension == 'xyz'
 
 def test_Path_size(test):
-	r = module.Path.from_path(__file__)
+	r = (module.root@__file__)
 
 	d = r.container / 'test-size-info'
 
@@ -362,7 +335,7 @@ def test_Path_get_last_modified(test):
 
 	mtime1 = r.get_last_modified()
 	time.sleep(1.1)
-	# sleep one whole second in case the filesystem's
+	# sleep one whole second in case the file system's
 	# precision is at the one second mark.
 
 	with r.fs_open('a') as f:
@@ -418,56 +391,6 @@ def test_Path_set_text_content(test):
 	with r.fs_open(encoding='utf-8') as f:
 		test/f.read() == "data\n"
 
-def test_Path_since(test):
-	"""
-	# &module.Path.fs_since
-	"""
-
-	root = test.exits.enter_context(module.Path.fs_tmpdir())
-	f1 = root / 'file1'
-	f2 = root / 'file2'
-	f3 = root / 'file3'
-
-	files = [f1, f2, f3]
-	for x in files:
-		x.fs_init()
-
-	times = [x.get_last_modified() for x in files]
-	times.sort(reverse=True)
-	y = times[0]
-
-	test/list(root.fs_since(time())) == []
-
-	m = root.fs_since(time().rollback(minute=1))
-	test/set(x[1] for x in m) == set(files)
-
-def test_Path_construct(test):
-	"""
-	# Test the various classmethods that construct file instances.
-	"""
-
-	test/str(module.Path.from_absolute('/')) == '/'
-
-	context = module.Path.from_absolute('/no/such/directory')
-
-	test/str(module.Path.from_relative(context, 'file')) == '/no/such/directory/file'
-	test/str(module.Path.from_relative(context, './file')) == '/no/such/directory/file'
-
-	test/str(module.Path.from_relative(context, '../file')) == '/no/such/file'
-	test/str(module.Path.from_relative(context, '../../file')) == '/no/file'
-
-	# Same directory
-	test/str(module.Path.from_relative(context, '../.././././file')) == '/no/file'
-
-	# parent references that find the limit.
-	test/str(module.Path.from_relative(context, '../../..')) == '/'
-	test/str(module.Path.from_relative(context, '../../../..')) == '/'
-
-	# Smoke test .from_path; two branches that use prior tested methods.
-	test/str(module.Path.from_path('./file')) == os.getcwd() + '/file'
-	test/str(module.Path.from_path('file')) == os.getcwd() + '/file'
-	test/str(module.Path.from_path('/file')) == '/file'
-
 def test_Path_relative_resolution(test):
 	"""
 	# - &module.Path.__pos__
@@ -490,14 +413,14 @@ def test_Path_relative_resolution(test):
 
 def test_Path_basename_manipulations(test):
 	"""
-	# - &module.Path.prefix_filename
-	# - &module.Path.suffix_filename
+	# - &module.Path.prefix
+	# - &module.Path.suffix
 	"""
 	t = test.exits.enter_context(module.Path.fs_tmpdir())
 	f = t/'doesnotexist'
-	f_archive = f.suffix_filename('.tar.gz')
+	f_archive = f.suffix('.tar.gz')
 	test/f_archive.fullpath.endswith('.tar.gz') == True
-	f_test_archive = f.prefix_filename('test_')
+	f_test_archive = f.prefix('test_')
 	test/f_test_archive.identifier.startswith('test_') == True
 
 def test_Path_join(test):
@@ -507,7 +430,7 @@ def test_Path_join(test):
 	test/module.root.join() == '/'
 	test/module.root.join('file') == '/file'
 
-	f = module.Path.from_absolute('/var/empty')
+	f = (module.root@'/var/empty')
 
 	test/f.join('datafile') == "/var/empty/datafile"
 	test/f.join('subdir', 'datafile') == "/var/empty/subdir/datafile"
@@ -517,11 +440,11 @@ def test_Path_join(test):
 
 def test_Path_properties(test):
 	# executable
-	sysexe = module.Path.from_absolute(sys.executable)
+	sysexe = (module.root@sys.executable)
 	test/sysexe.fs_status().executable == True
 	test/sysexe.fs_type() == 'data'
 
-	module_path = module.Path.from_absolute(__file__)
+	module_path = (module.root@__file__)
 	test/module_path.fs_status().executable == False
 	test/module_path.fs_type() == 'data'
 
@@ -575,7 +498,7 @@ def test_Path_void(test):
 	d = test.exits.enter_context(module.Path.fs_tmpdir())
 	sd = d / 'subdir'
 	sf = sd / 'subfile'
-	sf.fs_init()
+	sf.fs_alloc().fs_store(b'')
 
 	with sf.fs_open('wb') as x:
 		x.write(b'data')
@@ -584,7 +507,7 @@ def test_Path_void(test):
 	test/sf.fs_type() != 'void'
 	sf.fs_void()
 	test/sf.fs_type() == 'void'
-	sf.fs_init()
+	sf.fs_alloc().fs_store(b'')
 	test/sf.fs_type() != 'void'
 
 	sd.fs_void()
@@ -595,7 +518,7 @@ def link_checks(test, create_link):
 	t = test.exits.enter_context(module.Path.fs_tmpdir())
 
 	target = t / 'file'
-	target.fs_init(b'test file')
+	target.fs_alloc().fs_store(b'test file')
 
 	# Relative Mode
 	sym = t / 'symbolic'
@@ -614,11 +537,11 @@ def link_checks(test, create_link):
 
 	common = t / 'dir' / 'subdir'
 	common.fs_mkdir()
-	dst = common / 'from-1' / 'from-2' / 'file'
-	src = common / 'to-1' / 'to-2' / 'to-3' / 'file'
-	src.fs_init(b'source data')
+	dst = +(common / 'from-1' / 'from-2' / 'file')
+	src = +(common / 'to-1' / 'to-2' / 'to-3' / 'file')
+	src.fs_alloc().fs_store(b'source data')
 
-	dst.fs_init()
+	dst.fs_alloc().fs_store(b'')
 	dst.fs_void()
 	create_link(dst, src)
 	test/list(dst.fs_follow_links())[-1] == src
@@ -636,18 +559,67 @@ def test_Path_absolute_links(test):
 	"""
 	link_checks(test, module.Path.fs_link_absolute)
 
+def test_Path_since(test):
+	"""
+	# &module.Path.fs_since
+	"""
+
+	root = test.exits.enter_context(module.Path.fs_tmpdir())
+	f1 = root / 'file1'
+	f2 = root / 'file2'
+	f3 = root / 'file3'
+
+	files = [f1, f2, f3]
+	for x in files:
+		x.fs_alloc().fs_store(b'')
+
+	times = [x.get_last_modified() for x in files]
+	times.sort(reverse=True)
+	y = times[0]
+
+	test/list(root.fs_since(time())) == []
+
+	m = root.fs_since(time().rollback(minute=1))
+	test/set(m) == set(files)
+
+def test_Path_since_defaults(test):
+	"""
+	# &module.Path.fs_since
+	"""
+
+	root = test.exits.enter_context(module.Path.fs_tmpdir())
+	rmodified = root.fs_status().last_modified
+
+	f1 = (root/'file1')
+	f1.fs_store(b'')
+	f1.set_last_modified(f1.fs_status().last_modified.elapse(second=1))
+
+	test/list(root.fs_since())[0] == f1
+
+def test_Path_since_before(test):
+	"""
+	# &module.Path.fs_since
+	"""
+
+	root = test.exits.enter_context(module.Path.fs_tmpdir())
+	f1 = root / 'file1'
+	f1.fs_store(b'')
+
+	test/list(root.fs_since(time().rollback(minute=1), inverse=True)) == []
+	test/list(root.fs_since(time(), inverse=True)) == [f1]
+
 def test_Path_recursive_since(test):
 	"""
 	# &module.Path.fs_since with recursive directories.
 	"""
-	import itertools
+
 	ago10mins = time().rollback(minute=10)
 	thirty = time().rollback(minute=30)
 
 	t = test.exits.enter_context(module.Path.fs_tmpdir())
 	d = t / 'dir' / 'subdir'
 	f = d / 'file'
-	f.fs_init()
+	f.fs_alloc().fs_store(b'')
 
 	for dd, files in t.fs_index():
 		dd.set_last_modified(thirty)
@@ -659,7 +631,7 @@ def test_Path_recursive_since(test):
 	# create recursion
 	l = d / 'link'
 	l.fs_link_relative(t / 'dir')
-	test/list(t.fs_since(ago10mins.rollback(minute=10)))[0][1] == f
+	test/list(t.fs_since(ago10mins.rollback(minute=10)))[0] == f
 
 def test_Path_follow_links(test):
 	"""
@@ -668,7 +640,7 @@ def test_Path_follow_links(test):
 	td = test.exits.enter_context(module.Path.fs_tmpdir())
 
 	t = (td/'target.s')
-	t.fs_init()
+	t.fs_alloc().fs_store(b'')
 
 	l1 = (td/'link1')
 	l1.fs_link_relative(t)
@@ -678,11 +650,12 @@ def test_Path_follow_links(test):
 
 	l3 = (td/'link3')
 	l3.fs_link_relative(l2)
+	n = (lambda x: list(map(t.__class__.fs_path_string, x)))
 
-	test/list(map(str, l3.fs_follow_links())) == list(map(str, [l3, l2, l1, t]))
-	test/list(map(str, l2.fs_follow_links())) == list(map(str, [l2, l1, t]))
-	test/list(map(str, l1.fs_follow_links())) == list(map(str, [l1, t]))
-	test/list(map(str, t.fs_follow_links())) == list(map(str, [t]))
+	test/n(l3.fs_follow_links()) == n([l3, l2, l1, t])
+	test/n(l2.fs_follow_links()) == n([l2, l1, t])
+	test/n(l1.fs_follow_links()) == n([l1, t])
+	test/n(t.fs_follow_links()) == n([t])
 
 def test_Path_io(test):
 	"""
@@ -692,7 +665,7 @@ def test_Path_io(test):
 	td = test.exits.enter_context(module.Path.fs_tmpdir())
 
 	f = td/'test-file'
-	f.fs_init(b'')
+	f.fs_alloc().fs_store(b'')
 	test/f.fs_type() == 'data'
 
 	f.fs_store(b'bytes-data')

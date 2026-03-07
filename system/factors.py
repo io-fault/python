@@ -222,7 +222,7 @@ class IntegralFinder(object):
 		else:
 			# Regular Python module or nothing.
 			for x in self.suffixes:
-				pysrc = route.suffix_filename(x)
+				pysrc = route.suffix(x)
 				if pysrc.fs_type() == 'data':
 					break
 			else:
@@ -294,8 +294,7 @@ def setup(form='executable', paths=(), platform=None):
 		if not x:
 			# Ignore empty fields.
 			continue
-		x = files.Path.from_absolute(x)
-		finder.connect(x)
+		finder.connect(files.root@x)
 
 	sys.meta_path.insert(0, finder)
 	return finder

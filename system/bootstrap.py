@@ -150,6 +150,6 @@ def integrate(faultpath, faultname, faultform,
 	finder = factors.setup(form=form, paths=[faultpath], platform=(system, python, arch))
 	finish(factors, finder, requirements)
 	for x in products:
-		finder.connect(factors.files.Path.from_absolute(x))
+		finder.connect(factors.files.root@x)
 
 	return factors

@@ -4,8 +4,8 @@
 # [ File System Property Codes ]
 
 # &File operations that analyze status properties use character codes to
-# perform filtering. The codes listed here are primarily for POSIX filesystems
-# and may have extensions or different meanings when used with emulated filesystems.
+# perform filtering. The codes listed here are primarily for POSIX file systems
+# and may have extensions or different meanings when used with emulated file systems.
 
 # [> Permissions]
 # Character codes identifying available permissions.
@@ -42,9 +42,18 @@
 """
 from abc import abstractmethod
 from collections.abc import Hashable, Iterable, Sequence, Mapping
-from typing import Protocol, TypeAlias, Type
+from typing import Protocol, TypeAlias, Type, IO
+from contextlib import AbstractContextManager
 
 Element: TypeAlias = tuple[str, Sequence['Element'], Mapping]
+
+# Compatibility
+import sys
+if sys.version_info.major == 3 and sys.version_info.minor < 14:
+	Path = object
+	File = object
+	FileStatus = object
+del sys
 
 @Hashable.register
 class Path(Protocol):
@@ -56,7 +65,9 @@ class Path(Protocol):
 	@abstractmethod
 	def container(self) -> Path:
 		"""
-		# The route containing the final identifier in &self.
+		# The route containing the resource identified by &self.
+
+		# For file systems, this is the parent directory.
 		"""
 		raise NotImplementedError
 
@@ -64,7 +75,7 @@ class Path(Protocol):
 	@abstractmethod
 	def absolute(self) -> list[Hashable]:
 		"""
-		# The absolute sequence of identifiers.
+		# The absolute sequence of identifiers that make up the path.
 		"""
 		raise NotImplementedError
 
@@ -72,8 +83,22 @@ class Path(Protocol):
 	@abstractmethod
 	def identifier(self) -> Hashable:
 		"""
-		# The object identifying the resource relative to its immediate container.
+		# The identification of the resource relative to its immediate &container.
 		# The last point in the route.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def prefix(self, string:str):
+		"""
+		# Construct a new route with the given &prefix added to the beginning of the identifier.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def suffix(self, string:str):
+		"""
+		# Construct a new route with the given &suffix added to the end of the identifier.
 		"""
 		raise NotImplementedError
 
@@ -121,7 +146,7 @@ class Path(Protocol):
 	def __matmul__(self, path_expression:str) -> Path:
 		"""
 		# Composite extension.
-		# Construct a new route by extending &self with the points expressed in &path.
+		# Construct a new route by extending &self with the points expressed in &path_expression.
 
 		# [ Parameters ]
 		# /path_expression/
@@ -155,7 +180,7 @@ class Path(Protocol):
 	def __truediv__(self, point:Hashable) -> Path:
 		"""
 		# Single extension.
-		# Construct a new route by extending &self with the sole &point.
+		# Construct a new route by extending &self with a single &point.
 
 		#!python
 			assert (route / identifier) == (route + [identifier])
@@ -185,6 +210,124 @@ class Path(Protocol):
 		"""
 		raise NotImplementedError
 
+class Status(Protocol):
+	"""
+	# Data class holding common file status fields.
+	"""
+
+	@property
+	@abstractmethod
+	def unit(self) -> str:
+		"""
+		# The unit that &size is measured with.
+
+		# Presumed to be `'bytes'` for file systems, but may not be a concrete
+		# measure of information storage for some systems.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def system(self) -> object:
+		"""
+		# System specific data structure holding the status data.
+		# Usually &os.stat_result.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def size(self) -> int:
+		"""
+		# Count of &unit contained by the file.
+
+		#!syntax/python
+			assert (route.fs_size() == route.fs_status().size)
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def type(self) -> str:
+		"""
+		# String symbol identifying the type of file.
+
+		# /`'void'`/
+			# A broken link or nonexistent file.
+		# /`'directory'`/
+			# A file containing other files.
+		# /`'data'`/
+			# A regular file containing bytes.
+		# /`'link'`/
+			# Status record of a link to a file.
+		# /`'pipe'`/
+			# A named pipe; also known as a FIFO. (POSIX)
+		# /`'socket'`/
+			# A unix domain socket. (POSIX)
+		# /`'device'`/
+			# A character or block device file. (POSIX)
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def subtype(self) -> str|None:
+		"""
+		# For POSIX-type systems, designates the kind of (id)`device`:
+		# (id)`block` or (id)`character`.
+
+		# &None for status instances whose &type is not (id)`device`.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def executable(self) -> bool:
+		"""
+		# Whether the data file is considered executable by anyone.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def searchable(self) -> bool:
+		"""
+		# Whether the directory file is considered searchable by anyone.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def created(self):
+		"""
+		# Time of creation; UTC. Not available on all systems.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def last_modified(self):
+		"""
+		# Time of last modification; UTC.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def last_accessed(self):
+		"""
+		# Time of last access; UTC.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def meta_last_modified(self):
+		"""
+		# Time of last status change; UTC.
+		"""
+		raise NotImplementedError
+
 class File(Path):
 	"""
 	# File system APIs for supporting common access functions.
@@ -192,10 +335,77 @@ class File(Path):
 
 	@property
 	@abstractmethod
+	def Status(self) -> Type[FileStatus]:
+		"""
+		# The status data structure used by the Path.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
 	def Violation(self) -> Type[Exception]:
 		"""
 		# Exception describing the property violations found
 		# by a call to &fs_require.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def filename(self) -> str:
+		"""
+		# File system specific alias for &identifier.
+		"""
+		raise NotImplementedError
+
+	@property
+	@abstractmethod
+	def extension(self) -> str|None:
+		"""
+		# The last dot-extension of the filename.
+
+		# &None if the filename has no `.` characters at all.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def __pos__(self) -> File:
+		"""
+		# Resolve any relative path components, `.` and `..`, in &self.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_path_string(self) -> str:
+		"""
+		# Construct a normalized string representing the path to the file.
+
+		# Relative resolution must still be explicitly performed, but empty
+		# path entries delimiting partitions are eliminated.
+
+		# &File protocol name suitable for use as `__fspath__` implementation.
+		"""
+		raise NotImplementedError
+
+	@classmethod
+	@abstractmethod
+	def fs_tmpdir(Class) -> AbstractContextManager[File]:
+		"""
+		# Constuct a context manager that creates a temporary directory when entered.
+
+		# On exit, the directory and its contents are destroyed.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_open(self, mode:str, buffering:int=-1, encoding:str=None, errors:str=None, newline=None) -> AbstractContextManager[IO]:
+		"""
+		# Open the file identified by the path, &self.
+
+		# The file is opened when the returned context manager is entered and closed on exit.
+
+		# The parameters match Python's &open builtin without `opener` and `closefd` where
+		# the behavior is always the default.
 		"""
 		raise NotImplementedError
 
@@ -247,9 +457,6 @@ class File(Path):
 		"""
 		# Relocate the directory contents in &discarded into &self, and
 		# destroy the segment of directories between &self and &discarded.
-
-		# [ Returns ]
-		# &self
 		"""
 		raise NotImplementedError
 
@@ -259,6 +466,16 @@ class File(Path):
 		# Allocate the necessary resources to create the target path as a file or directory.
 
 		# Normally, this means creating the *leading* path to the identified resource.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_follow_links(self) -> Iterable[File]:
+		"""
+		# Follow the symbolic links back to the final non-link file.
+
+		# The followed paths are not further resolved. Any links leading
+		# to links or the final file will remain in the yielded paths.
 		"""
 		raise NotImplementedError
 
@@ -294,20 +511,9 @@ class File(Path):
 		raise NotImplementedError
 
 	@abstractmethod
-	def fs_select(self, properties:str='*') -> Iterable[File]:
-		"""
-		# Select the set of files contained within the directory identified by &self
-		# that match the required &properties.
-
-		# The &properties string consists of characters described by
-		# &[File System Property Codes].
-		"""
-		raise NotImplementedError
-
-	@abstractmethod
 	def fs_real(self) -> File:
 		"""
-		# Identify the portion of the route that actually exists on the filesystem.
+		# Identify the portion of the route that actually exists on the file system.
 		"""
 		raise NotImplementedError
 
@@ -316,7 +522,7 @@ class File(Path):
 		"""
 		# Identify the next non-linear directory.
 
-		# Recursively scan the filesystem until a directory is found containing
+		# Recursively scan the file system until a directory is found containing
 		# zero files, more than one file, or a sole non-directory file is found.
 
 		# [ Returns ]
@@ -325,31 +531,9 @@ class File(Path):
 		raise NotImplementedError
 
 	@abstractmethod
-	def fs_status(self):
+	def fs_status(self) -> Status:
 		"""
 		# Construct a data structure representing the latest status of the file.
-		"""
-		raise NotImplementedError
-
-	@abstractmethod
-	def fs_update(self, *,
-			name=None, size=None,
-			created=None, modified=None,
-		):
-		"""
-		# Update the status properties of the file identified by &self.
-		# If no arguments are supplied, not changes will be performed.
-
-		# [ Parameters ]
-		# /name/
-			# Change the identifier used to select the file relative to
-			# its parent directory.
-		# /size/
-			# Adjust the size of the file, truncating or zero-padding as needed.
-		# /modified/
-			# The time that the file was said to be modified.
-		# /created/
-			# The time that the file was said to be created.
 		"""
 		raise NotImplementedError
 
@@ -373,6 +557,25 @@ class File(Path):
 		# A string identifying the type of file selected by the &Route.
 		# Often a shorthand for accessing the type from the structure
 		# returned by &fs_status.
+
+		# [ Returns ]
+		# - `'directory'`
+		# - `'data'`
+		# - `'pipe'`
+		# - `'socket'`
+		# - `'device'`
+		# - `'void'`
+
+		# If no file is present at the path or a broken link is present, `'void'` will be returned.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_size(self) -> int:
+		"""
+		# Return the size, count of bytes, of the file's content.
+
+		# - `file.fs_size() == file.fs_status().size`
 		"""
 		raise NotImplementedError
 
@@ -395,6 +598,30 @@ class File(Path):
 		raise NotImplementedError
 
 	@abstractmethod
+	def fs_since(self, time:object|None=None, inverse:bool=False) -> Iterable[File]:
+		"""
+		# Select data files within the path, &self, whose modification time exceeds &time.
+
+		# [ Parameters ]
+		# /time/
+			# The referennce time. When unspecified as &None, the modification time
+			# of the directory identified by &self is used.
+		# /inverse/
+			# Select files modified before &time when &True.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_modified(self):
+		"""
+		# Update the modification time of the file identified by &self.
+
+		# The new modification time should reflect the real clock's status on the system
+		# managing the file.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
 	def fs_snapshot(self) -> Sequence[Element]:
 		"""
 		# Construct an element tree of files from the directory identified by &self.
@@ -409,7 +636,7 @@ class File(Path):
 
 			# Defaults to a function excluding `'exception'` types.
 		# /depth/
-			# The maximum filesystem depth to descend from &self.
+			# The maximum file system depth to descend from &self.
 			# If &None, no depth constraint is enforced.
 			# Defaults to `8`.
 		# /limit/
@@ -420,5 +647,35 @@ class File(Path):
 		# [ Returns ]
 		# The sequence of elements that represent the directory's listing
 		# according to the given arguments.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_iterfiles(self, /, type:(str|None)=None) -> Iterable[File]:
+		"""
+		# Generate &File instances identifying the files held by the directory, &self.
+		# By default, all file types are included, but if the &type parameter is given,
+		# only files of that type are returned.
+
+		# If &self is not a directory or cannot be searched, an empty iterator is returned.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_list(self, type:str='data') -> tuple[list[File], list[File]]:
+		"""
+		# Retrieve the list of files contained by the directory referred to by &self.
+		# Returns a pair, the sequence of directories and the sequence of data files.
+
+		# Sockets, pipes, devices, and other non-data files are not retained in the list.
+		"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def fs_index(self, type:str='data') -> Iterable[tuple[File, list[File]]]:
+		"""
+		# Generate pairs of directories associated with their files.
+
+		# Sockets, pipes, devices, broken links, and other non-data files are not retained in the lists.
 		"""
 		raise NotImplementedError

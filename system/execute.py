@@ -73,7 +73,7 @@ def apply(config, target, symbol):
 	sys.path.extend(config.get('paths', ()))
 
 	for product_path in config.get('product-paths', ()):
-		factors.finder.connect(files.Path.from_absolute(product_path))
+		factors.finder.connect(files.root@product_path)
 
 	execution = importlib.import_module(target)
 

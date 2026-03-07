@@ -232,7 +232,7 @@ def intercept(product, project):
 		factors.finder.python_bytecode_variants['architecture'],
 		factors.finder.system_extension_variants['architecture'],
 	)
-	sfif.connect(files.Path.from_absolute(product))
+	sfif.connect(files.root@product)
 	sfif.project_set = {project, project + '.'}
 	sfif.project_length = len(project) + 1
 	sys.meta_path.insert(0, sfif)

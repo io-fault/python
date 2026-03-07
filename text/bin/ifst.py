@@ -49,9 +49,9 @@ def emit(route, data):
 		path = route + subpath.split('/')
 
 		if isinstance(content, (bytes, bytearray, memoryview)):
-			(path).fs_init(content)
+			(path).fs_alloc().fs_store(content)
 		elif isinstance(content, str):
-			(path).fs_init()
+			(path).fs_alloc().fs_store()
 			(path).set_text_content(content)
 		else:
 			assert isinstance(content, dict)
@@ -70,12 +70,12 @@ def main(inv:process.Invocation) -> process.Exit:
 	except:
 		return inv.exit(os.EX_USAGE)
 
-	route = files.Path.from_path(target)
+	route = inv.fs_pwd@target
 	if route.fs_type() not in {'void', 'directory'}:
 		sys.stderr.write("[!# ERROR: path (%r) must be a directory or void.]\n" %(str(route),))
 		return inv.exit(os.EX_NOINPUT)
 
-	sourcepath = files.Path.from_path(filepath)
+	sourcepath = inv.fs_pwd@filepath
 	if sourcepath.fs_type() in {'void', 'directory'}:
 		sys.stderr.write("[!# ERROR: source (%r) does not exist or is a directory.]\n" %(str(sourcepath),))
 		return inv.exit(os.EX_NOINPUT)
