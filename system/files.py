@@ -1,5 +1,5 @@
 """
-# Filesystem interfaces and data structures.
+# File system interfaces and data structures.
 
 # Current working directory related interfaces are provided in &.process.
 

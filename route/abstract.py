@@ -4,8 +4,8 @@
 # [ File System Property Codes ]
 
 # &File operations that analyze status properties use character codes to
-# perform filtering. The codes listed here are primarily for POSIX filesystems
-# and may have extensions or different meanings when used with emulated filesystems.
+# perform filtering. The codes listed here are primarily for POSIX file systems
+# and may have extensions or different meanings when used with emulated file systems.
 
 # [> Permissions]
 # Character codes identifying available permissions.
@@ -354,7 +354,7 @@ class File(Path):
 	@abstractmethod
 	def filename(self) -> str:
 		"""
-		# Filesystem specific alias for &identifier.
+		# File system specific alias for &identifier.
 		"""
 		raise NotImplementedError
 
@@ -513,7 +513,7 @@ class File(Path):
 	@abstractmethod
 	def fs_real(self) -> File:
 		"""
-		# Identify the portion of the route that actually exists on the filesystem.
+		# Identify the portion of the route that actually exists on the file system.
 		"""
 		raise NotImplementedError
 
@@ -522,7 +522,7 @@ class File(Path):
 		"""
 		# Identify the next non-linear directory.
 
-		# Recursively scan the filesystem until a directory is found containing
+		# Recursively scan the file system until a directory is found containing
 		# zero files, more than one file, or a sole non-directory file is found.
 
 		# [ Returns ]
@@ -636,7 +636,7 @@ class File(Path):
 
 			# Defaults to a function excluding `'exception'` types.
 		# /depth/
-			# The maximum filesystem depth to descend from &self.
+			# The maximum file system depth to descend from &self.
 			# If &None, no depth constraint is enforced.
 			# Defaults to `8`.
 		# /limit/

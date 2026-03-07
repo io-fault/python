@@ -1,5 +1,5 @@
 """
-# Check the implementation of filesystem routes.
+# Check the implementation of file system routes.
 """
 import sys
 import functools
@@ -335,7 +335,7 @@ def test_Path_get_last_modified(test):
 
 	mtime1 = r.get_last_modified()
 	time.sleep(1.1)
-	# sleep one whole second in case the filesystem's
+	# sleep one whole second in case the file system's
 	# precision is at the one second mark.
 
 	with r.fs_open('a') as f:
