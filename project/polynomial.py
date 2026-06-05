@@ -31,33 +31,53 @@ system_factor_type = types.Reference(
 	'type', None
 )
 
-def load_formats(file, *, continued='\t', separator='\n', Ref=types.Reference.from_ri):
+def interpret_type_declaration(context, definition, typreqs, *, Ref=types.Reference.from_ri):
+	fields = definition.split(' ')
+	ityp, ext = fields[0].split('.', 1)
+	if len(fields) == 2:
+		# Implied language class.
+		fmtc = context.rsplit('/', 1)[1]
+		fmts = fields[-1]
+	else:
+		fmtc = fields[-1]
+		fmts = fields[-2]
+
+	ft = Ref('type', context + '.' + ityp.strip()).isolate(fmtc + '.' + fmts)
+	return ext.strip('.'), ft, typreqs
+
+def _isection(lines, index, *, continued='\t', separator='\n'):
+	for ln in lines[index:]:
+		if ln[:1] == continued:
+			yield ln[1:]
+		else:
+			break
+
+def _itypes(lines, index, *, continued='\t', separator='\n'):
+	while index < len(lines):
+		opening = lines[index]
+		sub = list(_isection(lines, index+1))
+		yield opening, sub
+		index = index + len(sub) + 1
+
+def _iformats(lines, index, *, continued='\t', separator='\n'):
+	while index < len(lines):
+		opening = lines[index]
+		formats = list(_isection(lines, index+1))
+		sub = list(_itypes(formats, 0))
+		yield opening, sub
+		index = index + len(formats) + 1
+
+def load_formats(file, separator='\n'):
 	if file.fs_type() == 'void':
 		return
 
-	i = iter(file.get_text_content().split(separator))
-	typctx = next(i)
-	for l in i:
-		if not l or l.strip()[:1] == '#':
-			# Comments and empty lines.
-			continue
+	# Strip comments and empty lines.
+	l = [l for l in file.get_text_content().split(separator) if l.strip() and l[:1].strip() != '#']
 
-		if l[:1] != continued:
-			typctx = l
-			continue
-		else:
-			fields = l.split(' ')
-			ityp, ext = fields[0].split('.', 1)
-			if len(fields) == 2:
-				# Implied language class.
-				fmtc = typctx.rsplit('/', 1)[1]
-				fmts = fields[-1]
-			else:
-				fmtc = fields[-1]
-				fmts = fields[-2]
-
-		ft = Ref('type', typctx + '.' + ityp.strip()).isolate(fmtc + '.' + fmts)
-		yield ext.strip('.'), ft
+	# Flatten the nested declarations.
+	for typctx, formats in _iformats(l, 0):
+		for fmt, reqs in formats:
+			yield interpret_type_declaration(typctx, fmt, reqs)
 
 def factor_images(project:Selector, factor:Segment, directory='__f-int__'):
 	"""
@@ -147,11 +167,12 @@ class V1(types.FactorIsolationProtocol):
 			self.parameters['type-requirements'] = dict()
 
 		extmap = []
-		typreq = []
+		typreq = self.parameters['type-requirements']
 
-		for ext, ft in load_formats(route // self.FormatsProjectPath):
+		for ext, ft, req in load_formats(route // self.FormatsProjectPath):
 			if ext:
 				extmap.append((ext, ft))
+			typreq[(ft, ext)] = req
 
 		try:
 			extmap.extend(context.parameters['source-extension-map'].items())
@@ -218,7 +239,7 @@ class V1(types.FactorIsolationProtocol):
 		else:
 			return functools.lru_cache(16)(lambda x: mapping.get(x, empty))
 
-	def indirect_factor_records(self, typcache, paths:typing.Iterable[files.Path],
+	def indirect_factor_records(self, typcache, resolve, typreqs, paths:typing.Iterable[files.Path],
 			*, _nomap={}, _default=(unknown_factor_type, set()),
 		):
 		"""
@@ -232,7 +253,8 @@ class V1(types.FactorIsolationProtocol):
 
 			name, suffix = src.identifier.split('.')
 			typref = typcache(suffix)
-			yield (name, typref.isolate(None)), (set(), Cell((typref, src)))
+			reqs = set(map(resolve, typreqs((typref, suffix))))
+			yield (name, typref.isolate(None)), (reqs, Cell((typref, src)))
 
 	def collect_explicit_sources(self, typcache, route:files.Path):
 		"""
@@ -264,6 +286,8 @@ class V1(types.FactorIsolationProtocol):
 		dirq = collections.deque([(froute, path)])
 		processed = set()
 		typcache = self.source_format_resolution()
+		typreqs = self.type_requirement_resolution()
+		typresolve = functools.partial(refer, context=types.factor)
 
 		while dirq:
 			r, path = dirq.popleft()
@@ -280,14 +304,14 @@ class V1(types.FactorIsolationProtocol):
 				processed.add(rdp)
 
 			spec = (r // self.FactorDeclarationSignal)
+			cpath = types.FactorPath.from_sequence(path)
+			resolve = functools.partial(refer, context=(rpath//cpath))
 			if r.fs_type() == 'directory' and spec.fs_type() == 'data':
 				# Explicit Typed Factor directory.
-				cpath = types.FactorPath.from_sequence(path)
 				ftype, frefs = structure_factor_declaration(spec.get_text_content())
 				sources = self.collect_explicit_sources(typcache, r)
 
 				typref = types.Reference.from_ri('type', ftype)
-				resolve = functools.partial(refer, context=(rpath//cpath))
 				refs = set(map(resolve, frefs))
 				yield (cpath, typref), (refs, sources)
 
@@ -297,7 +321,7 @@ class V1(types.FactorIsolationProtocol):
 				dirs, files = r.fs_list('data')
 
 			# Recognize Indirectly Typed Factors.
-			ifr = self.indirect_factor_records(typcache, [x for x in files if self.isource(x)])
+			ifr = self.indirect_factor_records(typcache, resolve, typreqs, [x for x in files if self.isource(x)])
 			for (name, ftype), fstruct in ifr:
 				yield ((segment/name), ftype), fstruct
 
