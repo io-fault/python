@@ -47,6 +47,9 @@ struct EndpointAPI *EP = NULL;
 
 PyObj PyExc_TransitionViolation = NULL;
 
+/* Placeholder unconditionally disabling tracing. */
+#define F_TRACE(y) 0
+
 /**
 	// Get the name of the errno.
 */
@@ -145,7 +148,7 @@ ktype_string(ktype_t kt)
 	}
 }
 
-#if ! FV_OPTIMAL() || F_TRACE()
+#ifdef IF_debug
 	static void pchannel(Channel);
 	static void pkevent(kevent_t *);
 #endif
@@ -721,7 +724,7 @@ kfilter_attach(Channel t, kevent_t *kev)
 	port_epoll_ctl(p, EPOLL_CTL_ADD, Channel_GetPort(t), kev);
 }
 #else
-#if ! FV_OPTIMAL() || F_TRACE()
+#ifdef IF_debug
 static void
 pkevent(kevent_t *kev)
 {
@@ -1263,7 +1266,7 @@ channel_members[] = {
 	/*
 		// Internal state access.
 	*/
-	#if FV_INJECTIONS()
+	#ifdef IF_coverage
 		{"_state", T_UBYTE, offsetof(struct Channel, state), READONLY, NULL,},
 		{"_delta", T_UBYTE, offsetof(struct Channel, delta), READONLY, NULL,},
 		{"_event", T_UBYTE, offsetof(struct Channel, events), READONLY, NULL,},
@@ -1372,7 +1375,7 @@ channel_get_resource(PyObj self, void *_)
 	return(r);
 }
 
-#if FV_INJECTIONS()
+#ifdef IF_coverage
 	static PyObj
 	channel_get_xtransfer(PyObj self, void *_)
 	{
@@ -1439,7 +1442,7 @@ static PyGetSetDef channel_getset[] = {
 	{"exhausted", channel_get_exhausted, NULL, NULL,},
 	{"resource", channel_get_resource, NULL, NULL,},
 
-	#if FV_INJECTIONS()
+	#ifdef IF_coverage
 		{"_xtransfer", channel_get_xtransfer, channel_set_xtransfer, NULL,},
 		{"_itransfer", channel_get_itransfer, channel_set_xtransfer, NULL,},
 	#endif
@@ -3676,7 +3679,7 @@ INIT(module, 0, NULL)
 			goto error;
 	}
 
-	#if FV_INJECTIONS()
+	#ifdef IF_coverage
 		/*
 			// Need this to help with the skip condition in the tests.
 		*/

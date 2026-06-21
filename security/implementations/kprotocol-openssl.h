@@ -1477,10 +1477,8 @@ transport_encipher(PyObj self, PyObj buffer_sequence)
 		}
 	}
 
-	#if !(FV_INJECTIONS())
-		/**
-			// Avoid early return during tests.
-		*/
+	#ifndef IF_coverage
+		/* Return early unless built for coverage */
 		if (BIO_ctrl_pending(wb) == 0)
 		{
 			return(PyTuple_New(0));

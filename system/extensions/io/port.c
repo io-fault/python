@@ -23,6 +23,8 @@
 
 #include "port.h"
 
+/* Placeholder unconditionally disabling tracing. */
+#define F_TRACE(y) 0
 #define errpf(...) fprintf(stderr, __VA_ARGS__)
 
 /*

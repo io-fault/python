@@ -378,8 +378,7 @@ def test_close_retry(test):
 		test/i.terminated == True
 		test/i.port.error_code == 0
 		test/i.port.call == None
-		with test.trap():
-			os.fstat(i.port.id)
+		os.fstat(i.port.id)
 		os.close(i.port.id)
 
 		# close eventually succeeds. validate that the fd is closed
@@ -500,7 +499,6 @@ def test_datagramarray_index_nomem(test):
 			x = dga[0]
 
 		del io.__PYTHON_RECEPTACLE__['datagramarray_getitem.new_tuple']
-		with test.trap():
-			x = dga[0]
+		x = dga[0]
 	finally:
 		io.__PYTHON_RECEPTACLE__.clear()
