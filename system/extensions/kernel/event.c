@@ -508,7 +508,15 @@ ev_release(Event ev)
 	if (close(kp) < 0)
 	{
 		PyErr_SetFromErrno(PyExc_OSError);
-		PyErr_WriteUnraisable(ev);
+
+		/*
+			// Critically, the context object cannot be &ev when called
+			// from tp_dealloc as the WriteUnraisable implementation may
+			// acquire references bringing the object back into existence
+			// only to be immediately deleted again on repeat.
+		*/
+		PyErr_WriteUnraisable(Event_GetSource(ev));
+
 		errno = errsnap;
 	}
 
