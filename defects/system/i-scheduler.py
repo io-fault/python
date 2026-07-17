@@ -465,3 +465,42 @@ def test_Scheduler_io_pipe(test):
 	ioe = [x for x in ioe if x]
 	test/ioe[0] == b'first'
 	ioe[1] in test/{b'second', b'second'*2}
+
+def test_Scheduler_wait_cancellations(test):
+	"""
+	# - &module.Scheduler.wait
+
+	# Validate that a cancellation causes no delay
+	"""
+	import os
+	import fcntl
+	ioe = []
+
+	r, w = os.pipe()
+	for x in [r, w]:
+		flags = fcntl.fcntl(x, fcntl.F_GETFL)
+		fcntl.fcntl(x, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
+	rxe = module.Event.io_receive(None, r)
+	txe = module.Event.io_transmit(None, w)
+
+	ki = module.Scheduler()
+	import sys
+	try:
+		rx = module.Link(rxe, (lambda x: ki.cancel(x)))
+		tx = module.Link(txe, (lambda x: None))
+		del rxe, txe
+		ki.dispatch(rx)
+		ki.dispatch(tx)
+		ki.cancel(tx)
+		del tx
+		test/ki.wait(60) == 0
+		test/OSError ^ (lambda: os.close(w))
+		ki.wait(0)
+		ki.execute()
+		del rx
+		test/ki.wait(60) == 0
+		test/OSError ^ (lambda: os.close(r))
+	finally:
+		ki.void()
+		test.garbage()

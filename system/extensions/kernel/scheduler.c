@@ -400,7 +400,7 @@ ks_wait(PyObj self, PyObj args)
 	kq = Scheduler_GetKernelQueue(ks);
 	if (kq->kq_root != -1)
 	{
-		if (TQ_HAS_TASKS(Scheduler_GetTaskQueue(ks)))
+		if (!Scheduler_ShouldWait(ks))
 		{
 			secs = 0;
 			ks->ks_waiting = 0;
