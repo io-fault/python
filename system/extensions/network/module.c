@@ -305,7 +305,7 @@ bind_sequence(Endpoint ep)
 		goto error;
 	}
 
-	if (bind(kp, Endpoint_GetAddress(ep), Endpoint_GetLength(ep)))
+	if (bind(kp, (struct sockaddr *) Endpoint_GetAddress(ep), Endpoint_GetLength(ep)))
 	{
 		kc = kc_bind;
 		goto error;
@@ -362,7 +362,7 @@ service_sequence(Endpoint ep, int backlog)
 		goto error;
 	}
 
-	if (bind(kp, Endpoint_GetAddress(ep), Endpoint_GetLength(ep)))
+	if (bind(kp, (struct sockaddr *) Endpoint_GetAddress(ep), Endpoint_GetLength(ep)))
 	{
 		kc = kc_bind;
 		goto error;
