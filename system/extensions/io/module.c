@@ -2752,7 +2752,19 @@ array_kevent_transform(Array J)
 			|| kev->events & EPOLLERR
 			|| kev->events & EPOLLHUP)
 		{
-			Channel_XQualify(t, teq_terminate);
+			switch (Channel_GetControl(t, ctl_polarity))
+			{
+				case 0:
+					// Signal write termination.
+					Channel_XQualify(t, teq_terminate);
+				break;
+
+				default:
+					// Terminate via read when data is present.
+					if (!(kev->events & EPOLLIN))
+						Channel_XQualify(t, teq_terminate);
+				break;
+			}
 			Array_AddTransfer(J, t);
 		}
 	}
