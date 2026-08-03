@@ -1,6 +1,10 @@
 /**
 	// System text services.
 */
+
+// Linux feature test macro define for wcwdith.
+	#define _GNU_SOURCE
+
 #include <wchar.h>
 #include <locale.h>
 #include <langinfo.h>
