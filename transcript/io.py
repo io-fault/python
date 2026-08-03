@@ -113,7 +113,9 @@ class FrameArray(object):
 	def collect(self):
 		with self._ioa.wait(self.timeout):
 			return [
-				(channel.link, channel.transfer(), channel.terminated, channel)
+				# Default None transfers to b'' as the epoll implementation,
+				# currently, may terminate without a corresponding read.
+				(channel.link, channel.transfer() or b'', channel.terminated, channel)
 				for channel in self._ioa.transfer()
 			]
 
