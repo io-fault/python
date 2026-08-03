@@ -250,7 +250,7 @@ port_epoll_create(Port p)
 			case EINTR:
 				LIMITED_RETRY()
 			default:
-				Port_NoteError(p, epoll_create);
+				Port_NoteError(p, kc_epoll_create);
 				return(1);
 			break;
 		}
@@ -277,7 +277,7 @@ port_epoll_ctl(Port epp, int op, Port t, kevent_t *ke)
 			case EINTR:
 				LIMITED_RETRY()
 			default:
-				Port_NoteError(t, epoll_ctl);
+				Port_NoteError(t, kc_epoll_ctl);
 				return(1);
 			break;
 		}
@@ -309,7 +309,7 @@ port_epoll_wait(Port p, int *out, kevent_t *ke, int nevents, int timeout)
 				LIMITED_RETRY()
 			default:
 				*out = 0;
-				Port_NoteError(p, epoll_wait);
+				Port_NoteError(p, kc_epoll_wait);
 				return(1);
 			break;
 		}
