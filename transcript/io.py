@@ -105,7 +105,7 @@ class FrameArray(object):
 		# Decode and unpack the binary status frame using Array's configuration.
 		"""
 		try:
-			return self._unpack(line.decode(self.encoding))
+			return self._unpack(line.decode(self.encoding, errors='surrogateescape'))
 		except Exception as err:
 			import traceback
 			traceback.print_exception(err.__class__, err, err.__traceback__)
@@ -248,7 +248,7 @@ class Log(object):
 		"""
 		# Write text to the log's stream incrementing the transmit count.
 		"""
-		self._send(text.encode(self.encoding))
+		self._send(text.encode(self.encoding, errors='surrogateescape'))
 		self._count += 1
 
 	def declare(self, datum='2000-01-02', timestamp=0):

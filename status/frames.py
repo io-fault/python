@@ -56,14 +56,14 @@ def _frame_pack_extension(data,
 		b64e=base64.b64encode,
 		sequence=transport.sequence,
 	) -> bytes:
-	return ttyn_data_url + b64e(sequence(data).encode('utf-8'))
+	return ttyn_data_url + b64e(sequence(data).encode('utf-8', errors='surrogateescape'))
 
 def _frame_unpack_extension(data:str,
 		b64d=base64.b64decode,
 		structure=transport.structure,
 	) -> object:
 	url_type, ext = data.split(';base64,', 1)
-	return structure(b64d(ext).decode('utf-8'))
+	return structure(b64d(ext).decode('utf-8', errors='surrogateescape'))
 
 # Protocol identity for &types.Frame instances.
 protocol = "http://fault.io/protocol/status/frames"
