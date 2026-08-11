@@ -279,9 +279,9 @@ sq_process_executable_path(PyObj mod, PyObj args)
 		return(NULL);
 
 	if (process_executable_path(buf, sizeof(buf), pid) > 0)
-		return(Py_BuildValue("s", buf));
+		return(Py_NEW_VALUE(buf));
 
-	return(Py_BuildValue("s", ""));
+	return(Py_NEW_VALUE(""));
 }
 
 static PyObj
@@ -298,7 +298,7 @@ sq_hostname(PyObj mod)
 	}
 	buf[511] = '\0';
 
-	return(PyBytes_FromString(buf));
+	return(Py_NEW_VALUE(buf));
 }
 
 static PyObj
@@ -374,7 +374,7 @@ INIT(module, 0, NULL)
 	if (PyModule_AddIntConstant(module, "machine_addressing", sizeof(void *) * 8))
 		goto error;
 
-	if (1)
+	// While _query still exists.
 	{
 		PyObj g = PyModule_GetDict(module);
 		PyObj xr;

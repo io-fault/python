@@ -1,8 +1,3 @@
-"""
-# High-level system inquiries for user information and environment derived paths.
-
-# All information is retrieved from the system when invoked.
-"""
 import os
 import operator
 
@@ -14,22 +9,9 @@ _path = tools.cachedcalls(16)(tools.compose(operator.methodcaller('delimit'), fi
 _dirs = tools.cachedcalls(2)(operator.methodcaller('split', os.pathsep))
 
 def paths(environment:str='PATH') -> files.Path:
-	"""
-	# Select paths present in the (system/environ)`PATH` variable.
-	"""
 	return map(_path, _dirs(os.environ[environment]))
 
 def executables(exename:str, environment:str='PATH') -> files.Path:
-	"""
-	# Select executable paths from the environment, (system/environ)`PATH`.
-
-	# Iterate over the directories listed in `PATH` and yield paths that exist
-	# when the given &exename is extended on the directory.
-
-	# The produced &.files.Path instances may refer to files of any type.
-	# Paths referring to broken links will not be included.
-	"""
-
 	# Isolated to avoid lookup/splitting in cases where the override is not exhausted.
 	for x in paths(environment):
 		path = x / exename
@@ -38,12 +20,6 @@ def executables(exename:str, environment:str='PATH') -> files.Path:
 			yield path
 
 def home(environment:str='HOME') -> files.Path:
-	"""
-	# Retrieve the user's home directory from the environment, (system/environ)`HOME`.
-
-	# If the environment variable is not set, the (id)`pw_dir` field will be retrieved
-	# using &pwd.
-	"""
 	try:
 		return _path(os.environ[environment])
 	except (KeyError, TypeError):
@@ -54,9 +30,6 @@ def home(environment:str='HOME') -> files.Path:
 			return None
 
 def username() -> str:
-	"""
-	# Retrieve the user's name.
-	"""
 	try:
 		import pwd
 		return pwd.getpwuid(os.getuid()).pw_name
@@ -64,12 +37,6 @@ def username() -> str:
 		return None
 
 def usertitle() -> str:
-	"""
-	# Retrieve the user's title; the long name associated with the user.
-
-	# The (id)`pw_gecos` field is retrieved using &pwd without modification.
-	# If the system has no such concept or it cannot be resolved, &None is returned.
-	"""
 	try:
 		import pwd
 		return pwd.getpwuid(os.getuid()).pw_gecos
@@ -77,36 +44,13 @@ def usertitle() -> str:
 		return None
 
 def shell() -> files.Path:
-	"""
-	# Retrieve the path to the user's login shell.
-
-	# If the system has no such concept or it cannot be resolved, &None is returned.
-	"""
 	try:
 		import pwd
 		return pwd.getpwuid(os.getuid()).pw_shell
 	except:
 		return None
 
-def hostname() -> str:
-	"""
-	# Retrieve the hostname using the POSIX (system/manual)`gethostname(2)` call.
-	"""
-	from . import kernel
-	return kernel.hostname().decode('idna')
-
-def frequency() -> int:
-	"""
-	# Retrieve the clock ticks necessary for calculating processing usage from
-	# the POSIX (system/manual)`sysconf` call with (id)`SC_CLK_TCK`.
-	"""
-	from . import kernel
-	return kernel.clockticks()
-
 def platform(system:str=None, environment:str='F_EXECUTION'):
-	"""
-	# Create an &.execution.Platform instance using the environment.
-	"""
 	from .execution import Platform
 
 	pfe = os.environ.get(environment, '').strip()

@@ -24,61 +24,6 @@ static int exit_signal = -1;
 static pid_t exit_for_pid = -1;
 
 static PyObj
-get_hostname(PyObj mod)
-{
-	char buf[512];
-	int r;
-
-	r = gethostname(buf, 512);
-	if (r != 0)
-	{
-		PyErr_SetFromErrno(PyExc_OSError);
-		return(NULL);
-	}
-	buf[511] = '\0';
-
-	return(PyBytes_FromString(buf));
-}
-
-static PyObj
-get_uname(PyObj mod)
-{
-	PyObj rob;
-	struct utsname un;
-	int i;
-
-	if (uname(&un) != 0)
-	{
-		return(NULL);
-	}
-
-	i = 0;
-	while (un.sysname[i])
-	{
-		un.sysname[i] = tolower(un.sysname[i]);
-		++i;
-	}
-
-	i = 0;
-	while (un.machine[i])
-	{
-		un.machine[i] = tolower(un.machine[i]);
-		++i;
-	}
-
-	rob = Py_BuildValue("ss", un.sysname, un.machine);
-	return(rob);
-}
-
-static PyObj
-get_clock_ticks(PyObj mod)
-{
-	int r;
-	r = sysconf(_SC_CLK_TCK);
-	return(PyLong_FromLong((long) r));
-}
-
-static PyObj
 set_process_title(PyObj mod, PyObj title)
 {
 	PyObj bytes;
@@ -506,20 +451,12 @@ fault_python_ext_if = {
 
 #define k_preserve kport_clear_cloexec
 #define k_released kport_set_cloexec
-#define k_hostname get_hostname
-#define k_machine_execution_context get_uname
-#define k_machine get_uname
-#define k_clockticks get_clock_ticks
 #define k_set_process_title set_process_title
 #define k_signalexit signalexit
 
 #define PyMethod_Id(N) k_##N
 #define MODULE_FUNCTIONS() \
 	PyMethod_Sole(signalexit), \
-	PyMethod_None(hostname), \
-	PyMethod_None(machine_execution_context), \
-	PyMethod_None(machine), \
-	PyMethod_None(clockticks), \
 	PyMethod_Sole(set_process_title), \
 	\
 	PyMethod_Sole(preserve), \
