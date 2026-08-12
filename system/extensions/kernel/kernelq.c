@@ -142,6 +142,33 @@ kernelq_transition(KernelQueue kq, TaskQueue tq)
 			kernelq_interrupt_accept(kq);
 			continue;
 		}
+		else
+		{
+			#if __EV_EPOLL__(1)
+			{
+				switch (Event_Type(ln->ln_event))
+				{
+					case EV_TYPE_ID(time):
+					{
+						/*
+							// Read the expirations data from the timerfd to maintain
+							// consistency with kqueue's timer. Currently, there's
+							// no way to forward it to the receiver.
+						*/
+						uint64_t expirations = 0;
+						int fd = Event_GetKPort(ln->ln_event);
+
+						if (read(fd, &expirations, sizeof(expirations)) == -1)
+						{
+							// Ignore.
+							errno = 0;
+						}
+					}
+					break;
+				}
+			}
+			#endif
+		}
 
 		assert(Py_TYPE(ln) == &LinkType);
 

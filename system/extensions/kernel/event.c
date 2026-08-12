@@ -43,7 +43,7 @@ ev_time_units(Event ev, PyObj args, PyObj kw)
 		};
 		its.it_value = its.it_interval;
 
-		kp = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
+		kp = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC|TFD_NONBLOCK);
 		if (kp < 0)
 		{
 			PyErr_SetFromErrno(PyExc_OSError);
