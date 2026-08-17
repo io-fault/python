@@ -24,7 +24,7 @@ class Summary(Protocol):
 	# commit reporting given the need.
 	"""
 
-	def line_delta(self, ln_offset:int, deleted:int, inserted:int):
+	def line_delta(self, ln_offset:int, deleted:int, cp_offset:int, inserted:int):
 		"""
 		# Report that lines were &deleted and &inserted at &ln_offset.
 		"""
@@ -350,7 +350,7 @@ class Lines(Record):
 	def track(self, target):
 		dln = len(self.deletion or ())
 		iln = len(self.insertion or ())
-		target.line_delta(self.element, dln, iln)
+		target.line_delta(self.element, dln, 0, iln)
 
 	def apply(self, target, *, len=len, list=list):
 		d = len(self.deletion)
@@ -430,9 +430,9 @@ class Cursor(Record):
 			target.codepoint_delta(self.element, self.codepoint_offset, -self.codepoints, 0)
 
 		if self.lines > 0:
-			target.line_delta(self.element, 0, self.lines)
+			target.line_delta(self.element, 0, self.codepoint_offset, self.lines)
 		elif self.lines < 0:
-			target.line_delta(self.element, -self.lines, 0)
+			target.line_delta(self.element, -self.lines, self.codepoint_offset, 0)
 
 	def apply(self, target, *, len=len, list=list):
 		pass
