@@ -486,14 +486,6 @@ INIT(module, 0, NULL)
 		PYTHON_TYPES()
 	#undef ID
 
-	if (PyModule_AddStringConstant(module, "fv_architecture", FV_ARCHITECTURE_STR))
-		goto error;
-	if (PyModule_AddStringConstant(module, "fv_system", FV_SYSTEM_STR))
-		goto error;
-
-	if (PyModule_AddIntConstant(module, "machine_addressing", sizeof(void *) * 8))
-		goto error;
-
 	xi_ob = PyCapsule_New(&fault_python_ext_if, "__xi__", NULL);
 	if (xi_ob == NULL)
 		goto error;
