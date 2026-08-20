@@ -4,55 +4,72 @@
 # All information is retrieved from the system when invoked.
 """
 from typing import Protocol
+from collections.abc import Iterable
 from . import files
 
-def paths(environment:str='PATH') -> files.Path:
+def hostname() -> str:
 	"""
-	# Select paths present in the (system/environ)`PATH` variable.
-	"""
-
-def executables(exename:str, environment:str='PATH') -> files.Path:
-	"""
-	# Select executable paths from the environment, (system/environ)`PATH`.
-
-	# Iterate over the directories listed in `PATH` and yield paths that exist
-	# when the given &exename is extended on the directory.
-
-	# The produced &.files.Path instances may refer to files of any type.
-	# Paths referring to broken links will not be included.
+	# Retrieve the hostname of the machine.
 	"""
 
-def home(environment:str='HOME') -> files.Path:
+def executable_paths() -> Iterable[files.Path]:
 	"""
-	# Retrieve the user's home directory from the environment, (system/environ)`HOME`.
+	# Retrieve the directory paths used to find executables.
 
-	# If the environment variable is not set, the (id)`pw_dir` field will be retrieved
-	# using &pwd.
+	# The (system/environ)`PATH` variable as separate &files.Path objects.
+	"""
+
+def executables(exename:str) -> Iterable[files.Path]:
+	"""
+	# Find executables in (system/environ)`PATH`.
+
+	# Iterate over the directories listed in `PATH` and yield paths
+	# containing &exename that are executable.
+
+	# No caching is directly leveraged.
+	"""
+
+def executable(exename:str) -> files.Path:
+	"""
+	# Return the path to the first executable found by &executables.
+	# &None when no executable could be found with that name.
+
+	# No caching is directly leveraged.
 	"""
 
 def username() -> str:
 	"""
-	# Retrieve the user's name.
+	# Retrieve the user's name that owns the process. (real user)
+
+	# If (system/environ)`USER` is set, return it.
 	"""
 
-def usertitle() -> str:
+def home() -> files.Path:
 	"""
-	# Retrieve the user's title; the long name associated with the user.
+	# Retrieve the user's home directory.
 
-	# The (id)`pw_gecos` field is retrieved using &pwd without modification.
-	# If the system has no such concept or it cannot be resolved, &None is returned.
-	"""
-
-def shell() -> files.Path:
-	"""
-	# Retrieve the path to the user's login shell.
-
-	# If the system has no such concept or it cannot be resolved, &None is returned.
+	# If (system/environ)`HOME` is set, return it.
 	"""
 
-def hostname() -> str:
+def user(field=None) -> int|str|files.Path:
 	"""
-	# Retrieve the hostname using the POSIX (system/manual)`gethostname(2)` call.
+	# Retrieve a field from the user's profile. If the requested &field is not
+	# defined by the system or an empty string is returned by the system, &None is returned.
+
+	# [ Parameters ]
+	# /field/
+		# /`'identifier'`/
+			# Get the cached user's identifier as an integer. (default)
+		# /`'name'`/
+			# Get the cached user's name, ignoring (system/environ)`USER`
+		# /`'title'`/
+			# Get the cached user's title. (pw_gecos)
+		# /`'role'`/
+			# Get the cached user's role. (pw_class)
+		# /`'shell'`/
+			# Get the cached user's shell path.
+		# /`'home'`/
+			# Get the cached user's home directory, ignoring (system/environ)`HOME`.
 	"""
 
 def clock_ticks() -> int:

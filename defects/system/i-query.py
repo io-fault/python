@@ -1,22 +1,35 @@
 """
 # Limited tests as the information retrieved is expected to vary.
 """
+from ...system import files
 from ...system import query as module
 
 def test_paths(test):
 	"""
 	# - &module.paths
 	"""
-	i = module.paths()
+	i = module.executable_paths()
 	l = list(i)
+
+def test_executable(test):
+	"""
+	# - &module.executable
+	"""
+	test/(files.root@"/usr/bin/tee") == module.executable("tee")
 
 def test_executables_cat(test):
 	"""
 	# - &module.executables
 	"""
+
 	i = module.executables('cat')
 	l = list(i)
 	test/len(l) >= 1 # No cat?
+
+	import sys
+	test/sys.getrefcount(i) == 2
+	del i
+	test.garbage()
 
 def test_executables_rm(test):
 	"""
@@ -26,26 +39,53 @@ def test_executables_rm(test):
 	l = list(i)
 	test/len(l) >= 1 # No rm?
 
-def test_username(test):
+def test_user_identifier(test):
+	"""
+	# - &module.user
+	"""
+	import os
+	test/module.user() == os.getuid()
+	test/module.user('identifier') == os.getuid()
+
+def test_user_name(test):
 	"""
 	# - &module.username
 	"""
-	user = module.username()
-	test/user != None
+	import os
+	test/module.username() == module.user('name')
+	os.environ['USER'] = 'override' + module.user('name')
+	test/module.username() != module.user('name')
 
-def test_usertitle(test):
+def test_user_title(test):
 	"""
-	# - &module.usertitle
+	# - &module.user
 	"""
-	title = module.usertitle()
-	test/title != None
+	title = module.user('title')
+	test/title != ''
 
-def test_shell(test):
+def test_user_role(test):
 	"""
-	# - &module.shell
+	# - &module.user
 	"""
-	sh = module.shell()
-	test/sh != None
+	title = module.user('role')
+	test/title != ''
+
+def test_user_shell(test):
+	"""
+	# - &module.user
+	"""
+	sh = module.user('shell')
+	test.isinstance(sh, files.Path)
+
+def test_user_home(test):
+	"""
+	# - &module.home
+	"""
+	import os
+	test/module.home() == module.user('home')
+	test.isinstance(module.home(), files.Path)
+	os.environ['HOME'] = '/'
+	test/module.home().fs_path_string() == '/'
 
 def test_ProcessMetrics(test):
 	"""

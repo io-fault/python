@@ -339,8 +339,367 @@ sq_clock_ticks(PyObj mod)
 	return(PyLong_FromLong((long) r));
 }
 
+static PyObj
+sq_executable_paths(PyObj mod)
+{
+	PyObj path_type, rob;
+	path_vector_t *pv;
+
+	path_type = PyImport_ImportAdjacent("files", "root");
+	if (path_type == NULL)
+		return(NULL);
+
+	pv = executable_paths(NULL);
+
+	rob = PyList_New(pv->path_count);
+	if (rob == NULL)
+		goto error;
+
+	for (int i = 0; i < pv->path_count; ++i)
+	{
+		PyObj str = PyUnicode_DecodeFSDefaultAndSize(pv->path_strings[i], strlen(pv->path_strings[i]));
+		PyObj path = NULL;
+
+		if (str == NULL)
+			goto error;
+
+		path = PyObject_CallMethod(path_type, "__matmul__", "O", str);
+		Py_DECREF(str);
+		if (path == NULL)
+			goto error;
+
+		PyList_SET_ITEM(rob, i, path);
+	}
+
+	free(pv);
+	Py_DECREF(path_type);
+	return(rob);
+
+	error:
+	{
+		free(pv);
+		Py_DECREF(path_type);
+		Py_XDECREF(rob);
+		return(NULL);
+	}
+}
+
+static PyObj
+path_object(const char *path, size_t path_length)
+{
+	PyObj path_type, path_str, rob;
+
+	path_type = PyImport_ImportAdjacent("files", "root");
+	if (path_type == NULL)
+		return(NULL);
+
+	path_str = PyUnicode_DecodeFSDefaultAndSize(path, path_length);
+	if (path_str == NULL)
+	{
+		Py_DECREF(path_type);
+		return(NULL);
+	}
+
+	rob = PyObject_CallMethod(path_type, "__matmul__", "O", path_str);
+	Py_DECREF(path_type);
+	Py_DECREF(path_str);
+	return(rob);
+}
+
+struct ExecutablePathIterator {
+	PyObject_HEAD
+	path_vector_t *paths;
+	int index;
+	char *buffer;
+	size_t length;
+	PyObj name;
+};
+typedef struct ExecutablePathIterator *EPI;
+#define EPI_Recast(X) PyObject_Recast(EPI, X)
+
+static void
+epi_dealloc(PyObj self)
+{
+	EPI epi = EPI_Recast(self);
+
+	if (epi->paths)
+	{
+		free(epi->paths);
+		epi->paths = NULL;
+	}
+
+	if (epi->buffer)
+	{
+		free(epi->buffer);
+		epi->buffer = NULL;
+	}
+
+	epi->length = 0;
+	Py_CLEAR(epi->name);
+}
+
+static PyObj
+epi_iter(PyObj self)
+{
+	Py_INCREF(self);
+	return(self);
+}
+
+static PyObj
+epi_iternext(PyObj self)
+{
+	int rindex;
+	EPI epi = EPI_Recast(self);
+	const char *exename = PyBytes_AS_STRING(epi->name);
+
+	rindex = executable_scan(epi->buffer, epi->length, epi->paths, exename, epi->index);
+	if (rindex == 0)
+		return(NULL);
+
+	epi->index = rindex;
+	return(path_object(epi->buffer, strlen(epi->buffer)));
+}
+
+CONCEAL(PyTypeObject)
+ExecutablePathIteratorType = {
+	PyVarObject_HEAD_INIT(NULL, 0)
+	.tp_name = FACTOR_PATH("ExecutablePathIterator"),
+	.tp_basicsize = sizeof(struct ExecutablePathIterator),
+	.tp_itemsize = 0,
+	.tp_flags = Py_TPFLAGS_DEFAULT,
+	.tp_dealloc = epi_dealloc,
+	.tp_iter = epi_iter,
+	.tp_iternext = epi_iternext,
+};
+
+static PyObj
+sq_executables(PyObj module, PyObj name)
+{
+	EPI epi;
+	PyObj rob;
+
+	rob = ExecutablePathIteratorType.tp_alloc(&ExecutablePathIteratorType, 0);
+	if (rob == NULL)
+		return(NULL);
+
+	epi = EPI_Recast(rob);
+	epi->index = 0;
+
+	epi->name = PyUnicode_EncodeFSDefault(name);
+	if (epi->name == NULL)
+		goto error;
+
+	epi->paths = executable_paths(NULL);
+	if (epi->paths == NULL)
+	{
+		PyErr_SetString(PyExc_MemoryError, "could not allocate memory for path vector");
+		goto error;
+	}
+
+	// +2 for '\0' and '/'.
+	epi->length = epi->paths->path_maximum_length + PyBytes_GET_SIZE(epi->name) + 2;
+	epi->buffer = malloc(epi->length);
+	if (epi->buffer == NULL)
+	{
+		PyErr_SetString(PyExc_MemoryError, "could not allocate memory for path buffer");
+		goto error;
+	}
+
+	return(rob);
+	error:
+	{
+		Py_DECREF(rob);
+		return(NULL);
+	}
+}
+
+static PyObj
+sq_executable(PyObj module, PyObj name)
+{
+	const char *path;
+	PyObj rob, name_bytes = PyUnicode_EncodeFSDefault(name);
+
+	if (name_bytes == NULL)
+		return(NULL);
+
+	path = executable_first(PyBytes_AS_STRING(name_bytes));
+	if (path == NULL)
+		Py_RETURN_NONE;
+
+	rob = path_object(path, strlen(path));
+	free(path);
+	return(rob);
+}
+
+enum UserField {
+	uf_identifier = 0,
+	uf_name,
+	uf_title,
+	uf_role,
+	uf_shell,
+	uf_home,
+};
+typedef enum UserField uf_t;
+
+static PyObj
+user_name(PyObj module)
+{
+	char *u_name = (char *) current_user_profile()->u_name;
+
+	if (u_name[0] == '\0')
+		Py_RETURN_NONE;
+	return(Py_NEW_VALUE(u_name));
+}
+
+static PyObj
+sq_username(PyObj module)
+{
+	char *u_name = getenv("USER");
+
+	if (u_name != NULL && u_name[0] != '\0')
+		return(Py_NEW_VALUE(u_name));
+
+	return(user_name(module));
+}
+
+static PyObj
+user_home(PyObj module)
+{
+	const char *u_home = current_user_profile()->u_home;
+
+	if (u_home[0] == '\0')
+		Py_RETURN_NONE;
+	return(path_object(u_home, strlen(u_home)));
+}
+
+static PyObj
+sq_home(PyObj module)
+{
+	const char *u_home = getenv("HOME");
+
+	if (u_home != NULL && u_home[0] != '\0')
+		return(path_object(u_home, strlen(u_home)));
+
+	return(user_home(module));
+}
+
+static PyObj
+user_role(PyObj module)
+{
+	char *u_role = (char *) current_user_profile()->u_role;
+
+	if (u_role[0] == '\0')
+		Py_RETURN_NONE;
+	return(Py_NEW_VALUE(u_role));
+}
+
+static PyObj
+user_title(PyObj module)
+{
+	char *u_title = (char *) current_user_profile()->u_title;
+
+	if (u_title[0] == '\0')
+		Py_RETURN_NONE;
+	return(Py_NEW_VALUE(u_title));
+}
+
+static PyObj
+user_shell(PyObj module)
+{
+	const char *u_shell = current_user_profile()->u_shell;
+
+	if (u_shell[0] == '\0')
+		Py_RETURN_NONE;
+	return(path_object(u_shell, strlen(u_shell)));
+}
+
+static PyObj
+sq_user(PyObj module, PyObj args, PyObj kw)
+{
+	int uid = -1;
+	const char *field = NULL;
+	const char *const kwlist[] = {
+		"field", "identifier", NULL
+	};
+	uf_t uf;
+	PyObj rob;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kw, "|si", kwlist, &field, &uid))
+		return(NULL);
+
+	switch (uid)
+	{
+		case -1:
+			uid = getuid();
+		break;
+
+		case -2:
+			uid = geteuid();
+		break;
+
+		default:
+			if (uid < 0)
+			{
+				PyErr_SetString(PyExc_ValueError, "invalid user identifier");
+				return(NULL);
+			}
+		break;
+	}
+
+	// Return user identifier.
+	if (field == NULL || strcmp("identifier", field) == 0)
+		uf = uf_identifier;
+	else if (strcmp("title", field) == 0)
+		uf = uf_title;
+	else if (strcmp("shell", field) == 0)
+		uf = uf_shell;
+	else if (strcmp("name", field) == 0)
+		uf = uf_name;
+	else if (strcmp("home", field) == 0)
+		uf = uf_home;
+	else
+		uf = -1;
+
+	switch (uf)
+	{
+		case uf_identifier:
+			return(Py_NEW_VALUE(uid));
+		break;
+
+		case uf_name:
+			rob = user_name(module);
+		break;
+
+		case uf_home:
+			rob = user_home(module);
+		break;
+
+		case uf_shell:
+			rob = user_shell(module);
+		break;
+
+		case uf_title:
+			rob = user_title(module);
+		break;
+
+		case uf_role:
+			rob = user_role(module);
+		break;
+
+		default:
+		{
+			rob = Py_None;
+			Py_INCREF(rob);
+		}
+		break;
+	}
+
+	return(rob);
+}
+
 #define PYTHON_TYPES() \
-	ID(ProcessMetrics)
+	ID(ProcessMetrics) \
+	ID(ExecutablePathIterator) \
 
 PyObj sq_process_usage_scan(PyObj, PyObj);
 PyObj sq_process_executable_path(PyObj, PyObj);
@@ -349,9 +708,18 @@ PyObj sq_process_executable_path(PyObj, PyObj);
 #define MODULE_FUNCTIONS() \
 	PyMethod_Variable(process_usage_scan), \
 	PyMethod_Variable(process_executable_path), \
+	\
+	PyMethod_None(username), \
+	PyMethod_None(home), \
 	PyMethod_None(hostname), \
 	PyMethod_None(machine), \
 	PyMethod_None(clock_ticks), \
+	\
+	PyMethod_None(executable_paths), \
+	PyMethod_Sole(executables), \
+	PyMethod_Sole(executable), \
+	\
+	PyMethod_Keywords(user), \
 
 #include <fault/metrics.h>
 #include <fault/python/module.h>
@@ -374,15 +742,6 @@ INIT(module, 0, NULL)
 	if (PyModule_AddIntConstant(module, "machine_addressing", sizeof(void *) * 8))
 		goto error;
 
-	// While _query still exists.
-	{
-		PyObj g = PyModule_GetDict(module);
-		PyObj xr;
-		xr = PyRun_String("from ._query import *", Py_file_input, g, g);
-		if (xr == NULL)
-			goto error;
-		Py_DECREF(xr);
-	}
 	return(0);
 
 	error:
