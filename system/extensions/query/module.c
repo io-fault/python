@@ -59,11 +59,12 @@ pm_from_parts(PyTypeObject *typ, PyObj args, PyObj kw)
 		#undef PMA
 		NULL
 	};
-	const char *const argtypes = "|"
-		#define PMA(TYP, NAME) TYP
+	const char argtypes[] = {'|',
+		#define PMA(TYP, NAME) Py_FORMAT_CODE(pm.NAME)[0] ,
 			ProcessMetricsParameters(PMA, "k", "d", "d")
 		#undef PMA
-	;
+		'\0'
+	};
 
 	#define PMA(TYP, NAME) , &pm.NAME
 	#define storage ProcessMetricsParameters(PMA, X, Y, Z)
