@@ -118,7 +118,7 @@ def test_ProcessMetrics(test):
 	g = {n: froot}
 	pm = Type(zero1)
 	pm.zombie_count = 20
-	pm_repr = eval(repr(pm), globals=g)
+	pm_repr = eval(repr(pm), g)
 	test/pm_repr.zombie_count == 20
 	test/pm_repr == pm
 

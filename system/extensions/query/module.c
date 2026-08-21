@@ -154,8 +154,8 @@ pm_str(PyObj self)
 		#undef PMA
 	;
 
-	#define PMA(TYP, NAME) , pmr->NAME
-	#define names ProcessMetricsParameters(PMA, X, Y, Z)
+	#define PMA(TYP, NAME) , TYP pmr->NAME
+	#define names ProcessMetricsParameters(PMA, (unsigned long), (double), (double))
 	snprintf(buf, sizeof(buf), fmt names);
 	#undef names
 	#undef PMA
@@ -175,8 +175,8 @@ pm_repr(PyObj self)
 	;
 	fmt += 2;
 
-	#define PMA(TYP, NAME) , pmr->NAME
-	#define names ProcessMetricsParameters(PMA, X, Y, Z)
+	#define PMA(TYP, NAME) , TYP pmr->NAME
+	#define names ProcessMetricsParameters(PMA, (unsigned long), (double), (double))
 	snprintf(buf, sizeof(buf), fmt names);
 	#undef names
 	#undef PMA
