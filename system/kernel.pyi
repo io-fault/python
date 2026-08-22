@@ -18,21 +18,6 @@ def released(fds:collections.abc.Iterable[int]) -> None:
 	# Configure the file descriptors to be released when the process is substituted(exec).
 	"""
 
-def hostname() -> str:
-	"""
-	# Retrieve the hostname of the system using gethostname(2).
-	"""
-
-def machine() -> tuple[str, str]:
-	"""
-	# Retrieve the system name and instruction architecture of the runtime using uname(2).
-	"""
-
-def clockticks() -> int:
-	"""
-	# Retrieve the (system/manual)`sysconf` value of (id)`SC_CLK_TCK`.
-	"""
-
 def signalexit(signo:int) -> None:
 	"""
 	# Configure an atexit call to force the process to exit via a signal.
