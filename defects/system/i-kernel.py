@@ -26,7 +26,7 @@ def test_Invocation_file_not_found(test):
 	"""
 	tr = test.exits.enter_context(files.Path.fs_tmpdir())
 	r = tr / 'no-such.exe'
-	i = module.Invocation(str(r), ())
+	i = module.Invocation(str(r), [str(r)])
 
 	with open(os.devnull) as f:
 		invoke = lambda: i(((f.fileno(), 0), (f.fileno(), 1), (f.fileno(), 2)))
@@ -38,7 +38,7 @@ def test_Invocation_execute(test):
 	stdout = os.pipe()
 	stderr = os.pipe()
 
-	catinv = module.Invocation("/bin/cat", (), environ={})
+	catinv = module.Invocation("/bin/cat", ["cat"], environ={})
 	pid = catinv(((stdin[0],0), (stdout[1],1), (stderr[1],2)))
 
 	os.close(stdin[0])
