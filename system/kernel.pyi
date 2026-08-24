@@ -29,6 +29,43 @@ def initialize():
 	# Called once by &.process. Do not use directly.
 	"""
 
+def test_process(pid:int=-1) -> int:
+	"""
+	# Test whether a *child* process with the given &pid is running.
+
+	# [ Returns ]
+	# Zero when the process does not exist or is not a child process.
+	# Otherwise, &pid is returned if the process is running and a more accurate
+	# identifier was not provided by the wait operation.
+	"""
+
+def wait_process(pid:int=-1) -> int:
+	"""
+	# Block until the process exits and return the &pid without reaping.
+
+	# [ Returns ]
+	# The given &pid or the exact process identifier of an exited child.
+	"""
+
+def reap_process(pid:int) -> int:
+	"""
+	# Reap the process with the given &pid and return its exit code.
+
+	# [ Exceptions ]
+	# /OSError/
+		# Configured with (system/errno)`EBUSY` when the process had yet to exit.
+	# /ChildProcessError/
+		# When the &pid does not refer to a running child process.
+	# /ValueError/
+		# Raised when &pid is less than one.
+
+	# [ Returns ]
+	# The exit code or signal of the terminated process.
+
+	# When the process was terminated by a signal, the exit code is the negative of the signal code.
+	# Otherwise, the exit code as identified by `WEXITSTATUS`.
+	"""
+
 @collections.abc.Sequence.register
 class Ports(object):
 	"""
