@@ -52,7 +52,9 @@ Vector = typing.Sequence[typing.AnyStr]
 Specification = typing.Tuple[typing.AnyStr, Vector]
 Method = typing.Callable[[typing.AnyStr, Vector], Specification]
 
-from .kernel import Invocation as KInvocation # Public export.
+from .kernel import Invocation as KInvocation
+from .kernel import reap_process as reap
+from .kernel import wait_process as wait
 
 def default_python_script(index, script, arguments, name=None):
 	sysexe = sys.executable
@@ -129,146 +131,6 @@ root = Index()
 select = root.select
 prepare = root.prepare
 
-from dataclasses import dataclass
-@dataclass
-class Delta(object):
-	"""
-	# Descriptor of change in a subprocess' state.
-	"""
-	event:(str) = None
-	status:(int) = None
-	core:(typing.Optional[bool]) = None
-
-	@property
-	def running(self):
-		return self.event in ('none', 'continue')
-
-	@property
-	def exited(self):
-		return self.event == 'exit'
-	@property
-	def cored(self):
-		return self.event == 'exit' and self.core is True
-	@property
-	def continued(self):
-		return self.event == 'continue'
-	@property
-	def stopped(self):
-		return self.event == 'stop'
-
-def decode_process_status(
-		status:int,
-		wasexit = os.WIFEXITED,
-		getstatus = os.WEXITSTATUS,
-
-		wassignal = os.WIFSIGNALED,
-		getsig = os.WTERMSIG,
-
-		wasstopped = os.WIFSTOPPED,
-		getstop = os.WSTOPSIG,
-
-		wascontinued = os.WIFCONTINUED,
-
-		wascore = os.WCOREDUMP,
-	) -> Delta:
-	"""
-	# The process or SIGCHLD signals. This is an abstraction to &os.waitpid
-	# and can only be used with child processes.
-
-	# [ Parameters ]
-	# /status/
-		# The status code produced by &os.waitpid. (stat_loc)
-
-	# [ Exceptions ]
-	# /&ValueError/
-		# Raised when the given status code could not be recognized.
-	"""
-
-	if wasexit(status):
-		event = 'exit'
-		code = getstatus(status)
-		cored = wascore(status) or False
-	elif wassignal(status):
-		event = 'exit'
-		code = - getsig(status)
-		cored = wascore(status) or False
-	elif wasstopped(status):
-		event = 'stop'
-		code = getstop(status) or 0
-		cored = None
-	elif wascontinued(status):
-		event = 'continue'
-		code = 0
-		cored = None
-	else:
-		raise ValueError("unrecognized process status") # Could not create &Delta
-
-	return Delta(event, code, cored)
-
-def reap(
-		pid:int,
-		options=(os.WNOHANG | os.WUNTRACED),
-		sysop=os.waitpid,
-	) -> typing.Optional[Delta]:
-	"""
-	# Transform pending process events such as exits into a &Delta describing
-	# the event. Normally used to respond to process exit events in order to reap
-	# the process or SIGCHLD signals. This is an abstraction to &os.waitpid
-	# and can only be used with child processes.
-
-	# [ Parameters ]
-	# /pid/
-		# The process identifier to reap.
-	# /options/
-		# Keyword parameter defaulting to `os.WNOHANG | os.WUNTRACED`.
-		# This can be altered in cases where the flags are not desired.
-
-	# [ Returns ]
-	# /&Delta/
-		# Core is &True or &False for exits, and &None in all other cases.
-	# /&None/
-		# No status was available due to error.
-	"""
-
-	try:
-		rpid, code = sysop(pid, options) # waitpid
-	except OSError:
-		# The silenced exception is desired.
-		# &reap is charged with intent where waitpid is not.
-		# When this function is used, the caller should only be
-		# interested in completing termination of the child.
-		return None
-
-	if (rpid, code) == (0, 0):
-		return Delta('none', None, None)
-
-	return decode_process_status(code)
-
-if hasattr(os, 'wait4'):
-	def waitrusage(receiver, pid:int, options, sysop=os.wait4) -> typing.Tuple[int, int]:
-		"""
-		# &os.wait4 abstraction sending the child's resource usage to &receiver.
-
-		# Using, &functools.partial to provide a &receiver, this should be given
-		# to &reap as the &sysop keyword parameter.
-		"""
-		rpid, rstatus, rusage = sysop(pid, options) # wait4
-		receiver(rusage)
-		return (rpid, rstatus)
-else:
-	def waitrusage(receiver, pid:int, options, sysop=os.waitpid) -> typing.Tuple[int, int]:
-		"""
-		# &os.wait4 is not present on this system. &receiver will always be called
-		# with &None and the child will be reaped using &os.waitpid.
-
-		# Using, &functools.partial to provide a &receiver, this should be given
-		# to &reap as the &sysop keyword parameter.
-		"""
-		receiver(None)
-		return sysop(pid, options) # waitpid
-
-del dataclass
-
 def dereference(invocation:KInvocation, stderr=2, stdout=1):
 	"""
 	# Execute the given invocation collecting (system/file)`/dev/stdout` into a &bytes instance.
@@ -307,9 +169,9 @@ def dereference(invocation:KInvocation, stderr=2, stdout=1):
 		if pid:
 			if not eof:
 				os.kill(pid, 9)
-			delta = reap(pid, options=0)
+			exitcode = reap(wait(pid))
 
-	return pid, delta.status, data
+	return pid, exitcode, data
 
 def effect(invocation:KInvocation):
 	"""
@@ -334,7 +196,7 @@ def perform(invocation:KInvocation) -> int:
 	"""
 
 	pid = invocation(((0, 0), (1, 1), (2, 2)))
-	return reap(pid, options=0).status
+	return reap(wait(pid))
 
 class Pipeline(tuple):
 	"""
@@ -493,7 +355,7 @@ class PInvocation(tuple):
 			# that the process was cleaned up as well.
 			for pid in pids:
 				os.kill(pid, signal)
-				os.waitpid(pid, 0) # After kill -9; during exception
+				reap(wait(pid)) # After kill -9; during exception
 
 			raise
 		finally:

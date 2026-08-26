@@ -219,10 +219,10 @@ def dispatch(meta, log,
 
 				if sframes is None:
 					# Closed.
-					pdelta = execution.reap(status['pid'], options=0)
+					exitcode = execution.reap(execution.wait(status['pid']))
 
 					# Send final snapshot to log.
-					ftype = closetypes.get((opened, pdelta.status == 0), '<-')
+					ftype = closetypes.get((opened, exitcode == 0), '<-')
 					xf = monitor.frame(control, ftype, status['identifier'])
 					log.emit(xf)
 					log.flush()
@@ -331,4 +331,4 @@ def dispatch(meta, log,
 			except (KeyError, ProcessLookupError):
 				pass
 			else:
-				exit_status = execution.reap(status['pid'], options=0)
+				exit_status = execution.reap(execution.wait(status['pid']))
