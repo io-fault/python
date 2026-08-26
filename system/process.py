@@ -732,19 +732,26 @@ def timeout(duration=4, update=signal.alarm, signo=signal.SIGALRM):
 		update(0)
 		signal.signal(signo, prior)
 
-def concurrently(controller:typing.Callable, exe=Fork.dispatch, waitpid=os.waitpid):
+@contextlib.contextmanager
+def concurrently(controller:typing.Callable, postjoin=(lambda x: None), *, Fork=Fork.dispatch):
 	"""
-	# Dispatch the given controller in a child process of a &control controlled process.
-	# The returned object is a reference to the result that will block until the child
+	# Dispatch the given controller in a child process of a &control managed process.
+	# The yielded object is a reference to the result that will block until the child
 	# process has written the serialized response to a pipe.
 
 	# Used to create *very simple* fork trees or workers that need to send completion reports back to
-	# the parent. This expects the calling process to have been launched with &control.
+	# the parent. This expects the calling process to have been launched with &control in the
+	# main thead.
 
 	# [ Parameters ]
 
 	# /controller/
 		# The object to call to use the child's controller.
+	# /postjoin/
+		# Operation to run against the fork's process identifier after it has terminated,
+		# but prior to it being reaped. If the exit code is needed, &postjoin may
+		# reap the process and return &True in order to signal that the process has
+		# already been reaped.
 	"""
 	if not __control_lock__.locked():
 		raise RuntimeError("main thread is not managed with fault.system.process.control")
@@ -760,7 +767,7 @@ def concurrently(controller:typing.Callable, exe=Fork.dispatch, waitpid=os.waitp
 	dump = pickle.dump
 	load = pickle.load
 
-	def execute_controller(call = controller, rw = rw):
+	def execute_controller(call=controller, rw=rw):
 		os.close(rw[0])
 		try:
 			result = call()
@@ -772,27 +779,25 @@ def concurrently(controller:typing.Callable, exe=Fork.dispatch, waitpid=os.waitp
 		write.close()
 		raise SystemExit(0)
 
-	# child never returns
-	pid = exe(execute_controller)
-
-	# Parent Only:
+	pid = Fork(execute_controller) # raises in child
+	os.close(rw[1])
 	del execute_controller
 
-	os.close(rw[1])
-	def read_child_result(read = io.open(rw[0], 'rb'), pid = pid, status_ref = None):
+	def read_child_result(read=io.open(rw[0], 'rb')):
 		try:
 			with read:
 				result = load(read)
-		except EOFError:
+		except EOFError as error:
 			result = None
-
-		status = waitpid(pid, 0)
-		if status_ref is not None:
-			status_ref(status)
 
 		return result
 
-	return pid, read_child_result
+	try:
+		yield read_child_result
+	finally:
+		if not postjoin(kernel.wait_process(pid)): # Indefinitely.
+			# Allow Postjoin to reap for the exit code.
+			exitcode = kernel.reap_process(pid)
 
 def fs_pwd() -> files.Path:
 	"""

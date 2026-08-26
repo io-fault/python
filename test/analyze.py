@@ -15,6 +15,8 @@ from ..system import corefile
 from ..system import process
 from ..system import files
 from ..system import factors
+from ..system import query
+from ..system import execution
 from ..status import python
 from ..time.system import elapsed
 from ..transcript import metrics
@@ -51,36 +53,46 @@ class Harness(engine.Harness):
 
 	def dispatch(self, test):
 		start_time = elapsed()
+		exitcode = None
+		rusage = None
+		pid = None
 
 		# Test in a subprocess.
 		def manage(harness=self, test=test):
 			with test.exits:
 				return harness.execute(test)
 
+		# Get the resource usage and exit code.
+		def usage(fork_pid):
+			nonlocal rusage, pid, exitcode
+			pid = fork_pid
+			rusage = query.process_usage_scan(fork_pid, 1)
+			exitcode = execution.reap(fork_pid)
+			return True
+
 		mid = os.environ['METRICS_IDENTITY']
 		os.environ['METRICS_IDENTITY'] += '/' + test.identifier
-		pid, execute_test = self.concurrently(manage, waitpid=os.wait4)
-		# Fork is raised here by concurrently, so don't set this in finally.
-		os.environ['METRICS_IDENTITY'] = mid
 
 		xact_metrics = metrics.Procedure(
 			work=metrics.Work(1, 0, 0, 0),
 			msg=metrics.Advisory(),
 			usage=metrics.Resource(),
 		)
-
 		xid = '/'.join((self.project, self.factor, test.identifier))
 		self.log.xact_open(xid, xid + ": dispatched", {
 			'@timestamp': [str(start_time)],
 			'@type': ['system'],
 			'@metrics': [xact_metrics.sequence()],
-			'system-process-id': [str(pid)],
 		})
 		self.log.flush()
 
-		l = []
+		with self.concurrently(manage, usage) as read_report:
+			report = read_report()
 
-		report = execute_test(status_ref=l.append)
+		# process.Fork is raised in child by concurrently.
+		# Reset metric identity in parent.
+		os.environ['METRICS_IDENTITY'] = mid
+
 		try:
 			stop_time = elapsed()
 
@@ -95,18 +107,6 @@ class Harness(engine.Harness):
 						'contentions': 0,
 					},
 				}
-
-			pid, status, rusage = l[0]
-
-			if os.WCOREDUMP(status):
-				report['failure'] = types.FailureType.fault
-				self._handle_core(corefile.location(pid))
-			elif not os.WIFEXITED(status):
-				import signal
-				try:
-					os.kill(pid, signal.SIGKILL)
-				except OSError:
-					pass
 		finally:
 			failure = report.get('exception', None)
 			if failure:
@@ -124,9 +124,9 @@ class Harness(engine.Harness):
 				work = metrics.Work(0, 1, 0, 0)
 
 			# Construct metrics.
-			ut = int((rusage.ru_stime + rusage.ru_utime) * (10**9))
+			ut = int((rusage.total_system_time + rusage.total_user_time) * (10**9))
 			rt = stop_time - start_time
-			usage = metrics.Resource(1, int(rusage.ru_maxrss), ut, rt)
+			usage = metrics.Resource(1, int(rusage.maximum_memory), ut, rt)
 			xact_metrics = metrics.Procedure(work=work, msg=metrics.Advisory(), usage=usage)
 
 			self.log.xact_close(xid, xid + ": " + report['conclusion'].name, {
@@ -140,7 +140,7 @@ class Harness(engine.Harness):
 		rm = report['metrics']
 		rm['duration'] = rt
 		rm['processing'].append(ut)
-		rm['memory'].append(rusage.ru_maxrss)
+		rm['memory'].append(rusage.maximum_memory)
 
 		return report
 
