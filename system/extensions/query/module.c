@@ -437,6 +437,8 @@ epi_dealloc(PyObj self)
 
 	epi->length = 0;
 	Py_CLEAR(epi->name);
+
+	Py_TYPE(self)->tp_free(self);
 }
 
 static PyObj
@@ -524,6 +526,7 @@ sq_executable(PyObj module, PyObj name)
 		return(NULL);
 
 	path = executable_first(PyBytes_AS_STRING(name_bytes));
+	Py_DECREF(name_bytes);
 	if (path == NULL)
 		Py_RETURN_NONE;
 
