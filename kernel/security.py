@@ -6,9 +6,9 @@ import types
 import importlib.machinery
 
 from ..context import weak
-from ..kernel import flows
 from ..system import identity
 from ..project import system as lsf
+from . import flows
 
 def get_application_context(application='http'):
 	import os
