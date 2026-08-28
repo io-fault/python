@@ -32,11 +32,10 @@ from ...kernel import core as kcore
 from ...kernel import dispatch as kdispatch
 from ...kernel import flows as kflows
 from ...kernel import io as kio
+from ...kernel import security as ksecurity
 
 from .. import http
 from .. import agent
-
-from ...security import kprotocol as ksecurity
 
 redirect_limit = 4
 
