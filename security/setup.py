@@ -4,11 +4,11 @@
 import os
 import copy
 
-from ...system import files
-from ...system import process
+from ..system import files
+from ..system import process
 
-from ...project import system as lsf
-from ...project import factory
+from ..project import system as lsf
+from ..project import factory
 
 info = lsf.types.Information(
 	identifier = 'http://fault.io/python/security/kprotocol-',
