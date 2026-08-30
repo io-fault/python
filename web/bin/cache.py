@@ -24,6 +24,7 @@ import collections
 from ...system import files
 from ...system import process
 from ...system import network
+from ...system import security
 
 from ...time import types as timetypes
 from ...internet import ri
@@ -38,11 +39,6 @@ from .. import http
 from .. import agent
 
 redirect_limit = 4
-
-try:
-	security_context = ksecurity.load('client').Context(applications=(b'http/1.1',))
-except ImportError:
-	security_context = None
 
 class Download(kcore.Context):
 	dl_monitor = None
@@ -230,7 +226,8 @@ class Download(kcore.Context):
 		tp = kio.Transport.from_endpoint(self.system.allocate_transport(fd))
 
 		if struct['scheme'] == 'https':
-			tls_transport = security_context.connect(struct['host'].encode('idna'))
+			tls_ctx = security.Context(applications=[b'http/1.1'])
+			tls_transport = security.Transport.connect(tls_ctx, struct['host'].encode('idna'))
 			tls_ts = ksecurity.allocate(tls_transport)
 			tls_channels = (('security', tls_transport), tls_ts)
 			self.dl_tls = tls_transport
