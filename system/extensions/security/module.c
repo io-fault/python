@@ -2276,64 +2276,51 @@ INIT(module, 0, NULL)
 	else
 		Py_INCREF(PyExc_TransportSecurityError);
 
-	if (PyModule_AddObject(module, "IError", PyExc_TransportSecurityError))
-		goto error;
-
-	if (PyModule_AddIntConstant(module, "version_code", OPENSSL_VERSION_NUMBER))
-		goto error;
-
-	if (PyModule_AddStringConstant(module, "version", OPENSSL_VERSION_TEXT))
-		goto error;
-
 	if (PyModule_AddStringConstant(module, "ciphers", FAULT_OPENSSL_CIPHERS))
 		goto error;
 
+	if (PyModule_AddObject(module, "IError", PyExc_TransportSecurityError))
+		goto error;
+
+	if (PyModule_AddIntConstant(module, "if_version_code", OPENSSL_VERSION_NUMBER))
+		goto error;
+
+	if (PyModule_AddIntConstant(module, "li_version_code", OpenSSL_version_num()))
+		goto error;
+
+	if (PyModule_AddStringConstant(module, "if_version", OPENSSL_FULL_VERSION_STR))
+		goto error;
+
+	if (PyModule_AddStringConstant(module, "li_version", OpenSSL_version(OPENSSL_FULL_VERSION_STRING)))
+		goto error;
+
 	/*
-		// Break up the version into sys.version_info style tuple.
-		// 0x1000105fL is 1.0.1e final
+		// Interface (headers) version.
 	*/
 	{
-		PyObj version_info;
-		int patch_code = ((OPENSSL_VERSION_NUMBER >> 4) & 0xFF);
-		int status_code = (OPENSSL_VERSION_NUMBER & 0xF);
-		char *status = NULL, *patch = NULL, patch_char[2];
-
-		switch (status_code)
-		{
-			case 0:
-				status = "dev";
-			break;
-
-			case 0xF:
-				status = "final";
-			break;
-
-			default:
-				status = "beta";
-			break;
-		}
-
-		switch (patch_code)
-		{
-			case 0:
-				patch = NULL;
-			break;
-			default:
-				patch_code += (int) 'a';
-				patch_char[0] = patch_code - 1;
-				patch_char[1] = '\0';
-				patch = patch_char;
-			break;
-		}
-
-		version_info = Py_BuildValue("(iiiss)",
-			(OPENSSL_VERSION_NUMBER >> 28) & 0xFF,
-			(OPENSSL_VERSION_NUMBER >> 20) & 0xFF,
-			(OPENSSL_VERSION_NUMBER >> 12) & 0xFF,
-			patch, status
+		PyObj version_info = Py_BuildValue("(iiiss)",
+			OPENSSL_VERSION_MAJOR,
+			OPENSSL_VERSION_MINOR,
+			OPENSSL_VERSION_PATCH,
+			OPENSSL_VERSION_PRE_RELEASE,
+			OPENSSL_VERSION_BUILD_METADATA
 		);
 
-		if (PyModule_AddObject(module, "version_info", version_info))
+		if (PyModule_AddObject(module, "if_version_info", version_info))
+			goto error;
+	}
+
+	// Library (image) version.
+	{
+		PyObj version_info = Py_BuildValue("(iiiss)",
+			OPENSSL_version_major(),
+			OPENSSL_version_minor(),
+			OPENSSL_version_patch(),
+			OPENSSL_version_pre_release(),
+			OPENSSL_version_build_metadata()
+		);
+
+		if (PyModule_AddObject(module, "li_version_info", version_info))
 			goto error;
 	}
 
