@@ -21,8 +21,6 @@
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
 
-#define VERIFY_FAILURE 337047686
-
 #ifdef OPENSSL_NO_EVP
 	#error fault.security transport context requires openssl with EVP
 #endif
@@ -33,6 +31,23 @@
 
 #include <fault/libc.h>
 #include <fault/python/environ.h>
+
+#define MODULE_EXCEPTIONS(F) \
+	F(Exception) \
+	F(ProtocolViolation) \
+	F(InvalidCertificate) \
+	F(PolicyViolation) \
+	F(UnsuitableCertificate) \
+	F(ExpiredCertificate) \
+	F(UntrustedCertificate) \
+	F(RevokedCertificate) \
+	F(ForgedCertificate) \
+
+struct module_state {
+	#define X(N) PyObj N;
+		MODULE_EXCEPTIONS(X)
+	#undef X
+};
 
 #define Transport_GetReadBuffer(tls) (SSL_get_rbio(tls->tls_state))
 #define Transport_GetWriteBuffer(tls) (SSL_get_wbio(tls->tls_state))
@@ -397,17 +412,111 @@ openssl_error_stack(void)
 	return(stack);
 }
 
-extern PyObj PyExc_TransportSecurityError;
-
 static void
 openssl_error_set(void)
 {
 	PyObj val;
 	val = openssl_error_pop();
+
 	if (val)
-		PyErr_SetObject(PyExc_TransportSecurityError, val);
+	{
+		struct module_state *ms = Py_ModuleState();
+		EData err = EData_Recast(val);
+
+		switch (err->errcode)
+		{
+			default:
+				PyErr_SetObject(ms->Exception, val);
+			break;
+		}
+	}
 }
 
+static void
+openssl_transport_error_set(transport_t ts)
+{
+	PyObj val;
+	val = openssl_error_pop();
+
+	if (val)
+	{
+		struct module_state *ms = Py_ModuleState();
+		EData err = EData_Recast(val);
+
+		switch (ERR_GET_REASON(err->errcode))
+		{
+			case SSL_R_CERTIFICATE_VERIFY_FAILED:
+			{
+				int vr = SSL_get_verify_result(ts);
+				PyObj exc;
+				char *msg;
+
+				switch (vr)
+				{
+					case X509_V_ERR_CERT_HAS_EXPIRED:
+						exc = ms->ExpiredCertificate;
+						msg = "cannot use certificate outside of its designated time frame";
+					break;
+
+					case X509_V_ERR_CERT_REVOKED:
+						exc = ms->RevokedCertificate;
+						msg = "certificate found in revocation list";
+					break;
+
+					case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY:
+					case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT:
+						exc = ms->UntrustedCertificate;
+						msg = "certificate issuer could not be found";
+					break;
+
+					case X509_V_ERR_CERT_UNTRUSTED:
+						exc = ms->UntrustedCertificate;
+						msg = "certificate's authority or purpose was marked as untrusted";
+					break;
+
+					case X509_V_ERR_CERT_SIGNATURE_FAILURE:
+						exc = ms->ForgedCertificate;
+						msg = "invalid certificate signature";
+					break;
+
+					case X509_V_ERR_HOSTNAME_MISMATCH:
+						exc = ms->UnsuitableCertificate;
+						msg = "certificate cannot be used with specified hostname";
+					break;
+
+					case X509_V_ERR_EMAIL_MISMATCH:
+						exc = ms->UnsuitableCertificate;
+						msg = "certificate cannot be used with specified e-mail";
+					break;
+
+					case X509_V_ERR_IP_ADDRESS_MISMATCH:
+						exc = ms->UnsuitableCertificate;
+						msg = "certificate cannot be used with specified IP address";
+					break;
+
+					case X509_V_ERR_INVALID_PURPOSE:
+						exc = ms->UnsuitableCertificate;
+						msg = "use of certificate for the configured purpose was prohibited";
+					break;
+
+					case X509_V_ERR_CERT_NOT_YET_VALID:
+					default:
+						exc = ms->InvalidCertificate;
+						msg = X509_verify_cert_error_string(vr);
+					break;
+				}
+
+				PyErr_SetString(exc, msg);
+				Py_DECREF(val);
+			}
+			break;
+
+			default:
+				PyErr_SetObject(ms->ProtocolViolation, val);
+			break;
+		}
+	}
+}
 
 /*
 	// Prompting is inappropriate from a library;
@@ -529,14 +638,23 @@ password_parameter(char *buf, int size, int rwflag, void *u)
 static int
 library_error(void)
 {
-	if (ERR_peek_error() != 0)
-	{
-		openssl_error_set();
-		ERR_clear_error();
-		return(-1);
-	}
-	else
+	if (ERR_peek_error() == 0)
 		return(0);
+
+	openssl_error_set();
+	ERR_clear_error();
+	return(-1);
+}
+
+static int
+transport_error(transport_t ts)
+{
+	if (ERR_peek_error() == 0)
+		return(0);
+
+	openssl_transport_error_set(ts);
+	ERR_clear_error();
+	return(-1);
 }
 
 /**
@@ -1361,7 +1479,7 @@ transport_flush(Transport tls)
 
 	if (xfer < 1)
 	{
-		if (library_error())
+		if (transport_error(tls->tls_state))
 			r = -2;
 		else
 		{
@@ -1487,7 +1605,7 @@ transport_decipher(PyObj self, PyObj buffer_sequence)
 		bufptr = PyByteArray_AS_STRING(buffer);
 
 		xfer = SSL_read(tls->tls_state, bufptr, DEFAULT_READ_SIZE);
-		if (xfer < 1 && library_error())
+		if (xfer < 1 && transport_error(tls->tls_state))
 		{
 			Py_DECREF(buffer);
 			Py_DECREF(rob);
@@ -2042,63 +2160,6 @@ transport_get_transmit_closed(PyObj self, void *_)
 	return(Py_False);
 }
 
-static const char *
-violation(long vr)
-{
-	switch (vr)
-	{
-		case X509_V_ERR_CERT_NOT_YET_VALID:
-			return("not-yet-valid");
-		break;
-
-		case X509_V_ERR_CERT_HAS_EXPIRED:
-			return("expired");
-		break;
-
-		case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY:
-		case X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN:
-		case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT:
-		case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
-		case X509_V_ERR_CERT_UNTRUSTED:
-			return("untrusted");
-		break;
-
-		case X509_V_ERR_CERT_REVOKED:
-			return("revoked");
-		break;
-
-		case X509_V_ERR_CERT_REJECTED:
-			return("rejected");
-		break;
-
-		case X509_V_ERR_CERT_SIGNATURE_FAILURE:
-			return("signature-mismatch");
-		break;
-
-		case X509_V_ERR_ERROR_IN_CERT_NOT_BEFORE_FIELD:
-		case X509_V_ERR_ERROR_IN_CERT_NOT_AFTER_FIELD:
-		default:
-			return("invalid");
-		break;
-	}
-}
-
-static PyObj
-transport_get_violation(PyObj self, void *_)
-{
-	Transport tls = Transport_Recast(self);
-	long vr;
-	const char *x;
-
-	vr = SSL_get_verify_result(tls->tls_state);
-	if (vr == X509_V_OK)
-	{
-		Py_RETURN_NONE;
-	}
-
-	return(Py_BuildValue("ss", violation(vr), X509_verify_cert_error_string(vr)));
-}
-
 static PyObj
 transport_get_client_ca_list(PyObj self, void *_)
 {
@@ -2161,7 +2222,6 @@ static PyGetSetDef transport_getset[] = {
 	{"peer", transport_get_peer_certificate, NULL, NULL, NULL},
 	{"receive_closed", transport_get_receive_closed, NULL, NULL, NULL},
 	{"transmit_closed", transport_get_transmit_closed, NULL, NULL, NULL},
-	{"violation", transport_get_violation, NULL, NULL, NULL},
 	{"client_ca_names", transport_get_client_ca_list, NULL, NULL, NULL},
 	{NULL,},
 };
@@ -2264,22 +2324,73 @@ load_implementation(void)
 	ERR_clear_error();
 }
 
-#include <fault/python/module.h>
-INIT(module, 0, NULL)
+static int
+m_traverse(PyObj module, visitproc visit, void *arg)
 {
-	if (PyExc_TransportSecurityError == NULL)
+	struct module_state *ms = PyModule_GetState(module);
+
+	#define X(N) Py_VISIT(ms->N);
+		MODULE_EXCEPTIONS(X)
+	#undef X
+	return(0);
+}
+
+static void
+m_clear(PyObj module)
+{
+	struct module_state *ms = PyModule_GetState(module);
+
+	#define X(N) Py_CLEAR(ms->N);
+		MODULE_EXCEPTIONS(X)
+	#undef X
+}
+
+static void
+m_free(PyObj module)
+{
+	m_clear(module);
+}
+
+#include <fault/python/module.h>
+INIT(module, sizeof(struct module_state), MODULE_GC)
+{
+	struct module_state *ms = PyModule_GetState(module);
+
+	// Exceptions
 	{
-		PyExc_TransportSecurityError = PyErr_NewException("openssl.IError", NULL, NULL);
-		if (PyExc_TransportSecurityError == NULL)
+		PyObj exc = NULL;
+		PyObj sv = PyErr_NewException(PYTHON_MODULE_PATH("Exception"), NULL, NULL);
+		if (sv == NULL)
 			goto error;
+
+		if (PyModule_AddObject(module, "Exception", sv))
+			goto error;
+		ms->Exception = sv;
+		Py_INCREF(sv);
+
+		#define AddExc(NAME, BASE) \
+			exc = PyErr_NewException(PYTHON_MODULE_PATH(#NAME), BASE, NULL); \
+			if (exc == NULL) \
+				goto error; \
+			if (PyModule_AddObject(module, #NAME, exc)) \
+				goto error; \
+			ms->NAME = exc; \
+			Py_INCREF(exc); \
+			exc = NULL; \
+
+			AddExc(ProtocolViolation, sv)
+			AddExc(InvalidCertificate, sv)
+
+			AddExc(PolicyViolation, ms->InvalidCertificate)
+			AddExc(ExpiredCertificate, ms->PolicyViolation)
+			AddExc(RevokedCertificate, ms->PolicyViolation)
+			AddExc(UntrustedCertificate, ms->PolicyViolation)
+			AddExc(ForgedCertificate, ms->PolicyViolation)
+			AddExc(UnsuitableCertificate, ms->PolicyViolation)
+		#undef AddExc
 	}
-	else
-		Py_INCREF(PyExc_TransportSecurityError);
 
 	if (PyModule_AddStringConstant(module, "ciphers", FAULT_OPENSSL_CIPHERS))
-		goto error;
-
-	if (PyModule_AddObject(module, "IError", PyExc_TransportSecurityError))
 		goto error;
 
 	if (PyModule_AddIntConstant(module, "if_version_code", OPENSSL_VERSION_NUMBER))
@@ -2294,9 +2405,7 @@ INIT(module, 0, NULL)
 	if (PyModule_AddStringConstant(module, "li_version", OpenSSL_version(OPENSSL_FULL_VERSION_STRING)))
 		goto error;
 
-	/*
-		// Interface (headers) version.
-	*/
+	// Interface (headers) version.
 	{
 		PyObj version_info = Py_BuildValue("(iiiss)",
 			OPENSSL_VERSION_MAJOR,
@@ -2324,9 +2433,7 @@ INIT(module, 0, NULL)
 			goto error;
 	}
 
-	/*
-		// Initialize types
-	*/
+	// Initialize types
 	#define ID(NAME) \
 		if (PyType_Ready((PyTypeObject *) &( NAME##Type ))) \
 			goto error; \
