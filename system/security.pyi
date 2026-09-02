@@ -52,16 +52,21 @@ class UntrustedCertificate(PolicyViolation):
 	# Certficate issuer could not be found or a part of its chain was marked as untrusted.
 	"""
 
-class Context(Protocol):
-	"""
-	# Collection of certificates and policies used to define the constraints of secure transports.
-	"""
-
 class Certificate(Protocol):
 	"""
 	# Collection of parameters identifying a peer or authority that are needed
 	# to establish secure transports.
 	"""
+
+class Context(Protocol):
+	"""
+	# Collection of certificates and policies used to define the constraints of secure transports.
+	"""
+
+	def trust(self, crt:Certificate):
+		"""
+		# Add the certificate to the set that is used for peer verification.
+		"""
 
 class Transport(Protocol):
 	"""

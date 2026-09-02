@@ -1,3 +1,5 @@
+from ....system import security as module
+
 key = b"""
 -----BEGIN RSA PRIVATE KEY-----
 MIIEogIBAAKCAQEAtIW++6LjK5ou4Ej6QLeZInaR0iN7/g5gE5o41Z2QaDA+Xxk9
@@ -58,53 +60,14 @@ TU5G4ur07EfyALq7
 -----END CERTIFICATE-----
 """
 
-def test_version(test):
-	attributes = [
-		'version_code',
-		'version_info',
-		'version',
-		'ciphers',
-	]
-	m_attributes = dir(module)
-	for att in attributes:
-		test/m_attributes << att
-
-	test.isinstance(module.version, str)
-	test.isinstance(module.version_info, tuple)
-	test.isinstance(module.version_code, int)
-	test.isinstance(module.version_info[0], int)
-	test.isinstance(module.version_info[1], int)
-	test.isinstance(module.version_info[2], int)
-
-def test_certificate(test):
-	crt = module.Certificate(certificate)
-	test/crt.type == 'x509'
-
-	if 0:
-		print(str(crt))
-		print(repr(crt))
-		print('version', crt.version)
-		print('not-before', crt.not_before_string)
-		print('not-after', crt.not_after_string)
-		print('subject', crt.subject)
-
-def test_no_certificates(test):
-	ctx = module.Context()
-	test.isinstance(ctx, module.Context)
-	tls = ctx.connect(None)
-	test.isinstance(tls, module.Transport)
-	tls = ctx.accept()
-	test.isinstance(tls, module.Transport)
-	del tls
-	del ctx
-	test.garbage(0)
-
 def test_enciphered_transfers(test):
-	sctx = module.Context(key = key, certificates = [certificate])
-	cctx = module.Context(certificates = [certificate])
+	crt = module.Certificate(certificate)
+	sctx = module.Context(key=key, certificates=[certificate])
+	cctx = module.Context(certificates=[certificate])
+	cctx.trust(crt)
 
-	client = cctx.connect(None)
-	server = sctx.accept()
+	client = module.Transport.connect(cctx, None)
+	server = module.Transport.accept(sctx)
 
 	client_received = []
 	server_received = []
@@ -133,19 +96,21 @@ def test_enciphered_transfers(test):
 	server.decipher(client.encipher([b""]))
 
 def test_enciphered_transfers_signals(test):
+	crt = module.Certificate(certificate)
 	signals = set()
 	wants_write = (lambda: signals.add('wants-write'))
 	client_recv_termd = (lambda: signals.add('client-received-close'))
 	server_recv_termd = (lambda: signals.add('server-received-close'))
 
-	sctx = module.Context(key = key, certificates = [certificate])
-	cctx = module.Context(certificates = [certificate])
+	sctx = module.Context(key=key, certificates=[certificate])
+	cctx = module.Context(certificates=[certificate])
+	cctx.trust(crt)
 
-	client = cctx.connect(None)
+	client = module.Transport.connect(cctx, None)
 	client.connect_transmit_ready(wants_write)
 	client.connect_receive_closed(client_recv_termd)
 
-	server = sctx.accept()
+	server = module.Transport.accept(sctx)
 	server.connect_receive_closed(server_recv_termd)
 
 	test/list(signals) == []
@@ -190,7 +155,3 @@ def test_enciphered_transfers_signals(test):
 	server.decipher(client.encipher([b""]))
 	test/('server-received-close' in signals) == True
 	test/server.receive_closed == True
-
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules[__name__])

@@ -1159,8 +1159,6 @@ certificate_new(PyTypeObject *subtype, PyObj args, PyObj kw)
 	}
 }
 
-PyDoc_STRVAR(certificate_doc, "OpenSSL X509 Certificate Objects");
-
 static PyTypeObject
 CertificateType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
@@ -1191,10 +1189,51 @@ context_reset_sessions(PyObj self, PyObj args)
 	Py_RETURN_NONE;
 }
 
+static PyObj
+context_trust(PyObj self, PyObj crtob)
+{
+	Context ctx = Context_Recast(self);
+	Certificate crt = Certificate_Recast(crtob);
+	X509_STORE *cs;
+
+	if (!PyObject_TypeCheck(crtob, &CertificateType))
+	{
+		PyErr_SetString(PyExc_TypeError, "certificate instance is required");
+		return(NULL);
+	}
+
+	if (!SSL_CTX_get0_verify_cert_store(ctx->tls_context, &cs))
+	{
+		library_error();
+		return(NULL);
+	}
+
+	if (cs == NULL)
+	{
+		cs = X509_STORE_new();
+		if (cs == NULL)
+		{
+			library_error();
+			return(NULL);
+		}
+
+		SSL_CTX_set0_verify_cert_store(ctx->tls_context, cs);
+	}
+
+	if (!X509_STORE_add_cert(cs, crt->lib_crt))
+	{
+		library_error();
+		return(NULL);
+	}
+
+	Py_RETURN_NONE;
+}
+
 static PyMethodDef
 context_methods[] = {
 	#define PyMethod_Id(N) context_##N
 		PyMethod_Variable(reset_sessions),
+		PyMethod_Sole(trust),
 	#undef PyMethod_Id
 	{NULL,},
 };
@@ -1414,7 +1453,6 @@ context_new(PyTypeObject *subtype, PyObj args, PyObj kw)
 	}
 }
 
-PyDoc_STRVAR(context_doc, "OpenSSL transport security context.");
 static PyTypeObject
 ContextType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
