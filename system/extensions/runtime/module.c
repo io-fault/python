@@ -154,19 +154,52 @@ interrupt(PyObj self, PyObj args)
 	return(Py_None);
 }
 
+/**
+	// Executed in atexit in order to preserve the signal's exit code.
+*/
+static pid_t _exit_signal_pid = -1;
+static int _exit_signal = -1;
+static void
+__attribute__((destructor(150)))
+_exit_by_signal(void)
+{
+	// Ignore this if it somehow forked after the exit_by_signal was called.
+	if (_exit_signal_pid != -1 && _exit_signal_pid == getpid())
+	{
+		signal(_exit_signal, SIG_DFL);
+		kill(_exit_signal_pid, _exit_signal);
+
+		fprintf(stderr, "signalexit: signal, %d, did not terminate process\n", _exit_signal);
+		abort();
+	}
+}
+
+/**
+	// Set _exit_by_signal trigger.
+*/
+static PyObj
+signalexit(PyObj module, PyObj ob)
+{
+	long signo;
+	pid_t p;
+
+	signo = PyLong_AsLong(ob);
+	if (PyErr_Occurred())
+		return(NULL);
+
+	_exit_signal_pid = getpid();
+	_exit_signal = signo;
+
+	Py_RETURN_NONE;
+}
+
 #define PYTHON_TYPES()
+#define PyMethod_Id(N) N
 #define MODULE_FUNCTIONS() \
-	PYMETHOD( \
-		interrupt, interrupt, METH_VARARGS, \
-			"Interrupt a Python thread with the given exception.") \
-	PYMETHOD( \
-		interject, interject, METH_O, \
-			"Interject the callable in the *main thread* using Py_AddPendingCall. " \
-			"Usually, the called object should dispatch a task.") \
-	PYMETHOD( \
-		trace, trace, METH_VARARGS, \
-			"Apply the trace function to the given thread identifiers. " \
-			"Normally used by Context injections that take over the process for debugging.")
+	PyMethod_Variable(interrupt), \
+	PyMethod_Sole(interject), \
+	PyMethod_Variable(trace), \
+	PyMethod_Sole(signalexit), \
 
 #include <fault/metrics.h>
 #include <fault/python/module.h>

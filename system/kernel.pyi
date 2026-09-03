@@ -18,15 +18,10 @@ def released(fds:collections.abc.Iterable[int]) -> None:
 	# Configure the file descriptors to be released when the process is substituted(exec).
 	"""
 
-def signalexit(signo:int) -> None:
-	"""
-	# Configure an atexit call to force the process to exit via a signal.
-	"""
-
 def initialize():
 	"""
 	# Initialize the after fork callbacks.
-	# Called once by &.process. Do not use directly.
+	# Called once by &.process.
 	"""
 
 def test_process(pid:int=-1) -> int:

@@ -239,50 +239,6 @@ trace(PyObj self, PyObj args)
 }
 
 /**
-	// Executed in atexit in order to preserve the signal's exit code.
-*/
-void
-_exit_by_signal(void)
-{
-	/*
-		// Ignore this if it somehow forked after the exit_by_signal was called.
-	*/
-	if (exit_for_pid == getpid())
-	{
-		signal(exit_signal, SIG_DFL);
-		kill(getpid(), exit_signal);
-
-		/* signal didn't end the process, abort */
-		fprintf(stderr, "[!* kernel._exit_by_signal: signal, %d, did not terminate process]\n", exit_signal);
-		abort();
-	}
-}
-
-/**
-	// Register low-level atexit handler for exiting via a signal.
-*/
-static PyObj
-signalexit(PyObj mod, PyObj ob)
-{
-	long signo;
-	pid_t p;
-
-	signo = PyLong_AsLong(ob);
-	if (PyErr_Occurred())
-		return(NULL);
-
-	p = getpid();
-
-	if (exit_signal == -1 || exit_for_pid != p)
-		atexit(_exit_by_signal);
-
-	exit_for_pid = p;
-	exit_signal = signo;
-
-	Py_RETURN_NONE;
-}
-
-/**
 	// Ensure that the kport is preserved across process images.
 	// Used by system to hold on to listening sockets.
 
@@ -642,7 +598,6 @@ fault_python_ext_if = {
 #define k_preserve kport_clear_cloexec
 #define k_released kport_set_cloexec
 #define k_set_process_title set_process_title
-#define k_signalexit signalexit
 
 #define PyMethod_Id(N) k_##N
 #define MODULE_FUNCTIONS() \
@@ -650,7 +605,6 @@ fault_python_ext_if = {
 	PyMethod_Variable(wait_process), \
 	PyMethod_Sole(reap_process), \
 	\
-	PyMethod_Sole(signalexit), \
 	PyMethod_Sole(set_process_title), \
 	\
 	PyMethod_Sole(preserve), \
