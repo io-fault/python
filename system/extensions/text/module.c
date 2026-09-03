@@ -274,7 +274,7 @@ cells(PyObj self, PyObj args)
 
 #include <fault/metrics.h>
 #include <fault/python/module.h>
-INIT(module, 0, PyDoc_STR("interfaces to system text services: wcswidth and setlocale."))
+INIT(module, 0)
 {
 	return(0);
 }

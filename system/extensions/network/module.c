@@ -643,7 +643,7 @@ struct EndpointAPI _ep_apis = {
 
 #include <fault/metrics.h>
 #include <fault/python/module.h>
-INIT(module, 0, NULL)
+INIT(module, 0)
 {
 	PyObj api_ob;
 

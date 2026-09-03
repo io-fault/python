@@ -239,7 +239,7 @@ Monotonic_new(PyTypeObject *subtype, PyObj args, PyObj kw)
 #define MODULE_FUNCTIONS()
 #include <fault/metrics.h>
 #include <fault/python/module.h>
-INIT(module, 0, NULL)
+INIT(module, 0)
 {
 	#define ID(NAME, TYPNAME) \
 		if (PyType_Ready((PyTypeObject *) &( TYPNAME##Type ))) \

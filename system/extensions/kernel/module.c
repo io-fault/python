@@ -667,7 +667,7 @@ fault_python_ext_if = {
 
 #include <fault/metrics.h>
 #include <fault/python/module.h>
-INIT(module, 0, NULL)
+INIT(module, 0)
 {
 	PyObj xi_ob = NULL, kp_api_ob = NULL;
 

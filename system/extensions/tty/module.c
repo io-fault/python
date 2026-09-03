@@ -425,7 +425,7 @@ DeviceType = {
 
 #include <fault/metrics.h>
 #include <fault/python/module.h>
-INIT(module, 0, NULL)
+INIT(module, 0)
 {
 	#define ID(NAME) \
 		if (PyType_Ready((PyTypeObject *) &( NAME##Type ))) \

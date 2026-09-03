@@ -3660,7 +3660,7 @@ _talloc_octets_socket(PyObj module, PyObj param)
 
 #include <fault/metrics.h>
 #include <fault/python/module.h>
-INIT(module, 0, NULL)
+INIT(module, 0)
 {
 	/*
 		// Safely shared by subinterpreters?

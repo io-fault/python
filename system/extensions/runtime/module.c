@@ -170,7 +170,7 @@ interrupt(PyObj self, PyObj args)
 
 #include <fault/metrics.h>
 #include <fault/python/module.h>
-INIT(module, 0, PyDoc_STR("Runtime control interfaces.\n"))
+INIT(module, 0)
 {
 	#define ID(NAME) \
 		if (PyType_Ready((PyTypeObject *) &( NAME##Type ))) \
