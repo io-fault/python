@@ -1,5 +1,5 @@
 /**
-	// OpenSSL based TLS for fault.security.kprotocol.
+	// Transport security adapter for OpenSSL.
 */
 #include <stdio.h>
 #include <unistd.h>
@@ -21,10 +21,6 @@
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
 
-#include <openssl/objects.h>
-
-#define VERIFY_FAILURE 337047686
-
 #ifdef OPENSSL_NO_EVP
 	#error fault.security transport context requires openssl with EVP
 #endif
@@ -35,6 +31,23 @@
 
 #include <fault/libc.h>
 #include <fault/python/environ.h>
+
+#define MODULE_EXCEPTIONS(F) \
+	F(Exception) \
+	F(ProtocolViolation) \
+	F(InvalidCertificate) \
+	F(PolicyViolation) \
+	F(UnsuitableCertificate) \
+	F(ExpiredCertificate) \
+	F(UntrustedCertificate) \
+	F(RevokedCertificate) \
+	F(ForgedCertificate) \
+
+struct module_state {
+	#define X(N) PyObj N;
+		MODULE_EXCEPTIONS(X)
+	#undef X
+};
 
 #define Transport_GetReadBuffer(tls) (SSL_get_rbio(tls->tls_state))
 #define Transport_GetWriteBuffer(tls) (SSL_get_wbio(tls->tls_state))
@@ -51,23 +64,34 @@ typedef EVP_PKEY *pki_key_t;
 	// Security Context [Cipher/Protocol Parameters]
 */
 typedef SSL_CTX *context_t;
-#define free_context_t SSL_CTX_free
 
 /**
 	// An instance of TLS for facilitating a secure connection.
 */
 typedef SSL *transport_t;
-#define free_transport_t SSL_free
+
+static void
+tsi_transport_release(transport_t st)
+{
+	SSL_free(st);
+}
 
 /**
 	// An X509 Certificate.
 */
 typedef X509 *certificate_t;
-#define free_certificate_t X509_free
 
-#include "openssl-errors.h"
+static void
+tsi_certificate_release(certificate_t c)
+{
+	X509_free(c);
+}
 
-static PyObj version_info = NULL, version_str = NULL;
+static void
+tsi_context_release(context_t ctx)
+{
+	SSL_CTX_free(ctx);
+}
 
 /**
 	// Certificate object structure.
@@ -77,6 +101,7 @@ struct Certificate {
 	certificate_t lib_crt;
 };
 typedef struct Certificate *Certificate;
+#define Certificate_Recast(OB) PyObject_Recast(Certificate, OB)
 
 /**
 	// Security context object structure.
@@ -87,6 +112,7 @@ struct Context {
 	PyObj ctx_queue_type;
 };
 typedef struct Context *Context;
+#define Context_Recast(OB) PyObject_Recast(Context, OB)
 
 #define output_buffer_extend(tls, x) PyObject_CallMethod(tls->output_queue, "extend", "(O)", x)
 #define output_buffer_append(tls, x) PyObject_CallMethod(tls->output_queue, "append", "O", x)
@@ -100,7 +126,6 @@ typedef struct Context *Context;
 struct Transport {
 	PyObject_HEAD
 	Context ctx_object;
-
 	transport_t tls_state;
 
 	/**
@@ -112,17 +137,395 @@ struct Transport {
 	PyObj send_queued_cb;
 };
 typedef struct Transport *Transport;
+#define Transport_Recast(OB) PyObject_Recast(Transport, OB)
 
 static PyTypeObject KeyType, CertificateType, ContextType, TransportType;
 
+PyObj PyExc_TransportSecurityError = NULL;
+
+#define EData_STRINGS() \
+	X(message) \
+	X(data) \
+	X(library) \
+	X(file) \
+	X(function) \
+
+struct EData {
+	PyObject_HEAD
+	unsigned long errcode;
+	PyObj errmessage;
+	PyObj errdata;
+	PyObj errlibrary;
+	PyObj errfile;
+	PyObj errfunction;
+	int errline;
+};
+typedef struct EData *EData;
+#define EData_Recast(OB) PyObject_Recast(EData, OB)
+
+static void
+edata_dealloc(PyObj self)
+{
+	EData e = (EData) self;
+	Py_ssize_t i, n = Py_SIZE(self);
+
+	#define X(FIELD) \
+		Py_CLEAR(e->err##FIELD); \
+
+		EData_STRINGS()
+	#undef X
+
+	Py_TYPE(self)->tp_free(self);
+}
+
+static PyMemberDef
+edata_members[] = {
+	#define X(FIELD) \
+		{#FIELD, T_OBJECT, \
+			offsetof(struct EData, err##FIELD), READONLY, NULL\
+		},
+
+		EData_STRINGS()
+	#undef X
+
+	{"line", T_INT,
+		offsetof(struct EData, errline), READONLY, NULL
+	},
+	{"code", T_INT,
+		offsetof(struct EData, errcode), READONLY, NULL
+	},
+	{NULL},
+};
+
+static PyObj
+edata_richcompare(PyObj self, PyObj x, int op)
+{
+	EData a = (EData) self, b = (EData) x;
+	PyObj rob;
+
+	if (self->ob_type != x->ob_type)
+	{
+		Py_INCREF(Py_NotImplemented);
+		return(Py_NotImplemented);
+	}
+
+	switch (op)
+	{
+		case Py_NE:
+			if (a->errcode != b->errcode)
+			{
+				rob = Py_False;
+				Py_INCREF(rob);
+			}
+		case Py_EQ:
+			if (a->errcode == b->errcode)
+			{
+				rob = Py_True;
+				Py_INCREF(rob);
+			}
+		break;
+
+		default:
+			PyErr_SetString(PyExc_TypeError, "EData only supports equality");
+			rob = NULL;
+		break;
+	}
+
+	return(rob);
+}
+
+static PyObj
+edata_str(PyObj self)
+{
+	const char *no_msg = "no description provided by implementation";
+	EData e = (EData) self;
+	PyObj rob;
+
+	rob = PyUnicode_FromFormat("[%x] %V", e->errcode, e->errmessage, no_msg);
+	return(rob);
+}
+
+static long
+edata_hash(PyObj self)
+{
+	return ((EData) self)->errcode;
+}
+
+static PyObj
+edata_new(PyTypeObject *subtype, PyObj args, PyObj kw)
+{
+	static char *kwlist[] = {"code", "file", "line", "data", NULL,};
+	PyObj file = NULL, data = NULL, rob;
+	unsigned long code, line = 0;
+	const char *library, *function, *message;
+	EData e;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kw, "k|O!kO!", kwlist,
+			&code,
+			&PyUnicode_Type,
+			&file,
+			&line,
+			&PyUnicode_Type,
+			&data))
+		return(NULL);
+
+	rob = subtype->tp_alloc(subtype, 0);
+	if (rob == NULL)
+		return(NULL);
+
+	e = (EData) rob;
+	e->errcode = code;
+	e->errline = line;
+
+	e->errfile = file;
+	Py_XINCREF(file);
+	e->errdata = data;
+	Py_XINCREF(data);
+
+	library = ERR_lib_error_string(code);
+	function = ERR_func_error_string(code);
+	message = ERR_reason_error_string(code);
+
+	if (message == NULL || message[0] == '\0')
+		e->errmessage = NULL;
+	else
+	{
+		e->errmessage = PyUnicode_FromString(message);
+		if (e->errmessage == NULL)
+			goto error;
+	}
+
+	if (library == NULL || library[0] == '\0')
+		e->errlibrary = NULL;
+	else
+	{
+		e->errlibrary = PyUnicode_FromString(library);
+		if (e->errlibrary == NULL)
+			goto error;
+	}
+
+	if (function == NULL || function[0] == '\0')
+		e->errfunction = NULL;
+	else
+	{
+		e->errfunction = PyUnicode_FromString(function);
+		if (e->errfunction == NULL)
+			goto error;
+	}
+
+	return(rob);
+
+	error:
+	{
+		Py_DECREF(rob);
+		return(NULL);
+	}
+}
+
+PyTypeObject
+EDataType = {
+	PyVarObject_HEAD_INIT(NULL, 0)
+	.tp_name = PYTHON_MODULE_PATH("EData"),
+	.tp_basicsize = sizeof(struct EData),
+	.tp_itemsize = 0,
+	.tp_dealloc = edata_dealloc,
+	.tp_hash = edata_hash,
+	.tp_str = edata_str,
+	.tp_flags = Py_TPFLAGS_DEFAULT,
+	.tp_richcompare = edata_richcompare,
+	.tp_members = edata_members,
+	.tp_new = edata_new,
+};
+
 /**
-	// Prompting is rather inappropriate from a library;
+	// OpenSSL uses a per-thread error queue.
+*/
+static PyObj
+openssl_error_pop(void)
+{
+	EData err;
+	PyObj rob;
+
+	unsigned long code, line, flags = 0;
+	const char *file = NULL;
+	const char *data = NULL;
+	const char *function = NULL;
+	const char *message = NULL;
+	const char *library = NULL;
+
+	code = ERR_get_error_line_data(&file, &line, &data, &flags);
+
+	rob = EDataType.tp_alloc(&EDataType, 0);
+	if (rob == NULL)
+		return(NULL);
+	err = (EData) rob;
+
+	library = ERR_lib_error_string(code);
+	function = ERR_func_error_string(code);
+	message = ERR_reason_error_string(code);
+
+	err->errcode = code;
+	err->errline = line;
+
+	#define X(FIELD) \
+		if (FIELD == NULL || FIELD[0] == '\0') \
+			err->err##FIELD = NULL; \
+		else \
+		{ \
+			err->err##FIELD = PyUnicode_FromString(FIELD); \
+			if (err->err##FIELD == NULL) \
+				goto error; \
+		}
+
+		EData_STRINGS()
+	#undef X
+
+	return(rob);
+
+	error:
+	{
+		Py_DECREF(rob);
+		return(NULL);
+	}
+}
+
+static PyObj
+openssl_error_stack(void)
+{
+	PyObj stack = NULL;
+
+	stack = PyList_New(0);
+	if (stack == NULL)
+		return(NULL);
+
+	while (ERR_peek_error() != 0)
+	{
+		PyObj ie = openssl_error_pop();
+		if (ie == NULL)
+		{
+			Py_DECREF(stack);
+			return(NULL);
+		}
+		PyList_Append(stack, ie);
+	}
+
+	return(stack);
+}
+
+static void
+openssl_error_set(void)
+{
+	PyObj val;
+	val = openssl_error_pop();
+
+	if (val)
+	{
+		struct module_state *ms = Py_ModuleState();
+		EData err = EData_Recast(val);
+
+		switch (err->errcode)
+		{
+			default:
+				PyErr_SetObject(ms->Exception, val);
+			break;
+		}
+	}
+}
+
+static void
+openssl_transport_error_set(transport_t ts)
+{
+	PyObj val;
+	val = openssl_error_pop();
+
+	if (val)
+	{
+		struct module_state *ms = Py_ModuleState();
+		EData err = EData_Recast(val);
+
+		switch (ERR_GET_REASON(err->errcode))
+		{
+			case SSL_R_CERTIFICATE_VERIFY_FAILED:
+			{
+				int vr = SSL_get_verify_result(ts);
+				PyObj exc;
+				char *msg;
+
+				switch (vr)
+				{
+					case X509_V_ERR_CERT_HAS_EXPIRED:
+						exc = ms->ExpiredCertificate;
+						msg = "cannot use certificate outside of its designated time frame";
+					break;
+
+					case X509_V_ERR_CERT_REVOKED:
+						exc = ms->RevokedCertificate;
+						msg = "certificate found in revocation list";
+					break;
+
+					case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY:
+					case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT:
+						exc = ms->UntrustedCertificate;
+						msg = "certificate issuer could not be found";
+					break;
+
+					case X509_V_ERR_CERT_UNTRUSTED:
+						exc = ms->UntrustedCertificate;
+						msg = "certificate's authority or purpose was marked as untrusted";
+					break;
+
+					case X509_V_ERR_CERT_SIGNATURE_FAILURE:
+						exc = ms->ForgedCertificate;
+						msg = "invalid certificate signature";
+					break;
+
+					case X509_V_ERR_HOSTNAME_MISMATCH:
+						exc = ms->UnsuitableCertificate;
+						msg = "certificate cannot be used with specified hostname";
+					break;
+
+					case X509_V_ERR_EMAIL_MISMATCH:
+						exc = ms->UnsuitableCertificate;
+						msg = "certificate cannot be used with specified e-mail";
+					break;
+
+					case X509_V_ERR_IP_ADDRESS_MISMATCH:
+						exc = ms->UnsuitableCertificate;
+						msg = "certificate cannot be used with specified IP address";
+					break;
+
+					case X509_V_ERR_INVALID_PURPOSE:
+						exc = ms->UnsuitableCertificate;
+						msg = "use of certificate for the configured purpose was prohibited";
+					break;
+
+					case X509_V_ERR_CERT_NOT_YET_VALID:
+					default:
+						exc = ms->InvalidCertificate;
+						msg = X509_verify_cert_error_string(vr);
+					break;
+				}
+
+				PyErr_SetString(exc, msg);
+				Py_DECREF(val);
+			}
+			break;
+
+			default:
+				PyErr_SetObject(ms->ProtocolViolation, val);
+			break;
+		}
+	}
+}
+
+/*
+	// Prompting is inappropriate from a library;
 	// this callback is used throughout the source to manage
 	// the encryption key of a certificate or private key.
 */
 struct password_parameter {
 	char *words;
-	Py_ssize_t length;
+	size_t length;
 };
 
 /**
@@ -162,6 +565,7 @@ password_parameter(char *buf, int size, int rwflag, void *u)
 		X_TLS_PROTOCOL(ietf.org, RFC, 2246, TLS,  1, 0, TLSv1)   \
 		X_TLS_PROTOCOL(ietf.org, RFC, 4346, TLS,  1, 1, TLSv1_1) \
 		X_TLS_PROTOCOL(ietf.org, RFC, 5246, TLS,  1, 2, TLSv1_2) \
+		X_TLS_PROTOCOL(ietf.org, RFC, 9846, TLS,  1, 3, TLSv1_3) \
 		X_TLS_PROTOCOL(ietf.org, RFC, 6101, SSL,  3, 0, SSLv23)
 
 	/*
@@ -173,6 +577,7 @@ password_parameter(char *buf, int size, int rwflag, void *u)
 		X_TLS_METHOD("TLS-1.0", TLSv1)    \
 		X_TLS_METHOD("TLS-1.1", TLSv1_1)  \
 		X_TLS_METHOD("TLS-1.2", TLSv1_2)  \
+		X_TLS_METHOD("TLS-1.3", TLSv1_3)  \
 		_X_TLS_METHOD_SSLv3 \
 		X_TLS_METHOD("compat",  SSLv23)
 #endif
@@ -199,53 +604,57 @@ password_parameter(char *buf, int size, int rwflag, void *u)
 	// Function Set to load Security Elements.
 */
 #define X_READ_OPENSSL_OBJECT(TYP, LOCAL_SYM, OPENSSL_CALL) \
-static TYP \
-LOCAL_SYM(PyObj buf, pem_password_cb *cb, void *cb_data) \
-{ \
-	Py_buffer pb; \
-	TYP element = NULL; \
-	BIO *bio; \
-	\
-	if (PyObject_GetBuffer(buf, &pb, 0)) \
-		return(NULL); \
-	\
-	/* Implicit Read-Only BIO: Py_buffer data is directly referenced. */ \
-	bio = BIO_new_mem_buf(GetPointer(pb), GetSize(pb)); \
-	if (bio == NULL) \
+	static TYP \
+	LOCAL_SYM(PyObj buf, pem_password_cb *cb, void *cb_data) \
 	{ \
-		PyErr_SetString(PyExc_MemoryError, "could not allocate OpenSSL memory for security object"); \
+		Py_buffer pb; \
+		TYP element = NULL; \
+		BIO *bio; \
+		\
+		if (PyObject_GetBuffer(buf, &pb, 0)) \
+			return(NULL); \
+		\
+		/* Implicit Read-Only BIO: Py_buffer data is directly referenced. */ \
+		bio = BIO_new_mem_buf(GetPointer(pb), GetSize(pb)); \
+		if (bio == NULL) \
+		{ \
+			PyErr_SetString(PyExc_MemoryError, "could not allocate OpenSSL memory for security object"); \
+		} \
+		else \
+		{ \
+			element = OPENSSL_CALL(bio, NULL, cb, cb_data); \
+			BIO_free(bio); \
+		} \
+		\
+		PyBuffer_Release(&pb); \
+		return(element); \
 	} \
-	else \
-	{ \
-		element = OPENSSL_CALL(bio, NULL, cb, cb_data); \
-		BIO_free(bio); \
-	} \
-	\
-	PyBuffer_Release(&pb); \
-	return(element); \
-}
 
-/**
-	// need a small abstraction
-*/
-X_READ_OPENSSL_OBJECT(certificate_t, load_pem_certificate, PEM_read_bio_X509)
-X_READ_OPENSSL_OBJECT(pki_key_t, load_pem_private_key, PEM_read_bio_PrivateKey)
-X_READ_OPENSSL_OBJECT(pki_key_t, load_pem_public_key, PEM_read_bio_PUBKEY)
+	X_READ_OPENSSL_OBJECT(certificate_t, load_pem_certificate, PEM_read_bio_X509)
+	X_READ_OPENSSL_OBJECT(pki_key_t, load_pem_private_key, PEM_read_bio_PrivateKey)
+	X_READ_OPENSSL_OBJECT(pki_key_t, load_pem_public_key, PEM_read_bio_PUBKEY)
 #undef X_READ_OPENSSL_OBJECT
-
-PyObj PyExc_TransportSecurityError = NULL;
 
 static int
 library_error(void)
 {
-	if (ERR_peek_error() != 0)
-	{
-		openssl_error_set();
-		ERR_clear_error();
-		return(-1);
-	}
-	else
+	if (ERR_peek_error() == 0)
 		return(0);
+
+	openssl_error_set();
+	ERR_clear_error();
+	return(-1);
+}
+
+static int
+transport_error(transport_t ts)
+{
+	if (ERR_peek_error() == 0)
+		return(0);
+
+	openssl_transport_error_set(ts);
+	ERR_clear_error();
+	return(-1);
 }
 
 /**
@@ -338,15 +747,18 @@ ialpn(PyObj ob, unsigned char **aprotocols, unsigned int *alength)
 	// primary &transport_new parts. Normally called by the Context methods.
 */
 static Transport
-create_tls_state(PyTypeObject *typ, Context ctx)
+create_tls_state(PyTypeObject *typ, PyObj ctx_ob)
 {
-	const static char *mem_err_str = "could not allocate memory BIO for secure Transport";
+	const char *const mem_err_str = "could not allocate memory BIO for secure Transport";
+	Context ctx = Context_Recast(ctx_ob);
 	Transport tls;
+	PyObj rob;
 	BIO *rb, *wb;
 
-	tls = (Transport) typ->tp_alloc(typ, 0);
-	if (tls == NULL)
+	rob = typ->tp_alloc(typ, 0);
+	if (rob == NULL)
 		return(NULL);
+	tls = Transport_Recast(rob);
 
 	tls->recv_closed_cb = NULL;
 	tls->send_queued_cb = NULL;
@@ -368,8 +780,6 @@ create_tls_state(PyTypeObject *typ, Context ctx)
 		Py_DECREF(tls);
 		return(tls);
 	}
-
-	Py_INCREF(((PyObj) ctx));
 
 	/**
 		// I/O buffers for the connection.
@@ -394,7 +804,7 @@ create_tls_state(PyTypeObject *typ, Context ctx)
 
 	SSL_set_bio(tls->tls_state, rb, wb);
 
-	return(tls);
+	return(rob);
 
 	error:
 	{
@@ -485,7 +895,7 @@ certificate_open(PyTypeObject *subtype, PyObj args, PyObj kw)
 	if (!PyArg_ParseTupleAndKeywords(args, kw, "s|s#", kwlist, &path, &(pwp.words), &(pwp.length)))
 		return(NULL);
 
-	cert = (Certificate) subtype->tp_alloc(subtype, 0);
+	cert = Certificate_Recast(subtype->tp_alloc(subtype, 0));
 	if (cert == NULL)
 		return(NULL);
 
@@ -501,7 +911,7 @@ certificate_open(PyTypeObject *subtype, PyObj args, PyObj kw)
 	if (cert->lib_crt == NULL)
 		goto lib_error;
 
-	return((PyObj) cert);
+	return(Certificate_Recast(cert));
 
 	lib_error:
 		library_error();
@@ -514,12 +924,11 @@ certificate_open(PyTypeObject *subtype, PyObj args, PyObj kw)
 
 static PyMethodDef
 certificate_methods[] = {
-	{"open", (PyCFunction) certificate_open,
-		METH_CLASS|METH_VARARGS|METH_KEYWORDS, PyDoc_STR(
-			"Read a certificate directly from the filesystem.\n"
-		)
-	},
-
+	#define PyMethod_Id(N) certificate_##N
+		#define PyMethod_TypeControl PyMethod_ClassType
+			PyMethod_Keywords(open),
+		#define PyMethod_TypeControl PyMethod_InstanceType
+	#undef PyMethod_Id
 	{NULL,},
 };
 
@@ -622,25 +1031,18 @@ long_from_asn1_integer(ASN1_INTEGER *i)
 }
 
 #define CERTIFICATE_PROPERTIES() \
-	CERT_PROPERTY(not_before_string, \
-		"The 'notBefore' field as a string.", X509_get_notBefore, str_from_asn1_time) \
-	CERT_PROPERTY(not_after_string, \
-		"The 'notAfter' field as a string.", X509_get_notAfter, str_from_asn1_time) \
-	CERT_PROPERTY(signature_type, \
-		"The type of signature used to sign the key.", X509_get_signature_type, str_from_nid) \
-	CERT_PROPERTY(subject, \
-		"The subject data of the cerficate.", X509_get_subject_name, seq_from_names) \
-	CERT_PROPERTY(issuer, \
-		"The issuer data of the cerficate.", X509_get_issuer_name, seq_from_names) \
-	CERT_PROPERTY(version, \
-		"The Format Version", X509_get_version, PyLong_FromLong) \
-	CERT_PROPERTY(serial, \
-		"The serial number field", X509_get_serialNumber, long_from_asn1_integer)
+	CERT_PROPERTY(not_before_string, X509_get_notBefore, str_from_asn1_time) \
+	CERT_PROPERTY(not_after_string, X509_get_notAfter, str_from_asn1_time) \
+	CERT_PROPERTY(signature_type, X509_get_signature_type, str_from_nid) \
+	CERT_PROPERTY(subject, X509_get_subject_name, seq_from_names) \
+	CERT_PROPERTY(issuer, X509_get_issuer_name, seq_from_names) \
+	CERT_PROPERTY(version, X509_get_version, PyLong_FromLong) \
+	CERT_PROPERTY(serial, X509_get_serialNumber, long_from_asn1_integer)
 
-#define CERT_PROPERTY(NAME, DOC, GET, CONVERT) \
+#define CERT_PROPERTY(NAME, GET, CONVERT) \
 	static PyObj certificate_get_##NAME(PyObj crt, void *p) \
 	{ \
-		certificate_t lib_crt = ((Certificate) crt)->lib_crt; \
+		certificate_t lib_crt = Certificate_Recast(crt)->lib_crt; \
 		return(CONVERT(GET(lib_crt))); \
 	} \
 
@@ -654,23 +1056,20 @@ certificate_get_type(PyObj self, void *p)
 }
 
 static PyGetSetDef certificate_getset[] = {
-	#define CERT_PROPERTY(NAME, DOC, UNUSED1, UNUSED2) \
-		{#NAME, certificate_get_##NAME, NULL, PyDoc_STR(DOC)},
+	#define CERT_PROPERTY(NAME, UNUSED1, UNUSED2) \
+		{#NAME, certificate_get_##NAME, NULL, NULL},
 
 		CERTIFICATE_PROPERTIES()
 	#undef CERT_PROPERTY
 
-	{"type",
-		certificate_get_type, NULL,
-		PyDoc_STR("certificate type; always X509."),
-	},
+	{"type", certificate_get_type, NULL, NULL,},
 	{NULL,},
 };
 
 static void
 certificate_dealloc(PyObj self)
 {
-	Certificate cert = (Certificate) self;
+	Certificate cert = Certificate_Recast(self);
 	X509_free(cert->lib_crt);
 	Py_TYPE(self)->tp_free(self);
 }
@@ -678,7 +1077,7 @@ certificate_dealloc(PyObj self)
 static PyObj
 certificate_repr(PyObj self)
 {
-	Certificate cert = (Certificate) self;
+	Certificate cert = Certificate_Recast(self);
 	PyObj rob, sn_ob;
 	BIO *b;
 	char *ptr;
@@ -704,7 +1103,7 @@ certificate_repr(PyObj self)
 static PyObj
 certificate_str(PyObj self)
 {
-	Certificate cert = (Certificate) self;
+	Certificate cert = Certificate_Recast(self);
 	PyObj rob;
 	BIO *b;
 	char *ptr;
@@ -741,7 +1140,7 @@ certificate_new(PyTypeObject *subtype, PyObj args, PyObj kw)
 		))
 		return(NULL);
 
-	cert = (Certificate) subtype->tp_alloc(subtype, 0);
+	cert = Certificate_Recast(subtype->tp_alloc(subtype, 0));
 	if (cert == NULL)
 		return(NULL);
 
@@ -749,7 +1148,7 @@ certificate_new(PyTypeObject *subtype, PyObj args, PyObj kw)
 	if (cert->lib_crt == NULL)
 		goto lib_error;
 
-	return((PyObj) cert);
+	return(Certificate_Recast(cert));
 
 	lib_error:
 		library_error();
@@ -760,132 +1159,26 @@ certificate_new(PyTypeObject *subtype, PyObj args, PyObj kw)
 	}
 }
 
-PyDoc_STRVAR(certificate_doc, "OpenSSL X509 Certificate Objects");
-
 static PyTypeObject
 CertificateType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-	PYTHON_MODULE_PATH("Certificate"), /* tp_name */
-	sizeof(struct Certificate),        /* tp_basicsize */
-	0,                                 /* tp_itemsize */
-	certificate_dealloc,               /* tp_dealloc */
-	0,                                 /* (tp_print) */
-	NULL,                              /* tp_getattr */
-	NULL,                              /* tp_setattr */
-	NULL,                              /* tp_compare */
-	certificate_repr,                  /* tp_repr */
-	NULL,                              /* tp_as_number */
-	NULL,                              /* tp_as_sequence */
-	NULL,                              /* tp_as_mapping */
-	NULL,                              /* tp_hash */
-	NULL,                              /* tp_call */
-	certificate_str,                   /* tp_str */
-	NULL,                              /* tp_getattro */
-	NULL,                              /* tp_setattro */
-	NULL,                              /* tp_as_buffer */
-	Py_TPFLAGS_BASETYPE|
-	Py_TPFLAGS_DEFAULT,                /* tp_flags */
-	certificate_doc,                   /* tp_doc */
-	NULL,                              /* tp_traverse */
-	NULL,                              /* tp_clear */
-	NULL,                              /* tp_richcompare */
-	0,                                 /* tp_weaklistoffset */
-	NULL,                              /* tp_iter */
-	NULL,                              /* tp_iternext */
-	certificate_methods,               /* tp_methods */
-	certificate_members,               /* tp_members */
-	certificate_getset,                /* tp_getset */
-	NULL,                              /* tp_base */
-	NULL,                              /* tp_dict */
-	NULL,                              /* tp_descr_get */
-	NULL,                              /* tp_descr_set */
-	0,                                 /* tp_dictoffset */
-	NULL,                              /* tp_init */
-	NULL,                              /* tp_alloc */
-	certificate_new,                   /* tp_new */
+	.tp_name = PYTHON_MODULE_PATH("Certificate"),
+	.tp_basicsize = sizeof(struct Certificate),
+	.tp_itemsize = 0,
+	.tp_dealloc = certificate_dealloc,
+	.tp_repr = certificate_repr,
+	.tp_str = certificate_str,
+	.tp_flags = Py_TPFLAGS_BASETYPE|Py_TPFLAGS_DEFAULT,
+	.tp_methods = certificate_methods,
+	.tp_members = certificate_members,
+	.tp_getset = certificate_getset,
+	.tp_new = certificate_new,
 };
-
-static PyObj
-context_accept(PyObj self)
-{
-	Context ctx = (Context) self;
-	Transport tls;
-	int r;
-
-	tls = create_tls_state(&TransportType, ctx);
-	if (tls == NULL)
-		return(NULL);
-
-	SSL_set_accept_state(tls->tls_state);
-
-	if (SSL_do_handshake(tls->tls_state) != 0 && library_error())
-		goto error;
-
-	return((PyObj) tls);
-
-	error:
-	{
-		Py_DECREF((PyObj) tls);
-		return(NULL);
-	}
-}
-
-static int
-_transport_set_hostname(Transport tls, PyObj hostname)
-{
-	char *name = NULL;
-	Py_ssize_t size = 0;
-	int err;
-
-	/* no hostname */
-	if (hostname == Py_None)
-		return(0);
-
-	if (PyBytes_AsStringAndSize(hostname, &name, &size))
-		return(-1);
-
-	err = SSL_set_tlsext_host_name(tls->tls_state, (const char *) name);
-	if (err != 1)
-	{
-		library_error();
-		return(-1);
-	}
-
-	return(0);
-}
-
-static PyObj
-context_connect(PyObj self, PyObj hostname)
-{
-	Context ctx = (Context) self;
-	Transport tls;
-	int r;
-
-	tls = create_tls_state(&TransportType, ctx);
-	if (tls == NULL)
-		return(NULL);
-
-	if (_transport_set_hostname(tls, hostname))
-		goto error;
-
-	SSL_set_connect_state(tls->tls_state);
-
-	if (SSL_do_handshake(tls->tls_state) != 0 && library_error())
-		goto error;
-
-	return((PyObj) tls);
-
-	error:
-	{
-		Py_DECREF((PyObj) tls);
-		return(NULL);
-	}
-}
 
 static PyObj
 context_reset_sessions(PyObj self, PyObj args)
 {
-	Context ctx = (Context) self;
+	Context ctx = Context_Recast(self);
 	long t = 0;
 
 	if (!PyArg_ParseTuple(args, "l", &t))
@@ -896,29 +1189,52 @@ context_reset_sessions(PyObj self, PyObj args)
 	Py_RETURN_NONE;
 }
 
+static PyObj
+context_trust(PyObj self, PyObj crtob)
+{
+	Context ctx = Context_Recast(self);
+	Certificate crt = Certificate_Recast(crtob);
+	X509_STORE *cs;
+
+	if (!PyObject_TypeCheck(crtob, &CertificateType))
+	{
+		PyErr_SetString(PyExc_TypeError, "certificate instance is required");
+		return(NULL);
+	}
+
+	if (!SSL_CTX_get0_verify_cert_store(ctx->tls_context, &cs))
+	{
+		library_error();
+		return(NULL);
+	}
+
+	if (cs == NULL)
+	{
+		cs = X509_STORE_new();
+		if (cs == NULL)
+		{
+			library_error();
+			return(NULL);
+		}
+
+		SSL_CTX_set0_verify_cert_store(ctx->tls_context, cs);
+	}
+
+	if (!X509_STORE_add_cert(cs, crt->lib_crt))
+	{
+		library_error();
+		return(NULL);
+	}
+
+	Py_RETURN_NONE;
+}
+
 static PyMethodDef
 context_methods[] = {
-	{"accept", (PyCFunction) context_accept,
-		METH_NOARGS, PyDoc_STR(
-			"Allocate a server TLS `Transport` instance for "
-			"secure transmission of data associated with the Context."
-		)
-	},
-
-	{"connect", (PyCFunction) context_connect,
-		METH_O, PyDoc_STR(
-			"Allocate a client TLS `Transport` instance for "
-			"secure transmission of data associated with the Context."
-		)
-	},
-
-	{"reset", (PyCFunction) context_reset_sessions,
-		METH_VARARGS, PyDoc_STR(
-			"Remove the sessions from the context that have expired "
-			"according to the given time parameter."
-		)
-	},
-
+	#define PyMethod_Id(N) context_##N
+		PyMethod_Variable(reset_sessions),
+		PyMethod_Sole(trust),
+	#undef PyMethod_Id
 	{NULL,},
 };
 
@@ -930,7 +1246,7 @@ context_members[] = {
 static int
 context_clear(PyObj self)
 {
-	Context ctx = (Context) self;
+	Context ctx = Context_Recast(self);
 
 	Py_XDECREF(ctx->ctx_queue_type);
 	ctx->ctx_queue_type = NULL;
@@ -941,7 +1257,7 @@ context_clear(PyObj self)
 static int
 context_traverse(PyObj self, visitproc visit, void *arg)
 {
-	Context ctx = (Context) self;
+	Context ctx = Context_Recast(self);
 
 	Py_VISIT(ctx->ctx_queue_type);
 	return(0);
@@ -950,7 +1266,7 @@ context_traverse(PyObj self, visitproc visit, void *arg)
 static void
 context_dealloc(PyObj self)
 {
-	Context ctx = (Context) self;
+	Context ctx = Context_Recast(self);
 
 	if (ctx->tls_context)
 		SSL_CTX_free(ctx->tls_context);
@@ -962,7 +1278,7 @@ context_dealloc(PyObj self)
 static PyObj
 context_repr(PyObj self)
 {
-	Context ctx = (Context) self;
+	Context ctx = Context_Recast(self);
 	PyObj rob;
 
 	rob = PyUnicode_FromFormat("<%s %p>", Py_TYPE(self)->tp_name, ctx);
@@ -1004,7 +1320,7 @@ context_new(PyTypeObject *subtype, PyObj args, PyObj kw)
 	))
 		return(NULL);
 
-	ctx = (Context) subtype->tp_alloc(subtype, 0);
+	ctx = Context_Recast(subtype->tp_alloc(subtype, 0));
 	if (ctx == NULL)
 		return(NULL);
 
@@ -1060,10 +1376,7 @@ context_new(PyTypeObject *subtype, PyObj args, PyObj kw)
 		}
 	}
 
-	SSL_CTX_load_verify_locations(ctx->tls_context,
-		CONTEXT_LOCATION "/net/ca-bundle.crt",
-		CONTEXT_LOCATION "/net/certificates");
-	SSL_CTX_set_verify(ctx->tls_context, ADAPTER_VERIFY, NULL);
+	SSL_CTX_set_default_verify_paths(ctx->tls_context);
 
 	#ifdef SSL_OP_NO_SSLv2
 		SSL_CTX_set_options(ctx->tls_context, SSL_OP_NO_SSLv2);
@@ -1126,7 +1439,7 @@ context_new(PyTypeObject *subtype, PyObj args, PyObj kw)
 		}
 	}
 
-	return((PyObj) ctx);
+	return(Context_Recast(ctx));
 
 	ierror:
 	{
@@ -1140,49 +1453,20 @@ context_new(PyTypeObject *subtype, PyObj args, PyObj kw)
 	}
 }
 
-PyDoc_STRVAR(context_doc, "OpenSSL transport security context.");
 static PyTypeObject
 ContextType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-	PYTHON_MODULE_PATH("Context"),   /* tp_name */
-	sizeof(struct Context),          /* tp_basicsize */
-	0,                               /* tp_itemsize */
-	context_dealloc,                 /* tp_dealloc */
-	0,                               /* (tp_print) */
-	NULL,                            /* tp_getattr */
-	NULL,                            /* tp_setattr */
-	NULL,                            /* tp_compare */
-	context_repr,                    /* tp_repr */
-	NULL,                            /* tp_as_number */
-	NULL,                            /* tp_as_sequence */
-	NULL,                            /* tp_as_mapping */
-	NULL,                            /* tp_hash */
-	NULL,                            /* tp_call */
-	NULL,                            /* tp_str */
-	NULL,                            /* tp_getattro */
-	NULL,                            /* tp_setattro */
-	NULL,                            /* tp_as_buffer */
-	Py_TPFLAGS_BASETYPE|
-	Py_TPFLAGS_HAVE_GC|
-	Py_TPFLAGS_DEFAULT,              /* tp_flags */
-	context_doc,                     /* tp_doc */
-	context_traverse,                /* tp_traverse */
-	context_clear,                   /* tp_clear */
-	NULL,                            /* tp_richcompare */
-	0,                               /* tp_weaklistoffset */
-	NULL,                            /* tp_iter */
-	NULL,                            /* tp_iternext */
-	context_methods,                 /* tp_methods */
-	context_members,                 /* tp_members */
-	NULL,                            /* tp_getset */
-	NULL,                            /* tp_base */
-	NULL,                            /* tp_dict */
-	NULL,                            /* tp_descr_get */
-	NULL,                            /* tp_descr_set */
-	0,                               /* tp_dictoffset */
-	NULL,                            /* tp_init */
-	NULL,                            /* tp_alloc */
-	context_new,                     /* tp_new */
+	.tp_name = PYTHON_MODULE_PATH("Context"),
+	.tp_basicsize = sizeof(struct Context),
+	.tp_itemsize = 0,
+	.tp_dealloc = context_dealloc,
+	.tp_repr = context_repr,
+	.tp_flags = Py_TPFLAGS_BASETYPE|Py_TPFLAGS_HAVE_GC|Py_TPFLAGS_DEFAULT,
+	.tp_traverse = context_traverse,
+	.tp_clear = context_clear,
+	.tp_methods = context_methods,
+	.tp_members = context_members,
+	.tp_new = context_new,
 };
 
 /**
@@ -1191,7 +1475,7 @@ ContextType = {
 static PyObj
 transport_status(PyObj self)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 	PyObj rob;
 
 	rob = Py_BuildValue("(sssi)",
@@ -1233,7 +1517,7 @@ transport_flush(Transport tls)
 
 	if (xfer < 1)
 	{
-		if (library_error())
+		if (transport_error(tls->tls_state))
 			r = -2;
 		else
 		{
@@ -1267,7 +1551,7 @@ transport_flush(Transport tls)
 static PyObj
 transport_enciphered_read_eof(PyObj self, PyObj buffer)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 	BIO_set_mem_eof_return(Transport_GetReadBuffer(tls), 0);
 	Py_RETURN_NONE;
 }
@@ -1275,7 +1559,7 @@ transport_enciphered_read_eof(PyObj self, PyObj buffer)
 static PyObj
 transport_enciphered_write_eof(PyObj self, PyObj buffer)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 	BIO_set_mem_eof_return(Transport_GetWriteBuffer(tls), 0);
 	Py_RETURN_NONE;
 }
@@ -1290,7 +1574,7 @@ transport_enciphered_write_eof(PyObj self, PyObj buffer)
 static PyObj
 transport_decipher(PyObj self, PyObj buffer_sequence)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 	Py_buffer pb;
 	int xfer;
 	PyObj rob, bufobj;
@@ -1359,7 +1643,7 @@ transport_decipher(PyObj self, PyObj buffer_sequence)
 		bufptr = PyByteArray_AS_STRING(buffer);
 
 		xfer = SSL_read(tls->tls_state, bufptr, DEFAULT_READ_SIZE);
-		if (xfer < 1 && library_error())
+		if (xfer < 1 && transport_error(tls->tls_state))
 		{
 			Py_DECREF(buffer);
 			Py_DECREF(rob);
@@ -1428,7 +1712,7 @@ transport_decipher(PyObj self, PyObj buffer_sequence)
 static PyObj
 transport_encipher(PyObj self, PyObj buffer_sequence)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 	int xfer;
 	int flush_result;
 	char wrote = 0;
@@ -1536,7 +1820,7 @@ transport_encipher(PyObj self, PyObj buffer_sequence)
 static PyObj
 transport_leak(PyObj self)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 
 	SSL_set_quiet_shutdown(tls->tls_state, 1);
 	Py_RETURN_NONE;
@@ -1545,24 +1829,21 @@ transport_leak(PyObj self)
 static PyObj
 transport_pending_output(PyObj self)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 	return(PyLong_FromLong(BIO_pending(Transport_GetWriteBuffer(tls))));
 }
 
 static PyObj
 transport_pending_input(PyObj self)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 	return(PyLong_FromLong(SSL_pending(tls->tls_state)));
 }
 
-/**
-	// Close writes.
-*/
 static PyObj
-transport_close_output(PyObj self)
+transport_close(PyObj self)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 
 	if (SSL_in_init(tls->tls_state))
 	{
@@ -1583,7 +1864,7 @@ transport_close_output(PyObj self)
 static PyObj
 transport_connect_transmit_ready(PyObj self, PyObj ob)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 	Py_XDECREF(tls->send_queued_cb);
 
 	if (ob == Py_None)
@@ -1600,7 +1881,7 @@ transport_connect_transmit_ready(PyObj self, PyObj ob)
 static PyObj
 transport_connect_receive_closed(PyObj self, PyObj ob)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 	Py_XDECREF(tls->recv_closed_cb);
 
 	if (ob == Py_None)
@@ -1614,62 +1895,138 @@ transport_connect_receive_closed(PyObj self, PyObj ob)
 	Py_RETURN_NONE;
 }
 
+static int
+_transport_set_hostname(Transport tls, PyObj hostname)
+{
+	char *name = NULL;
+	Py_ssize_t size = 0;
+	int err;
+
+	/* no hostname */
+	if (hostname == Py_None)
+		return(0);
+
+	if (PyBytes_AsStringAndSize(hostname, &name, &size))
+		return(-1);
+
+	err = SSL_set_tlsext_host_name(tls->tls_state, (const char *) name);
+	if (err != 1)
+	{
+		library_error();
+		return(-1);
+	}
+
+	return(0);
+}
+
+static PyObj
+transport_new_server(PyTypeObject *typ, Context ctx)
+{
+	Transport tls;
+
+	tls = create_tls_state(typ, ctx);
+	if (tls == NULL)
+		return(NULL);
+
+	SSL_set_accept_state(tls->tls_state);
+
+	if (SSL_do_handshake(tls->tls_state) != 0 && library_error())
+		goto error;
+
+	return(Transport_Recast(tls));
+
+	error:
+	{
+		Py_DECREF(tls);
+		return(NULL);
+	}
+}
+
+static PyObj
+transport_new_client(PyTypeObject *typ, Context ctx, PyObj hostname)
+{
+	Transport tls;
+
+	tls = create_tls_state(typ, ctx);
+	if (tls == NULL)
+		return(NULL);
+
+	SSL_set_verify(tls->tls_state, SSL_VERIFY_PEER, NULL);
+
+	if (hostname != NULL)
+	{
+		if (_transport_set_hostname(tls, hostname))
+			goto error;
+	}
+
+	SSL_set_connect_state(tls->tls_state);
+
+	if (SSL_do_handshake(tls->tls_state) != 0 && library_error())
+		goto error;
+
+	return(Transport_Recast(tls));
+
+	error:
+	{
+		Py_DECREF(tls);
+		return(NULL);
+	}
+}
+
+static PyObj
+transport_connect(PyTypeObject *subtype, PyObj args, PyObj kw)
+{
+	static char *kwlist[] = {"context", "hostname", "certificate", NULL,};
+	Context ctx = NULL;
+	PyObj hostname = NULL;
+	PyObj crt = NULL;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kw, "O!|OO", kwlist,
+			&ContextType, &ctx,
+			&hostname,
+			&crt))
+		return(NULL);
+
+	return(transport_new_client(subtype, ctx, hostname));
+}
+
+static PyObj
+transport_accept(PyTypeObject *subtype, PyObj args, PyObj kw)
+{
+	static char *kwlist[] = {"context", NULL,};
+	Context ctx = NULL;
+
+	if (!PyArg_ParseTupleAndKeywords(args, kw, "O!", kwlist, &ContextType, &ctx))
+		return(NULL);
+
+	return(transport_new_server(subtype, ctx));
+}
+
 static PyMethodDef
 transport_methods[] = {
-	{"status", (PyCFunction) transport_status,
-		METH_NOARGS, PyDoc_STR(
-			"Get the transport's status."
-		)
-	},
+	#define PyMethod_Id(N) transport_##N
+		#define PyMethod_TypeControl PyMethod_ClassType
+			PyMethod_Keywords(accept),
+			PyMethod_Keywords(connect),
+		#define PyMethod_TypeControl PyMethod_InstanceType
 
-	{"leak", (PyCFunction) transport_leak,
-		METH_NOARGS, PyDoc_STR(
-			"Inhibit close from being transmitted to the peer."
-		)
-	},
-
-	{"pending_input", (PyCFunction) transport_pending_input,
-		METH_NOARGS, PyDoc_STR(
-			"Whether or not the Transport can read data."
-		)
-	},
-
-	{"pending_output", (PyCFunction) transport_pending_output,
-		METH_NOARGS, PyDoc_STR(
-			"Whether or not the Transport needs to write data."
-		)
-	},
-
-	{"close", (PyCFunction) transport_close_output,
-		METH_NOARGS, PyDoc_STR("Initiate shutdown closing output.")
-	},
-
-	{"encipher", (PyCFunction) transport_encipher,
-		METH_O, PyDoc_STR(
-			"Encrypt the given plaintext buffers and return the ciphertext buffers."
-		)
-	},
-
-	{"decipher", (PyCFunction) transport_decipher,
-		METH_O, PyDoc_STR(
-			"Decrypt the ciphertext buffers into a sequence plaintext buffers."
-		)
-	},
-
-	{"connect_transmit_ready", (PyCFunction) transport_connect_transmit_ready,
-		METH_O, PyDoc_STR("Set callback to be used when an operation causes transmit data.")},
-
-	{"connect_receive_closed", (PyCFunction) transport_connect_receive_closed,
-		METH_O, PyDoc_STR("Set callback to be used when peer shutdown has been received.")},
-
-	{NULL},
+		PyMethod_None(status),
+		PyMethod_None(leak),
+		PyMethod_None(pending_input),
+		PyMethod_None(pending_output),
+		PyMethod_None(close),
+		PyMethod_Sole(encipher),
+		PyMethod_Sole(decipher),
+		PyMethod_Sole(connect_transmit_ready),
+		PyMethod_Sole(connect_receive_closed),
+	#undef PyMethod_Id
+	{NULL,},
 };
 
 static PyMemberDef
 transport_members[] = {
 	{"output_queue", T_OBJECT,
-		offsetof(struct Transport, output_queue), READONLY,
-		PyDoc_STR("Currently enqueued writes.")
+		offsetof(struct Transport, output_queue), READONLY, NULL,
 	},
 
 	{NULL},
@@ -1685,7 +2042,7 @@ transport_members[] = {
 static PyObj
 transport_get_application(PyObj self, void *_)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 	PyObj rob = NULL;
 	const unsigned char *data = NULL;
 	unsigned int l = 0;
@@ -1707,7 +2064,7 @@ transport_get_application(PyObj self, void *_)
 static PyObj
 transport_get_hostname(PyObj self, void *_)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 	PyObj rob = NULL;
 	const char *name = NULL;
 	unsigned int l = 0;
@@ -1732,7 +2089,7 @@ transport_get_hostname(PyObj self, void *_)
 static PyObj
 transport_get_protocol(PyObj self, void *_)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 	PyObj rob = NULL;
 	const SSL_METHOD *p = SSL_get_ssl_method(tls->tls_state);
 
@@ -1757,7 +2114,7 @@ transport_get_protocol(PyObj self, void *_)
 static PyObj
 transport_get_standard(PyObj self, void *_)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 	PyObj rob = NULL;
 	const SSL_METHOD *p = SSL_get_ssl_method(tls->tls_state);
 
@@ -1782,7 +2139,7 @@ transport_get_standard(PyObj self, void *_)
 static PyObj
 transport_get_peer_certificate(PyObj self, void *_)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 
 	if (tls->tls_peer_certificate != NULL)
 	{
@@ -1797,14 +2154,14 @@ transport_get_peer_certificate(PyObj self, void *_)
 		c = SSL_get_peer_certificate(tls->tls_state);
 		if (c != NULL)
 		{
-			crt = (Certificate) CertificateType.tp_alloc(&CertificateType, 0);
+			crt = Certificate_Recast(CertificateType.tp_alloc(&CertificateType, 0));
 
 			if (crt == NULL)
-				free_certificate_t(c);
+				tsi_certificate_release(c);
 			else
 				crt->lib_crt = c;
 
-			return((PyObj) crt);
+			return(Certificate_Recast(crt));
 		}
 	}
 
@@ -1814,7 +2171,7 @@ transport_get_peer_certificate(PyObj self, void *_)
 static PyObj
 transport_get_receive_closed(PyObj self, void *_)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 
 	if (SSL_get_shutdown(tls->tls_state) & SSL_RECEIVED_SHUTDOWN)
 	{
@@ -1829,7 +2186,7 @@ transport_get_receive_closed(PyObj self, void *_)
 static PyObj
 transport_get_transmit_closed(PyObj self, void *_)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 
 	if (SSL_get_shutdown(tls->tls_state) & SSL_SENT_SHUTDOWN)
 	{
@@ -1841,68 +2198,11 @@ transport_get_transmit_closed(PyObj self, void *_)
 	return(Py_False);
 }
 
-const char *
-violation(long vr)
-{
-	switch (vr)
-	{
-		case X509_V_ERR_CERT_NOT_YET_VALID:
-			return("not-yet-valid");
-		break;
-
-		case X509_V_ERR_CERT_HAS_EXPIRED:
-			return("expired");
-		break;
-
-		case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY:
-		case X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN:
-		case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT:
-		case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
-		case X509_V_ERR_CERT_UNTRUSTED:
-			return("untrusted");
-		break;
-
-		case X509_V_ERR_CERT_REVOKED:
-			return("revoked");
-		break;
-
-		case X509_V_ERR_CERT_REJECTED:
-			return("rejected");
-		break;
-
-		case X509_V_ERR_CERT_SIGNATURE_FAILURE:
-			return("signature-mismatch");
-		break;
-
-		case X509_V_ERR_ERROR_IN_CERT_NOT_BEFORE_FIELD:
-		case X509_V_ERR_ERROR_IN_CERT_NOT_AFTER_FIELD:
-		default:
-			return("invalid");
-		break;
-	}
-}
-
-static PyObj
-transport_get_violation(PyObj self, void *_)
-{
-	Transport tls = (Transport) self;
-	long vr;
-	const char *x;
-
-	vr = SSL_get_verify_result(tls->tls_state);
-	if (vr == X509_V_OK)
-	{
-		Py_RETURN_NONE;
-	}
-
-	return(Py_BuildValue("ss", violation(vr), X509_verify_cert_error_string(vr)));
-}
-
 static PyObj
 transport_get_client_ca_list(PyObj self, void *_)
 {
 	PyObj rob;
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 	STACK_OF(X509_NAME) *calist;
 	int i;
 
@@ -1953,75 +2253,21 @@ transport_get_client_ca_list(PyObj self, void *_)
 }
 
 static PyGetSetDef transport_getset[] = {
-	{"application", transport_get_application, NULL,
-		PyDoc_STR(
-			"The application protocol specified by the Transport as a bytes instance."
-		),
-		NULL,
-	},
-
-	{"hostname", transport_get_hostname, NULL,
-		PyDoc_STR(
-			"Get the hostname used by the Transport"
-		),
-		NULL,
-	},
-
-	{"protocol", transport_get_protocol, NULL,
-		PyDoc_STR(
-			"The protocol used by the Transport as a tuple: (name, major, minor)."
-		),
-		NULL,
-	},
-
-	{"standard", transport_get_standard, NULL,
-		PyDoc_STR(
-			"The protocol standard used by the Transport as a tuple: (org, std, id)."
-		),
-		NULL,
-	},
-
-	{"peer", transport_get_peer_certificate, NULL,
-		PyDoc_STR(
-			"Get the peer certificate. If the Transport has yet to receive it, "
-			"&None will be returned."
-		),
-		NULL
-	},
-
-	{"receive_closed", transport_get_receive_closed, NULL,
-		PyDoc_STR(
-			"Whether shutdown state has been received from the peer."
-		),
-		NULL
-	},
-
-	{"transmit_closed", transport_get_transmit_closed, NULL,
-		PyDoc_STR(
-			"Whether the shutdown state has been sent to the peer."
-		),
-		NULL
-	},
-
-	{"violation", transport_get_violation, NULL,
-		PyDoc_STR(
-			"Tuple describing the violation; None if none."
-		),
-		NULL
-	},
-
-	{"client_ca_names", transport_get_client_ca_list, NULL,
-		PyDoc_STR("Sequence of names accepted by the server for client certificate verification."),
-		NULL
-	},
-
+	{"application", transport_get_application, NULL, NULL, NULL},
+	{"hostname", transport_get_hostname, NULL, NULL, NULL},
+	{"protocol", transport_get_protocol, NULL, NULL, NULL},
+	{"standard", transport_get_standard, NULL, NULL, NULL},
+	{"peer", transport_get_peer_certificate, NULL, NULL, NULL},
+	{"receive_closed", transport_get_receive_closed, NULL, NULL, NULL},
+	{"transmit_closed", transport_get_transmit_closed, NULL, NULL, NULL},
+	{"client_ca_names", transport_get_client_ca_list, NULL, NULL, NULL},
 	{NULL,},
 };
 
 static PyObj
 transport_repr(PyObj self)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 	char *tls_state;
 	PyObj rob;
 
@@ -2034,7 +2280,7 @@ transport_repr(PyObj self)
 static int
 transport_clear(PyObj self)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 
 	Py_XDECREF(tls->output_queue);
 	Py_XDECREF(tls->ctx_object);
@@ -2052,7 +2298,7 @@ transport_clear(PyObj self)
 static int
 transport_traverse(PyObj self, visitproc visit, void *arg)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 
 	Py_VISIT(tls->output_queue);
 	Py_VISIT(tls->ctx_object);
@@ -2065,7 +2311,7 @@ transport_traverse(PyObj self, visitproc visit, void *arg)
 static void
 transport_dealloc(PyObj self)
 {
-	Transport tls = (Transport) self;
+	Transport tls = Transport_Recast(self);
 
 	if (tls->tls_state == NULL)
 		SSL_free(tls->tls_state);
@@ -2074,137 +2320,19 @@ transport_dealloc(PyObj self)
 	Py_TYPE(self)->tp_free(self);
 }
 
-static PyObj
-transport_new_server(PyTypeObject *typ, Context ctx)
-{
-	Transport tls;
-
-	tls = create_tls_state(typ, ctx);
-	if (tls == NULL)
-		return(NULL);
-
-	SSL_set_accept_state(tls->tls_state);
-
-	if (SSL_do_handshake(tls->tls_state) != 0 && library_error())
-		goto error;
-
-	return((PyObj) tls);
-
-	error:
-	{
-		Py_DECREF((PyObj) tls);
-		return(NULL);
-	}
-}
-
-static PyObj
-transport_new_client(PyTypeObject *typ, Context ctx, PyObj hostname)
-{
-	Transport tls;
-
-	tls = create_tls_state(typ, ctx);
-	if (tls == NULL)
-		return(NULL);
-
-	if (hostname != NULL)
-	{
-		if (_transport_set_hostname(tls, hostname))
-			goto error;
-	}
-
-	SSL_set_connect_state(tls->tls_state);
-
-	if (SSL_do_handshake(tls->tls_state) != 0 && library_error())
-		goto error;
-
-	return((PyObj) tls);
-
-	error:
-	{
-		Py_DECREF((PyObj) tls);
-		return(NULL);
-	}
-}
-
-#ifndef ADAPTER_TRANSPORT_NEW
-	#define ADAPTER_TRANSPORT_NEW create_tls_state
-#endif
-
-#if defined(ADAPTER_CLIENT)
-static PyObj
-transport_new(PyTypeObject *subtype, PyObj args, PyObj kw)
-{
-	static char *kwlist[] = {"context", "hostname", "certificate", NULL,};
-	Context ctx = NULL;
-	PyObj hostname = NULL;
-	PyObj crt = NULL;
-
-	if (!PyArg_ParseTupleAndKeywords(args, kw, "O|OO", kwlist,
-			&ctx,
-			&hostname,
-			&crt))
-		return(NULL);
-
-	return(ADAPTER_TRANSPORT_NEW(subtype, ctx, hostname));
-}
-#else
-static PyObj
-transport_new(PyTypeObject *subtype, PyObj args, PyObj kw)
-{
-	static char *kwlist[] = {"context", NULL,};
-	Context ctx = NULL;
-
-	if (!PyArg_ParseTupleAndKeywords(args, kw, "O", kwlist, &ctx))
-		return(NULL);
-
-	return(ADAPTER_TRANSPORT_NEW(subtype, ctx));
-}
-#endif
-
-PyDoc_STRVAR(transport_doc, "OpenSSL Secure Transfer State.");
-
 static PyTypeObject
 TransportType = {
 	PyVarObject_HEAD_INIT(NULL, 0)
-	PYTHON_MODULE_PATH("Transport"), /* tp_name */
-	sizeof(struct Transport),        /* tp_basicsize */
-	0,                               /* tp_itemsize */
-	transport_dealloc,               /* tp_dealloc */
-	0,                               /* (tp_print) */
-	NULL,                            /* tp_getattr */
-	NULL,                            /* tp_setattr */
-	NULL,                            /* tp_compare */
-	transport_repr,                  /* tp_repr */
-	NULL,                            /* tp_as_number */
-	NULL,                            /* tp_as_sequence */
-	NULL,                            /* tp_as_mapping */
-	NULL,                            /* tp_hash */
-	NULL,                            /* tp_call */
-	NULL,                            /* tp_str */
-	NULL,                            /* tp_getattro */
-	NULL,                            /* tp_setattro */
-	NULL,                            /* tp_as_buffer */
-	Py_TPFLAGS_BASETYPE|
-	Py_TPFLAGS_HAVE_GC|
-	Py_TPFLAGS_DEFAULT,              /* tp_flags */
-	transport_doc,                   /* tp_doc */
-	transport_traverse,              /* tp_traverse */
-	transport_clear,                 /* tp_clear */
-	NULL,                            /* tp_richcompare */
-	0,                               /* tp_weaklistoffset */
-	NULL,                            /* tp_iter */
-	NULL,                            /* tp_iternext */
-	transport_methods,               /* tp_methods */
-	transport_members,               /* tp_members */
-	transport_getset,                /* tp_getset */
-	NULL,                            /* tp_base */
-	NULL,                            /* tp_dict */
-	NULL,                            /* tp_descr_get */
-	NULL,                            /* tp_descr_set */
-	0,                               /* tp_dictoffset */
-	NULL,                            /* tp_init */
-	NULL,                            /* tp_alloc */
-	transport_new,                   /* tp_new */
+	.tp_name = PYTHON_MODULE_PATH("Transport"),
+	.tp_basicsize = sizeof(struct Transport),
+	.tp_dealloc = transport_dealloc,
+	.tp_repr = transport_repr,
+	.tp_flags = Py_TPFLAGS_BASETYPE|Py_TPFLAGS_HAVE_GC|Py_TPFLAGS_DEFAULT,
+	.tp_traverse = transport_traverse,
+	.tp_clear = transport_clear,
+	.tp_methods = transport_methods,
+	.tp_members = transport_members,
+	.tp_getset = transport_getset,
 };
 
 #define PYTHON_TYPES() \
@@ -2215,8 +2343,8 @@ TransportType = {
 
 #define MODULE_FUNCTIONS()
 
-static void load_implementation(void) __attribute__((constructor));
 static void
+__attribute__((constructor))
 load_implementation(void)
 {
 	/*
@@ -2235,80 +2363,115 @@ load_implementation(void)
 }
 
 static int
-init_implementation_data(PyObj module)
+m_traverse(PyObj module, visitproc visit, void *arg)
 {
-	if (PyExc_TransportSecurityError == NULL)
+	struct module_state *ms = PyModule_GetState(module);
+
+	#define X(N) Py_VISIT(ms->N);
+		MODULE_EXCEPTIONS(X)
+	#undef X
+	return(0);
+}
+
+static void
+m_clear(PyObj module)
+{
+	struct module_state *ms = PyModule_GetState(module);
+
+	#define X(N) Py_CLEAR(ms->N);
+		MODULE_EXCEPTIONS(X)
+	#undef X
+}
+
+static void
+m_free(PyObj module)
+{
+	m_clear(module);
+}
+
+#include <fault/python/module.h>
+INIT(module, sizeof(struct module_state), MODULE_GC)
+{
+	struct module_state *ms = PyModule_GetState(module);
+
+	// Exceptions
 	{
-		PyExc_TransportSecurityError = PyErr_NewException("openssl.IError", NULL, NULL);
-		if (PyExc_TransportSecurityError == NULL)
+		PyObj exc = NULL;
+		PyObj sv = PyErr_NewException(PYTHON_MODULE_PATH("Exception"), NULL, NULL);
+		if (sv == NULL)
 			goto error;
+
+		if (PyModule_AddObject(module, "Exception", sv))
+			goto error;
+		ms->Exception = sv;
+		Py_INCREF(sv);
+
+		#define AddExc(NAME, BASE) \
+			exc = PyErr_NewException(PYTHON_MODULE_PATH(#NAME), BASE, NULL); \
+			if (exc == NULL) \
+				goto error; \
+			if (PyModule_AddObject(module, #NAME, exc)) \
+				goto error; \
+			ms->NAME = exc; \
+			Py_INCREF(exc); \
+			exc = NULL; \
+
+			AddExc(ProtocolViolation, sv)
+			AddExc(InvalidCertificate, sv)
+
+			AddExc(PolicyViolation, ms->InvalidCertificate)
+			AddExc(ExpiredCertificate, ms->PolicyViolation)
+			AddExc(RevokedCertificate, ms->PolicyViolation)
+			AddExc(UntrustedCertificate, ms->PolicyViolation)
+			AddExc(ForgedCertificate, ms->PolicyViolation)
+			AddExc(UnsuitableCertificate, ms->PolicyViolation)
+		#undef AddExc
 	}
-	else
-		Py_INCREF(PyExc_TransportSecurityError);
-
-	if (PyModule_AddObject(module, "IError", PyExc_TransportSecurityError))
-		goto error;
-
-	if (PyModule_AddIntConstant(module, "version_code", OPENSSL_VERSION_NUMBER))
-		goto error;
-
-	if (PyModule_AddStringConstant(module, "version", OPENSSL_VERSION_TEXT))
-		goto error;
 
 	if (PyModule_AddStringConstant(module, "ciphers", FAULT_OPENSSL_CIPHERS))
 		goto error;
 
-	/*
-		// Break up the version into sys.version_info style tuple.
-		// 0x1000105fL is 1.0.1e final
-	*/
+	if (PyModule_AddIntConstant(module, "if_version_code", OPENSSL_VERSION_NUMBER))
+		goto error;
+
+	if (PyModule_AddIntConstant(module, "li_version_code", OpenSSL_version_num()))
+		goto error;
+
+	if (PyModule_AddStringConstant(module, "if_version", OPENSSL_FULL_VERSION_STR))
+		goto error;
+
+	if (PyModule_AddStringConstant(module, "li_version", OpenSSL_version(OPENSSL_FULL_VERSION_STRING)))
+		goto error;
+
+	// Interface (headers) version.
 	{
-		int patch_code = ((OPENSSL_VERSION_NUMBER >> 4) & 0xFF);
-		int status_code = (OPENSSL_VERSION_NUMBER & 0xF);
-		char *status = NULL, *patch = NULL, patch_char[2];
-
-		switch (status_code)
-		{
-			case 0:
-				status = "dev";
-			break;
-
-			case 0xF:
-				status = "final";
-			break;
-
-			default:
-				status = "beta";
-			break;
-		}
-
-		switch (patch_code)
-		{
-			case 0:
-				patch = NULL;
-			break;
-			default:
-				patch_code += (int) 'a';
-				patch_char[0] = patch_code - 1;
-				patch_char[1] = '\0';
-				patch = patch_char;
-			break;
-		}
-
-		version_info = Py_BuildValue("(iiiss)",
-			(OPENSSL_VERSION_NUMBER >> 28) & 0xFF,
-			(OPENSSL_VERSION_NUMBER >> 20) & 0xFF,
-			(OPENSSL_VERSION_NUMBER >> 12) & 0xFF,
-			patch, status
+		PyObj version_info = Py_BuildValue("(iiiss)",
+			OPENSSL_VERSION_MAJOR,
+			OPENSSL_VERSION_MINOR,
+			OPENSSL_VERSION_PATCH,
+			OPENSSL_VERSION_PRE_RELEASE,
+			OPENSSL_VERSION_BUILD_METADATA
 		);
 
-		if (PyModule_AddObject(module, "version_info", version_info))
+		if (PyModule_AddObject(module, "if_version_info", version_info))
 			goto error;
 	}
 
-	/*
-		// Initialize types
-	*/
+	// Library (image) version.
+	{
+		PyObj version_info = Py_BuildValue("(iiiss)",
+			OPENSSL_version_major(),
+			OPENSSL_version_minor(),
+			OPENSSL_version_patch(),
+			OPENSSL_version_pre_release(),
+			OPENSSL_version_build_metadata()
+		);
+
+		if (PyModule_AddObject(module, "li_version_info", version_info))
+			goto error;
+	}
+
+	// Initialize types
 	#define ID(NAME) \
 		if (PyType_Ready((PyTypeObject *) &( NAME##Type ))) \
 			goto error; \
