@@ -40,15 +40,6 @@ class Legacy(object):
 
 	_escape = b'\x1b'
 	_csi_open = _escape + b'['
-	_pm_open = _csi_open + b'?'
-	_pm_save = _pm_open + b'6;1049s'
-	_pm_restore = _pm_open + b'6;1049r'
-	_pm_origin_set = _pm_open + b'6h'
-	_pm_origin_reset = _pm_open + b'6l'
-	_pm_screen_set = _pm_open + b'1049h'
-	_pm_screen_reset = _pm_open + b'1049l'
-	_pm_show_cursor = _pm_open + b'25h'
-	_pm_hide_cursor = _pm_open + b'25l'
 	_restore_cursor = _escape + b'8'
 	_store_cursor = _escape + b'7'
 	_nl = _csi_open + b'1B'
@@ -87,16 +78,6 @@ class Legacy(object):
 		self._offset = -1
 		self._seek = b''
 
-	def set_cursor_visible(self, visible):
-		"""
-		# Adjust cursor visibility.
-		"""
-
-		if visible:
-			return self._pm_show_cursor
-		else:
-			return self._pm_hide_cursor
-
 	def set_scrolling_region(self, top:int, bottom:int):
 		"""
 		# Confine the scrolling region to the given rows.
@@ -110,44 +91,6 @@ class Legacy(object):
 		"""
 
 		return self._csi_open + b'r'
-
-	def open_scrolling_region(self, top:int, bottom:int):
-		"""
-		# Set the scrolling region, enter it, and seek the bottom.
-		# Subsequent &exit_scrolling_region and &enter_scrolling_region
-		# should be use to maintain the SR's state.
-		"""
-
-		sr = self.set_scrolling_region(top, bottom)
-		return self._store_cursor + sr + self._pm_origin_set + self._restore_cursor
-
-	def close_scrolling_region(self):
-		"""
-		# Save the screen buffer, reset the scrolling region, and restore the buffer.
-		# This preserves the screen's state after the transition.
-		"""
-
-		return self._store_cursor + self._pm_screen_set + \
-			self.reset_scrolling_region() + \
-			self._pm_screen_reset + self.enter_scrolling_region()
-
-	def enter_scrolling_region(self):
-		"""
-		# Enter scrolling region; normal terminal output; restores cursor location.
-		"""
-
-		return \
-			self._pm_origin_set + \
-			self._restore_cursor
-
-	def exit_scrolling_region(self):
-		"""
-		# Exit scrolling region; allow out of region printing; saves cursor location.
-		"""
-
-		return \
-			self._store_cursor + \
-			self._pm_origin_reset
 
 	def clear(self):
 		"""
@@ -648,13 +591,13 @@ class Monitor(object):
 		self._write = self._io.write
 
 	def install(self, monitor):
-		"""
-		# Erase, reframe, and update the given monitor.
-		"""
+		pass
 
-		self._buffer.append(self.screen.erase(monitor.context))
-		self.frame(monitor)
-		self.update(monitor, monitor.render())
+	def clear(self):
+		pass
+
+	def flush(self):
+		pass
 
 	def frame(self, monitor, offset=0):
 		"""
@@ -701,33 +644,6 @@ class Monitor(object):
 			])
 			self._buffer.append(b''.join(i))
 
-	def flush(self):
-		"""
-		# Write any buffered terminal changes to the device.
-		"""
-		l = len(self._buffer)
-		buf = bytearray()
-		buf += self.screen.exit_scrolling_region()
-		buf += self.screen.set_cursor_visible(False)
-		for x in itertools.islice(self._buffer, 0, l):
-			buf += x
-		buf += self.screen.enter_scrolling_region()
-		buf += self.screen.set_cursor_visible(True)
-
-		try:
-			self._write(buf)
-		except:
-			raise
-		else:
-			del self._buffer[:l]
-
-	def clear(self):
-		"""
-		# Clear the entire status regions.
-		"""
-
-		self._buffer.append(self.screen.clear())
-
 	def configure(self, lines:int):
 		"""
 		# Configure the scrolling region allocating &lines at
@@ -746,19 +662,7 @@ class Monitor(object):
 		height, width = tcgetwinsize(self._fileno)
 		self.screen.configure(height, width, lines)
 
-		init = b'\n' * lines + self.screen._csi_open + self.screen._join(lines) + b'A'
-		init += self.screen.open_scrolling_region(0, (height-lines)-1)
-		self._buffer.append(self.screen.clear())
-		self._write(init)
 		return self
-
-	def _save(self):
-		import atexit
-		self._io.write(self.screen._pm_save)
-		atexit.register(self._restore)
-
-	def _restore(self):
-		self._io.write(self.screen.close_scrolling_region() + self.screen._pm_restore)
 
 _metric_units = [
 	('', '', 0),
@@ -841,29 +745,8 @@ def form(module):
 
 	return t, l, getattr(module, 'types', {})
 
-def identify_device(path='/dev/tty'):
-	"""
-	# Use the first three file descriptors to determine the
-	# path to the tty device. If no path can be identified,
-	# return the given &path which defaults to `/dev/tty`.
-	"""
-
-	for i in range(3):
-		try:
-			path = os.ttyname(i)
-		except:
-			continue
-		else:
-			break
-
-	return path
-
-def setup(device='/dev/tty'):
-	screen = Legacy()
-	fileno = os.open(device, os.O_RDWR)
-	m = Monitor(screen, fileno)
-	m._save()
-	return m
+def setup():
+	return Monitor(Legacy(), 1)
 
 def aggregate(control:Monitor, module, lanes=1, width=80):
 	"""
