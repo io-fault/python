@@ -27,12 +27,6 @@ def duration_repr(seconds) -> typing.Tuple[float, str]:
 	days = hours / 24
 	return (days, 'd')
 
-class Phrase(list):
-	__slots__ = ()
-
-	def cellcount(self):
-		return sum(len(x[1]) for x in self)
-
 class Legacy(object):
 	"""
 	# Abstraction for legacy ANSI/DEC escapes.
@@ -239,7 +233,7 @@ class Theme(object):
 		"""
 
 		r_method = self.rendermethod.get(type) or partial(self.default_render_method, type)
-		return Phrase(self.style(r_method(field)))
+		return list(self.style(r_method(field)))
 
 class Status(object):
 	"""
@@ -321,14 +315,14 @@ class Status(object):
 		# Attach a constant phrase to the beginning of the monitor.
 		"""
 
-		self._prefix = Phrase(words)
+		self._prefix = list(words)
 
 	def suffix(self, *words):
 		"""
 		# Attach a constant phrase to the end of the monitor.
 		"""
 
-		self._suffix = Phrase(words)
+		self._suffix = list(words)
 
 	def title(self, title, *dimensions):
 		"""
@@ -439,11 +433,11 @@ class Status(object):
 				self.view[k] = vmap.get(v, v)
 
 			if context is None:
-				ph = Phrase([('default', self._title[0] + ': ')])
+				ph = [('default', self._title[0] + ': ')]
 			elif context:
-				ph = Phrase([('default', context + ': ')])
+				ph = [('default', context + ': ')]
 			else:
-				ph = Phrase()
+				ph = []
 
 			ph.extend(self.snapshot())
 			return ph
