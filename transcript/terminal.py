@@ -149,59 +149,6 @@ class Legacy(object):
 	def position(self):
 		return (self._offset, 0)
 
-class Layout(object):
-	"""
-	# The set, sizes, and ordering of fields present in a monitor.
-	"""
-
-	# Identifier-width(cell count) pairs.
-	Definition = typing.Tuple[str, int]
-	Fields = typing.Sequence[Definition]
-
-	@staticmethod
-	def separators(fields:int, termination=".", separation=", "):
-		"""
-		# Generate a series of separators finished with a terminator.
-		# Given a number of a fields, emit separators until the final index
-		# is reached.
-		"""
-
-		for x in range(fields-1):
-			yield separation
-
-		yield termination
-
-	def label(self, field, text:str):
-		"""
-		# The display text for the field's label.
-		"""
-		self.labels[field] = text
-
-	def __init__(self, fields:Fields, **updates):
-		self.labels = {}
-		self.order = [x[0] for x in fields]
-		self.paths = [tuple(x[1].split('.')) for x in fields]
-		self.cells = {x[0]: x[2] for x in fields}
-		self.cells.update(updates.items())
-
-	def fields(self):
-		"""
-		# Iterate over the fields in their designated order along with separators
-		# that can be used to follow the rendered field.
-		"""
-		return zip(self.order, self.paths, self.separators(len(self.order)))
-
-	def positions(self):
-		"""
-		# Join the field identifier, cell allocation, and field label in
-		# the order designated by &order.
-		"""
-		fl = self.labels
-		cc = self.cells
-
-		for fid in self.order:
-			yield (fid, fl[fid], cc[fid])
-
 class Theme(object):
 	"""
 	# The rendering methods and parameters used by a &Status.
@@ -241,11 +188,15 @@ class Theme(object):
 			(precision+'-timeunit', precision),
 		]
 
-	def define(self, name, style):
+	def define(self, name, style, label=None, path=()):
 		"""
 		# Define the &style to use with the given &name.
 		"""
 		self.stylesets[name] = style
+		if label:
+			self.labels[name] = label
+		if path:
+			self.paths[name] = path.split('.')
 
 	def implement(self, type, render):
 		"""
@@ -253,8 +204,11 @@ class Theme(object):
 		"""
 		self.rendermethod[type] = render
 
-	def __init__(self):
+	def __init__(self, fields):
+		self.fields = fields
 		self.stylesets = {}
+		self.labels = {}
+		self.paths = {}
 		self.rendermethod = {}
 
 	def configure(self):
@@ -304,10 +258,8 @@ class Status(object):
 		'rate_overall': '^',
 	}
 
-	def __init__(self, theme:Theme, layout:Layout, position):
+	def __init__(self, theme:Theme):
 		self.theme = theme # Style sets and value rendering methods.
-		self.layout = layout # Field Ordering and Width
-		self.context = position # Screen Context
 		self.metrics = None
 		self.view = {} # Field view identifying value filtering (rate vs total).
 
@@ -315,31 +267,6 @@ class Status(object):
 		self._title = None
 		self._prefix = None
 		self._suffix = None
-		self._update_field_cache()
-
-	def _calculate_fields(self, alignment=1):
-		position = 0
-		trender = self.theme.render
-
-		for fid, flabel, cells in self.layout.positions():
-			rlabel = trender('label-'+fid, flabel)
-			lc = rlabel.cellcount()
-			usage = abs(cells) + lc + 2
-			yield (position, cells, lc)
-
-			indents, r = divmod(usage, alignment)
-			position += (indents * alignment)
-			if r != 0:
-				position += alignment
-
-		yield (position, 0, 0)
-
-	def _update_field_cache(self):
-		self._positions = list(self._calculate_fields())
-		self._pcache = {
-			k: (path, fpad, position, cells, lc)
-			for (k, path, fpad), (position, cells, lc) in zip(self.layout.fields(), self._positions)
-		}
 
 	def reset(self, time, metrics):
 		"""
@@ -448,59 +375,29 @@ class Status(object):
 		delta = self.total(field) - self.edge(field)
 		return delta / self.duration()
 
-	def render(self, filter=(lambda x: False), offset=58):
+	def render(self, filter=(lambda x: False)):
 		render = self.theme.render
-		layout = self.layout
 		metrics = self.metrics
 
 		label = render('Label', "duration")
 		value = render('duration', self.duration() / (10**9))
-		yield 'total', label, value, 40, 8 - value.cellcount()
+		yield 'total', label, value
 
-		for (k, path, fpad), (position, cells, lc) in zip(layout.fields(), self._positions):
+		for k in self.theme.fields:
 			utype = self.view.get(k, 'total')
 			readv = getattr(self, utype)
 			try:
-				v = readv(path)
+				v = readv(self.theme.paths[k])
 			except ZeroDivisionError:
 				utype = 'total'
-				v = self.total(path)
+				v = self.total(self.theme.paths[k])
 
 			if filter(v):
 				continue
 			value = render(k, v)
+			label = render('Label', self.theme.labels[k])
 
-			lstr = layout.labels[k]
-			ncells = value.cellcount()
-			label = render('Label', lstr)
-
-			yield utype, label, value, position + offset, (cells - ncells)
-
-	def delta(self, fields, offset=58):
-		render = self.theme.render
-		labels = self.layout.labels
-		metrics = self.metrics
-
-		label = render('Label', "duration")
-		value = render('duration', self.duration() / (10**9))
-		yield 'total', label, value, 40, 8 - value.cellcount()
-
-		fields = ((k, self._pcache[k]) for k in fields if k in self._pcache)
-		for k, (path, fpad, position, cells, lc) in fields:
-			utype = self.view.get(k, 'total')
-			readv = getattr(self, utype)
-			try:
-				v = readv(path)
-			except ZeroDivisionError:
-				utype = 'total'
-				v = self.total(path)
-
-			value = render(k, v)
-			lstr = labels.get(k, k)
-			ncells = value.cellcount()
-			label = render('Label', lstr)
-
-			yield utype, label, value, position + offset, (cells - ncells)
+			yield utype, label, value
 
 	def phrase(self, filter=(lambda x: False)):
 		"""
@@ -513,7 +410,7 @@ class Status(object):
 
 		n = (lambda x: self.theme.render('Label-Separator', x))
 		lseps = (n(self.unit_type_separators[x]) for x in utypes)
-		fseps = map(n, self.layout.separators(len(phrases)))
+		fseps = map(n, ' ' * (len(phrases)-1))
 
 		return tools.interlace(values, lseps, labels, fseps)
 
@@ -582,68 +479,6 @@ class Monitor(object):
 
 		return b''.join(self.screen.render(monitor.synopsis(identifier))).decode(self.screen.encoding)
 
-	def __init__(self, screen, fileno):
-		self.screen = screen
-		self.count = 0
-		self._buffer = []
-		self._fileno = fileno
-		self._io = io.FileIO(fileno, closefd=False, mode='w')
-		self._write = self._io.write
-
-	def install(self, monitor):
-		pass
-
-	def clear(self):
-		pass
-
-	def flush(self):
-		pass
-
-	def frame(self, monitor, offset=0):
-		"""
-		# Render and emit the prefix, title, and suffix of the &monitor.
-
-		# Operation is buffered and must be flushed to be displayed.
-		"""
-
-		context = monitor.context
-		buf = self._buffer
-
-		if monitor._prefix:
-			offset = offset + monitor._prefix.cellcount() + 2
-			buf.append(self.screen.seek(context, 0, 0))
-			buf.extend(self.screen.render(monitor._prefix))
-
-		ph = monitor.theme.render('title', monitor._title)
-		buf.append(self.screen.seek(context, 0, offset))
-		buf.extend(self.screen.render(ph))
-		buf.append(b':')
-
-		if monitor._suffix:
-			buf.extend(self.screen.render(monitor._suffix))
-
-	def update(self, monitor, fields, offset=0):
-		"""
-		# Render and emit the given &fields.
-
-		# Operation is buffered and must be flushed to be displayed.
-		"""
-
-		context = monitor.context
-		SR = self.screen.render
-		R = monitor.theme.render
-		chain = itertools.chain.from_iterable
-
-		for utype, label, ph, position, pad in fields:
-			lsep = R('Label-Separator', monitor.unit_type_separators[utype])
-			i = chain([
-				(self.screen.seek(context, 0, position + offset), b' ' * pad),
-				SR(ph),
-				SR(lsep),
-				SR(label) if label else (),
-			])
-			self._buffer.append(b''.join(i))
-
 	def configure(self, lines:int):
 		"""
 		# Configure the scrolling region allocating &lines at
@@ -663,6 +498,29 @@ class Monitor(object):
 		self.screen.configure(height, width, lines)
 
 		return self
+
+	def __init__(self, screen, fileno):
+		self.screen = screen
+		self.count = 0
+		self._buffer = []
+		self._fileno = fileno
+		self._io = io.FileIO(fileno, closefd=False, mode='w')
+		self._write = self._io.write
+
+	def install(self, monitor):
+		pass
+
+	def clear(self):
+		pass
+
+	def flush(self):
+		pass
+
+	def frame(self, monitor, offset=0):
+		pass
+
+	def update(self, monitor, fields, offset=0):
+		pass
 
 _metric_units = [
 	('', '', 0),
@@ -722,11 +580,10 @@ def r_title(value):
 
 def form(module):
 	"""
-	# Construct a &Layout and &Theme from the provided order and formatting structures.
+	# Construct a &Theme from the provided order and formatting structures.
 	"""
 
-	l = Layout(module.order)
-	t = Theme().configure()
+	t = Theme([k[0] for k in module.order]).configure()
 	t.implement('duration', Theme.r_duration)
 	t.implement('title', r_title)
 
@@ -740,10 +597,9 @@ def form(module):
 	for (k, path, width), (keycode, label, color, fn) in zip(module.order, module.formats):
 		if fn is not None:
 			t.implement(k, fn)
-		t.define(k, color)
-		l.label(k, label or None)
+		t.define(k, color, label, path)
 
-	return t, l, getattr(module, 'types', {})
+	return t, getattr(module, 'types', {})
 
 def setup():
 	return Monitor(Legacy(), 1)
@@ -757,13 +613,9 @@ def aggregate(control:Monitor, module, lanes=1, width=80):
 	# and a single Status for the aggregation.
 	"""
 
-	top, left = control.screen.position
-	t, l, types = form(module)
-	lanes_seq = [
-		Status(t, l, (top + i, left, 1, width))
-		for i in range(lanes)
-	]
-	m = Status(t, l, (top + lanes, left, 1, width))
+	t, types = form(module)
+	lanes_seq = [Status(t) for i in range(lanes)]
+	m = Status(t)
 
 	for k, v in types.items():
 		m.set_field_read_type(k, v)
