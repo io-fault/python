@@ -91,7 +91,7 @@ def _open_frame(status, fcompose=frames.compose):
 	return fcompose('->', ctx + ': ' + ts, None, ext)
 
 def dispatch(meta, log,
-		plan, control, monitors, summary, title, queue,
+		plan, monitors, summary, title, queue,
 		opened=False,
 		select=(lambda t,m,f: False), alerts=True,
 		window=8, frequency=64,
@@ -100,9 +100,6 @@ def dispatch(meta, log,
 	"""
 	# Execute system commands while displaying their status
 	# according to the transaction messages they emit to standard out.
-
-	# &monitors corresponds to the processing lanes of the operation, but
-	# the configured allocations in &control may limit what is displayed.
 	"""
 
 	closetypes = {
@@ -116,8 +113,7 @@ def dispatch(meta, log,
 	total_messages = 0
 	message_count = 0
 
-	# Status monitors are allocated for each lane, but only some are visible.
-	visible = control.count
+	# Status monitors are allocated for each lane.
 	available = collections.deque(range(len(monitors)))
 
 	statusd = {}
@@ -128,9 +124,6 @@ def dispatch(meta, log,
 	mtotal = zero
 
 	summary.title(title, '/'.join(map(str, queue.status())))
-	if visible >= 0:
-		control.install(summary)
-
 	ioa = io.FrameArray(timeout=frequency)
 	try:
 		ioa.__enter__()
@@ -160,8 +153,6 @@ def dispatch(meta, log,
 
 					monitor.title(next_channel[1], *next_channel[2])
 					ioa.connect(lid, next_channel[0])
-					if lid < visible:
-						control.install(monitor)
 
 					if opened:
 						log.emit(_open_frame(status))
@@ -192,8 +183,6 @@ def dispatch(meta, log,
 
 									monitor.title(next_channel[1], *next_channel[2])
 									ioa.connect(xlid, next_channel[0])
-									if lid < visible:
-										control.install(monitor)
 
 									if opened:
 										log.emit(_open_frame(status))
@@ -201,11 +190,6 @@ def dispatch(meta, log,
 							else:
 								# No more availability, exit for-sources.
 								break
-
-			# Located before possible waits in &ioa.__iter__,
-			# but not directly after to allow seamless transitions.
-			if visible > -1:
-				control.flush()
 
 			# Calculate change in time for Metrics.commit.
 			next_time = time.elapsed()
@@ -223,7 +207,7 @@ def dispatch(meta, log,
 
 					# Send final snapshot to log.
 					ftype = closetypes.get((opened, exitcode == 0), '<-')
-					xf = monitor.frame(control, ftype, status['identifier'])
+					xf = monitor.frame(ftype, status['identifier'])
 					log.emit(xf)
 					log.flush()
 
@@ -234,9 +218,6 @@ def dispatch(meta, log,
 						ioa.connect(lid, next_channel[0])
 
 						monitor.title(next_channel[1], *next_channel[2])
-						if lid < visible:
-							control.install(monitor)
-
 						if opened:
 							log.emit(_open_frame(status))
 						continue
@@ -247,8 +228,6 @@ def dispatch(meta, log,
 
 					qs = queue.status()
 					summary.title(title, '/'.join(map(str, (qs[0]-len(statusd), qs[1]))))
-					if visible > -1:
-						control.install(summary)
 					status.clear()
 					continue
 
@@ -310,20 +289,15 @@ def dispatch(meta, log,
 			# Update duration and any other altered fields.
 			for vlid, m in enumerate(monitors):
 				m.elapse(next_time)
-				if vlid < visible:
-					control.update(m, m.render())
 
 			summary.update(next_time, mtotal)
 			qs = queue.status()
 			summary.title(title, '/'.join(map(str, (qs[0]-len(statusd), qs[1]))))
-			if visible > -1:
-				control.update(summary, summary.render())
 		else:
 			pass
 	except BrokenPipeError:
 		pass
 	finally:
-		control.flush()
 		ioa.__exit__(None, None, None) # Exception has the same effect.
 		for lid in statusd:
 			try:

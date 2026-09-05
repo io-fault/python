@@ -27,9 +27,9 @@ def duration_repr(seconds) -> typing.Tuple[float, str]:
 	days = hours / 24
 	return (days, 'd')
 
-class Legacy(object):
+class Theme(object):
 	"""
-	# Abstraction for legacy ANSI/DEC escapes.
+	# The rendering methods and parameters used by a &Status.
 	"""
 
 	_styles = {
@@ -51,35 +51,11 @@ class Legacy(object):
 		'gray': b'38;5;241',
 	}
 
-	def __init__(self, encoding='utf-8'):
-		self.encoding = encoding
-		self.dimensions = (0, 0)
-		self._width = 0
-		self._height = 0
-
-	def render(self, phrase):
-		"""
-		# Translate the color names to SGR codes.
-		"""
-
+	def _render(self, phrase):
 		for color, text in phrase:
 			yield b'\x1b[' + self._styles[color] + b'm' + \
-				text.encode(self.encoding) + \
+				text.encode('utf-8') + \
 				b'\x1b[39m'
-
-	def configure(self, height, width, lines):
-		"""
-		# Update the dimensions of the screen.
-		"""
-
-		self.dimensions = (height, width)
-		self._width = width
-		self._height = lines
-
-class Theme(object):
-	"""
-	# The rendering methods and parameters used by a &Status.
-	"""
 
 	Formatter = tuple[str, str]
 
@@ -377,11 +353,11 @@ class Status(object):
 		finally:
 			self.view = sv
 
-	def message(self, render, identifier):
+	def message(self, identifier):
 		syn = self.synopsis(identifier)
-		return b''.join(render(syn)).decode('utf-8')
+		return b''.join(self.theme._render(syn)).decode('utf-8')
 
-	def frame(self, control, type, identifier, channel=None):
+	def frame(self, type, identifier, channel=None):
 		"""
 		# Construct a transaction frame for reporting the status.
 		# Used after the completion of the dispatcher.
@@ -395,53 +371,7 @@ class Status(object):
 		if identifier:
 			ext['@transaction'] = [identifier]
 
-		return frames.compose(type, self.message(control.screen.render, identifier), channel, ext)
-
-class Monitor(object):
-	"""
-	# Terminal display management for monitoring changes in &Status instances.
-	"""
-
-	def render_status_text(self, monitor, identifier):
-		return monitor.message(self.screen.render, identifier)
-
-	def configure(self, lines:int):
-		"""
-		# Configure the scrolling region allocating &lines at
-		# the top or bottom of the screen for status display.
-
-		# This method should be called after window changes of any type.
-		# The window size is refreshed from the device; monitors should
-		# also be reallocated so that their Context positions can be adjusted.
-		"""
-
-		if not lines:
-			raise ValueError("line allocation must be non-zero")
-		self.count = lines
-		return self
-
-	def __init__(self, screen, fileno):
-		self.screen = screen
-		self.count = 0
-		self._buffer = []
-		self._fileno = fileno
-		self._io = io.FileIO(fileno, closefd=False, mode='w')
-		self._write = self._io.write
-
-	def install(self, monitor):
-		pass
-
-	def clear(self):
-		pass
-
-	def flush(self):
-		pass
-
-	def frame(self, monitor, offset=0):
-		pass
-
-	def update(self, monitor, fields, offset=0):
-		pass
+		return frames.compose(type, self.message(identifier), channel, ext)
 
 _metric_units = [
 	('', '', 0),
@@ -522,13 +452,9 @@ def form(module):
 
 	return t, getattr(module, 'types', {})
 
-def setup():
-	return Monitor(Legacy(), 1)
-
-def aggregate(control:Monitor, module, lanes=1, width=80):
+def aggregate(module, lanes=1):
 	"""
-	# Construct &Status instances allocated using &control for
-	# displaying the aggregate of the dimension allocations.
+	# Construct &Status instances for formatting frames using the theme &module.
 
 	# Returns a sequence of &Status instances for the dimensions
 	# and a single Status for the aggregation.
