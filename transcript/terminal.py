@@ -6,9 +6,90 @@ import io
 import typing
 import itertools
 import collections
+from collections.abc import Sequence, Mapping
 
 from ..context import tools
 from ..status import frames
+
+def r_count(field, value, isinstance=isinstance):
+	"""
+	# Render method for counts providing compression using metric units.
+	"""
+
+	if isinstance(value, str) or (value < 100000 and not isinstance(value, float)):
+		n = str(value)
+		unit = ''
+	else:
+		n, unit = _strings(value)
+
+	if n == "0":
+		# By default, don't color zeros.
+		field = 'plain'
+
+	return [
+		(field, n),
+		('unit-label', unit)
+	]
+
+@tools.struct()
+class Transaction(object):
+	order: Sequence[tuple[str, str]]
+	formats: Sequence[tuple[str, str, str, object]]
+	types: Mapping[str, str]
+
+	def __iter__(self):
+		for o, f in zip(self.order, self.formats):
+			yield *o, *f
+
+test_transactions = Transaction(
+	# order
+	[
+		('executing', 'work.w_executing'),
+		('usage', 'usage.r_process'),
+		('passed', 'work.w_executed'),
+		('skipped', 'work.w_granted'),
+		('failed', 'work.w_failed'),
+	],
+
+	# formats
+	[
+		('x', "executing", 'orange', tools.partial(r_count, 'executing')),
+		('u', "usage", 'violet', tools.partial(r_count, 'usage')),
+		('p', "passed", 'green', tools.partial(r_count, 'passed')),
+		('s', "skipped", 'blue', tools.partial(r_count, 'skipped')),
+		('f', "failed", 'red', tools.partial(r_count, 'failed')),
+	],
+
+	# types
+	{
+		'usage': 'rate_window',
+	},
+)
+
+process_transactions = Transaction(
+	# order
+	[
+		('executing', 'work.w_executing'),
+		('usage', 'usage.r_process'),
+		('cached', 'work.w_granted'),
+		('failed', 'work.w_failed'),
+		('processed', 'work.w_executed'),
+	],
+
+	# formats
+	[
+		('x', "executing", 'orange', tools.partial(r_count, 'executing')),
+		('u', "usage", 'violet', tools.partial(r_count, 'usage')),
+		('c', "cached", 'blue', tools.partial(r_count, 'cached')),
+		('f', "failed", 'red', tools.partial(r_count, 'failed')),
+		('p', "processed", 'green', tools.partial(r_count, 'processed')),
+	],
+
+	# types
+	{
+		'usage': 'rate_window',
+	}
+)
 
 def duration_repr(seconds) -> typing.Tuple[float, str]:
 	if seconds < 90:
@@ -398,26 +479,6 @@ def _strings(value, formatting="{:.1f}".format):
 	r = value / (10**power)
 	return (formatting(r), suffix)
 
-def r_count(field, value, isinstance=isinstance):
-	"""
-	# Render method for counts providing compression using metric units.
-	"""
-
-	if isinstance(value, str) or (value < 100000 and not isinstance(value, float)):
-		n = str(value)
-		unit = ''
-	else:
-		n, unit = _strings(value)
-
-	if n == "0":
-		# By default, don't color zeros.
-		field = 'plain'
-
-	return [
-		(field, n),
-		('unit-label', unit)
-	]
-
 def r_title(value):
 	"""
 	# Render method for monitor titles.
@@ -429,12 +490,12 @@ def r_title(value):
 		t += '[' + ']['.join(dimensions) + ']'
 	return [('plain', t)]
 
-def form(module):
+def form(xact):
 	"""
 	# Construct a &Theme from the provided order and formatting structures.
 	"""
 
-	t = Theme([k[0] for k in module.order]).configure()
+	t = Theme([k[0] for k in xact]).configure()
 	t.implement('duration', Theme.r_duration)
 	t.implement('title', r_title)
 
@@ -445,22 +506,22 @@ def form(module):
 	t.define('data-rate-transmit', 'default')
 	t.define('data-rate', 'gray')
 
-	for (k, path, width), (keycode, label, color, fn) in zip(module.order, module.formats):
+	for k, path, keycode, label, color, fn in xact:
 		if fn is not None:
 			t.implement(k, fn)
 		t.define(k, color, label, path)
 
-	return t, getattr(module, 'types', {})
+	return t, getattr(xact, 'types', {})
 
-def aggregate(module, lanes=1):
+def aggregate(xact, lanes=1):
 	"""
-	# Construct &Status instances for formatting frames using the theme &module.
+	# Construct &Status instances for formatting frames using the theme &xact.
 
 	# Returns a sequence of &Status instances for the dimensions
 	# and a single Status for the aggregation.
 	"""
 
-	t, types = form(module)
+	t, types = form(xact)
 	lanes_seq = [Status(t) for i in range(lanes)]
 	m = Status(t)
 

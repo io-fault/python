@@ -94,7 +94,7 @@ def dispatch(meta, log,
 		plan, monitors, summary, title, queue,
 		opened=False,
 		select=(lambda t,m,f: False), alerts=True,
-		window=8, frequency=64,
+		frequency=64,
 		kill=os.killpg, range=range, next=next
 	):
 	"""
