@@ -32,13 +32,6 @@ class Legacy(object):
 	# Abstraction for legacy ANSI/DEC escapes.
 	"""
 
-	_escape = b'\x1b'
-	_csi_open = _escape + b'['
-	_restore_cursor = _escape + b'8'
-	_store_cursor = _escape + b'7'
-	_nl = _csi_open + b'1B'
-	_reset_sgr = _csi_open + b'0;39;49;59m'
-
 	_styles = {
 		'default': b'39',
 		'black': b'30',
@@ -57,68 +50,12 @@ class Legacy(object):
 		'dark': b'38;5;236',
 		'gray': b'38;5;241',
 	}
-	_reset_text = _csi_open + _styles['default'] + b'm'
-
-	@classmethod
-	def _join(Class, *i:int, _sep=';'):
-		return _sep.join(map(str, i)).encode('ascii')
 
 	def __init__(self, encoding='utf-8'):
 		self.encoding = encoding
 		self.dimensions = (0, 0)
-		self._lines = 0
 		self._width = 0
 		self._height = 0
-		self._offset = -1
-		self._seek = b''
-
-	def set_scrolling_region(self, top:int, bottom:int):
-		"""
-		# Confine the scrolling region to the given rows.
-		"""
-
-		return self._csi_open + self._join(top+1, bottom+1) + b'r'
-
-	def reset_scrolling_region(self):
-		"""
-		# Release confinements on scrolling region.
-		"""
-
-		return self._csi_open + b'r'
-
-	def clear(self):
-		"""
-		# Clear the staionary area according to its configured width and default text properties.
-		"""
-
-		clearline = self._csi_open + self._join(self._width) + b'X'
-		return self._seek + (self._height * (clearline + self._nl))
-
-	def erase(self, area):
-		"""
-		# Erase the given area.
-		"""
-
-		clearline = self._csi_open + self._join(area[3]) + b'X'
-		return self.seek(area, 0, 0) + clearline
-
-	def seek(self, monitor, top_offset, left_offset) -> bytes:
-		"""
-		# Primitive relative seek; Context cursor position is *not* updated.
-		"""
-
-		top = monitor[0]
-		left = monitor[1]
-		return self._csi_open + self._join(top + top_offset + 1, left + left_offset + 1) + b'H'
-
-	def style(self, name:str, text:str):
-		"""
-		# Style the given &text as &name.
-
-		# Text color will be reset to the default.
-		"""
-
-		return self._csi_open + self._styles[name] + b'm' + text.encode(self.encoding) + self._reset_text
 
 	def render(self, phrase):
 		"""
@@ -126,7 +63,9 @@ class Legacy(object):
 		"""
 
 		for color, text in phrase:
-			yield self.style(color, text)
+			yield b'\x1b[' + self._styles[color] + b'm' + \
+				text.encode(self.encoding) + \
+				b'\x1b[39m'
 
 	def configure(self, height, width, lines):
 		"""
@@ -136,12 +75,6 @@ class Legacy(object):
 		self.dimensions = (height, width)
 		self._width = width
 		self._height = lines
-		self._offset = height - lines
-		self._seek = self._csi_open + self._join(self._offset+1, 1) + b'H'
-
-	@property
-	def position(self):
-		return (self._offset, 0)
 
 class Theme(object):
 	"""
@@ -444,6 +377,10 @@ class Status(object):
 		finally:
 			self.view = sv
 
+	def message(self, render, identifier):
+		syn = self.synopsis(identifier)
+		return b''.join(render(syn)).decode('utf-8')
+
 	def frame(self, control, type, identifier, channel=None):
 		"""
 		# Construct a transaction frame for reporting the status.
@@ -458,20 +395,15 @@ class Status(object):
 		if identifier:
 			ext['@transaction'] = [identifier]
 
-		msg = control.render_status_text(self, identifier)
-		return frames.compose(type, msg, channel, ext)
+		return frames.compose(type, self.message(control.screen.render, identifier), channel, ext)
 
 class Monitor(object):
 	"""
 	# Terminal display management for monitoring changes in &Status instances.
 	"""
 
-	def render_status_text(self, monitor, identifier) -> str:
-		"""
-		# Construct the string representation of the given &monitor' status.
-		"""
-
-		return b''.join(self.screen.render(monitor.synopsis(identifier))).decode(self.screen.encoding)
+	def render_status_text(self, monitor, identifier):
+		return monitor.message(self.screen.render, identifier)
 
 	def configure(self, lines:int):
 		"""
@@ -486,11 +418,6 @@ class Monitor(object):
 		if not lines:
 			raise ValueError("line allocation must be non-zero")
 		self.count = lines
-
-		from termios import tcgetwinsize
-		height, width = tcgetwinsize(self._fileno)
-		self.screen.configure(height, width, lines)
-
 		return self
 
 	def __init__(self, screen, fileno):
