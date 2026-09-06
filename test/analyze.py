@@ -19,8 +19,7 @@ from ..system import query
 from ..system import execution
 from ..status import python
 from ..time.system import elapsed
-from ..transcript import metrics
-from ..transcript.io import Log
+from ..status import io as stf
 
 from . import engine
 from . import types
@@ -73,10 +72,10 @@ class Harness(engine.Harness):
 		mid = os.environ['METRICS_IDENTITY']
 		os.environ['METRICS_IDENTITY'] += '/' + test.identifier
 
-		xact_metrics = metrics.Procedure(
-			work=metrics.Work(1, 0, 0, 0),
-			msg=metrics.Advisory(),
-			usage=metrics.Resource(),
+		xact_metrics = stf.Procedure(
+			work=stf.Work(1, 0, 0, 0),
+			msg=stf.Advisory(),
+			usage=stf.Resource(),
 		)
 		xid = '/'.join((self.project, self.factor, test.identifier))
 		self.log.xact_open(xid, xid + ": dispatched", {
@@ -116,18 +115,18 @@ class Harness(engine.Harness):
 				fail_image = ()
 
 			if report['conclusion'] == types.TestConclusion.skipped:
-				work = metrics.Work(0, 0, 1, 0)
+				work = stf.Work(0, 0, 1, 0)
 			elif report['conclusion'] == types.TestConclusion.failed:
-				work = metrics.Work(0, 0, 0, 1)
+				work = stf.Work(0, 0, 0, 1)
 			else:
 				assert report['conclusion'] == types.TestConclusion.passed
-				work = metrics.Work(0, 1, 0, 0)
+				work = stf.Work(0, 1, 0, 0)
 
 			# Construct metrics.
 			ut = int((rusage.total_system_time + rusage.total_user_time) * (10**9))
 			rt = stop_time - start_time
-			usage = metrics.Resource(1, int(rusage.maximum_memory), ut, rt)
-			xact_metrics = metrics.Procedure(work=work, msg=metrics.Advisory(), usage=usage)
+			usage = stf.Resource(1, int(rusage.maximum_memory), ut, rt)
+			xact_metrics = stf.Procedure(work=work, msg=stf.Advisory(), usage=usage)
 
 			self.log.xact_close(xid, xid + ": " + report['conclusion'].name, {
 				'@timestamp': [str(stop_time)],
@@ -308,7 +307,7 @@ def main(inv:process.Invocation) -> process.Exit:
 			factors.finder.connect(x)
 		intercept(product, project)
 
-	log = Log.stdout(channel=channel)
+	log = stf.Log.stdout(channel=channel)
 	log.declare()
 
 	module_path = '.'.join((project, rfpath))
