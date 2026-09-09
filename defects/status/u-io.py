@@ -1,8 +1,7 @@
 """
 # Validate the field sets and functionality of the metrics module.
 """
-from dataclasses import fields
-from ...transcript import metrics as module
+from ...status import io as module
 
 def test_Work(test):
 	w = module.Work()
