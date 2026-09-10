@@ -3,7 +3,7 @@
 """
 from ..context import string
 
-def parse(text:str) -> tuple[
+def structure(text:str) -> tuple[
 		list[tuple[str, str]],
 		str,
 		list[str]
@@ -40,8 +40,9 @@ def parse(text:str) -> tuple[
 			raise ValueError("unknown argument field qualifier")
 
 	return ([tuple(x.split('=', 1)+[None])[:2] for x in env], exe, parameters)
+parse = structure
 
-def serialize(triple, limit=8) -> str:
+def sequence(triple, limit=8) -> str:
 	"""
 	# Serialize the environment, execution path, and command arguments into a string.
 	"""
@@ -77,3 +78,4 @@ def serialize(triple, limit=8) -> str:
 			yield '\t|'
 			yield f
 			yield '\n'
+serialize = sequence

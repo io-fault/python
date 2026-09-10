@@ -1,15 +1,15 @@
 from ...vector import snapshot as module
 
-def test_parse_empty(test):
+def test_structure_empty(test):
 	"""
-	# - &module.parse
+	# - &module.structure
 	"""
-	test/module.parse("") == ([], "", [])
-	test/module.parse(" ") == ([], "", [])
+	test/module.structure("") == ([], "", [])
+	test/module.structure(" ") == ([], "", [])
 
-def test_parse_env(test):
+def test_structure_env(test):
 	"""
-	# - &module.parse
+	# - &module.structure
 	"""
 	sample = "" + \
 		"PATH=/reset\n" + \
@@ -17,11 +17,11 @@ def test_parse_env(test):
 		"\t|cat\n" + \
 		"\t|/file\n"
 
-	test/module.parse(sample) == ([('PATH', "/reset")], "/bin/cat", ["cat", "/file"])
+	test/module.structure(sample) == ([('PATH', "/reset")], "/bin/cat", ["cat", "/file"])
 
-def test_parse_multiple_env(test):
+def test_structure_multiple_env(test):
 	"""
-	# - &module.parse
+	# - &module.structure
 	"""
 	sample = "" + \
 		"PATH=/reset\n" + \
@@ -30,25 +30,25 @@ def test_parse_multiple_env(test):
 		"\t|cat\n" + \
 		"\t|/file\n"
 
-	test/module.parse(sample) == (
+	test/module.structure(sample) == (
 		[('PATH', "/reset"), ('OPTION', "data")],
 		"/bin/cat", ["cat", "/file"]
 	)
 
-def test_parse_no_env(test):
+def test_structure_no_env(test):
 	"""
-	# - &module.parse
+	# - &module.structure
 	"""
 	sample = "" + \
 		"/bin/cat\n" + \
 		"\t|cat\n" + \
 		"\t|/file\n"
 
-	test/module.parse(sample) == ([], "/bin/cat", ["cat", "/file"])
+	test/module.structure(sample) == ([], "/bin/cat", ["cat", "/file"])
 
-def test_parse_env_unset(test):
+def test_structure_env_unset(test):
 	"""
-	# - &module.parse
+	# - &module.structure
 	"""
 	sample = "" + \
 		"VAR\n" \
@@ -56,11 +56,11 @@ def test_parse_env_unset(test):
 		"\t|cat\n" + \
 		"\t|/file\n"
 
-	test/module.parse(sample) == ([('VAR', None)], "/bin/cat", ["cat", "/file"])
+	test/module.structure(sample) == ([('VAR', None)], "/bin/cat", ["cat", "/file"])
 
-def test_parse_newlines(test):
+def test_structure_newlines(test):
 	"""
-	# - &module.parse
+	# - &module.structure
 	"""
 	sample = "" + \
 		"/bin/cat\n" + \
@@ -68,11 +68,11 @@ def test_parse_newlines(test):
 		"\t|/file\n" + \
 		"\t\\n\n"
 
-	test/module.parse(sample) == ([], "/bin/cat", ["cat", "/file\n"])
+	test/module.structure(sample) == ([], "/bin/cat", ["cat", "/file\n"])
 
-def test_parse_newlines_suffix(test):
+def test_structure_newlines_suffix(test):
 	"""
-	# - &module.parse
+	# - &module.structure
 	"""
 	sample = "" + \
 		"/bin/cat\n" + \
@@ -80,11 +80,11 @@ def test_parse_newlines_suffix(test):
 		"\t|/file\n" + \
 		"\t\\n suffix\n"
 
-	test/module.parse(sample) == ([], "/bin/cat", ["cat", "/file\nsuffix"])
+	test/module.structure(sample) == ([], "/bin/cat", ["cat", "/file\nsuffix"])
 
-def test_parse_zero_newlines(test):
+def test_structure_zero_newlines(test):
 	"""
-	# - &module.parse
+	# - &module.structure
 	"""
 	sample = "" + \
 		"/bin/cat\n" + \
@@ -92,11 +92,11 @@ def test_parse_zero_newlines(test):
 		"\t|/file\n" + \
 		"\t\\ suffix\n"
 
-	test/module.parse(sample) == ([], "/bin/cat", ["cat", "/filesuffix"])
+	test/module.structure(sample) == ([], "/bin/cat", ["cat", "/filesuffix"])
 
-def test_parse_plural_newlines(test):
+def test_structure_plural_newlines(test):
 	"""
-	# - &module.parse
+	# - &module.structure
 	"""
 	sample = "" + \
 		"/bin/cat\n" + \
@@ -104,11 +104,11 @@ def test_parse_plural_newlines(test):
 		"\t|/file\n" + \
 		"\t\\nnn suffix\n"
 
-	test/module.parse(sample) == ([], "/bin/cat", ["cat", "/file\n\n\nsuffix"])
+	test/module.structure(sample) == ([], "/bin/cat", ["cat", "/file\n\n\nsuffix"])
 
-def test_parse_no_op(test):
+def test_structure_no_op(test):
 	"""
-	# - &module.parse
+	# - &module.structure
 	"""
 	sample = "" + \
 		"/bin/cat\n" + \
@@ -117,22 +117,22 @@ def test_parse_no_op(test):
 		"\t\\\n" + \
 		"\t\\\n"
 
-	test/module.parse(sample) == ([], "/bin/cat", ["cat", "/file"])
+	test/module.structure(sample) == ([], "/bin/cat", ["cat", "/file"])
 
-def test_parse_unknown_qual(test):
+def test_structure_unknown_qual(test):
 	"""
-	# - &module.parse
+	# - &module.structure
 	"""
 	sample = "" + \
 		"/bin/cat\n" + \
 		"\t|cat\n" + \
 		"\t?/file\n"
 
-	test/ValueError ^ (lambda: module.parse(sample))
+	test/ValueError ^ (lambda: module.structure(sample))
 
-def test_serialize_escapes(test):
+def test_sequence_escapes(test):
 	"""
-	# - &module.parse
+	# - &module.structure
 	"""
 	sample = (
 		[('ENV', 'env-string')],
@@ -144,7 +144,7 @@ def test_serialize_escapes(test):
 		]
 	)
 
-	sxp = ''.join(module.serialize(sample))
+	sxp = ''.join(module.sequence(sample))
 	test/sxp.split('\n') == [
 		"ENV=env-string",
 		"/bin/cat",
@@ -156,9 +156,9 @@ def test_serialize_escapes(test):
 		"",
 	]
 
-def test_serialize_none(test):
+def test_sequence_none(test):
 	"""
-	# - &module.parse
+	# - &module.structure
 	"""
 	sample = (
 		[('ENV', 'env-string'), ('ZERO', None)],
@@ -169,7 +169,7 @@ def test_serialize_none(test):
 		]
 	)
 
-	sxp = ''.join(module.serialize(sample))
+	sxp = ''.join(module.sequence(sample))
 	test/sxp.split('\n') == [
 		"ENV=env-string",
 		"ZERO",
@@ -181,9 +181,9 @@ def test_serialize_none(test):
 		"",
 	]
 
-def test_parse_space_separated_fields(test):
+def test_structure_space_separated_fields(test):
 	"""
-	# - &module.parse
+	# - &module.structure
 	"""
 	sample = (
 		[('ENV', 'env-string'), ('ZERO', None)],
@@ -207,8 +207,4 @@ def test_parse_space_separated_fields(test):
 		"",
 	])
 
-	test/sample == module.parse(source)
-
-if __name__ == '__main__':
-	import sys; from ...test import library as libtest
-	libtest.execute(sys.modules[__name__])
+	test/sample == module.structure(source)
