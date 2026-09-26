@@ -404,7 +404,14 @@ k_wait_process(PyObj module, PyObj args)
 static PyObj
 k_reap_process(PyObj module, PyObj pid_ob)
 {
-	const int waitopt = WEXITED | WNOHANG;
+	const int waitopt = WEXITED
+	#ifndef __MACH__
+		/*
+			// Exclude WNOHANG on macOS as it does not perform reliably.
+		*/
+		| WNOHANG
+	#endif
+	;
 	short retry_count = 0;
 	int err = 0, exitcode = 0;
 	pid_t pid = PyLong_AsPid(pid_ob);
