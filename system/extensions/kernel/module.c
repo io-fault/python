@@ -285,136 +285,69 @@ k_initialize(PyObj mod, PyObj ctx)
 }
 
 /**
-	// waitid interface handling retry logic and reporting Python errors.
-
-	// Usage is primarily intended for waiting or reaping, but also neither
-	// in the case of &k_test_process where it just reports on the child's
-	// running status.
-*/
-static pid_t
-wait_or_reap(int *status, pid_t pid, int options)
-{
-	int err;
-	pid_t rpid = 0;
-	short retry_count = 0;
-
-	retry:
-	{
-		siginfo_t si = {0,};
-
-		if (pid < -1)
-			err = waitid(P_PGID, -pid, &si, WEXITED | options);
-		else if (pid == -1)
-			err = waitid(P_ALL, pid, &si, WEXITED | options);
-		else
-			err = waitid(P_PID, pid, &si, WEXITED | options);
-
-		if (options & WNOWAIT)
-			rpid = si.si_pid;
-		else
-			rpid = pid;
-
-		switch (si.si_code)
-		{
-			case CLD_EXITED:
-				*status = si.si_status;
-			break;
-
-			case CLD_DUMPED:
-			case CLD_KILLED:
-				*status = -si.si_status;
-			break;
-
-			case 0:
-			default:
-				if (options & WNOHANG)
-				{
-					rpid = 0;
-					*status = si.si_pid;
-				}
-			break;
-		}
-	}
-
-	if (err)
-	{
-		switch (errno)
-		{
-			case EINTR:
-			{
-				if (PyErr_Occurred() || PyErr_CheckSignals())
-					return(-1);
-			}
-			break;
-
-			case ECHILD:
-			{
-				if (options & WNOHANG && options & WNOWAIT)
-				{
-					// Special case for k_test_process.
-					return(-2);
-				}
-			}
-			default:
-				PyErr_SetFromErrno(PyExc_OSError);
-				return(-1);
-			break;
-		}
-
-		// EINTR without Python exception being set.
-		assert(errno == EINTR);
-
-		if (options & WNOHANG)
-		{
-			// Attempt to control an unusual exception case where EINTR
-			// is somehow reported despiite the process being expected
-			// to have exited. (WNOHANG)
-			++retry_count;
-			if (retry_count >= 4)
-			{
-				PyErr_SetString(PyExc_RuntimeError, "reap exceeded retry limit");
-				return(-1);
-			}
-
-			goto retry;
-		}
-		else
-			goto retry; // Unlimited under k_wait_process.
-	}
-
-	return(rpid);
-}
-
-/**
 	// Test whether the process exists or not.
 */
 static PyObj
 k_test_process(PyObj module, PyObj args)
 {
-	int status = 0;
-	pid_t rpid, pid = -1;
+	const int waitopt = WEXITED | WNOHANG | WNOWAIT;
+	short retry_count = 0;
+	int err = 0;
+	pid_t pid = -1;
+	siginfo_t si = {0,};
 
 	if (!PyArg_ParseTuple(args, (char[]){'|', Py_FORMAT_CODE(pid)[0], '\0'}, &pid))
 		return(NULL);
 
-	rpid = wait_or_reap(&status, pid, WNOWAIT|WNOHANG);
-	switch (rpid)
+	retry:
 	{
-		case -1:
-			return(NULL);
-		break;
+		if (pid < -1)
+			err = waitid(P_PGID, -pid, &si, waitopt);
+		else if (pid == -1)
+			err = waitid(P_ALL, pid, &si, waitopt);
+		else
+			err = waitid(P_PID, pid, &si, waitopt);
 
-		case -2:
-			// ECHILD
-			rpid = 0;
-		break;
+		if (err)
+		{
+			switch (errno)
+			{
+				case EINTR:
+				{
+					if (PyErr_Occurred() || PyErr_CheckSignals())
+						return(NULL);
+				}
+				break;
 
-		case 0:
-			rpid = pid;
-		break;
+				case ECHILD:
+				{
+					// Special case for test; zero designates none.
+					return(Py_NEW_VALUE(0));
+				}
+				break;
+
+				default:
+				{
+					PyErr_SetFromErrno(PyExc_OSError);
+					return(NULL);
+				}
+				break;
+			}
+
+			assert(errno == EINTR);
+
+			++retry_count;
+			if (retry_count >= 4)
+			{
+				PyErr_SetString(PyExc_RuntimeError, "reap exceeded retry limit");
+				return(NULL);
+			}
+
+			goto retry;
+		}
 	}
 
-	return(Py_NEW_VALUE(rpid));
+	return(Py_NEW_VALUE(si.si_pid == 0 ? pid : si.si_pid));
 }
 
 /**
@@ -423,17 +356,46 @@ k_test_process(PyObj module, PyObj args)
 static PyObj
 k_wait_process(PyObj module, PyObj args)
 {
-	int status = 0;
-	pid_t rpid, pid = -1;
+	const int waitopt = WEXITED | WNOWAIT;
+	int err = 0;
+	pid_t pid = -1;
+	siginfo_t si = {0,};
 
 	if (!PyArg_ParseTuple(args, (char[]){'|', Py_FORMAT_CODE(pid)[0], '\0'}, &pid))
 		return(NULL);
 
-	rpid = wait_or_reap(&status, pid, WNOWAIT);
-	if (rpid == -1)
-		return(NULL);
+	retry:
+	{
+		if (pid < -1)
+			err = waitid(P_PGID, -pid, &si, waitopt);
+		else if (pid == -1)
+			err = waitid(P_ALL, pid, &si, waitopt);
+		else
+			err = waitid(P_PID, pid, &si, waitopt);
 
-	return(Py_NEW_VALUE(rpid));
+		if (err)
+		{
+			switch (errno)
+			{
+				case EINTR:
+				{
+					if (PyErr_Occurred() || PyErr_CheckSignals())
+						return(NULL);
+				}
+				break;
+
+				default:
+					PyErr_SetFromErrno(PyExc_OSError);
+					return(NULL);
+				break;
+			}
+
+			assert(errno == EINTR);
+			goto retry;
+		}
+	}
+
+	return(Py_NEW_VALUE(si.si_pid));
 }
 
 /**
@@ -442,8 +404,11 @@ k_wait_process(PyObj module, PyObj args)
 static PyObj
 k_reap_process(PyObj module, PyObj pid_ob)
 {
-	int exitcode = 0;
+	const int waitopt = WEXITED | WNOHANG;
+	short retry_count = 0;
+	int err = 0, exitcode = 0;
 	pid_t pid = PyLong_AsPid(pid_ob);
+	siginfo_t si = {0,};
 
 	if (pid < 1)
 	{
@@ -453,21 +418,60 @@ k_reap_process(PyObj module, PyObj pid_ob)
 		return(NULL);
 	}
 
-	switch (wait_or_reap(&exitcode, pid, WNOHANG))
+	retry:
 	{
-		case -1:
-			return(NULL);
-		break;
+		err = waitid(P_PID, pid, &si, waitopt);
 
-		case 0:
-			errno = EBUSY;
-			PyErr_SetFromErrno(PyExc_OSError);
-			return(NULL);
-		break;
+		if (!err)
+		{
+			switch (si.si_code)
+			{
+				case CLD_EXITED:
+					exitcode = si.si_status;
+				break;
 
-		default:
-			;
-		break;
+				case CLD_DUMPED:
+				case CLD_KILLED:
+					exitcode = -si.si_status;
+				break;
+
+				case 0:
+				default:
+					// No error and no status change.
+					// Process did not exit.
+					// On macOS 27, this can, incorrectly, happen when WNOHANG is used.
+					errno = EBUSY;
+					PyErr_SetFromErrno(PyExc_OSError);
+					return(NULL);
+				break;
+			}
+		}
+		else
+		{
+			switch (errno)
+			{
+				case EINTR:
+				{
+					if (PyErr_Occurred() || PyErr_CheckSignals())
+						return(NULL);
+				}
+				break;
+
+				default:
+					PyErr_SetFromErrno(PyExc_OSError);
+					return(NULL);
+				break;
+			}
+
+			++retry_count;
+			if (retry_count >= 4)
+			{
+				PyErr_SetString(PyExc_RuntimeError, "reap exceeded retry limit");
+				return(NULL);
+			}
+
+			goto retry;
+		}
 	}
 
 	return(Py_NEW_VALUE(exitcode));
